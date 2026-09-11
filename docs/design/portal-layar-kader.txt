@@ -1,0 +1,728 @@
+## Empat fitur utama
+Navigasi dikunci jadi empat: 2a Beranda, 2b Data Anak, 2c Laporan, 2d Pengaturan. Alur penimbangan di 1a masuk dari kartu aksi di Beranda, bukan dari nav, karena itu tugas bukan tempat.
+2a
+Beranda, dasbor
+Angka periode berjalan, distribusi status gizi, tren kehadiran, lalu daftar anak yang perlu tindakan. Bukan hiasan: setiap blok menjawab satu pertanyaan yang ditanyakan bidan tiap bulan.
+Portal Posyandu
+Melati 2, RW 04
+Beranda
+Data Anak
+Laporan
+Pengaturan
+Beranda
+Periode Agustus 2026, data per 14 Agustus
+3 data belum terkirim
+Kirim sekarang
+Mulai Penimbangan Hari Ini
+24 anak belum diukur bulan ini
+Sasaran, S
+42
+balita terdaftar
+Semua balita 0 sampai 59 bulan di RW 04.
+Ditimbang, D
+18
+dari 42 sasaran
+Sudah punya berat dan tinggi bulan ini. Sesi belum ditutup.
+Kehadiran, D/S
+43%
+12 poin
+Bulan lalu 55%. Agustus masih berjalan, angkanya belum final.
+Naik, N
+12
+dari 18 yang diukur
+Berat naik memenuhi KBM dibanding bulan lalu.
+Perlu tindakan
+3
+Rujuk bulan ini
+Satu gizi buruk, satu sangat pendek, satu berat tidak naik dua bulan berturut. Ketiganya ada di daftar bawah.
+Status gizi BB/U, 18 anak yang diukur
+Berat badan normal
+13
+Berat badan kurang
+3
+Sangat kurang
+1
+Risiko berat lebih
+1
+24 anak belum diukur tidak dihitung di sini. Angka ini bukan gambaran seluruh posyandu sampai sesi ditutup.
+Kehadiran D/S, 6 bulan
+38%
+Mar
+45%
+Apr
+52%
+Mei
+48%
+Jun
+55%
+Jul
+43%
+Agu
+Agustus masih berjalan, jadi batangnya belum final.
+Perlu tindakan bulan ini
+Diurutkan dari yang paling mendesak
+MA
+Muhammad Alfarizqi Nurhidayat
+31 bulan, RT 04
+Gizi buruk
+BB/PB -3,1 SD, turun dari -2,6 SD bulan lalu
+Buka detail
+RS
+Raka Satria Wijaya
+22 bulan, RT 02
+Sangat pendek
+TB/U -3,4 SD, tiga bulan berturut di bawah -3 SD
+Buka detail
+SF
+Syifa Fauziah
+14 bulan, RT 04
+T, tidak naik
+Berat sama dua bulan berturut, 7,3 kg
+Buka detail
+2b
+Data Anak, master data dan detail
+Tabel master untuk mencari dan mengelola, detail untuk membaca satu anak. Kolom yang ditampilkan dibatasi pada yang dipakai kader saat mencari: nama, umur, RT, pengukuran terakhir, status.
+Portal Posyandu
+Melati 2, RW 04
+Beranda
+Data Anak
+Laporan
+Pengaturan
+Data Anak
+42 balita terdaftar di RW 04
+Tambah balita
+Cari nama, NIK, atau nama ibu
+Semua RT
+RT 01
+RT 02
+RT 03
+RT 04
+RT 05
+Perlu perhatian
+Nama anak
+Umur
+RT
+Ibu
+Diukur terakhir
+Status BB/PB
+Aksi
+NR
+Nabila Ayu Ramadhani
+3204 0122 0724 0002
+18 bulan
+03
+Wulandari Puspitasari
+14 Agu 2026
+Gizi baik
+Detail
+MA
+Muhammad Alfarizqi Nurhidayat
+3204 0115 0324 0007
+31 bulan
+04
+Nurhayati
+14 Agu 2026
+Gizi buruk
+Detail
+DP
+Dewa Putu Aryawan
+NIK belum lengkap
+7 bulan
+01
+Ni Luh Sari Dewi
+10 Jul 2026
+Belum diukur
+Detail
+KH
+Kayla Hasna Zafira
+3204 0158 1123 0004
+43 bulan
+03
+Retno Widyaningsih
+14 Agu 2026
+Gizi baik
+Detail
+RS
+Raka Satria Wijaya
+3204 0109 0225 0001
+22 bulan
+02
+Endang Sulastri
+14 Agu 2026
+Gizi baik
+Detail
+SF
+Syifa Fauziah
+3204 0144 0625 0009
+14 bulan
+04
+Dewi Kartika
+14 Agu 2026
+Gizi kurang
+Detail
+Menampilkan 1 sampai 6 dari 42 balita
+Sebelumnya
+Berikutnya
+Portal Posyandu
+Melati 2, RW 04
+Beranda
+Data Anak
+Laporan
+Pengaturan
+Detail anak
+Data Anak, Nabila Ayu Ramadhani
+Ubah data
+Ukur sekarang
+NR
+Nabila Ayu Ramadhani
+Perempuan, 18 bulan, lahir 22 Juli 2024, RT 03, anak ke-2
+NIK
+3204 0122 0724 0002
+Ibu
+Wulandari Puspitasari
+Telepon
+0857 2210 4418
+Status terakhir, 14 Agustus 2026
+Berat badan menurut umur, BB/U
+Berat badan normal
+-0,7 z-score
+Panjang badan menurut umur, PB/U
+Pendek
+-2,3 z-score
+Berat menurut panjang, BB/PB
+Gizi baik
+0,5 z-score
+Acuan: standar pertumbuhan WHO 2006, dihitung dari parameter LMS. Nilainya sama dengan tabel Permenkes No. 2 Tahun 2020.
+Riwayat pengukuran
+Tanggal
+Berat
+Panjang
+LILA
+BB/U
+TB/U
+Pertumbuhan
+Kader
+14 Agu 2026
+9,4 kg
+74,0 cm
+14,2 cm
+-0,7
+-2,3
+N, naik
+Siti Aminah
+10 Jul 2026
+9,0 kg
+73,7 cm
+14,1 cm
+-0,9
+-2,1
+T, tidak naik
+Siti Aminah
+12 Jun 2026
+8,9 kg
+73,3 cm
+14,0 cm
+-0,8
+-1,9
+N, naik
+Rohmah Yuliati
+08 Mei 2026
+8,7 kg
+72,9 cm
+14,0 cm
+-0,8
+-1,7
+N, naik
+Siti Aminah
+Imunisasi
+Dasar lengkap
+Booster belum lengkap
+Detail per vaksin ada di Buku KIA fisik. Aplikasi hanya menyimpan status ringkas.
+Catatan bidan
+14 Agustus 2026, Bidan Ratih Kusumaningrum
+PB/U dua bulan berturut di bawah -2 SD. Ibu diminta datang ke Puskesmas untuk pemeriksaan lanjutan dalam dua minggu.
+Tambah catatan
+2c
+Laporan, harian bulanan tahunan
+Rekap yang saya rancang dari model data Anda, bukan format baku. Kalau Puskesmas punya format resmi yang harus diikuti, kirim kolomnya dan saya sesuaikan.
+Portal Posyandu
+Melati 2, RW 04
+Beranda
+Data Anak
+Laporan
+Pengaturan
+Laporan
+Posyandu Melati 2, RW 04 Kelurahan Cibaduyut
+Unduh CSV
+Cetak A4
+Harian
+Bulanan
+Tahunan
+Agustus 2026
+Periode masih berjalan, angka belum final
+Sasaran, S
+42
+balita
+Ditimbang, D
+18
+anak
+Kehadiran, D/S
+43%
+12 poin
+Naik, N/D
+67%
+12 dari 18
+Rekap per RT
+S sasaran, D ditimbang, N naik, T tidak naik, O tidak ditimbang bulan lalu, B baru pertama kali, BGM di bawah garis merah
+RT
+S
+D
+D/S
+N
+T
+O
+B
+BGM
+RT 01
+8
+4
+50%
+3
+1
+0
+0
+0
+RT 02
+9
+3
+33%
+2
+1
+0
+0
+1
+RT 03
+10
+5
+50%
+3
+1
+1
+0
+0
+RT 04
+9
+4
+44%
+3
+1
+0
+0
+1
+RT 05
+6
+2
+33%
+1
+0
+0
+1
+0
+Total
+42
+18
+43%
+12
+4
+1
+1
+2
+Status gizi BB/PB, 18 anak yang diukur
+Gizi baik
+14
+Gizi kurang
+3
+Gizi buruk
+1
+Cakupan pemeriksaan tambahan
+Imunisasi dicatat
+16
+Asupan gizi
+11
+Pemeriksaan gigi
+7
+KPSP
+4
+Semua pemeriksaan ini opsional, jadi cakupan rendah bukan berarti data salah.
+2d
+Pengaturan, batas pengukuran
+Layar ini menjawab pertanyaan terbuka dari batch sebelumnya: ambang validasi lunak tidak lagi ditebak desainer, tapi diatur bidan di sini. Ambang z-score sendiri terkunci karena ditetapkan Permenkes.
+Portal Posyandu
+Melati 2, RW 04
+Beranda
+Data Anak
+Laporan
+Pengaturan
+Pengaturan
+Batas pengukuran anak
+Masuk sebagai Bidan
+Batas di sini hanya memicu pertanyaan konfirmasi, tidak pernah memblokir kader. Perubahan berlaku untuk pengukuran baru, data lama tidak dihitung ulang.
+Rentang wajar pengukuran
+Angka di luar rentang ini memunculkan peringatan tegas. Kader tetap bisa melanjutkan.
+Berat badan
+Satuan kilogram
+Minimal
+1,0 kg
+Maksimal
+30,0 kg
+Panjang atau tinggi badan
+Satuan sentimeter
+Minimal
+40,0 cm
+Maksimal
+130,0 cm
+LILA, lingkar lengan atas
+Satuan sentimeter
+Minimal
+8,0 cm
+Maksimal
+25,0 cm
+LIKA, lingkar kepala
+Satuan sentimeter
+Minimal
+30,0 cm
+Maksimal
+60,0 cm
+Ambang selisih antar bulan
+Memicu pertanyaan "Yakin dengan angka ini?" saat selisih dari bulan lalu melebihi batas.
+Berat naik maksimal
+Dalam satu bulan
+2,0 kg
+Berat turun maksimal
+Dalam satu bulan
+1,5 kg
+Sedang diubah
+Tinggi berkurang
+Hampir selalu kesalahan ukur
+0,5 cm
+Peringatan muncul bila tinggi berkurang lebih dari angka ini.
+Umur maksimal balita
+Anak di atas umur ini keluar dari sasaran
+60 bulan
+Ambang z-score, terkunci
+Ditetapkan Permenkes No. 2 Tahun 2020, tidak bisa diubah dari aplikasi.
+di bawah -3 SD
+-3 SD sampai -2 SD
+-2 SD sampai +1 SD
+di atas +1 SD
+Tabel standar antropometri
+Terunduh 12 Agustus 2026, 1,4 MB. Perlu ada di HP agar hasil bisa tampil saat offline.
+Tersedia di HP
+Perbarui tabel
+Siapa boleh mengubah batas
+Bidan
+Admin
+Kader
+Kader melihat batas ini tapi tidak bisa mengubahnya. Setiap perubahan dicatat dengan nama dan waktu.
+Simpan pengaturan
+Kembalikan ke bawaan
+Terakhir diubah 12 Agustus 2026 oleh Bidan Ratih Kusumaningrum
+1b
+### Mode B, Meja Ukur
+Desktop 1440px, tidak tersedia di bawah 1024px. Bukan wizard yang dilebarkan: seluruh field ada sekaligus dalam satu panel, kartu hasil muncul begitu berat dan tinggi terisi. Field tetap besar, teks tidak dikecilkan.
+Portal Posyandu
+Melati 2, RW 04
+Beranda
+Meja ukur
+Data Anak
+Laporan
+Pengaturan
+Meja ukur, periode Agustus 2026
+3 data belum terkirim
+Tutup sesi
+Antrean
+Sisa 24 anak
+NR
+Nabila Ayu Ramadhani
+18 bulan, RT 03
+MA
+Muhammad Alfarizqi Nurhidayat
+31 bulan, RT 04
+KH
+Kayla Hasna Zafira
+43 bulan, RT 03
+AS
+Aisyah Salsabila
+26 bulan, RT 04
+Selesai
+Pintasan papan tombol
+Panah atas dan bawah: pindah anak
+Tab: pindah field
+Enter: simpan lalu muat anak berikutnya
+Ctrl dan L: lewati anak ini
+NR
+Nabila Ayu Ramadhani
+NIK 3204 0122 0724 0002, 18 bulan, RT 03, anak ke-2, ibu Wulandari Puspitasari
+Hadir
+Tidak hadir
+Berat badan
+9,4
+kg
+Bulan lalu 9,0 kg
+Panjang badan
+74,0
+cm
+Bulan lalu 73,7 cm
+Cara ukur
+Terlentang
+Berdiri
+LILA, lingkar lengan atas
+14,2
+cm
+LIKA, lingkar kepala
+46,8
+cm
+Pemeriksaan tambahan
+Imunisasi dasar
+Asupan gizi
+Gigi
+KPSP
+Hasil status gizi, dihitung otomatis
+BB/U
+Berat badan normal
+-0,7 z-score
+Berat badan anak sesuai untuk umurnya.
+PB/U
+Pendek
+-2,3 z-score
+Panjang badan anak kurang untuk umurnya.
+BB/PB
+Gizi baik
+0,5 z-score
+Berat badan anak seimbang dengan panjang badannya.
+Acuan: standar pertumbuhan WHO 2006, dihitung dari parameter LMS. Nilainya sama dengan tabel Permenkes No. 2 Tahun 2020.
+Simpan dan lanjut, Enter
+Lewati, Ctrl dan L
+Tersimpan di HP, akan terkirim saat ada sinyal.
+1a
+## Versi mobile, alur kader Mode A
+Semua frame 360px, dimulai dari Beranda. Kader membuka sesi lalu bekerja menyusuri antrean. Setelah simpan, langsung masuk ke anak berikutnya, tidak pernah dipaksa kembali ke daftar untuk mencari nama.
+B-1 Beranda, dasbor Versi 360px dari 2a
+3 data belum terkirim
+Kirim
+SA
+Posyandu Melati 2
+Siti Aminah, kader
+Mulai Penimbangan Hari Ini
+24 anak belum diukur
+Sasaran
+42
+Ditimbang
+18
+Kehadiran
+43%
+Perlu tindakan
+3
+Status gizi BB/U
+Normal
+13
+Kurang
+3
+Sangat kurang
+1
+Risiko lebih
+1
+Beranda
+Data Anak
+Laporan
+Pengaturan
+A-2 Beranda kader Satu aksi dominan, lalu ringkasan
+3 data belum terkirim
+Kirim
+SA
+Posyandu Melati 2
+Siti Aminah, kader
+Mulai Penimbangan Hari Ini
+Periode Agustus 2026
+Periode berjalan
+42
+Terdaftar
+18
+Sudah diukur
+5
+Belum hadir
+3
+Perlu perhatian
+Beranda
+Data Anak
+Laporan
+Pengaturan
+A-3 Daftar balita Baris 360px: inisial, nama, umur, satu chip
+Daftar balita
+Cari nama atau NIK
+Semua RT
+RT 03
+RT 04
+Sudah diukur
+Belum
+NR
+Nabila Ayu Ramadhani
+18 bulan, 1 tahun 6 bulan
+Gizi baik
+RT 03
+MA
+Muhammad Alfarizqi Nurhidayat
+31 bulan, 2 tahun 7 bulan
+Gizi kurang
+RT 04
+DP
+Dewa Putu Aryawan
+7 bulan
+Belum diukur
+NIK belum lengkap
+KH
+Kayla Hasna Zafira
+43 bulan, 3 tahun 7 bulan
+Gizi baik
+RT 03
+Beranda
+Data Anak
+Laporan
+Pengaturan
+A-4 Antrean sesi Siapa berikutnya, sisa berapa, yang dilewati tidak hilang
+Sesi penimbangan
+14 Agustus 2026
+Tutup sesi
+Berikutnya
+Sisa 24 anak
+NR
+Nabila Ayu Ramadhani
+18 bulan, RT 03
+Mulai ukur Nabila
+Lewati, kembali nanti
+Menunggu
+MA
+Muhammad Alfarizqi N.
+KH
+Kayla Hasna Zafira
+Dilewati, 2 anak
+DP
+Dewa Putu Aryawan
+Anak sedang menyusu
+Ukur
+RS
+Raka Satria Wijaya
+Menunggu ibunya
+Ukur
+A-4 Langkah 1, kehadiran Tidak hadir tetap disimpan untuk hitung D/S
+Nabila Ayu Ramadhani
+Langkah 1 dari 4
+NR
+Nabila Ayu Ramadhani
+18 bulan, RT 03, anak ke-2
+Apakah Nabila hadir hari ini?
+Hadir
+Tidak hadir
+Kalau tidak hadir, catatannya tetap disimpan lalu langsung lanjut ke anak berikutnya.
+A-4 Langkah 2 dan A-5 Keypad angka besar, angka aktif 40px
+Nabila Ayu Ramadhani
+Langkah 2 dari 4, antropometri
+Berat badan
+9,4
+kg
+Bulan lalu 9,0 kg.
+0,1
+0,1
+Koreksi halus
+1
+2
+3
+4
+5
+6
+7
+8
+9
+,
+0
+Hapus
+Panjang badan
+Belum diisi
+cm
+Cara ukur
+Terlentang
+Berdiri
+Lanjut ke pemeriksaan
+A-5 Validasi lunak Konfirmasi, bukan blokir
+Nabila Ayu Ramadhani
+Langkah 2 dari 4, antropometri
+Berat badan
+4,2
+kg
+Yakin dengan angka ini?
+Bulan lalu 9,0 kg, sekarang 4,2 kg.
+Perbaiki
+Ya, benar
+Varian state
+Di luar rentang: 34,0 kg tidak mungkin untuk balita. Peringatan lebih tegas, tetap bisa dilanjutkan.
+Panjang badan lebih pendek dari bulan lalu, 73,7 cm menjadi 72,4 cm. Hampir selalu kesalahan ukur.
+Kunjungan pertama: tidak ada validasi selisih, hanya rentang. Layar tidak menampilkan "Bulan lalu: -".
+A-4 Langkah 3, pemeriksaan tambahan Semua opsional, tombol Lewati jelas
+Nabila Ayu Ramadhani
+Langkah 3 dari 4, boleh dilewati
+Imunisasi
+Imunisasi dasar lengkap
+Imunisasi booster lengkap
+Detail per vaksin ada di Buku KIA fisik.
+Lewati imunisasi
+Asupan gizi
+ASI eksklusif, dapat MBG
+Lewati asupan gizi
+Pemeriksaan gigi
+Berlubang, bengkak, berdarah
+Lewati pemeriksaan gigi
+KPSP, perkembangan
+Kuesioner Pra Skrining Perkembangan, mengukur kemampuan anak sesuai umurnya
+Lewati KPSP
+Lihat hasil
+A-6 Hasil dan konfirmasi Satu kartu per indeks, tanpa tombol rujukan
+Nabila Ayu Ramadhani
+Langkah 4 dari 4, hasil
+Berat 9,4 kg
+Panjang 74,0 cm
+Berat badan menurut umur, BB/U
+Berat badan normal
+-0,7 z-score
+Berat badan anak sesuai untuk umurnya.
+Panjang badan menurut umur, PB/U
+Pendek
+-2,3 z-score
+Panjang badan anak kurang untuk umurnya.
+Berat badan menurut panjang badan, BB/PB
+Gizi baik
+0,5 z-score
+Berat badan anak seimbang dengan panjang badannya.
+Acuan: standar pertumbuhan WHO 2006, dihitung dari parameter LMS. Nilainya sama dengan tabel Permenkes No. 2 Tahun 2020.
+Saran tindak lanjut
+Bawa Nabila ke Puskesmas dalam dua minggu untuk pemeriksaan lanjutan. Lanjutkan makanan bergizi dan pantau setiap bulan.
+Bidan Ratih Kusumaningrum
+0812 8841 5502
+Simpan dan lanjut ke Alfarizqi
+Tombol menempel di bawah layar. Saat teks diperbesar 200%, tombol ini masuk ke dalam alur.
+A-4 Tutup sesi Termasuk berapa data masih menunggu terkirim
+Tutup sesi
+Sesi 14 Agustus 2026
+Posyandu Melati 2, kader Siti Aminah
+Diukur
+18
+Tidak hadir
+5
+Perlu perhatian
+3
+Menunggu terkirim
+3
+2 anak masih di kelompok Dilewati. Sesi bisa ditutup, mereka tetap tercatat belum diukur.
+Kirim 3 data dan tutup
+Tutup tanpa kirim
+Belum masuk batch ini
+A-1 login, A-10 layar bidan, A-12 antrean kirim dan state konflik. Ambang validasi lunak kini diatur di 2d , tidak lagi ditebak. Semua z-score di papan ini dihitung dari parameter LMS WHO 2006 pada berkas referensi Anda.

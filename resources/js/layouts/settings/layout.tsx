@@ -11,44 +11,30 @@ import { edit as editSecurity } from '@/routes/security';
 import { index as teams } from '@/routes/teams';
 import type { NavItem } from '@/types';
 
+// Bahasa Indonesia sepenuhnya, prinsip P5 pada 05-uiux-spec.md bagian 1.
+// Ini satu-satunya tempat di seluruh antarmuka yang masih berbahasa Inggris.
 const sidebarNavItems: NavItem[] = [
-    {
-        title: 'Profile',
-        href: edit(),
-        icon: null,
-    },
-    {
-        title: 'Security',
-        href: editSecurity(),
-        icon: null,
-    },
-    {
-        title: 'Teams',
-        href: teams(),
-        icon: null,
-    },
-    {
-        title: 'Appearance',
-        href: editAppearance(),
-        icon: null,
-    },
+    { title: 'Profil', href: edit(), icon: null },
+    { title: 'Keamanan', href: editSecurity(), icon: null },
+    { title: 'Tim', href: teams(), icon: null },
+    { title: 'Tampilan', href: editAppearance(), icon: null },
 ];
 
 export default function SettingsLayout({ children }: PropsWithChildren) {
     const { isCurrentOrParentUrl } = useCurrentUrl();
 
     return (
-        <div className="px-4 py-6">
+        <div className="px-4 py-6 sm:px-7 sm:py-7">
             <Heading
-                title="Settings"
-                description="Manage your profile and account settings"
+                title="Pengaturan akun"
+                description="Kelola profil, keamanan, dan tampilan akun Anda."
             />
 
             <div className="flex flex-col lg:flex-row lg:space-x-12">
                 <aside className="w-full max-w-xl lg:w-48">
                     <nav
                         className="flex flex-col space-y-1 space-x-0"
-                        aria-label="Settings"
+                        aria-label="Pengaturan akun"
                     >
                         {sidebarNavItems.map((item, index) => (
                             <Button
@@ -73,8 +59,11 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
 
                 <Separator className="my-6 lg:hidden" />
 
+                {/* Isi berdiri di atas kartu putih. Tanpa ini formulirnya
+                    melayang langsung di atas dasar abu, sama seperti halaman
+                    auth sebelum dialihkan ke varian kartu. */}
                 <div className="flex-1 md:max-w-2xl">
-                    <section className="max-w-xl space-y-12">
+                    <section className="kartu max-w-xl space-y-12 p-5 sm:p-6">
                         {children}
                     </section>
                 </div>

@@ -1,0 +1,321 @@
+CP
+
+Catatan Posyandu
+
+Melati 2, RW 04
+
+{{ item.label }}
+
+Masuk sebagai
+
+{{ r.label }}
+
+{{ roleNote }}
+
+Memuat tabel standar antropometri
+
+Angka gizi dihitung dari tabel ini.
+
+Beranda
+
+Agustus 2026, data per 14 Agustus. Periode belum selesai, angkanya masih berubah. Data contoh.
+
+3 hasil penimbangan belum terkirim
+
+Tersimpan di perangkat sejak 14 Agustus, 09.12. Tidak ada data yang hilang.
+
+Coba kirim lagi
+
+{{ k.label }}
+
+{{ k.value }}
+
+{{ k.sub }}
+
+Status gizi
+
+{{ g.n }}
+
+{{ g.label }}
+
+{{ giziNote }}
+
+Cakupan penimbangan D/S, enam bulan
+
+{{ c.pctText }}
+
+{{ c.month }}
+
+Dihitung dari jumlah balita yang ditimbang setiap bulan.
+
+Perlu perhatian
+
+{{ perluCount }}
+
+Paling mendesak di atas
+
+{{ p.initials }}
+
+{{ p.name }}
+
+{{ p.meta }}
+
+{{ p.badge }}
+
+{{ p.detail }}
+
+Data Anak
+
+{{ dataSub }}
+
+Tambah balita
+
+Cari nama anak atau nama ibu
+
+RT
+
+{{ o.label }}
+
+Hanya yang perlu perhatian
+
+{{ h.label }}
+
+Tambah balita baru
+
+{{ f.label }}
+
+Anak baru belum punya pengukuran, jadi statusnya Belum diukur sampai ditimbang. Sasaran S ikut bertambah.
+
+Simpan balita baru
+
+Batal
+
+{{ row.name }}
+
+NIK belum lengkap
+
+{{ row.age }}
+
+{{ row.rt }}
+
+{{ row.mother }}
+
+{{ row.last }}
+
+{{ row.badge }}
+
+Detail
+
+{{ row.ubahLabel }}
+
+Identitas
+
+{{ f.label }}
+
+{{ row.augLabel }}
+
+{{ m.label }}
+
+{{ m.unit }}
+
+Hasil hitung WHO 2006
+
+{{ z.z }}
+
+SD
+
+{{ z.label }}
+
+Indeks mengikuti umur anak: BB/PB di bawah 24 bulan, BB/TB untuk 24 bulan ke atas.
+
+Belum ada pengukuran Agustus
+
+Identitas tetap bisa diubah. Berat dan tinggi baru bisa dicatat lewat penimbangan.
+
+Simpan perubahan
+
+Tutup
+
+{{ row.saveNote }}
+
+Tidak ada anak yang cocok
+
+Coba hapus kata pencarian atau pilih Semua RT.
+
+Kosongkan filter
+
+{{ detail.name }}
+
+Data Anak, detail.
+
+Ubah data
+
+Foto, opsional
+
+{{ it.k }}
+
+{{ it.v }}
+
+{{ detail.statusTitle }}
+
+{{ z.title }}
+
+{{ z.z }}
+
+SD
+
+{{ z.label }}
+
+Acuan standar pertumbuhan WHO 2006, dihitung dari parameter LMS. Indeks mengikuti umur anak.
+
+Riwayat pengukuran
+
+Tanggal
+
+Umur
+
+Berat
+
+Panjang
+
+{{ detail.wflHead }}
+
+{{ detail.hazHead }}
+
+Pertumbuhan
+
+Kader
+
+{{ h.date }}
+
+{{ h.age }}
+
+{{ h.w }}
+
+{{ h.l }}
+
+{{ h.wfl }}
+
+{{ h.haz }}
+
+{{ h.growth }}
+
+{{ h.kader }}
+
+Imunisasi
+
+Imunisasi dasar
+
+Lengkap
+
+Imunisasi lanjutan
+
+Belum lengkap
+
+Detail per vaksin ada di Buku KIA fisik. Aplikasi hanya menyimpan status ringkas.
+
+Catatan bidan
+
+14 Agustus 2026, Bidan Ratih Kusumaningrum
+
+{{ detail.note }}
+
+Laporan
+
+Agustus 2026, periode belum selesai. RW 04 Kelurahan Cibaduyut.
+
+Unduh CSV
+
+Cetak A4
+
+{{ t.value }}
+
+{{ t.label }}
+
+Rekap per RT
+
+S sasaran, D ditimbang, N naik, T tidak naik, O tidak ditimbang bulan lalu, B baru pertama kali, BGM di bawah garis merah pada KMS. BGM dihitung dari BB/U, jadi jumlahnya bisa berbeda dari status gizi BB/PB atau BB/TB. RT tanpa sasaran tidak ditampilkan.
+
+{{ h.label }}
+
+{{ r.rt }}
+
+{{ c.v }}
+
+{{ r.bgm }}
+
+Cakupan layanan tambahan
+
+{{ c.n }}
+
+{{ c.of }}
+
+{{ c.label }}
+
+Vitamin A dan obat cacing diberikan setiap Februari dan Agustus. KPSP dicatat bila ada kader yang terlatih.
+
+Pengaturan
+
+Batas pengukuran dan ambang peringatan. Terakhir diubah 12 Agustus 2026 oleh Bidan Ratih Kusumaningrum.
+
+Batas ini belum memicu apa pun di prototipe
+
+Angkanya bisa diubah dan tersimpan, tapi peringatan yang membacanya ada di alur penimbangan yang belum dibuat.
+
+Rentang wajar pengukuran
+
+Angka di luar rentang ini akan memunculkan peringatan tegas sebelum disimpan.
+
+{{ f.label }}
+
+{{ f.sub }}
+
+Minimal
+
+{{ f.unit }}
+
+Maksimal
+
+{{ f.unit }}
+
+Ambang selisih antar bulan
+
+Selisih yang melebihi batas akan memunculkan pertanyaan, Yakin dengan angka ini?
+
+{{ f.label }}
+
+{{ f.sub }}
+
+{{ f.unit }}
+
+Ambang z-score, terkunci
+
+Ditetapkan Permenkes No. 2 Tahun 2020, tidak bisa diubah dari aplikasi.
+
+di bawah -3 SD
+
+-3 SD sampai -2 SD
+
+-2 SD sampai +1 SD
+
+di atas +1 SD
+
+Tabel standar antropometri
+
+{{ lmsNote }}
+
+Tersedia
+
+Siapa boleh mengubah batas
+
+{{ p.role }}
+
+{{ p.right }}
+
+Setiap perubahan dicatat dengan nama dan waktu.
+
+Simpan pengaturan
+
+Kembalikan ke bawaan
+
+{{ settingsNote }}

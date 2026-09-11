@@ -5,9 +5,11 @@
     "scripts": {
         "build": "vite build",
         "build:ssr": "vite build && vite build --ssr",
+        "demo": "vite --config vite.demo.config.ts",
+        "demo:build": "vite build --config vite.demo.config.ts",
         "dev": "vite",
-        "format": "prettier --write resources/",
-        "format:check": "prettier --check resources/",
+        "format": "prettier --write resources/ demo/ vite.demo.config.ts",
+        "format:check": "prettier --check resources/ demo/ vite.demo.config.ts",
         "lint": "eslint . --fix",
         "lint:check": "eslint .",
         "types:check": "tsc --noEmit"

@@ -1,0 +1,441 @@
+3
+## Lima layar desktop, perbaikan putaran kedua
+Putaran kedua. Umur dan indeks antropometri dibetulkan mengikuti umur anak, label pindah ke atas setiap input, teks abu yang gagal kontras WCAG AA dinaikkan, dan pola daftar yang tadinya terulang lima kali dipecah. Semua angka di layar ini data contoh, bukan data lapangan.
+3a
+Beranda
+Kartu "Perlu tindakan" dihapus, angkanya pindah ke header tabel yang memang memuat ketiga anak itu. Caveat periode belum selesai kini hanya ada di satu tempat, di subjudul. Tile ikon dan kalimat penjelas per kartu KPI dibuang. Status gizi jadi tiga angka besar, tanpa grafik dan tanpa pembatas baris. Kondisi gagal sinkron kini punya blok sendiri, bukan cuma tombol di header.
+Catatan Posyandu
+Melati 2, RW 04
+Beranda
+Data Anak
+Laporan
+Pengaturan
+Masuk sebagai
+Kader
+Bidan
+Admin
+Boleh mengubah batas pengukuran.
+Beranda
+Agustus 2026, data per 14 Agustus. Periode belum selesai, angkanya masih berubah. Data contoh.
+3 pengukuran gagal terkirim
+Tersimpan di perangkat sejak 14 Agustus, 09.12. Tidak ada data yang hilang.
+Coba kirim lagi
+Sasaran, S
+42
+balita 0 sampai 59 bulan
+Ditimbang, D
+18
+dari 42 sasaran
+Cakupan penimbangan, D/S
+43%
+cakupan bulan ini
+Naik, N
+12
+dari 18 yang diukur
+Status gizi
+14
+Gizi baik
+3
+Gizi kurang
+1
+Gizi buruk
+Dari 18 anak yang sudah diukur, 24 anak belum punya angka bulan ini. Indeks mengikuti umur anak: BB/PB di bawah 24 bulan, BB/TB untuk 24 bulan ke atas.
+Cakupan penimbangan D/S, enam bulan
+38%
+Mar
+45%
+Apr
+52%
+Mei
+48%
+Jun
+55%
+Jul
+43%
+Agu
+Dihitung dari jumlah balita yang ditimbang setiap bulan.
+Perlu perhatian
+3 anak
+Paling mendesak di atas
+MA
+Muhammad Alfarizqi Nurhidayat
+31 bulan, RT 04
+Gizi buruk
+BB/TB -3,1 SD, turun dari -2,6 SD
+RS
+Raka Satria Wijaya
+22 bulan, RT 02
+Sangat pendek
+PB/U -3,4 SD, tiga bulan di bawah -3 SD
+SF
+Syifa Fauziah
+14 bulan, RT 04
+T, tidak naik
+Berat sama dua bulan berturut, 7,3 kg
+3b
+Data Anak
+NIK 16 digit hanya muncul saat datanya belum lengkap. Pencarian dan filter RT kini punya label sendiri di atas kotaknya, bukan placeholder sebagai label. Kolom status tidak lagi menyebut satu indeks, karena indeksnya berbeda menurut umur anak.
+Catatan Posyandu
+Melati 2, RW 04
+Beranda
+Data Anak
+Laporan
+Pengaturan
+Masuk sebagai
+Kader
+Bidan
+Admin
+Boleh mengubah batas pengukuran.
+Data Anak
+42 balita terdaftar di RW 04. Data contoh.
+Tambah balita
+Cari nama anak atau nama ibu
+RT
+Semua RT
+Hanya yang perlu perhatian
+Nama anak
+Umur
+RT
+Ibu
+Diukur terakhir
+Status gizi
+Aksi
+Nabila Ayu Ramadhani
+18 bulan
+03
+Wulandari Puspitasari
+14 Agu 2026
+Gizi baik
+Detail
+Ubah
+Muhammad Alfarizqi Nurhidayat
+31 bulan
+04
+Nurhayati
+14 Agu 2026
+Gizi buruk
+Detail
+Ubah
+Dewa Putu Aryawan
+NIK belum lengkap
+7 bulan
+01
+Ni Luh Sari Dewi
+10 Jul 2026
+Belum diukur
+Detail
+Ubah
+Kayla Hasna Zafira
+43 bulan
+03
+Retno Widyaningsih
+14 Agu 2026
+Gizi baik
+Detail
+Ubah
+Raka Satria Wijaya
+22 bulan
+02
+Endang Sulastri
+14 Agu 2026
+Gizi baik
+Detail
+Ubah
+Syifa Fauziah
+14 bulan
+04
+Dewi Kartika
+14 Agu 2026
+Gizi kurang
+Detail
+Ubah
+3c
+Detail anak
+Status z-score satu penanda: angka berwarna dengan label di bawahnya. Identitas anak jadi daftar dua kolom tanpa kotak. Tanggal lahir dibetulkan agar cocok dengan umur 18 bulan, sehingga PB/U dan BB/PB memang indeks yang tepat untuk anak ini.
+Catatan Posyandu
+Melati 2, RW 04
+Beranda
+Data Anak
+Laporan
+Pengaturan
+Masuk sebagai
+Kader
+Bidan
+Admin
+Boleh mengubah batas pengukuran.
+Nabila Ayu Ramadhani
+Data Anak, detail. Data contoh.
+Ubah data
+Foto, opsional
+Jenis kelamin
+Perempuan
+Tanggal lahir
+22 Januari 2025, 18 bulan
+NIK
+3204 0162 0125 0002
+Ibu
+Wulandari Puspitasari
+Telepon
+0857 2210 4418
+Alamat
+RT 03, anak ke-2
+Status pengukuran 14 Agustus 2026
+Berat menurut panjang, BB/PB
+0,5
+SD
+Gizi baik
+Berat menurut umur, BB/U
+-0,7
+SD
+Berat badan normal
+Panjang menurut umur, PB/U
+-2,3
+SD
+Pendek
+Acuan standar pertumbuhan WHO 2006, dihitung dari parameter LMS. Nilainya sama dengan tabel Permenkes No. 2 Tahun 2020.
+Riwayat pengukuran
+Tanggal
+Umur
+Berat
+Panjang
+BB/PB
+PB/U
+Pertumbuhan
+Kader
+14 Agu 2026
+18 bln
+9,4 kg
+74,0 cm
+0,5
+-2,3
+N, naik
+Siti Aminah
+10 Jul 2026
+17 bln
+9,0 kg
+73,7 cm
+0,3
+-2,1
+T, tidak naik
+Siti Aminah
+12 Jun 2026
+16 bln
+8,9 kg
+73,3 cm
+0,4
+-1,9
+N, naik
+Rohmah Yuliati
+08 Mei 2026
+15 bln
+8,7 kg
+72,9 cm
+0,4
+-1,7
+N, naik
+Siti Aminah
+Imunisasi
+Imunisasi dasar
+Lengkap
+Imunisasi lanjutan
+Belum lengkap
+Detail per vaksin ada di Buku KIA fisik. Aplikasi hanya menyimpan status ringkas.
+Catatan bidan
+14 Agustus 2026, Bidan Ratih Kusumaningrum
+PB/U dua bulan berturut di bawah -2 SD. Ibu diminta datang ke Puskesmas untuk pemeriksaan lanjutan dalam dua minggu.
+3d
+Laporan
+Kartu KPI dan grafik status gizi dihapus karena sudah ada di Beranda. Cakupan pemeriksaan jadi grid empat angka, bukan daftar berpembatas seperti tiga blok lain. Legenda BGM kini menyebut indeksnya sendiri agar tidak dibaca sebagai bantahan angka Beranda.
+Catatan Posyandu
+Melati 2, RW 04
+Beranda
+Data Anak
+Laporan
+Pengaturan
+Masuk sebagai
+Kader
+Bidan
+Admin
+Boleh mengubah batas pengukuran.
+Laporan
+Agustus 2026, periode belum selesai. RW 04 Kelurahan Cibaduyut. Data contoh.
+Unduh CSV
+Cetak A4
+42
+sasaran, S
+18
+ditimbang, D
+43%
+cakupan, D/S
+67%
+naik, N/D
+2
+di bawah garis merah
+Rekap per RT
+S sasaran, D ditimbang, N naik, T tidak naik, O tidak ditimbang bulan lalu, B baru pertama kali, BGM di bawah garis merah pada KMS. BGM dihitung dari BB/U, jadi jumlahnya bisa berbeda dari status gizi BB/PB atau BB/TB. RT tanpa sasaran tidak ditampilkan.
+RT
+S
+D
+D/S
+N
+T
+O
+B
+BGM
+RT 01
+8
+4
+50%
+3
+1
+0
+0
+0
+RT 02
+9
+3
+33%
+2
+1
+0
+0
+1
+RT 03
+10
+5
+50%
+3
+1
+1
+0
+0
+RT 04
+9
+4
+44%
+3
+1
+0
+0
+1
+RT 05
+6
+2
+33%
+1
+0
+0
+1
+0
+Total
+42
+18
+43%
+12
+4
+1
+1
+2
+Cakupan layanan tambahan
+18
+dari 18
+Vitamin A
+17
+dari 18
+Obat cacing
+17
+dari 18
+Imunisasi dicatat
+14
+dari 18
+KPSP
+Vitamin A dan obat cacing diberikan setiap Februari dan Agustus. KPSP dicatat bila ada kader yang terlatih.
+3e
+Pengaturan
+Semua label pindah ke atas kotaknya, termasuk Minimal dan Maksimal. Field angka punya segmen satuan di dalam kotak, jadi tidak tertukar dengan tombol. Izin peran jadi daftar bertanda, bukan tiga pil yang terbaca sebagai filter.
+Catatan Posyandu
+Melati 2, RW 04
+Beranda
+Data Anak
+Laporan
+Pengaturan
+Masuk sebagai
+Kader
+Bidan
+Admin
+Boleh mengubah batas pengukuran.
+Pengaturan
+Batas pengukuran dan ambang peringatan. Terakhir diubah 12 Agustus 2026 oleh Bidan Ratih Kusumaningrum. Data contoh.
+Batas ini hanya memicu pertanyaan konfirmasi
+Kader tidak pernah diblokir. Perubahan berlaku untuk pengukuran baru, data lama tidak dihitung ulang.
+Rentang wajar pengukuran
+Angka di luar rentang ini memunculkan peringatan tegas sebelum disimpan.
+Berat badan
+Kilogram
+Minimal
+1,0
+kg
+Maksimal
+30,0
+kg
+Panjang atau tinggi badan
+Sentimeter
+Minimal
+40,0
+cm
+Maksimal
+130,0
+cm
+LILA, lingkar lengan atas
+Sentimeter
+Minimal
+8,0
+cm
+Maksimal
+25,0
+cm
+LIKA, lingkar kepala
+Sentimeter
+Minimal
+30,0
+cm
+Maksimal
+60,0
+cm
+Ambang selisih antar bulan
+Selisih yang melebihi batas memunculkan pertanyaan, Yakin dengan angka ini?
+Berat naik maksimal
+Dalam satu bulan
+2,0
+kg
+Berat turun maksimal
+Dalam satu bulan
+1,5
+kg
+Tinggi berkurang
+Hampir selalu kesalahan ukur
+0,5
+cm
+Umur maksimal balita
+Di atas umur ini keluar dari sasaran
+60
+bulan
+Ambang z-score, terkunci
+Ditetapkan Permenkes No. 2 Tahun 2020, tidak bisa diubah dari aplikasi.
+di bawah -3 SD
+-3 SD sampai -2 SD
+-2 SD sampai +1 SD
+di atas +1 SD
+Tabel standar antropometri
+Terunduh 12 Agustus 2026, 1,4 MB. Tersimpan di perangkat agar hasil tetap tampil saat offline.
+Tersedia
+Siapa boleh mengubah batas
+Bidan
+Boleh mengubah
+Admin
+Boleh mengubah
+Kader
+Menu ini tidak tampil
+Setiap perubahan dicatat dengan nama dan waktu.
+Simpan pengaturan
+Kembalikan ke bawaan

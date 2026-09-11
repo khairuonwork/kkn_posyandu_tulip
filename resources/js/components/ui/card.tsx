@@ -7,7 +7,9 @@ function Card({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card"
       className={cn(
-        "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm",
+        // rounded-xl sudah bernilai 20px lewat --radius-xl; yang perlu
+        // ditambahkan hanya bayangan satu tingkat milik v2, sama dengan .kartu.
+        "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-[var(--shadow-card)]",
         className
       )}
       {...props}

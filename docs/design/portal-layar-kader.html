@@ -1,0 +1,1763 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css" />
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #EDEFEA;
+    color: #16211C;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-size: 18px;
+    line-height: 1.6;
+    font-feature-settings: "tnum" 1, "lnum" 1;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: #0B6B70; }
+  a:hover { color: #0F6E44; }
+  table { border-collapse: collapse; }
+  @keyframes kerlip { 0% { opacity: 1 } 50% { opacity: 0.45 } 100% { opacity: 1 } }
+</style>
+</helmet>
+
+<section style="padding:48px">
+  <div style="max-width:1200px;display:flex;flex-direction:column;gap:8px;margin-bottom:40px">
+    <h1 style="margin:0;font-size:40px;font-weight:800;letter-spacing:-0.02em">Empat fitur utama</h1>
+    <p style="margin:0;font-size:20px;color:#4A5750;max-width:70ch">Navigasi dikunci jadi empat: <a href="#2a">2a</a> Beranda, <a href="#2b">2b</a> Data Anak, <a href="#2c">2c</a> Laporan, <a href="#2d">2d</a> Pengaturan. Alur penimbangan di <a href="#1a">1a</a> masuk dari kartu aksi di Beranda, bukan dari nav, karena itu tugas bukan tempat.</p>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:48px;align-items:flex-start">
+
+  <div id="2a" style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:inline-flex;align-self:flex-start;padding:6px 14px;border-radius:10px;background:#16211C;color:#FFFFFF;font-size:18px;font-weight:700">2a</div>
+      <span style="font-size:30px;font-weight:700">Beranda, dasbor</span>
+      <span style="font-size:18px;color:#4A5750;max-width:70ch">Angka periode berjalan, distribusi status gizi, tren kehadiran, lalu daftar anak yang perlu tindakan. Bukan hiasan: setiap blok menjawab satu pertanyaan yang ditanyakan bidan tiap bulan.</span>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+      <div data-screen-label="B-1 Beranda dasbor desktop" style="width:1440px;background:#FFFFFF;border:1px solid #DCE0DA;border-radius:12px;overflow:hidden;display:flex;box-shadow:0 2px 8px rgba(22,33,28,0.08)">
+        <div style="width:248px;flex-shrink:0;border-right:1px solid #DCE0DA;background:#F6F7F5;padding:16px;display:flex;flex-direction:column;gap:12px">
+          <div style="padding:8px 12px 16px;display:flex;flex-direction:column">
+            <span style="font-size:18px;font-weight:800">Portal Posyandu</span>
+            <span style="font-size:18px;color:#4A5750">Melati 2, RW 04</span>
+          </div>
+          <span style="min-height:56px;padding:12px 16px;border-radius:10px;background:#0F6E44;color:#FFFFFF;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:700"><i class="ph-bold ph-house" style="font-size:28px"></i>Beranda</span>
+          <span style="min-height:56px;padding:12px 16px;border-radius:10px;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600"><i class="ph-bold ph-baby" style="font-size:28px"></i>Data Anak</span>
+          <span style="min-height:56px;padding:12px 16px;border-radius:10px;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600"><i class="ph-bold ph-file-text" style="font-size:28px"></i>Laporan</span>
+          <span style="min-height:56px;padding:12px 16px;border-radius:10px;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600"><i class="ph-bold ph-gear" style="font-size:28px"></i>Pengaturan</span>
+        </div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+          <div style="min-height:72px;padding:8px 24px;border-bottom:1px solid #DCE0DA;display:flex;align-items:center;gap:16px">
+            <span style="display:flex;flex-direction:column;flex:1;min-width:0">
+              <span style="font-size:20px;font-weight:700;line-height:1.25">Beranda</span>
+              <span style="font-size:18px;color:#4A5750;line-height:1.25">Periode Agustus 2026, data per 14 Agustus</span>
+            </span>
+            <span style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;background:#FBF1E3;border:1px solid #9A5B00;color:#9A5B00;font-size:18px;font-weight:700;flex-shrink:0"><i class="ph-bold ph-cloud-slash" style="font-size:24px"></i>3 data belum terkirim</span>
+            <span style="min-height:56px;padding:12px 16px;border:2px solid #9A5B00;border-radius:10px;background:#FFFFFF;color:#9A5B00;font-size:18px;font-weight:700;display:inline-flex;align-items:center;flex-shrink:0">Kirim sekarang</span>
+          </div>
+
+          <div style="padding:24px;display:flex;flex-direction:column;gap:24px">
+            <div style="min-height:112px;padding:20px 24px;border-radius:12px;background:#0F6E44;color:#FFFFFF;display:flex;align-items:center;gap:16px">
+              <i class="ph-bold ph-scales" style="font-size:40px;flex-shrink:0"></i>
+              <span style="display:flex;flex-direction:column;gap:2px;min-width:0;flex:1">
+                <span style="font-size:24px;font-weight:800;line-height:1.25">Mulai Penimbangan Hari Ini</span>
+                <span style="font-size:18px;opacity:0.92">24 anak belum diukur bulan ini</span>
+              </span>
+              <i class="ph-bold ph-arrow-right" style="font-size:32px;flex-shrink:0"></i>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+              <div style="border:1px solid #DCE0DA;border-radius:12px;background:#FFFFFF;padding:20px;display:flex;flex-direction:column;gap:16px">
+                <div style="display:flex;align-items:center;gap:12px">
+                  <span style="width:48px;height:48px;border-radius:12px;background:#EDEFEA;color:#4A5750;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ph-bold ph-users-three" style="font-size:28px"></i></span>
+                  <span style="font-size:20px;font-weight:700">Sasaran, S</span>
+                </div>
+                <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+                  <span style="font-size:40px;font-weight:800;line-height:1.1">42</span>
+                  <span style="font-size:18px;color:#4A5750">balita terdaftar</span>
+                </div>
+                <span style="font-size:18px;color:#4A5750">Semua balita 0 sampai 59 bulan di RW 04.</span>
+              </div>
+              <div style="border:1px solid #DCE0DA;border-radius:12px;background:#FFFFFF;padding:20px;display:flex;flex-direction:column;gap:16px">
+                <div style="display:flex;align-items:center;gap:12px">
+                  <span style="width:48px;height:48px;border-radius:12px;background:#EDEFEA;color:#4A5750;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ph-bold ph-scales" style="font-size:28px"></i></span>
+                  <span style="font-size:20px;font-weight:700">Ditimbang, D</span>
+                </div>
+                <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+                  <span style="font-size:40px;font-weight:800;line-height:1.1;color:#14713D">18</span>
+                  <span style="font-size:18px;color:#4A5750">dari 42 sasaran</span>
+                </div>
+                <span style="font-size:18px;color:#4A5750">Sudah punya berat dan tinggi bulan ini. Sesi belum ditutup.</span>
+              </div>
+              <div style="border:1px solid #DCE0DA;border-radius:12px;background:#FFFFFF;padding:20px;display:flex;flex-direction:column;gap:16px">
+                <div style="display:flex;align-items:center;gap:12px">
+                  <span style="width:48px;height:48px;border-radius:12px;background:#EDEFEA;color:#4A5750;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ph-bold ph-calendar-check" style="font-size:28px"></i></span>
+                  <span style="font-size:20px;font-weight:700">Kehadiran, D/S</span>
+                </div>
+                <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+                  <span style="font-size:40px;font-weight:800;line-height:1.1">43%</span>
+                  <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:10px;background:#FBF1E3;border:1px solid #9A5B00;color:#9A5B00;font-size:18px;font-weight:700"><i class="ph-bold ph-arrow-down" style="font-size:20px"></i>12 poin</span>
+                </div>
+                <span style="font-size:18px;color:#4A5750">Bulan lalu 55%. Agustus masih berjalan, angkanya belum final.</span>
+              </div>
+              <div style="border:1px solid #DCE0DA;border-radius:12px;background:#FFFFFF;padding:20px;display:flex;flex-direction:column;gap:16px">
+                <div style="display:flex;align-items:center;gap:12px">
+                  <span style="width:48px;height:48px;border-radius:12px;background:#EDEFEA;color:#4A5750;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ph-bold ph-trend-up" style="font-size:28px"></i></span>
+                  <span style="font-size:20px;font-weight:700">Naik, N</span>
+                </div>
+                <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+                  <span style="font-size:40px;font-weight:800;line-height:1.1">12</span>
+                  <span style="font-size:18px;color:#4A5750">dari 18 yang diukur</span>
+                </div>
+                <span style="font-size:18px;color:#4A5750">Berat naik memenuhi KBM dibanding bulan lalu.</span>
+              </div>
+              <div style="border:2px solid #A3170F;border-radius:12px;background:#FCEDEC;padding:20px;display:flex;flex-direction:column;gap:16px;grid-column:span 2">
+                <div style="display:flex;align-items:center;gap:12px">
+                  <span style="width:48px;height:48px;border-radius:12px;background:#A3170F;color:#FFFFFF;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ph-fill ph-warning" style="font-size:28px"></i></span>
+                  <span style="font-size:20px;font-weight:700;color:#A3170F">Perlu tindakan</span>
+                </div>
+                <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+                  <span style="font-size:40px;font-weight:800;line-height:1.1;color:#A3170F">3</span>
+                  <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:10px;background:#FFFFFF;border:1px solid #A3170F;color:#A3170F;font-size:18px;font-weight:700">Rujuk bulan ini</span>
+                </div>
+                <span style="font-size:18px;color:#A3170F">Satu gizi buruk, satu sangat pendek, satu berat tidak naik dua bulan berturut. Ketiganya ada di daftar bawah.</span>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:24px;align-items:start">
+              <div style="border:1px solid #DCE0DA;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:20px">
+                <span style="font-size:20px;font-weight:700">Status gizi BB/U, 18 anak yang diukur</span>
+                <div style="display:flex;flex-direction:column;gap:16px">
+                  <div style="display:flex;align-items:center;gap:16px">
+                    <span style="width:200px;flex-shrink:0;font-size:18px">Berat badan normal</span>
+                    <span style="flex:1;height:40px;border-radius:6px;background:#EDEFEA;display:flex"><span style="width:72.2%;height:40px;border-radius:6px;background:#14713D"></span></span>
+                    <span style="width:40px;flex-shrink:0;font-size:20px;font-weight:700;text-align:right">13</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:16px">
+                    <span style="width:200px;flex-shrink:0;font-size:18px">Berat badan kurang</span>
+                    <span style="flex:1;height:40px;border-radius:6px;background:#EDEFEA;display:flex"><span style="width:16.7%;height:40px;border-radius:6px;background:#9A5B00"></span></span>
+                    <span style="width:40px;flex-shrink:0;font-size:20px;font-weight:700;text-align:right">3</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:16px">
+                    <span style="width:200px;flex-shrink:0;font-size:18px">Sangat kurang</span>
+                    <span style="flex:1;height:40px;border-radius:6px;background:#EDEFEA;display:flex"><span style="width:5.6%;height:40px;border-radius:6px;background:#A3170F"></span></span>
+                    <span style="width:40px;flex-shrink:0;font-size:20px;font-weight:700;text-align:right">1</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:16px">
+                    <span style="width:200px;flex-shrink:0;font-size:18px">Risiko berat lebih</span>
+                    <span style="flex:1;height:40px;border-radius:6px;background:#EDEFEA;display:flex"><span style="width:5.6%;height:40px;border-radius:6px;background:#1148A8"></span></span>
+                    <span style="width:40px;flex-shrink:0;font-size:20px;font-weight:700;text-align:right">1</span>
+                  </div>
+                </div>
+                <span style="font-size:18px;color:#4A5750;border-top:1px solid #DCE0DA;padding-top:16px">24 anak belum diukur tidak dihitung di sini. Angka ini bukan gambaran seluruh posyandu sampai sesi ditutup.</span>
+              </div>
+
+              <div style="border:1px solid #DCE0DA;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:20px">
+                <span style="font-size:20px;font-weight:700">Kehadiran D/S, 6 bulan</span>
+                <div style="display:flex;align-items:flex-end;gap:16px">
+                  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px">
+                    <span style="font-size:18px;font-weight:700">38%</span>
+                    <span style="width:100%;height:200px;display:flex;align-items:flex-end"><span style="width:100%;height:114px;border-radius:6px 6px 0 0;background:#DCE0DA"></span></span>
+                    <span style="font-size:18px;color:#4A5750">Mar</span>
+                  </div>
+                  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px">
+                    <span style="font-size:18px;font-weight:700">45%</span>
+                    <span style="width:100%;height:200px;display:flex;align-items:flex-end"><span style="width:100%;height:135px;border-radius:6px 6px 0 0;background:#DCE0DA"></span></span>
+                    <span style="font-size:18px;color:#4A5750">Apr</span>
+                  </div>
+                  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px">
+                    <span style="font-size:18px;font-weight:700">52%</span>
+                    <span style="width:100%;height:200px;display:flex;align-items:flex-end"><span style="width:100%;height:156px;border-radius:6px 6px 0 0;background:#DCE0DA"></span></span>
+                    <span style="font-size:18px;color:#4A5750">Mei</span>
+                  </div>
+                  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px">
+                    <span style="font-size:18px;font-weight:700">48%</span>
+                    <span style="width:100%;height:200px;display:flex;align-items:flex-end"><span style="width:100%;height:144px;border-radius:6px 6px 0 0;background:#DCE0DA"></span></span>
+                    <span style="font-size:18px;color:#4A5750">Jun</span>
+                  </div>
+                  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px">
+                    <span style="font-size:18px;font-weight:700">55%</span>
+                    <span style="width:100%;height:200px;display:flex;align-items:flex-end"><span style="width:100%;height:165px;border-radius:6px 6px 0 0;background:#DCE0DA"></span></span>
+                    <span style="font-size:18px;color:#4A5750">Jul</span>
+                  </div>
+                  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px">
+                    <span style="font-size:18px;font-weight:700;color:#0F6E44">43%</span>
+                    <span style="width:100%;height:200px;display:flex;align-items:flex-end"><span style="width:100%;height:129px;border-radius:6px 6px 0 0;background:#0F6E44"></span></span>
+                    <span style="font-size:18px;color:#16211C;font-weight:700">Agu</span>
+                  </div>
+                </div>
+                <span style="font-size:18px;color:#4A5750;border-top:1px solid #DCE0DA;padding-top:16px">Agustus masih berjalan, jadi batangnya belum final.</span>
+              </div>
+            </div>
+
+            <div style="border:1px solid #DCE0DA;border-radius:12px;overflow:hidden">
+              <div style="padding:20px 24px;border-bottom:1px solid #DCE0DA;display:flex;align-items:center;gap:16px">
+                <span style="font-size:20px;font-weight:700;flex:1">Perlu tindakan bulan ini</span>
+                <span style="font-size:18px;color:#4A5750">Diurutkan dari yang paling mendesak</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:16px;padding:20px 24px;border-bottom:1px solid #DCE0DA">
+                <span style="width:56px;height:56px;border-radius:999px;background:#EDEFEA;color:#4A5750;font-size:20px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">MA</span>
+                <span style="display:flex;flex-direction:column;min-width:0;width:320px">
+                  <span style="font-size:18px;font-weight:700">Muhammad Alfarizqi Nurhidayat</span>
+                  <span style="font-size:18px;color:#4A5750">31 bulan, RT 04</span>
+                </span>
+                <span style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;background:#FCEDEC;border:1px solid #A3170F;color:#A3170F;font-size:18px;font-weight:700;flex-shrink:0"><i class="ph-fill ph-warning" style="font-size:24px"></i>Gizi buruk</span>
+                <span style="font-size:18px;color:#4A5750;flex:1">BB/PB -3,1 SD, turun dari -2,6 SD bulan lalu</span>
+                <span style="min-height:56px;padding:12px 18px;border:2px solid #0F6E44;border-radius:10px;color:#0F6E44;font-size:18px;font-weight:700;display:inline-flex;align-items:center;flex-shrink:0">Buka detail</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:16px;padding:20px 24px;border-bottom:1px solid #DCE0DA">
+                <span style="width:56px;height:56px;border-radius:999px;background:#EDEFEA;color:#4A5750;font-size:20px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">RS</span>
+                <span style="display:flex;flex-direction:column;min-width:0;width:320px">
+                  <span style="font-size:18px;font-weight:700">Raka Satria Wijaya</span>
+                  <span style="font-size:18px;color:#4A5750">22 bulan, RT 02</span>
+                </span>
+                <span style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;background:#FCEDEC;border:1px solid #A3170F;color:#A3170F;font-size:18px;font-weight:700;flex-shrink:0"><i class="ph-fill ph-warning" style="font-size:24px"></i>Sangat pendek</span>
+                <span style="font-size:18px;color:#4A5750;flex:1">TB/U -3,4 SD, tiga bulan berturut di bawah -3 SD</span>
+                <span style="min-height:56px;padding:12px 18px;border:2px solid #0F6E44;border-radius:10px;color:#0F6E44;font-size:18px;font-weight:700;display:inline-flex;align-items:center;flex-shrink:0">Buka detail</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:16px;padding:20px 24px">
+                <span style="width:56px;height:56px;border-radius:999px;background:#EDEFEA;color:#4A5750;font-size:20px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">SF</span>
+                <span style="display:flex;flex-direction:column;min-width:0;width:320px">
+                  <span style="font-size:18px;font-weight:700">Syifa Fauziah</span>
+                  <span style="font-size:18px;color:#4A5750">14 bulan, RT 04</span>
+                </span>
+                <span style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;background:#FBF1E3;border:1px solid #9A5B00;color:#9A5B00;font-size:18px;font-weight:700;flex-shrink:0"><i class="ph-bold ph-warning" style="font-size:24px"></i>T, tidak naik</span>
+                <span style="font-size:18px;color:#4A5750;flex:1">Berat sama dua bulan berturut, 7,3 kg</span>
+                <span style="min-height:56px;padding:12px 18px;border:2px solid #0F6E44;border-radius:10px;color:#0F6E44;font-size:18px;font-weight:700;display:inline-flex;align-items:center;flex-shrink:0">Buka detail</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="2b" style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:inline-flex;align-self:flex-start;padding:6px 14px;border-radius:10px;background:#16211C;color:#FFFFFF;font-size:18px;font-weight:700">2b</div>
+      <span style="font-size:30px;font-weight:700">Data Anak, master data dan detail</span>
+      <span style="font-size:18px;color:#4A5750;max-width:70ch">Tabel master untuk mencari dan mengelola, detail untuk membaca satu anak. Kolom yang ditampilkan dibatasi pada yang dipakai kader saat mencari: nama, umur, RT, pengukuran terakhir, status.</span>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+      <div data-screen-label="B-2 Data Anak master" style="width:1440px;background:#FFFFFF;border:1px solid #DCE0DA;border-radius:12px;overflow:hidden;display:flex;box-shadow:0 2px 8px rgba(22,33,28,0.08)">
+        <div style="width:248px;flex-shrink:0;border-right:1px solid #DCE0DA;background:#F6F7F5;padding:16px;display:flex;flex-direction:column;gap:12px">
+          <div style="padding:8px 12px 16px;display:flex;flex-direction:column">
+            <span style="font-size:18px;font-weight:800">Portal Posyandu</span>
+            <span style="font-size:18px;color:#4A5750">Melati 2, RW 04</span>
+          </div>
+          <span style="min-height:56px;padding:12px 16px;border-radius:10px;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600"><i class="ph-bold ph-house" style="font-size:28px"></i>Beranda</span>
+          <span style="min-height:56px;padding:12px 16px;border-radius:10px;background:#0F6E44;color:#FFFFFF;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:700"><i class="ph-bold ph-baby" style="font-size:28px"></i>Data Anak</span>
+          <span style="min-height:56px;padding:12px 16px;border-radius:10px;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600"><i class="ph-bold ph-file-text" style="font-size:28px"></i>Laporan</span>
+          <span style="min-height:56px;padding:12px 16px;border-radius:10px;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600"><i class="ph-bold ph-gear" style="font-size:28px"></i>Pengaturan</span>
+        </div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+          <div style="min-height:72px;padding:8px 24px;border-bottom:1px solid #DCE0DA;display:flex;align-items:center;gap:16px">
+            <span style="display:flex;flex-direction:column;flex:1;min-width:0">
+              <span style="font-size:20px;font-weight:700;line-height:1.25">Data Anak</span>
+              <span style="font-size:18px;color:#4A5750;line-height:1.25">42 balita terdaftar di RW 04</span>
+            </span>
+            <span style="min-height:56px;padding:12px 20px;border-radius:10px;background:#0F6E44;color:#FFFFFF;font-size:18px;font-weight:700;display:inline-flex;align-items:center;gap:10px;flex-shrink:0"><i class="ph-bold ph-plus" style="font-size:28px"></i>Tambah balita</span>
+          </div>
+
+          <div style="padding:20px 24px;border-bottom:1px solid #DCE0DA;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+            <div style="min-height:56px;min-width:320px;border:1px solid #4A5750;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px">
+              <i class="ph-bold ph-magnifying-glass" style="font-size:28px;color:#4A5750;flex-shrink:0"></i>
+              <span style="font-size:18px;color:#4A5750">Cari nama, NIK, atau nama ibu</span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:12px">
+              <span style="min-height:56px;padding:12px 18px;border-radius:10px;background:#0F6E44;color:#FFFFFF;font-size:18px;font-weight:700;display:inline-flex;align-items:center;gap:8px"><i class="ph-bold ph-check" style="font-size:24px"></i>Semua RT</span>
+              <span style="min-height:56px;padding:12px 18px;border:1px solid #4A5750;border-radius:10px;font-size:18px;font-weight:600;display:inline-flex;align-items:center">RT 01</span>
+              <span style="min-height:56px;padding:12px 18px;border:1px solid #4A5750;border-radius:10px;font-size:18px;font-weight:600;display:inline-flex;align-items:center">RT 02</span>
+              <span style="min-height:56px;padding:12px 18px;border:1px solid #4A5750;border-radius:10px;font-size:18px;font-weight:600;display:inline-flex;align-items:center">RT 03</span>
+              <span style="min-height:56px;padding:12px 18px;border:1px solid #4A5750;border-radius:10px;font-size:18px;font-weight:600;display:inline-flex;align-items:center">RT 04</span>
+              <span style="min-height:56px;padding:12px 18px;border:1px solid #4A5750;border-radius:10px;font-size:18px;font-weight:600;display:inline-flex;align-items:center">RT 05</span>
+              <span style="min-height:56px;padding:12px 18px;border:1px solid #9A5B00;border-radius:10px;background:#FBF1E3;color:#9A5B00;font-size:18px;font-weight:700;display:inline-flex;align-items:center;gap:8px"><i class="ph-bold ph-warning" style="font-size:24px"></i>Perlu perhatian</span>
+            </div>
+          </div>
+
+          <div style="overflow:hidden">
+            <table style="width:100%;font-size:20px">
+              <thead>
+                <tr style="background:#F6F7F5">
+                  <th style="text-align:left;padding:20px 24px;font-weight:700;border-bottom:1px solid #DCE0DA">Nama anak</th>
+                  <th style="text-align:left;padding:20px 16px;font-weight:700;border-bottom:1px solid #DCE0DA">Umur</th>
+                  <th style="text-align:left;padding:20px 16px;font-weight:700;border-bottom:1px solid #DCE0DA">RT</th>
+                  <th style="text-align:left;padding:20px 16px;font-weight:700;border-bottom:1px solid #DCE0DA">Ibu</th>
+                  <th style="text-align:left;padding:20px 16px;font-weight:700;border-bottom:1px solid #DCE0DA">Diukur terakhir</th>
+                  <th style="text-align:left;padding:20px 16px;font-weight:700;border-bottom:1px solid #DCE0DA">Status BB/PB</th>
+                  <th style="text-align:right;padding:20px 24px;font-weight:700;border-bottom:1px solid #DCE0DA">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="padding:20px 24px;border-bottom:1px solid #DCE0DA">
+                    <span style="display:flex;align-items:center;gap:14px">
+                      <span style="width:48px;height:48px;border-radius:999px;background:#EDEFEA;color:#4A5750;font-size:18px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">NR</span>
+                      <span style="display:flex;flex-direction:column">
+                        <span style="font-weight:700">Nabila Ayu Ramadhani</span>
+                        <span style="font-size:18px;color:#4A5750">3204 0122 0724 0002</span>
+                      </span>
+                    </span>
+                  </td>
+                  <td style="padding:20px 16px;border-bottom:1px solid #DCE0DA">18 bulan</td>
+                  <td style="padding:20px 16px;border-bottom:1px solid #DCE0DA">03</td>
+                  <td style="padding:20px 16px;border-bottom:1px solid #DCE0DA">Wulandari Puspitasari</td>
+                  <td style="padding:20px 16px;border-bottom:1px solid #DCE0DA">14 Agu 2026</td>
+                  <td style="padding:20px 16px;border-bottom:1px solid #DCE0DA"><span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:18px;font-weight:700"><i class="ph-bold ph-check" style="font-size:20px"></i>Gizi baik</span></td>
+                  <td style="padding:20px 24px;border-bottom:1px solid #DCE0DA;text-align:right"><span style="min-height:56px;padding:12px 18px;border:2px solid #0F6E44;border-radius:10px;color:#0F6E44;font-size:18px;font-weight:700;display:inline-flex;align-items:center">Detail</span></td>
+                </tr>
+                <tr style="background:#F6F7F5">
+                  <td style="padding:20px 24px;border-bottom:1px solid #DCE0DA">
+                    <span style="display:flex;align-items:center;gap:14px">
+                      <span style="width:48px;height:48px;border-radius:999px;background:#EDEFEA;color:#4A5750;font-size:18px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">MA</span>
+                      <span style="display:flex;flex-direction:column">
+                        <span style="font-weight:700">Muhammad Alfarizqi Nurhidayat</span>
+                        <span style="font-size:18px;color:#4A5750">3204 0115 0324 0007</span>
+                      </span>
+                    </span>
+                  </td>
+                  <td style="padding:20px 16px;border-bottom:1px solid #DCE0DA">31 bulan</td>
+                  <td style="padding:20px 16px;border-bottom:1px solid #DCE0DA">04</td>
+                  <td style="padding:20px 16px;border-bottom:1px solid #DCE0DA">Nurhayati</td>
+                  <td style="padding:20px 16px;border-bottom:1px solid #DCE0DA">14 Agu 2026</td>
+                  <td style="padding:20px 16px;border-bottom:1px solid #DCE0DA"><span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#FCEDEC;border:1px solid #A3170F;color:#A3170F;font-size:18px;font-weight:700"><i class="ph-fill ph-warning" style="font-size:20px"></i>Gizi buruk</span></td>
+                  <td style="padding:20px 24px;border-bottom:1px solid #DCE0DA;text-align:right"><span style="min-height:56px;padding:12px 18px;border:2px solid #0F6E44;border-radius:10px;color:#0F6E44;font-size:18px;font-weight:700;display:inline-flex;align-items:center">Detail</span></td>
+                </tr>
+                <tr>
+                  <td style="padding:20px 24px;border-bottom:1px solid #DCE0DA">
+                    <span style="display:flex;align-items:center;gap:14px">
+                      <span style="width:48px;height:48px;border-radius:999px;background:#EDEFEA;color:#4A5750;font-size:18px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">DP</span>
+                      <span style="display:flex;flex-direction:column">
+                        <span style="font-weight:700">Dewa Putu Aryawan</span>
+                        <span style="display:inline-flex;align-items:center;gap:6px;font-size:18px;color:#9A5B00;font-weight:600"><i class="ph-bold ph-identification-card" style="font-size:20px"></i>NIK belum lengkap</span>
+                      </span>
+                    </span>
+                  </td>
+                  <td style="padding:20px 16px;border-bottom:1px solid #DCE0DA">7 bulan</td>
+                  <td style="padding:20px 16px;border-bottom:1px solid #DCE0DA">01</td>
+                  <td style="padding:20px 16px;border-bottom:1px solid #DCE0DA">Ni Luh Sari Dewi</td>
+                  <td style="padding:20px 16px;border-bottom:1px solid #DCE0DA">10 Jul 2026</td>
+                  <td style="padding:20px 16px;border-bottom:1px solid #DCE0DA"><span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;border:1px solid #4A5750;color:#4A5750;font-size:18px;font-weight:700"><i class="ph-bold ph-clock" style="font-size:20px"></i>Belum diukur</span></td>
+                  <td style="padding:20px 24px;border-bottom:1px solid #DCE0DA;text-align:right"><span style="min-height:56px;padding:12px 18px;border:2px solid #0F6E44;border-radius:10px;color:#0F6E44;font-size:18px;font-weight:700;display:inline-flex;align-items:center">Detail</span></td>
+                </tr>
+                <tr style="background:#F6F7F5">
+                  <td style="padding:20px 24px;border-bottom:1px solid #DCE0DA">
+                    <span style="display:flex;align-items:center;gap:14px">
+                      <span style="width:48px;height:48px;border-radius:999px;background:#EDEFEA;color:#4A5750;font-size:18px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">KH</span>
+                      <span style="display:flex;flex-direction:column">
+                        <span style="font-weight:700">Kayla Hasna Zafira</span>
+                        <span style="font-size:18px;color:#4A5750">3204 0158 1123 0004</span>
+                      </span>
+                    </span>
+                  </td>
+                  <td style="padding:20px 16px;border-bottom:1px solid #DCE0DA">43 bulan</td>
+                  <td style="padding:20px 16px;border-bottom:1px solid #DCE0DA">03</td>
+                  <td style="padding:20px 16px;border-bottom:1px solid #DCE0DA">Retno Widyaningsih</td>
+                  <td style="padding:20px 16px;border-bottom:1px solid #DCE0DA">14 Agu 2026</td>
+                  <td style="padding:20px 16px;border-bottom:1px solid #DCE0DA"><span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:18px;font-weight:700"><i class="ph-bold ph-check" style="font-size:20px"></i>Gizi baik</span></td>
+                  <td style="padding:20px 24px;border-bottom:1px solid #DCE0DA;text-align:right"><span style="min-height:56px;padding:12px 18px;border:2px solid #0F6E44;border-radius:10px;color:#0F6E44;font-size:18px;font-weight:700;display:inline-flex;align-items:center">Detail</span></td>
+                </tr>
+                <tr>
+                  <td style="padding:20px 24px;border-bottom:1px solid #DCE0DA">
+                    <span style="display:flex;align-items:center;gap:14px">
+                      <span style="width:48px;height:48px;border-radius:999px;background:#EDEFEA;color:#4A5750;font-size:18px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">RS</span>
+                      <span style="display:flex;flex-direction:column">
+                        <span style="font-weight:700">Raka Satria Wijaya</span>
+                        <span style="font-size:18px;color:#4A5750">3204 0109 0225 0001</span>
+                      </span>
+                    </span>
+                  </td>
+                  <td style="padding:20px 16px;border-bottom:1px solid #DCE0DA">22 bulan</td>
+                  <td style="padding:20px 16px;border-bottom:1px solid #DCE0DA">02</td>
+                  <td style="padding:20px 16px;border-bottom:1px solid #DCE0DA">Endang Sulastri</td>
+                  <td style="padding:20px 16px;border-bottom:1px solid #DCE0DA">14 Agu 2026</td>
+                  <td style="padding:20px 16px;border-bottom:1px solid #DCE0DA"><span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:18px;font-weight:700"><i class="ph-bold ph-check" style="font-size:20px"></i>Gizi baik</span></td>
+                  <td style="padding:20px 24px;border-bottom:1px solid #DCE0DA;text-align:right"><span style="min-height:56px;padding:12px 18px;border:2px solid #0F6E44;border-radius:10px;color:#0F6E44;font-size:18px;font-weight:700;display:inline-flex;align-items:center">Detail</span></td>
+                </tr>
+                <tr style="background:#F6F7F5">
+                  <td style="padding:20px 24px">
+                    <span style="display:flex;align-items:center;gap:14px">
+                      <span style="width:48px;height:48px;border-radius:999px;background:#EDEFEA;color:#4A5750;font-size:18px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">SF</span>
+                      <span style="display:flex;flex-direction:column">
+                        <span style="font-weight:700">Syifa Fauziah</span>
+                        <span style="font-size:18px;color:#4A5750">3204 0144 0625 0009</span>
+                      </span>
+                    </span>
+                  </td>
+                  <td style="padding:20px 16px">14 bulan</td>
+                  <td style="padding:20px 16px">04</td>
+                  <td style="padding:20px 16px">Dewi Kartika</td>
+                  <td style="padding:20px 16px">14 Agu 2026</td>
+                  <td style="padding:20px 16px"><span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#FBF1E3;border:1px solid #9A5B00;color:#9A5B00;font-size:18px;font-weight:700"><i class="ph-bold ph-warning" style="font-size:20px"></i>Gizi kurang</span></td>
+                  <td style="padding:20px 24px;text-align:right"><span style="min-height:56px;padding:12px 18px;border:2px solid #0F6E44;border-radius:10px;color:#0F6E44;font-size:18px;font-weight:700;display:inline-flex;align-items:center">Detail</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="padding:20px 24px;border-top:1px solid #DCE0DA;display:flex;align-items:center;gap:16px">
+            <span style="font-size:18px;color:#4A5750;flex:1">Menampilkan 1 sampai 6 dari 42 balita</span>
+            <span style="min-height:56px;padding:12px 18px;border:1px solid #4A5750;border-radius:10px;font-size:18px;font-weight:700;display:inline-flex;align-items:center;gap:8px"><i class="ph-bold ph-caret-left" style="font-size:24px"></i>Sebelumnya</span>
+            <span style="min-height:56px;padding:12px 18px;border:2px solid #0F6E44;border-radius:10px;color:#0F6E44;font-size:18px;font-weight:700;display:inline-flex;align-items:center;gap:8px">Berikutnya<i class="ph-bold ph-caret-right" style="font-size:24px"></i></span>
+          </div>
+        </div>
+      </div>
+
+      <div data-screen-label="B-2 Detail anak" style="width:1440px;background:#FFFFFF;border:1px solid #DCE0DA;border-radius:12px;overflow:hidden;display:flex;box-shadow:0 2px 8px rgba(22,33,28,0.08)">
+        <div style="width:248px;flex-shrink:0;border-right:1px solid #DCE0DA;background:#F6F7F5;padding:16px;display:flex;flex-direction:column;gap:12px">
+          <div style="padding:8px 12px 16px;display:flex;flex-direction:column">
+            <span style="font-size:18px;font-weight:800">Portal Posyandu</span>
+            <span style="font-size:18px;color:#4A5750">Melati 2, RW 04</span>
+          </div>
+          <span style="min-height:56px;padding:12px 16px;border-radius:10px;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600"><i class="ph-bold ph-house" style="font-size:28px"></i>Beranda</span>
+          <span style="min-height:56px;padding:12px 16px;border-radius:10px;background:#0F6E44;color:#FFFFFF;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:700"><i class="ph-bold ph-baby" style="font-size:28px"></i>Data Anak</span>
+          <span style="min-height:56px;padding:12px 16px;border-radius:10px;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600"><i class="ph-bold ph-file-text" style="font-size:28px"></i>Laporan</span>
+          <span style="min-height:56px;padding:12px 16px;border-radius:10px;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600"><i class="ph-bold ph-gear" style="font-size:28px"></i>Pengaturan</span>
+        </div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+          <div style="min-height:72px;padding:8px 24px;border-bottom:1px solid #DCE0DA;display:flex;align-items:center;gap:16px">
+            <i class="ph-bold ph-arrow-left" style="font-size:28px;flex-shrink:0"></i>
+            <span style="display:flex;flex-direction:column;flex:1;min-width:0">
+              <span style="font-size:20px;font-weight:700;line-height:1.25">Detail anak</span>
+              <span style="font-size:18px;color:#4A5750;line-height:1.25">Data Anak, Nabila Ayu Ramadhani</span>
+            </span>
+            <span style="min-height:56px;padding:12px 18px;border:1px solid #4A5750;border-radius:10px;font-size:18px;font-weight:700;display:inline-flex;align-items:center;gap:8px;flex-shrink:0"><i class="ph-bold ph-pencil-simple" style="font-size:24px"></i>Ubah data</span>
+            <span style="min-height:56px;padding:12px 18px;border-radius:10px;background:#0F6E44;color:#FFFFFF;font-size:18px;font-weight:700;display:inline-flex;align-items:center;gap:8px;flex-shrink:0"><i class="ph-bold ph-scales" style="font-size:24px"></i>Ukur sekarang</span>
+          </div>
+
+          <div style="padding:24px;display:flex;flex-direction:column;gap:24px">
+            <div style="display:flex;align-items:center;gap:20px;padding:20px 24px;border:1px solid #DCE0DA;border-radius:12px;background:#F6F7F5">
+              <span style="width:80px;height:80px;border-radius:999px;background:#FFFFFF;color:#4A5750;font-size:30px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">NR</span>
+              <span style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1">
+                <span style="font-size:30px;font-weight:800;line-height:1.25">Nabila Ayu Ramadhani</span>
+                <span style="font-size:18px;color:#4A5750">Perempuan, 18 bulan, lahir 22 Juli 2024, RT 03, anak ke-2</span>
+              </span>
+              <span style="display:flex;flex-direction:column;gap:2px;flex-shrink:0">
+                <span style="font-size:18px;color:#4A5750">NIK</span>
+                <span style="font-size:18px;font-weight:700">3204 0122 0724 0002</span>
+              </span>
+              <span style="display:flex;flex-direction:column;gap:2px;flex-shrink:0">
+                <span style="font-size:18px;color:#4A5750">Ibu</span>
+                <span style="font-size:18px;font-weight:700">Wulandari Puspitasari</span>
+              </span>
+              <span style="display:flex;flex-direction:column;gap:2px;flex-shrink:0">
+                <span style="font-size:18px;color:#4A5750">Telepon</span>
+                <span style="font-size:18px;font-weight:700">0857 2210 4418</span>
+              </span>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <span style="font-size:20px;font-weight:700">Status terakhir, 14 Agustus 2026</span>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+                <div style="border:1px solid #DCE0DA;border-left:8px solid #14713D;border-radius:12px;padding:20px;background:#F6F7F5;display:flex;flex-direction:column;gap:8px">
+                  <span style="font-size:18px;font-weight:700">Berat badan menurut umur, BB/U</span>
+                  <span style="display:inline-flex;align-self:flex-start;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:18px;font-weight:700"><i class="ph-bold ph-check" style="font-size:20px"></i>Berat badan normal</span>
+                  <span style="display:flex;align-items:baseline;gap:10px"><span style="font-size:40px;font-weight:800;line-height:1.1">-0,7</span><span style="font-size:18px;color:#4A5750">z-score</span></span>
+                </div>
+                <div style="border:1px solid #DCE0DA;border-left:8px solid #9A5B00;border-radius:12px;padding:20px;background:#F6F7F5;display:flex;flex-direction:column;gap:8px">
+                  <span style="font-size:18px;font-weight:700">Panjang badan menurut umur, PB/U</span>
+                  <span style="display:inline-flex;align-self:flex-start;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#FBF1E3;border:1px solid #9A5B00;color:#9A5B00;font-size:18px;font-weight:700"><i class="ph-bold ph-warning" style="font-size:20px"></i>Pendek</span>
+                  <span style="display:flex;align-items:baseline;gap:10px"><span style="font-size:40px;font-weight:800;line-height:1.1">-2,3</span><span style="font-size:18px;color:#4A5750">z-score</span></span>
+                </div>
+                <div style="border:1px solid #DCE0DA;border-left:8px solid #14713D;border-radius:12px;padding:20px;background:#F6F7F5;display:flex;flex-direction:column;gap:8px">
+                  <span style="font-size:18px;font-weight:700">Berat menurut panjang, BB/PB</span>
+                  <span style="display:inline-flex;align-self:flex-start;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:18px;font-weight:700"><i class="ph-bold ph-check" style="font-size:20px"></i>Gizi baik</span>
+                  <span style="display:flex;align-items:baseline;gap:10px"><span style="font-size:40px;font-weight:800;line-height:1.1">0,5</span><span style="font-size:18px;color:#4A5750">z-score</span></span>
+                </div>
+              </div>
+              <span style="font-size:18px;color:#4A5750">Acuan: standar pertumbuhan WHO 2006, dihitung dari parameter LMS. Nilainya sama dengan tabel Permenkes No. 2 Tahun 2020.</span>
+            </div>
+
+            <dc-import name="GrafikKMS" kelamin="P" hint-size="100%,900px"></dc-import>
+
+            <div style="border:1px solid #DCE0DA;border-radius:12px;overflow:hidden">
+              <div style="padding:20px 24px;border-bottom:1px solid #DCE0DA;display:flex;align-items:center;gap:16px">
+                <span style="font-size:20px;font-weight:700;flex:1">Riwayat pengukuran</span>
+              </div>
+              <table style="width:100%;font-size:20px">
+                <thead>
+                  <tr style="background:#F6F7F5">
+                    <th style="text-align:left;padding:18px 24px;font-weight:700;border-bottom:1px solid #DCE0DA">Tanggal</th>
+                    <th style="text-align:right;padding:18px 16px;font-weight:700;border-bottom:1px solid #DCE0DA">Berat</th>
+                    <th style="text-align:right;padding:18px 16px;font-weight:700;border-bottom:1px solid #DCE0DA">Panjang</th>
+                    <th style="text-align:right;padding:18px 16px;font-weight:700;border-bottom:1px solid #DCE0DA">LILA</th>
+                    <th style="text-align:right;padding:18px 16px;font-weight:700;border-bottom:1px solid #DCE0DA">BB/U</th>
+                    <th style="text-align:right;padding:18px 16px;font-weight:700;border-bottom:1px solid #DCE0DA">TB/U</th>
+                    <th style="text-align:left;padding:18px 16px;font-weight:700;border-bottom:1px solid #DCE0DA">Pertumbuhan</th>
+                    <th style="text-align:left;padding:18px 24px;font-weight:700;border-bottom:1px solid #DCE0DA">Kader</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="padding:18px 24px;border-bottom:1px solid #DCE0DA">14 Agu 2026</td>
+                    <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA;font-weight:700">9,4 kg</td>
+                    <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">74,0 cm</td>
+                    <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">14,2 cm</td>
+                    <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">-0,7</td>
+                    <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">-2,3</td>
+                    <td style="padding:18px 16px;border-bottom:1px solid #DCE0DA"><span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:18px;font-weight:700"><i class="ph-bold ph-check" style="font-size:20px"></i>N, naik</span></td>
+                    <td style="padding:18px 24px;border-bottom:1px solid #DCE0DA">Siti Aminah</td>
+                  </tr>
+                  <tr style="background:#F6F7F5">
+                    <td style="padding:18px 24px;border-bottom:1px solid #DCE0DA">10 Jul 2026</td>
+                    <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA;font-weight:700">9,0 kg</td>
+                    <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">73,7 cm</td>
+                    <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">14,1 cm</td>
+                    <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">-0,9</td>
+                    <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">-2,1</td>
+                    <td style="padding:18px 16px;border-bottom:1px solid #DCE0DA"><span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#FBF1E3;border:1px solid #9A5B00;color:#9A5B00;font-size:18px;font-weight:700"><i class="ph-bold ph-warning" style="font-size:20px"></i>T, tidak naik</span></td>
+                    <td style="padding:18px 24px;border-bottom:1px solid #DCE0DA">Siti Aminah</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:18px 24px;border-bottom:1px solid #DCE0DA">12 Jun 2026</td>
+                    <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA;font-weight:700">8,9 kg</td>
+                    <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">73,3 cm</td>
+                    <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">14,0 cm</td>
+                    <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">-0,8</td>
+                    <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">-1,9</td>
+                    <td style="padding:18px 16px;border-bottom:1px solid #DCE0DA"><span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:18px;font-weight:700"><i class="ph-bold ph-check" style="font-size:20px"></i>N, naik</span></td>
+                    <td style="padding:18px 24px;border-bottom:1px solid #DCE0DA">Rohmah Yuliati</td>
+                  </tr>
+                  <tr style="background:#F6F7F5">
+                    <td style="padding:18px 24px">08 Mei 2026</td>
+                    <td style="padding:18px 16px;text-align:right;font-weight:700">8,7 kg</td>
+                    <td style="padding:18px 16px;text-align:right">72,9 cm</td>
+                    <td style="padding:18px 16px;text-align:right">14,0 cm</td>
+                    <td style="padding:18px 16px;text-align:right">-0,8</td>
+                    <td style="padding:18px 16px;text-align:right">-1,7</td>
+                    <td style="padding:18px 16px"><span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:18px;font-weight:700"><i class="ph-bold ph-check" style="font-size:20px"></i>N, naik</span></td>
+                    <td style="padding:18px 24px">Siti Aminah</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+              <div style="border:1px solid #DCE0DA;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px">
+                <span style="font-size:20px;font-weight:700;display:inline-flex;align-items:center;gap:10px"><i class="ph-bold ph-syringe" style="font-size:28px;color:#0F6E44"></i>Imunisasi</span>
+                <div style="display:flex;flex-wrap:wrap;gap:12px">
+                  <span style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:18px;font-weight:700"><i class="ph-bold ph-check" style="font-size:20px"></i>Dasar lengkap</span>
+                  <span style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;border:1px solid #4A5750;color:#4A5750;font-size:18px;font-weight:700"><i class="ph-bold ph-clock" style="font-size:20px"></i>Booster belum lengkap</span>
+                </div>
+                <span style="font-size:18px;color:#4A5750">Detail per vaksin ada di Buku KIA fisik. Aplikasi hanya menyimpan status ringkas.</span>
+              </div>
+              <div style="border:1px solid #DCE0DA;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px">
+                <span style="font-size:20px;font-weight:700;display:inline-flex;align-items:center;gap:10px"><i class="ph-bold ph-note-pencil" style="font-size:28px;color:#0F6E44"></i>Catatan bidan</span>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <span style="font-size:18px;color:#4A5750">14 Agustus 2026, Bidan Ratih Kusumaningrum</span>
+                  <span style="font-size:18px">PB/U dua bulan berturut di bawah -2 SD. Ibu diminta datang ke Puskesmas untuk pemeriksaan lanjutan dalam dua minggu.</span>
+                </div>
+                <span style="min-height:56px;padding:12px 18px;border:2px solid #0F6E44;border-radius:10px;color:#0F6E44;font-size:18px;font-weight:700;display:inline-flex;align-items:center;align-self:flex-start;gap:8px"><i class="ph-bold ph-plus" style="font-size:24px"></i>Tambah catatan</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="2c" style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:inline-flex;align-self:flex-start;padding:6px 14px;border-radius:10px;background:#16211C;color:#FFFFFF;font-size:18px;font-weight:700">2c</div>
+      <span style="font-size:30px;font-weight:700">Laporan, harian bulanan tahunan</span>
+      <span style="font-size:18px;color:#4A5750;max-width:70ch">Rekap yang saya rancang dari model data Anda, bukan format baku. Kalau Puskesmas punya format resmi yang harus diikuti, kirim kolomnya dan saya sesuaikan.</span>
+    </div>
+
+    <div data-screen-label="B-3 Laporan" style="width:1440px;background:#FFFFFF;border:1px solid #DCE0DA;border-radius:12px;overflow:hidden;display:flex;box-shadow:0 2px 8px rgba(22,33,28,0.08)">
+      <div style="width:248px;flex-shrink:0;border-right:1px solid #DCE0DA;background:#F6F7F5;padding:16px;display:flex;flex-direction:column;gap:12px">
+        <div style="padding:8px 12px 16px;display:flex;flex-direction:column">
+          <span style="font-size:18px;font-weight:800">Portal Posyandu</span>
+          <span style="font-size:18px;color:#4A5750">Melati 2, RW 04</span>
+        </div>
+        <span style="min-height:56px;padding:12px 16px;border-radius:10px;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600"><i class="ph-bold ph-house" style="font-size:28px"></i>Beranda</span>
+        <span style="min-height:56px;padding:12px 16px;border-radius:10px;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600"><i class="ph-bold ph-baby" style="font-size:28px"></i>Data Anak</span>
+        <span style="min-height:56px;padding:12px 16px;border-radius:10px;background:#0F6E44;color:#FFFFFF;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:700"><i class="ph-bold ph-file-text" style="font-size:28px"></i>Laporan</span>
+        <span style="min-height:56px;padding:12px 16px;border-radius:10px;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600"><i class="ph-bold ph-gear" style="font-size:28px"></i>Pengaturan</span>
+      </div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+        <div style="min-height:72px;padding:8px 24px;border-bottom:1px solid #DCE0DA;display:flex;align-items:center;gap:16px">
+          <span style="display:flex;flex-direction:column;flex:1;min-width:0">
+            <span style="font-size:20px;font-weight:700;line-height:1.25">Laporan</span>
+            <span style="font-size:18px;color:#4A5750;line-height:1.25">Posyandu Melati 2, RW 04 Kelurahan Cibaduyut</span>
+          </span>
+          <span style="min-height:56px;padding:12px 18px;border:1px solid #4A5750;border-radius:10px;font-size:18px;font-weight:700;display:inline-flex;align-items:center;gap:8px;flex-shrink:0"><i class="ph-bold ph-download-simple" style="font-size:24px"></i>Unduh CSV</span>
+          <span style="min-height:56px;padding:12px 18px;border-radius:10px;background:#0F6E44;color:#FFFFFF;font-size:18px;font-weight:700;display:inline-flex;align-items:center;gap:8px;flex-shrink:0"><i class="ph-bold ph-printer" style="font-size:24px"></i>Cetak A4</span>
+        </div>
+
+        <div style="padding:20px 24px;border-bottom:1px solid #DCE0DA;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          <div style="display:flex;gap:12px">
+            <span style="min-height:56px;padding:12px 24px;border:1px solid #4A5750;border-radius:10px;font-size:18px;font-weight:600;display:inline-flex;align-items:center">Harian</span>
+            <span style="min-height:56px;padding:12px 24px;border-radius:10px;background:#0F6E44;color:#FFFFFF;font-size:18px;font-weight:700;display:inline-flex;align-items:center;gap:8px"><i class="ph-bold ph-check" style="font-size:24px"></i>Bulanan</span>
+            <span style="min-height:56px;padding:12px 24px;border:1px solid #4A5750;border-radius:10px;font-size:18px;font-weight:600;display:inline-flex;align-items:center">Tahunan</span>
+          </div>
+          <div style="min-height:56px;padding:12px 18px;border:1px solid #4A5750;border-radius:10px;display:inline-flex;align-items:center;gap:12px">
+            <i class="ph-bold ph-calendar-blank" style="font-size:24px;color:#4A5750"></i>
+            <span style="font-size:18px;font-weight:600">Agustus 2026</span>
+          </div>
+          <span style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;background:#EAF0FB;border:1px solid #1148A8;color:#1148A8;font-size:18px;font-weight:700"><i class="ph-bold ph-info" style="font-size:24px"></i>Periode masih berjalan, angka belum final</span>
+        </div>
+
+        <div style="padding:24px;display:flex;flex-direction:column;gap:24px">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+            <div style="border:1px solid #DCE0DA;border-radius:12px;background:#FFFFFF;padding:20px;display:flex;flex-direction:column;gap:16px">
+              <div style="display:flex;align-items:center;gap:12px">
+                <span style="width:48px;height:48px;border-radius:12px;background:#EDEFEA;color:#4A5750;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ph-bold ph-users-three" style="font-size:28px"></i></span>
+                <span style="font-size:20px;font-weight:700">Sasaran, S</span>
+              </div>
+              <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+                <span style="font-size:40px;font-weight:800;line-height:1.1">42</span>
+                <span style="font-size:18px;color:#4A5750">balita</span>
+              </div>
+            </div>
+            <div style="border:1px solid #DCE0DA;border-radius:12px;background:#FFFFFF;padding:20px;display:flex;flex-direction:column;gap:16px">
+              <div style="display:flex;align-items:center;gap:12px">
+                <span style="width:48px;height:48px;border-radius:12px;background:#EDEFEA;color:#4A5750;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ph-bold ph-scales" style="font-size:28px"></i></span>
+                <span style="font-size:20px;font-weight:700">Ditimbang, D</span>
+              </div>
+              <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+                <span style="font-size:40px;font-weight:800;line-height:1.1">18</span>
+                <span style="font-size:18px;color:#4A5750">anak</span>
+              </div>
+            </div>
+            <div style="border:1px solid #DCE0DA;border-radius:12px;background:#FFFFFF;padding:20px;display:flex;flex-direction:column;gap:16px">
+              <div style="display:flex;align-items:center;gap:12px">
+                <span style="width:48px;height:48px;border-radius:12px;background:#EDEFEA;color:#4A5750;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ph-bold ph-calendar-check" style="font-size:28px"></i></span>
+                <span style="font-size:20px;font-weight:700">Kehadiran, D/S</span>
+              </div>
+              <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+                <span style="font-size:40px;font-weight:800;line-height:1.1">43%</span>
+                <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:10px;background:#FBF1E3;border:1px solid #9A5B00;color:#9A5B00;font-size:18px;font-weight:700"><i class="ph-bold ph-arrow-down" style="font-size:20px"></i>12 poin</span>
+              </div>
+            </div>
+            <div style="border:1px solid #DCE0DA;border-radius:12px;background:#FFFFFF;padding:20px;display:flex;flex-direction:column;gap:16px">
+              <div style="display:flex;align-items:center;gap:12px">
+                <span style="width:48px;height:48px;border-radius:12px;background:#EDEFEA;color:#4A5750;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ph-bold ph-trend-up" style="font-size:28px"></i></span>
+                <span style="font-size:20px;font-weight:700">Naik, N/D</span>
+              </div>
+              <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+                <span style="font-size:40px;font-weight:800;line-height:1.1">67%</span>
+                <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:18px;font-weight:700"><i class="ph-bold ph-check" style="font-size:20px"></i>12 dari 18</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="border:1px solid #DCE0DA;border-radius:12px;overflow:hidden">
+            <div style="padding:20px 24px;border-bottom:1px solid #DCE0DA;display:flex;flex-direction:column;gap:4px">
+              <span style="font-size:20px;font-weight:700">Rekap per RT</span>
+              <span style="font-size:18px;color:#4A5750">S sasaran, D ditimbang, N naik, T tidak naik, O tidak ditimbang bulan lalu, B baru pertama kali, BGM di bawah garis merah</span>
+            </div>
+            <table style="width:100%;font-size:20px">
+              <thead>
+                <tr style="background:#F6F7F5">
+                  <th style="text-align:left;padding:18px 24px;font-weight:700;border-bottom:1px solid #DCE0DA">RT</th>
+                  <th style="text-align:right;padding:18px 16px;font-weight:700;border-bottom:1px solid #DCE0DA">S</th>
+                  <th style="text-align:right;padding:18px 16px;font-weight:700;border-bottom:1px solid #DCE0DA">D</th>
+                  <th style="text-align:right;padding:18px 16px;font-weight:700;border-bottom:1px solid #DCE0DA">D/S</th>
+                  <th style="text-align:right;padding:18px 16px;font-weight:700;border-bottom:1px solid #DCE0DA">N</th>
+                  <th style="text-align:right;padding:18px 16px;font-weight:700;border-bottom:1px solid #DCE0DA">T</th>
+                  <th style="text-align:right;padding:18px 16px;font-weight:700;border-bottom:1px solid #DCE0DA">O</th>
+                  <th style="text-align:right;padding:18px 16px;font-weight:700;border-bottom:1px solid #DCE0DA">B</th>
+                  <th style="text-align:right;padding:18px 24px;font-weight:700;border-bottom:1px solid #DCE0DA">BGM</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="padding:18px 24px;border-bottom:1px solid #DCE0DA;font-weight:600">RT 01</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">8</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">4</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">50%</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">3</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">1</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">0</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">0</td>
+                  <td style="padding:18px 24px;text-align:right;border-bottom:1px solid #DCE0DA">0</td>
+                </tr>
+                <tr style="background:#F6F7F5">
+                  <td style="padding:18px 24px;border-bottom:1px solid #DCE0DA;font-weight:600">RT 02</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">9</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">3</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">33%</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">2</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">1</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">0</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">0</td>
+                  <td style="padding:18px 24px;text-align:right;border-bottom:1px solid #DCE0DA;color:#A3170F;font-weight:700">1</td>
+                </tr>
+                <tr>
+                  <td style="padding:18px 24px;border-bottom:1px solid #DCE0DA;font-weight:600">RT 03</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">10</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">5</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">50%</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">3</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">1</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">1</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">0</td>
+                  <td style="padding:18px 24px;text-align:right;border-bottom:1px solid #DCE0DA">0</td>
+                </tr>
+                <tr style="background:#F6F7F5">
+                  <td style="padding:18px 24px;border-bottom:1px solid #DCE0DA;font-weight:600">RT 04</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">9</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">4</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">44%</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">3</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">1</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">0</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">0</td>
+                  <td style="padding:18px 24px;text-align:right;border-bottom:1px solid #DCE0DA;color:#A3170F;font-weight:700">1</td>
+                </tr>
+                <tr>
+                  <td style="padding:18px 24px;border-bottom:1px solid #DCE0DA;font-weight:600">RT 05</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">6</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">2</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">33%</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">1</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">0</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">0</td>
+                  <td style="padding:18px 16px;text-align:right;border-bottom:1px solid #DCE0DA">1</td>
+                  <td style="padding:18px 24px;text-align:right;border-bottom:1px solid #DCE0DA">0</td>
+                </tr>
+                <tr style="background:#F6F7F5">
+                  <td style="padding:20px 24px;font-weight:800">Total</td>
+                  <td style="padding:20px 16px;text-align:right;font-weight:800">42</td>
+                  <td style="padding:20px 16px;text-align:right;font-weight:800">18</td>
+                  <td style="padding:20px 16px;text-align:right;font-weight:800">43%</td>
+                  <td style="padding:20px 16px;text-align:right;font-weight:800">12</td>
+                  <td style="padding:20px 16px;text-align:right;font-weight:800">4</td>
+                  <td style="padding:20px 16px;text-align:right;font-weight:800">1</td>
+                  <td style="padding:20px 16px;text-align:right;font-weight:800">1</td>
+                  <td style="padding:20px 24px;text-align:right;font-weight:800;color:#A3170F">2</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start">
+            <div style="border:1px solid #DCE0DA;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px">
+              <span style="font-size:20px;font-weight:700">Status gizi BB/PB, 18 anak yang diukur</span>
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <div style="display:flex;align-items:center;gap:16px">
+                  <span style="width:168px;flex-shrink:0;font-size:18px">Gizi baik</span>
+                  <span style="flex:1;height:36px;border-radius:6px;background:#EDEFEA;display:flex"><span style="width:77.8%;height:36px;border-radius:6px;background:#14713D"></span></span>
+                  <span style="width:32px;flex-shrink:0;font-size:20px;font-weight:700;text-align:right">14</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:16px">
+                  <span style="width:168px;flex-shrink:0;font-size:18px">Gizi kurang</span>
+                  <span style="flex:1;height:36px;border-radius:6px;background:#EDEFEA;display:flex"><span style="width:16.7%;height:36px;border-radius:6px;background:#9A5B00"></span></span>
+                  <span style="width:32px;flex-shrink:0;font-size:20px;font-weight:700;text-align:right">3</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:16px">
+                  <span style="width:168px;flex-shrink:0;font-size:18px">Gizi buruk</span>
+                  <span style="flex:1;height:36px;border-radius:6px;background:#EDEFEA;display:flex"><span style="width:5.6%;height:36px;border-radius:6px;background:#A3170F"></span></span>
+                  <span style="width:32px;flex-shrink:0;font-size:20px;font-weight:700;text-align:right">1</span>
+                </div>
+              </div>
+            </div>
+            <div style="border:1px solid #DCE0DA;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px">
+              <span style="font-size:20px;font-weight:700">Cakupan pemeriksaan tambahan</span>
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <div style="display:flex;align-items:center;gap:16px">
+                  <span style="width:168px;flex-shrink:0;font-size:18px">Imunisasi dicatat</span>
+                  <span style="flex:1;height:36px;border-radius:6px;background:#EDEFEA;display:flex"><span style="width:88.9%;height:36px;border-radius:6px;background:#0B6B70"></span></span>
+                  <span style="width:32px;flex-shrink:0;font-size:20px;font-weight:700;text-align:right">16</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:16px">
+                  <span style="width:168px;flex-shrink:0;font-size:18px">Asupan gizi</span>
+                  <span style="flex:1;height:36px;border-radius:6px;background:#EDEFEA;display:flex"><span style="width:61.1%;height:36px;border-radius:6px;background:#0B6B70"></span></span>
+                  <span style="width:32px;flex-shrink:0;font-size:20px;font-weight:700;text-align:right">11</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:16px">
+                  <span style="width:168px;flex-shrink:0;font-size:18px">Pemeriksaan gigi</span>
+                  <span style="flex:1;height:36px;border-radius:6px;background:#EDEFEA;display:flex"><span style="width:38.9%;height:36px;border-radius:6px;background:#0B6B70"></span></span>
+                  <span style="width:32px;flex-shrink:0;font-size:20px;font-weight:700;text-align:right">7</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:16px">
+                  <span style="width:168px;flex-shrink:0;font-size:18px">KPSP</span>
+                  <span style="flex:1;height:36px;border-radius:6px;background:#EDEFEA;display:flex"><span style="width:22.2%;height:36px;border-radius:6px;background:#0B6B70"></span></span>
+                  <span style="width:32px;flex-shrink:0;font-size:20px;font-weight:700;text-align:right">4</span>
+                </div>
+              </div>
+              <span style="font-size:18px;color:#4A5750;border-top:1px solid #DCE0DA;padding-top:16px">Semua pemeriksaan ini opsional, jadi cakupan rendah bukan berarti data salah.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="2d" style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:inline-flex;align-self:flex-start;padding:6px 14px;border-radius:10px;background:#16211C;color:#FFFFFF;font-size:18px;font-weight:700">2d</div>
+      <span style="font-size:30px;font-weight:700">Pengaturan, batas pengukuran</span>
+      <span style="font-size:18px;color:#4A5750;max-width:70ch">Layar ini menjawab pertanyaan terbuka dari batch sebelumnya: ambang validasi lunak tidak lagi ditebak desainer, tapi diatur bidan di sini. Ambang z-score sendiri terkunci karena ditetapkan Permenkes.</span>
+    </div>
+
+    <div data-screen-label="B-4 Pengaturan batas pengukuran" style="width:1440px;background:#FFFFFF;border:1px solid #DCE0DA;border-radius:12px;overflow:hidden;display:flex;box-shadow:0 2px 8px rgba(22,33,28,0.08)">
+      <div style="width:248px;flex-shrink:0;border-right:1px solid #DCE0DA;background:#F6F7F5;padding:16px;display:flex;flex-direction:column;gap:12px">
+        <div style="padding:8px 12px 16px;display:flex;flex-direction:column">
+          <span style="font-size:18px;font-weight:800">Portal Posyandu</span>
+          <span style="font-size:18px;color:#4A5750">Melati 2, RW 04</span>
+        </div>
+        <span style="min-height:56px;padding:12px 16px;border-radius:10px;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600"><i class="ph-bold ph-house" style="font-size:28px"></i>Beranda</span>
+        <span style="min-height:56px;padding:12px 16px;border-radius:10px;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600"><i class="ph-bold ph-baby" style="font-size:28px"></i>Data Anak</span>
+        <span style="min-height:56px;padding:12px 16px;border-radius:10px;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600"><i class="ph-bold ph-file-text" style="font-size:28px"></i>Laporan</span>
+        <span style="min-height:56px;padding:12px 16px;border-radius:10px;background:#0F6E44;color:#FFFFFF;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:700"><i class="ph-bold ph-gear" style="font-size:28px"></i>Pengaturan</span>
+      </div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+        <div style="min-height:72px;padding:8px 24px;border-bottom:1px solid #DCE0DA;display:flex;align-items:center;gap:16px">
+          <span style="display:flex;flex-direction:column;flex:1;min-width:0">
+            <span style="font-size:20px;font-weight:700;line-height:1.25">Pengaturan</span>
+            <span style="font-size:18px;color:#4A5750;line-height:1.25">Batas pengukuran anak</span>
+          </span>
+          <span style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;border:1px solid #4A5750;color:#4A5750;font-size:18px;font-weight:700;flex-shrink:0"><i class="ph-bold ph-user-circle" style="font-size:24px"></i>Masuk sebagai Bidan</span>
+        </div>
+
+        <div style="padding:24px;display:flex;flex-direction:column;gap:24px;max-width:1000px">
+          <div style="border:1px solid #1148A8;border-radius:12px;background:#EAF0FB;padding:20px;display:flex;gap:14px;align-items:flex-start">
+            <i class="ph-bold ph-info" style="font-size:28px;color:#1148A8;flex-shrink:0"></i>
+            <span style="font-size:18px">Batas di sini hanya memicu pertanyaan konfirmasi, tidak pernah memblokir kader. Perubahan berlaku untuk pengukuran baru, data lama tidak dihitung ulang.</span>
+          </div>
+
+          <div style="border:1px solid #DCE0DA;border-radius:12px;overflow:hidden">
+            <div style="padding:20px 24px;border-bottom:1px solid #DCE0DA;display:flex;flex-direction:column;gap:4px">
+              <span style="font-size:20px;font-weight:700">Rentang wajar pengukuran</span>
+              <span style="font-size:18px;color:#4A5750">Angka di luar rentang ini memunculkan peringatan tegas. Kader tetap bisa melanjutkan.</span>
+            </div>
+            <div style="padding:24px;display:flex;flex-direction:column;gap:24px">
+              <div style="display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap">
+                <span style="width:240px;flex-shrink:0;display:flex;flex-direction:column;gap:2px">
+                  <span style="font-size:18px;font-weight:600">Berat badan</span>
+                  <span style="font-size:18px;color:#4A5750">Satuan kilogram</span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:8px">
+                  <span style="font-size:18px;font-weight:600;color:#4A5750">Minimal</span>
+                  <span style="min-height:56px;min-width:160px;padding:12px 16px;border:1px solid #4A5750;border-radius:10px;display:inline-flex;align-items:center;justify-content:space-between;gap:12px"><span style="font-size:24px;font-weight:700">1,0</span><span style="font-size:18px;color:#4A5750">kg</span></span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:8px">
+                  <span style="font-size:18px;font-weight:600;color:#4A5750">Maksimal</span>
+                  <span style="min-height:56px;min-width:160px;padding:12px 16px;border:1px solid #4A5750;border-radius:10px;display:inline-flex;align-items:center;justify-content:space-between;gap:12px"><span style="font-size:24px;font-weight:700">30,0</span><span style="font-size:18px;color:#4A5750">kg</span></span>
+                </span>
+              </div>
+              <div style="display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap;border-top:1px solid #DCE0DA;padding-top:24px">
+                <span style="width:240px;flex-shrink:0;display:flex;flex-direction:column;gap:2px">
+                  <span style="font-size:18px;font-weight:600">Panjang atau tinggi badan</span>
+                  <span style="font-size:18px;color:#4A5750">Satuan sentimeter</span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:8px">
+                  <span style="font-size:18px;font-weight:600;color:#4A5750">Minimal</span>
+                  <span style="min-height:56px;min-width:160px;padding:12px 16px;border:1px solid #4A5750;border-radius:10px;display:inline-flex;align-items:center;justify-content:space-between;gap:12px"><span style="font-size:24px;font-weight:700">40,0</span><span style="font-size:18px;color:#4A5750">cm</span></span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:8px">
+                  <span style="font-size:18px;font-weight:600;color:#4A5750">Maksimal</span>
+                  <span style="min-height:56px;min-width:160px;padding:12px 16px;border:1px solid #4A5750;border-radius:10px;display:inline-flex;align-items:center;justify-content:space-between;gap:12px"><span style="font-size:24px;font-weight:700">130,0</span><span style="font-size:18px;color:#4A5750">cm</span></span>
+                </span>
+              </div>
+              <div style="display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap;border-top:1px solid #DCE0DA;padding-top:24px">
+                <span style="width:240px;flex-shrink:0;display:flex;flex-direction:column;gap:2px">
+                  <span style="font-size:18px;font-weight:600">LILA, lingkar lengan atas</span>
+                  <span style="font-size:18px;color:#4A5750">Satuan sentimeter</span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:8px">
+                  <span style="font-size:18px;font-weight:600;color:#4A5750">Minimal</span>
+                  <span style="min-height:56px;min-width:160px;padding:12px 16px;border:1px solid #4A5750;border-radius:10px;display:inline-flex;align-items:center;justify-content:space-between;gap:12px"><span style="font-size:24px;font-weight:700">8,0</span><span style="font-size:18px;color:#4A5750">cm</span></span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:8px">
+                  <span style="font-size:18px;font-weight:600;color:#4A5750">Maksimal</span>
+                  <span style="min-height:56px;min-width:160px;padding:12px 16px;border:1px solid #4A5750;border-radius:10px;display:inline-flex;align-items:center;justify-content:space-between;gap:12px"><span style="font-size:24px;font-weight:700">25,0</span><span style="font-size:18px;color:#4A5750">cm</span></span>
+                </span>
+              </div>
+              <div style="display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap;border-top:1px solid #DCE0DA;padding-top:24px">
+                <span style="width:240px;flex-shrink:0;display:flex;flex-direction:column;gap:2px">
+                  <span style="font-size:18px;font-weight:600">LIKA, lingkar kepala</span>
+                  <span style="font-size:18px;color:#4A5750">Satuan sentimeter</span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:8px">
+                  <span style="font-size:18px;font-weight:600;color:#4A5750">Minimal</span>
+                  <span style="min-height:56px;min-width:160px;padding:12px 16px;border:1px solid #4A5750;border-radius:10px;display:inline-flex;align-items:center;justify-content:space-between;gap:12px"><span style="font-size:24px;font-weight:700">30,0</span><span style="font-size:18px;color:#4A5750">cm</span></span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:8px">
+                  <span style="font-size:18px;font-weight:600;color:#4A5750">Maksimal</span>
+                  <span style="min-height:56px;min-width:160px;padding:12px 16px;border:1px solid #4A5750;border-radius:10px;display:inline-flex;align-items:center;justify-content:space-between;gap:12px"><span style="font-size:24px;font-weight:700">60,0</span><span style="font-size:18px;color:#4A5750">cm</span></span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div style="border:1px solid #DCE0DA;border-radius:12px;overflow:hidden">
+            <div style="padding:20px 24px;border-bottom:1px solid #DCE0DA;display:flex;flex-direction:column;gap:4px">
+              <span style="font-size:20px;font-weight:700">Ambang selisih antar bulan</span>
+              <span style="font-size:18px;color:#4A5750">Memicu pertanyaan "Yakin dengan angka ini?" saat selisih dari bulan lalu melebihi batas.</span>
+            </div>
+            <div style="padding:24px;display:flex;flex-direction:column;gap:24px">
+              <div style="display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap">
+                <span style="width:240px;flex-shrink:0;display:flex;flex-direction:column;gap:2px">
+                  <span style="font-size:18px;font-weight:600">Berat naik maksimal</span>
+                  <span style="font-size:18px;color:#4A5750">Dalam satu bulan</span>
+                </span>
+                <span style="min-height:56px;min-width:160px;padding:12px 16px;border:1px solid #4A5750;border-radius:10px;display:inline-flex;align-items:center;justify-content:space-between;gap:12px"><span style="font-size:24px;font-weight:700">2,0</span><span style="font-size:18px;color:#4A5750">kg</span></span>
+              </div>
+              <div style="display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap;border-top:1px solid #DCE0DA;padding-top:24px">
+                <span style="width:240px;flex-shrink:0;display:flex;flex-direction:column;gap:2px">
+                  <span style="font-size:18px;font-weight:600">Berat turun maksimal</span>
+                  <span style="font-size:18px;color:#4A5750">Dalam satu bulan</span>
+                </span>
+                <span style="min-height:56px;min-width:160px;padding:12px 16px;border:2px solid #0F6E44;border-radius:10px;display:inline-flex;align-items:center;justify-content:space-between;gap:12px"><span style="font-size:24px;font-weight:700">1,5</span><span style="font-size:18px;color:#4A5750">kg</span></span>
+                <span style="display:inline-flex;align-items:center;gap:8px;font-size:18px;color:#0F6E44;font-weight:600"><i class="ph-bold ph-pencil-simple" style="font-size:20px"></i>Sedang diubah</span>
+              </div>
+              <div style="display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap;border-top:1px solid #DCE0DA;padding-top:24px">
+                <span style="width:240px;flex-shrink:0;display:flex;flex-direction:column;gap:2px">
+                  <span style="font-size:18px;font-weight:600">Tinggi berkurang</span>
+                  <span style="font-size:18px;color:#4A5750">Hampir selalu kesalahan ukur</span>
+                </span>
+                <span style="min-height:56px;min-width:160px;padding:12px 16px;border:1px solid #4A5750;border-radius:10px;display:inline-flex;align-items:center;justify-content:space-between;gap:12px"><span style="font-size:24px;font-weight:700">0,5</span><span style="font-size:18px;color:#4A5750">cm</span></span>
+                <span style="font-size:18px;color:#4A5750;max-width:36ch">Peringatan muncul bila tinggi berkurang lebih dari angka ini.</span>
+              </div>
+              <div style="display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap;border-top:1px solid #DCE0DA;padding-top:24px">
+                <span style="width:240px;flex-shrink:0;display:flex;flex-direction:column;gap:2px">
+                  <span style="font-size:18px;font-weight:600">Umur maksimal balita</span>
+                  <span style="font-size:18px;color:#4A5750">Anak di atas umur ini keluar dari sasaran</span>
+                </span>
+                <span style="min-height:56px;min-width:160px;padding:12px 16px;border:1px solid #4A5750;border-radius:10px;display:inline-flex;align-items:center;justify-content:space-between;gap:12px"><span style="font-size:24px;font-weight:700">60</span><span style="font-size:18px;color:#4A5750">bulan</span></span>
+              </div>
+            </div>
+          </div>
+
+          <div style="border:1px solid #DCE0DA;border-radius:12px;overflow:hidden;background:#F6F7F5">
+            <div style="padding:20px 24px;border-bottom:1px solid #DCE0DA;display:flex;align-items:center;gap:14px">
+              <i class="ph-bold ph-lock-simple" style="font-size:28px;color:#4A5750;flex-shrink:0"></i>
+              <span style="display:flex;flex-direction:column;gap:2px">
+                <span style="font-size:20px;font-weight:700">Ambang z-score, terkunci</span>
+                <span style="font-size:18px;color:#4A5750">Ditetapkan Permenkes No. 2 Tahun 2020, tidak bisa diubah dari aplikasi.</span>
+              </span>
+            </div>
+            <div style="padding:24px;display:flex;flex-direction:column;gap:16px">
+              <div style="display:flex;flex-wrap:wrap;gap:12px">
+                <span style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;background:#FCEDEC;border:1px solid #A3170F;color:#A3170F;font-size:18px;font-weight:700"><i class="ph-fill ph-warning" style="font-size:20px"></i>di bawah -3 SD</span>
+                <span style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;background:#FBF1E3;border:1px solid #9A5B00;color:#9A5B00;font-size:18px;font-weight:700"><i class="ph-bold ph-warning" style="font-size:20px"></i>-3 SD sampai -2 SD</span>
+                <span style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:18px;font-weight:700"><i class="ph-bold ph-check" style="font-size:20px"></i>-2 SD sampai +1 SD</span>
+                <span style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;background:#EAF0FB;border:1px solid #1148A8;color:#1148A8;font-size:18px;font-weight:700"><i class="ph-bold ph-info" style="font-size:20px"></i>di atas +1 SD</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;border-top:1px solid #DCE0DA;padding-top:16px">
+                <span style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:280px">
+                  <span style="font-size:18px;font-weight:600">Tabel standar antropometri</span>
+                  <span style="font-size:18px;color:#4A5750">Terunduh 12 Agustus 2026, 1,4 MB. Perlu ada di HP agar hasil bisa tampil saat offline.</span>
+                </span>
+                <span style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:18px;font-weight:700;flex-shrink:0"><i class="ph-bold ph-check-circle" style="font-size:24px"></i>Tersedia di HP</span>
+                <span style="min-height:56px;padding:12px 18px;border:2px solid #0F6E44;border-radius:10px;color:#0F6E44;font-size:18px;font-weight:700;display:inline-flex;align-items:center;gap:8px;flex-shrink:0"><i class="ph-bold ph-arrow-clockwise" style="font-size:24px"></i>Perbarui tabel</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="border:1px solid #DCE0DA;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px">
+            <span style="font-size:20px;font-weight:700">Siapa boleh mengubah batas</span>
+            <div style="display:flex;flex-wrap:wrap;gap:12px">
+              <span style="display:inline-flex;align-items:center;gap:8px;min-height:56px;padding:12px 18px;border:2px solid #0F6E44;border-radius:10px;background:#E9F3EC;color:#0F6E44;font-size:18px;font-weight:700"><i class="ph-bold ph-check" style="font-size:24px"></i>Bidan</span>
+              <span style="display:inline-flex;align-items:center;gap:8px;min-height:56px;padding:12px 18px;border:2px solid #0F6E44;border-radius:10px;background:#E9F3EC;color:#0F6E44;font-size:18px;font-weight:700"><i class="ph-bold ph-check" style="font-size:24px"></i>Admin</span>
+              <span style="display:inline-flex;align-items:center;gap:8px;min-height:56px;padding:12px 18px;border:1px solid #4A5750;border-radius:10px;font-size:18px;font-weight:600">Kader</span>
+            </div>
+            <span style="font-size:18px;color:#4A5750">Kader melihat batas ini tapi tidak bisa mengubahnya. Setiap perubahan dicatat dengan nama dan waktu.</span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;border-top:1px solid #DCE0DA;padding-top:24px">
+            <span style="min-height:56px;padding:18px 24px;border-radius:10px;background:#0F6E44;color:#FFFFFF;font-size:18px;font-weight:700;display:inline-flex;align-items:center;gap:10px"><i class="ph-bold ph-check" style="font-size:28px"></i>Simpan pengaturan</span>
+            <span style="min-height:56px;padding:18px 24px;border:1px solid #4A5750;border-radius:10px;font-size:18px;font-weight:700;display:inline-flex;align-items:center">Kembalikan ke bawaan</span>
+            <span style="font-size:18px;color:#4A5750;margin-left:auto">Terakhir diubah 12 Agustus 2026 oleh Bidan Ratih Kusumaningrum</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </div>
+</section>
+
+<section style="padding:48px;border-top:1px solid #DCE0DA">
+  <div id="1b">
+  <div style="max-width:1200px;display:flex;flex-direction:column;gap:8px;margin-bottom:40px">
+    <div style="display:inline-flex;align-self:flex-start;padding:6px 14px;border-radius:10px;background:#16211C;color:#FFFFFF;font-size:18px;font-weight:700">1b</div>
+    <h2 style="margin:0;font-size:30px;font-weight:700">Mode B, Meja Ukur</h2>
+    <p style="margin:0;font-size:20px;color:#4A5750;max-width:70ch">Desktop 1440px, tidak tersedia di bawah 1024px. Bukan wizard yang dilebarkan: seluruh field ada sekaligus dalam satu panel, kartu hasil muncul begitu berat dan tinggi terisi. Field tetap besar, teks tidak dikecilkan.</p>
+  </div>
+
+  <div data-screen-label="A-4 Mode B Meja Ukur desktop" style="width:1440px;background:#FFFFFF;border:1px solid #DCE0DA;border-radius:12px;overflow:hidden;display:flex;box-shadow:0 2px 8px rgba(22,33,28,0.08)">
+    <div style="width:248px;flex-shrink:0;border-right:1px solid #DCE0DA;background:#F6F7F5;padding:16px;display:flex;flex-direction:column;gap:12px">
+      <div style="padding:8px 12px 16px;display:flex;flex-direction:column">
+        <span style="font-size:18px;font-weight:800">Portal Posyandu</span>
+        <span style="font-size:18px;color:#4A5750">Melati 2, RW 04</span>
+      </div>
+      <span style="min-height:56px;padding:12px 16px;border-radius:10px;background:#E9F3EC;color:#0F6E44;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:700"><i class="ph-bold ph-house" style="font-size:28px"></i>Beranda</span>
+      <span style="min-height:56px;margin-left:16px;padding:12px 16px;border-radius:10px;background:#0F6E44;color:#FFFFFF;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:700"><i class="ph-bold ph-scales" style="font-size:28px"></i>Meja ukur</span>
+      <span style="min-height:56px;padding:12px 16px;border-radius:10px;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600"><i class="ph-bold ph-baby" style="font-size:28px"></i>Data Anak</span>
+      <span style="min-height:56px;padding:12px 16px;border-radius:10px;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600"><i class="ph-bold ph-file-text" style="font-size:28px"></i>Laporan</span>
+      <span style="min-height:56px;padding:12px 16px;border-radius:10px;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600"><i class="ph-bold ph-gear" style="font-size:28px"></i>Pengaturan</span>
+    </div>
+
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+      <div style="min-height:72px;padding:8px 24px;border-bottom:1px solid #DCE0DA;display:flex;align-items:center;gap:16px">
+        <span style="font-size:20px;font-weight:700;flex:1;min-width:0">Meja ukur, periode Agustus 2026</span>
+        <span style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;background:#FBF1E3;border:1px solid #9A5B00;color:#9A5B00;font-size:18px;font-weight:700;flex-shrink:0"><i class="ph-bold ph-cloud-slash" style="font-size:24px"></i>3 data belum terkirim</span>
+        <span style="min-height:56px;padding:10px 16px;border:1px solid #4A5750;border-radius:10px;font-size:18px;font-weight:700;display:inline-flex;align-items:center;flex-shrink:0">Tutup sesi</span>
+      </div>
+
+      <div style="flex:1;display:flex;min-height:0">
+        <div style="width:376px;flex-shrink:0;border-right:1px solid #DCE0DA;display:flex;flex-direction:column">
+          <div style="padding:16px 20px;border-bottom:1px solid #DCE0DA;display:flex;align-items:baseline;justify-content:space-between;gap:12px">
+            <span style="font-size:18px;font-weight:700">Antrean</span>
+            <span style="font-size:18px;color:#4A5750">Sisa 24 anak</span>
+          </div>
+          <div style="display:flex;flex-direction:column">
+            <div style="padding:14px 20px;border-bottom:1px solid #DCE0DA;border-left:6px solid #0F6E44;background:#E9F3EC;display:flex;align-items:center;gap:14px">
+              <span style="width:48px;height:48px;border-radius:999px;background:#FFFFFF;color:#0F6E44;font-size:18px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">NR</span>
+              <span style="display:flex;flex-direction:column;min-width:0;flex:1">
+                <span style="font-size:18px;font-weight:700;text-wrap:pretty;line-height:1.25">Nabila Ayu Ramadhani</span>
+                <span style="font-size:18px;color:#4A5750">18 bulan, RT 03</span>
+              </span>
+              <i class="ph-bold ph-caret-right" style="font-size:24px;color:#0F6E44;flex-shrink:0"></i>
+            </div>
+            <div style="padding:14px 20px;border-bottom:1px solid #DCE0DA;border-left:6px solid transparent;display:flex;align-items:center;gap:14px">
+              <span style="width:48px;height:48px;border-radius:999px;background:#EDEFEA;color:#4A5750;font-size:18px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">MA</span>
+              <span style="display:flex;flex-direction:column;min-width:0;flex:1">
+                <span style="font-size:18px;font-weight:700;text-wrap:pretty">Muhammad Alfarizqi Nurhidayat</span>
+                <span style="font-size:18px;color:#4A5750">31 bulan, RT 04</span>
+              </span>
+            </div>
+            <div style="padding:14px 20px;border-bottom:1px solid #DCE0DA;border-left:6px solid transparent;display:flex;align-items:center;gap:14px">
+              <span style="width:48px;height:48px;border-radius:999px;background:#EDEFEA;color:#4A5750;font-size:18px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">KH</span>
+              <span style="display:flex;flex-direction:column;min-width:0;flex:1">
+                <span style="font-size:18px;font-weight:700">Kayla Hasna Zafira</span>
+                <span style="font-size:18px;color:#4A5750">43 bulan, RT 03</span>
+              </span>
+            </div>
+            <div style="padding:14px 20px;border-bottom:1px solid #DCE0DA;border-left:6px solid transparent;display:flex;align-items:center;gap:14px;background:#F6F7F5">
+              <span style="width:48px;height:48px;border-radius:999px;background:#EDEFEA;color:#4A5750;font-size:18px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">AS</span>
+              <span style="display:flex;flex-direction:column;min-width:0;flex:1">
+                <span style="font-size:18px;font-weight:700">Aisyah Salsabila</span>
+                <span style="font-size:18px;color:#4A5750">26 bulan, RT 04</span>
+              </span>
+              <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:18px;font-weight:700;flex-shrink:0"><i class="ph-bold ph-check" style="font-size:20px"></i>Selesai</span>
+            </div>
+          </div>
+          <div style="padding:16px 20px;border-top:1px solid #DCE0DA;margin-top:auto;display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:18px;font-weight:700">Pintasan papan tombol</span>
+            <span style="font-size:18px;color:#4A5750">Panah atas dan bawah: pindah anak</span>
+            <span style="font-size:18px;color:#4A5750">Tab: pindah field</span>
+            <span style="font-size:18px;color:#4A5750">Enter: simpan lalu muat anak berikutnya</span>
+            <span style="font-size:18px;color:#4A5750">Ctrl dan L: lewati anak ini</span>
+          </div>
+        </div>
+
+        <div style="flex:1;min-width:0;padding:24px;display:flex;flex-direction:column;gap:24px">
+          <div style="display:flex;align-items:center;gap:16px">
+            <span style="width:64px;height:64px;border-radius:999px;background:#EDEFEA;color:#4A5750;font-size:24px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">NR</span>
+            <span style="display:flex;flex-direction:column;min-width:0;flex:1">
+              <span style="font-size:30px;font-weight:800;line-height:1.25">Nabila Ayu Ramadhani</span>
+              <span style="font-size:18px;color:#4A5750">NIK 3204 0122 0724 0002, 18 bulan, RT 03, anak ke-2, ibu Wulandari Puspitasari</span>
+            </span>
+            <span style="display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:10px;border:2px solid #0F6E44;color:#0F6E44;font-size:18px;font-weight:700;flex-shrink:0"><i class="ph-bold ph-check-circle" style="font-size:28px"></i>Hadir</span>
+            <span style="display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:10px;border:1px solid #4A5750;color:#16211C;font-size:18px;font-weight:600;flex-shrink:0"><i class="ph-bold ph-x-circle" style="font-size:28px"></i>Tidak hadir</span>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <span style="font-size:18px;font-weight:600">Berat badan</span>
+              <div style="min-height:88px;padding:12px 20px;border:2px solid #0F6E44;border-radius:10px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+                <span style="font-size:40px;font-weight:800;line-height:1.1">9,4</span>
+                <span style="font-size:20px;font-weight:600;color:#4A5750">kg</span>
+              </div>
+              <span style="font-size:18px;color:#4A5750">Bulan lalu 9,0 kg</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <span style="font-size:18px;font-weight:600">Panjang badan</span>
+              <div style="min-height:88px;padding:12px 20px;border:1px solid #4A5750;border-radius:10px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+                <span style="font-size:40px;font-weight:800;line-height:1.1">74,0</span>
+                <span style="font-size:20px;font-weight:600;color:#4A5750">cm</span>
+              </div>
+              <span style="font-size:18px;color:#4A5750">Bulan lalu 73,7 cm</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <span style="font-size:18px;font-weight:600">Cara ukur</span>
+              <div style="display:flex;gap:12px">
+                <span style="flex:1;min-height:88px;border:2px solid #0F6E44;border-radius:10px;background:#E9F3EC;color:#0F6E44;font-size:18px;font-weight:700;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:4px"><i class="ph-bold ph-arrows-horizontal" style="font-size:28px"></i>Terlentang</span>
+                <span style="flex:1;min-height:88px;border:1px solid #4A5750;border-radius:10px;font-size:18px;font-weight:600;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:4px"><i class="ph-bold ph-arrows-vertical" style="font-size:28px"></i>Berdiri</span>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <span style="font-size:18px;font-weight:600">LILA, lingkar lengan atas</span>
+              <div style="min-height:72px;padding:12px 20px;border:1px solid #4A5750;border-radius:10px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+                <span style="font-size:30px;font-weight:700">14,2</span>
+                <span style="font-size:20px;font-weight:600;color:#4A5750">cm</span>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <span style="font-size:18px;font-weight:600">LIKA, lingkar kepala</span>
+              <div style="min-height:72px;padding:12px 20px;border:1px solid #4A5750;border-radius:10px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+                <span style="font-size:30px;font-weight:700">46,8</span>
+                <span style="font-size:20px;font-weight:600;color:#4A5750">cm</span>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <span style="font-size:18px;font-weight:600">Pemeriksaan tambahan</span>
+              <div style="display:flex;flex-wrap:wrap;gap:12px">
+                <span style="display:inline-flex;align-items:center;gap:8px;min-height:56px;padding:12px 14px;border:2px solid #0F6E44;border-radius:10px;background:#E9F3EC;color:#0F6E44;font-size:18px;font-weight:700"><i class="ph-bold ph-syringe" style="font-size:24px"></i>Imunisasi dasar</span>
+                <span style="display:inline-flex;align-items:center;gap:8px;min-height:56px;padding:12px 14px;border:1px solid #4A5750;border-radius:10px;font-size:18px;font-weight:600"><i class="ph-bold ph-bowl-food" style="font-size:24px"></i>Asupan gizi</span>
+                <span style="display:inline-flex;align-items:center;gap:8px;min-height:56px;padding:12px 14px;border:1px solid #4A5750;border-radius:10px;font-size:18px;font-weight:600"><i class="ph-bold ph-tooth" style="font-size:24px"></i>Gigi</span>
+                <span style="display:inline-flex;align-items:center;gap:8px;min-height:56px;padding:12px 14px;border:1px solid #4A5750;border-radius:10px;font-size:18px;font-weight:600"><i class="ph-bold ph-puzzle-piece" style="font-size:24px"></i>KPSP</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="border-top:1px solid #DCE0DA;padding-top:20px;display:flex;flex-direction:column;gap:12px">
+            <span style="font-size:20px;font-weight:700">Hasil status gizi, dihitung otomatis</span>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+              <div style="border:1px solid #DCE0DA;border-left:8px solid #14713D;border-radius:12px;padding:16px;background:#F6F7F5;display:flex;flex-direction:column;gap:8px">
+                <span style="font-size:18px;font-weight:700">BB/U</span>
+                <span style="display:inline-flex;align-self:flex-start;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:18px;font-weight:700"><i class="ph-bold ph-check" style="font-size:20px"></i>Berat badan normal</span>
+                <span style="display:flex;align-items:baseline;gap:8px"><span style="font-size:40px;font-weight:800;line-height:1.1">-0,7</span><span style="font-size:18px;color:#4A5750">z-score</span></span>
+                <span style="font-size:18px">Berat badan anak sesuai untuk umurnya.</span>
+              </div>
+              <div style="border:1px solid #DCE0DA;border-left:8px solid #9A5B00;border-radius:12px;padding:16px;background:#F6F7F5;display:flex;flex-direction:column;gap:8px">
+                <span style="font-size:18px;font-weight:700">PB/U</span>
+                <span style="display:inline-flex;align-self:flex-start;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#FBF1E3;border:1px solid #9A5B00;color:#9A5B00;font-size:18px;font-weight:700"><i class="ph-bold ph-warning" style="font-size:20px"></i>Pendek</span>
+                <span style="display:flex;align-items:baseline;gap:8px"><span style="font-size:40px;font-weight:800;line-height:1.1">-2,3</span><span style="font-size:18px;color:#4A5750">z-score</span></span>
+                <span style="font-size:18px">Panjang badan anak kurang untuk umurnya.</span>
+              </div>
+              <div style="border:1px solid #DCE0DA;border-left:8px solid #14713D;border-radius:12px;padding:16px;background:#F6F7F5;display:flex;flex-direction:column;gap:8px">
+                <span style="font-size:18px;font-weight:700">BB/PB</span>
+                <span style="display:inline-flex;align-self:flex-start;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:18px;font-weight:700"><i class="ph-bold ph-check" style="font-size:20px"></i>Gizi baik</span>
+                <span style="display:flex;align-items:baseline;gap:8px"><span style="font-size:40px;font-weight:800;line-height:1.1">0,5</span><span style="font-size:18px;color:#4A5750">z-score</span></span>
+                <span style="font-size:18px">Berat badan anak seimbang dengan panjang badannya.</span>
+              </div>
+            </div>
+            <span style="font-size:18px;color:#4A5750">Acuan: standar pertumbuhan WHO 2006, dihitung dari parameter LMS. Nilainya sama dengan tabel Permenkes No. 2 Tahun 2020.</span>
+          </div>
+
+          <div style="border-top:1px solid #DCE0DA;padding-top:20px;display:flex;gap:16px;align-items:center">
+            <span style="min-height:56px;padding:18px 24px;border-radius:10px;background:#0F6E44;color:#FFFFFF;font-size:18px;font-weight:700;display:inline-flex;align-items:center;gap:10px"><i class="ph-bold ph-check" style="font-size:28px"></i>Simpan dan lanjut, Enter</span>
+            <span style="min-height:56px;padding:18px 24px;border-radius:10px;border:2px solid #0F6E44;color:#0F6E44;font-size:18px;font-weight:700;display:inline-flex;align-items:center;gap:10px">Lewati, Ctrl dan L</span>
+            <span style="font-size:18px;color:#4A5750;margin-left:auto">Tersimpan di HP, akan terkirim saat ada sinyal.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </div>
+
+  <div id="1a">
+  <div style="max-width:1200px;display:flex;flex-direction:column;gap:8px;margin:64px 0 40px">
+    <div style="display:inline-flex;align-self:flex-start;padding:6px 14px;border-radius:10px;background:#16211C;color:#FFFFFF;font-size:16px;font-weight:700">1a</div>
+    <h1 style="margin:0;font-size:40px;font-weight:800;letter-spacing:-0.02em">Versi mobile, alur kader Mode A</h1>
+    <p style="margin:0;font-size:20px;color:#4A5750;max-width:70ch">Semua frame 360px, dimulai dari Beranda. Kader membuka sesi lalu bekerja menyusuri antrean. Setelah simpan, langsung masuk ke anak berikutnya, tidak pernah dipaksa kembali ke daftar untuk mencari nama.</p>
+  </div>
+
+  <div style="display:flex;gap:40px;align-items:flex-start;flex-wrap:wrap">
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;flex-direction:column"><span style="font-size:20px;font-weight:700">B-1 Beranda, dasbor</span><span style="font-size:16px;color:#4A5750">Versi 360px dari 2a</span></div>
+      <div data-screen-label="B-1 Beranda dasbor mobile" style="width:360px;background:#FFFFFF;border:1px solid #DCE0DA;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 2px 8px rgba(22,33,28,0.08)">
+        <div style="background:#FBF1E3;border-bottom:1px solid #9A5B00;padding:12px 16px;display:flex;align-items:center;gap:12px">
+          <i class="ph-bold ph-cloud-slash" style="font-size:28px;color:#9A5B00;flex-shrink:0"></i>
+          <span style="font-size:18px;font-weight:700;color:#9A5B00;flex:1;min-width:0">3 data belum terkirim</span>
+          <span style="min-height:56px;padding:12px 14px;border:2px solid #9A5B00;border-radius:10px;background:#FFFFFF;color:#9A5B00;font-size:16px;font-weight:700;display:inline-flex;align-items:center;flex-shrink:0">Kirim</span>
+        </div>
+        <div style="min-height:72px;padding:8px 16px;border-bottom:1px solid #DCE0DA;display:flex;align-items:center;gap:12px">
+          <span style="width:48px;height:48px;border-radius:999px;background:#E9F3EC;color:#0F6E44;font-size:18px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">SA</span>
+          <span style="display:flex;flex-direction:column;min-width:0">
+            <span style="font-size:18px;font-weight:700;line-height:1.25">Posyandu Melati 2</span>
+            <span style="font-size:16px;color:#4A5750;line-height:1.25">Siti Aminah, kader</span>
+          </span>
+        </div>
+        <div style="padding:20px;display:flex;flex-direction:column;gap:20px">
+          <div style="min-height:112px;padding:20px;border-radius:12px;background:#0F6E44;color:#FFFFFF;display:flex;align-items:center;gap:14px">
+            <i class="ph-bold ph-scales" style="font-size:40px;flex-shrink:0"></i>
+            <span style="display:flex;flex-direction:column;gap:2px;min-width:0">
+              <span style="font-size:24px;font-weight:800;line-height:1.25">Mulai Penimbangan Hari Ini</span>
+              <span style="font-size:16px;opacity:0.92">24 anak belum diukur</span>
+            </span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div style="border:1px solid #DCE0DA;border-radius:12px;background:#FFFFFF;padding:16px;display:flex;flex-direction:column;gap:10px">
+              <span style="width:44px;height:44px;border-radius:12px;background:#EDEFEA;color:#4A5750;display:inline-flex;align-items:center;justify-content:center"><i class="ph-bold ph-users-three" style="font-size:26px"></i></span>
+              <span style="font-size:18px;font-weight:700">Sasaran</span>
+              <span style="font-size:40px;font-weight:800;line-height:1.1">42</span>
+            </div>
+            <div style="border:1px solid #DCE0DA;border-radius:12px;background:#FFFFFF;padding:16px;display:flex;flex-direction:column;gap:10px">
+              <span style="width:44px;height:44px;border-radius:12px;background:#EDEFEA;color:#4A5750;display:inline-flex;align-items:center;justify-content:center"><i class="ph-bold ph-scales" style="font-size:26px"></i></span>
+              <span style="font-size:18px;font-weight:700">Ditimbang</span>
+              <span style="font-size:40px;font-weight:800;line-height:1.1;color:#14713D">18</span>
+            </div>
+            <div style="border:1px solid #DCE0DA;border-radius:12px;background:#FFFFFF;padding:16px;display:flex;flex-direction:column;gap:10px">
+              <span style="width:44px;height:44px;border-radius:12px;background:#EDEFEA;color:#4A5750;display:inline-flex;align-items:center;justify-content:center"><i class="ph-bold ph-calendar-check" style="font-size:26px"></i></span>
+              <span style="font-size:18px;font-weight:700">Kehadiran</span>
+              <span style="font-size:40px;font-weight:800;line-height:1.1">43%</span>
+            </div>
+            <div style="border:2px solid #A3170F;border-radius:12px;background:#FCEDEC;padding:16px;display:flex;flex-direction:column;gap:10px">
+              <span style="width:44px;height:44px;border-radius:12px;background:#A3170F;color:#FFFFFF;display:inline-flex;align-items:center;justify-content:center"><i class="ph-fill ph-warning" style="font-size:26px"></i></span>
+              <span style="font-size:18px;font-weight:700;color:#A3170F">Perlu tindakan</span>
+              <span style="font-size:40px;font-weight:800;line-height:1.1">3</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <span style="font-size:20px;font-weight:700">Status gizi BB/U</span>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;align-items:center;gap:12px">
+                <span style="width:108px;flex-shrink:0;font-size:16px">Normal</span>
+                <span style="flex:1;height:32px;border-radius:6px;background:#EDEFEA;display:flex"><span style="width:72.2%;height:32px;border-radius:6px;background:#14713D"></span></span>
+                <span style="width:28px;flex-shrink:0;font-size:18px;font-weight:700;text-align:right">13</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px">
+                <span style="width:108px;flex-shrink:0;font-size:16px">Kurang</span>
+                <span style="flex:1;height:32px;border-radius:6px;background:#EDEFEA;display:flex"><span style="width:16.7%;height:32px;border-radius:6px;background:#9A5B00"></span></span>
+                <span style="width:28px;flex-shrink:0;font-size:18px;font-weight:700;text-align:right">3</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px">
+                <span style="width:108px;flex-shrink:0;font-size:16px">Sangat kurang</span>
+                <span style="flex:1;height:32px;border-radius:6px;background:#EDEFEA;display:flex"><span style="width:5.6%;height:32px;border-radius:6px;background:#A3170F"></span></span>
+                <span style="width:28px;flex-shrink:0;font-size:18px;font-weight:700;text-align:right">1</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px">
+                <span style="width:108px;flex-shrink:0;font-size:16px">Risiko lebih</span>
+                <span style="flex:1;height:32px;border-radius:6px;background:#EDEFEA;display:flex"><span style="width:5.6%;height:32px;border-radius:6px;background:#1148A8"></span></span>
+                <span style="width:28px;flex-shrink:0;font-size:18px;font-weight:700;text-align:right">1</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:auto;display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid #DCE0DA">
+          <span style="min-height:72px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#0F6E44;border-top:3px solid #0F6E44"><i class="ph-bold ph-house" style="font-size:28px"></i><span style="font-size:16px;font-weight:700">Beranda</span></span>
+          <span style="min-height:72px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#4A5750;border-top:3px solid transparent"><i class="ph-bold ph-baby" style="font-size:28px"></i><span style="font-size:16px;font-weight:600">Data Anak</span></span>
+          <span style="min-height:72px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#4A5750;border-top:3px solid transparent"><i class="ph-bold ph-file-text" style="font-size:28px"></i><span style="font-size:16px;font-weight:600">Laporan</span></span>
+          <span style="min-height:72px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#4A5750;border-top:3px solid transparent"><i class="ph-bold ph-gear" style="font-size:28px"></i><span style="font-size:16px;font-weight:600">Pengaturan</span></span>
+        </div>
+      </div>
+    </div>
+
+
+
+
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;flex-direction:column"><span style="font-size:20px;font-weight:700">A-2 Beranda kader</span><span style="font-size:16px;color:#4A5750">Satu aksi dominan, lalu ringkasan</span></div>
+      <div data-screen-label="A-2 Beranda kader" style="width:360px;background:#FFFFFF;border:1px solid #DCE0DA;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 2px 8px rgba(22,33,28,0.08)">
+        <div style="background:#FBF1E3;border-bottom:1px solid #9A5B00;padding:12px 16px;display:flex;align-items:center;gap:10px">
+          <i class="ph-bold ph-cloud-slash" style="font-size:28px;color:#9A5B00;flex-shrink:0"></i>
+          <span style="font-size:18px;font-weight:700;color:#9A5B00;flex:1;min-width:0">3 data belum terkirim</span>
+          <span style="min-height:56px;padding:10px 14px;border:2px solid #9A5B00;border-radius:10px;background:#FFFFFF;color:#9A5B00;font-size:16px;font-weight:700;display:inline-flex;align-items:center;flex-shrink:0">Kirim</span>
+        </div>
+        <div style="min-height:72px;padding:8px 16px;border-bottom:1px solid #DCE0DA;display:flex;align-items:center;gap:12px">
+          <span style="width:48px;height:48px;border-radius:999px;background:#E9F3EC;color:#0F6E44;font-size:18px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">SA</span>
+          <span style="display:flex;flex-direction:column;min-width:0">
+            <span style="font-size:18px;font-weight:700;line-height:1.25">Posyandu Melati 2</span>
+            <span style="font-size:16px;color:#4A5750;line-height:1.25">Siti Aminah, kader</span>
+          </span>
+        </div>
+        <div style="padding:20px;display:flex;flex-direction:column;gap:20px">
+          <div style="min-height:112px;padding:20px;border-radius:12px;background:#0F6E44;color:#FFFFFF;display:flex;align-items:center;gap:14px">
+            <i class="ph-bold ph-scales" style="font-size:40px;flex-shrink:0"></i>
+            <span style="display:flex;flex-direction:column;gap:2px;min-width:0">
+              <span style="font-size:24px;font-weight:800;line-height:1.25">Mulai Penimbangan Hari Ini</span>
+              <span style="font-size:16px;opacity:0.92">Periode Agustus 2026</span>
+            </span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <span style="font-size:20px;font-weight:700">Periode berjalan</span>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div style="border:1px solid #DCE0DA;border-radius:12px;background:#F6F7F5;padding:16px">
+                <div style="font-size:40px;font-weight:800;line-height:1.1">42</div>
+                <div style="font-size:16px;color:#4A5750">Terdaftar</div>
+              </div>
+              <div style="border:1px solid #DCE0DA;border-radius:12px;background:#F6F7F5;padding:16px">
+                <div style="font-size:40px;font-weight:800;line-height:1.1;color:#14713D">18</div>
+                <div style="font-size:16px;color:#4A5750">Sudah diukur</div>
+              </div>
+              <div style="border:1px solid #DCE0DA;border-radius:12px;background:#F6F7F5;padding:16px">
+                <div style="font-size:40px;font-weight:800;line-height:1.1">5</div>
+                <div style="font-size:16px;color:#4A5750">Belum hadir</div>
+              </div>
+              <div style="border:1px solid #9A5B00;border-radius:12px;background:#FBF1E3;padding:16px">
+                <div style="font-size:40px;font-weight:800;line-height:1.1;color:#9A5B00">3</div>
+                <div style="font-size:16px;color:#9A5B00;font-weight:600">Perlu perhatian</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:auto;display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid #DCE0DA">
+          <span style="min-height:72px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#0F6E44;border-top:3px solid #0F6E44"><i class="ph-bold ph-house" style="font-size:28px"></i><span style="font-size:16px;font-weight:700">Beranda</span></span>
+          <span style="min-height:72px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#4A5750;border-top:3px solid transparent"><i class="ph-bold ph-baby" style="font-size:28px"></i><span style="font-size:16px;font-weight:600">Data Anak</span></span>
+          <span style="min-height:72px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#4A5750;border-top:3px solid transparent"><i class="ph-bold ph-file-text" style="font-size:28px"></i><span style="font-size:16px;font-weight:600">Laporan</span></span>
+          <span style="min-height:72px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#4A5750;border-top:3px solid transparent"><i class="ph-bold ph-gear" style="font-size:28px"></i><span style="font-size:16px;font-weight:600">Pengaturan</span></span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;flex-direction:column"><span style="font-size:20px;font-weight:700">A-3 Daftar balita</span><span style="font-size:16px;color:#4A5750">Baris 360px: inisial, nama, umur, satu chip</span></div>
+      <div data-screen-label="A-3 Daftar balita" style="width:360px;background:#FFFFFF;border:1px solid #DCE0DA;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 2px 8px rgba(22,33,28,0.08)">
+        <div style="min-height:72px;padding:8px 16px;border-bottom:1px solid #DCE0DA;display:flex;align-items:center;gap:12px">
+          <i class="ph-bold ph-arrow-left" style="font-size:28px;flex-shrink:0"></i>
+          <span style="font-size:20px;font-weight:700">Daftar balita</span>
+        </div>
+        <div style="padding:16px;display:flex;flex-direction:column;gap:16px;border-bottom:1px solid #DCE0DA">
+          <div style="min-height:56px;border:1px solid #4A5750;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px">
+            <i class="ph-bold ph-magnifying-glass" style="font-size:28px;color:#4A5750;flex-shrink:0"></i>
+            <span style="font-size:18px;color:#4A5750">Cari nama atau NIK</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:12px">
+            <span style="min-height:56px;padding:12px 16px;border-radius:10px;background:#0F6E44;color:#FFFFFF;font-size:18px;font-weight:700;display:inline-flex;align-items:center;gap:8px;flex-shrink:0"><i class="ph-bold ph-check" style="font-size:24px"></i>Semua RT</span>
+            <span style="min-height:56px;padding:12px 16px;border:1px solid #4A5750;border-radius:10px;font-size:18px;font-weight:600;display:inline-flex;align-items:center;flex-shrink:0">RT 03</span>
+            <span style="min-height:56px;padding:12px 16px;border:1px solid #4A5750;border-radius:10px;font-size:18px;font-weight:600;display:inline-flex;align-items:center;flex-shrink:0">RT 04</span>
+          </div>
+          <div style="display:flex;gap:12px">
+            <span style="min-height:56px;padding:12px 16px;border:1px solid #4A5750;border-radius:10px;font-size:18px;font-weight:600;display:inline-flex;align-items:center;flex:1;justify-content:center">Sudah diukur</span>
+            <span style="min-height:56px;padding:12px 16px;border:1px solid #4A5750;border-radius:10px;font-size:18px;font-weight:600;display:inline-flex;align-items:center;flex:1;justify-content:center">Belum</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column">
+          <div style="padding:14px 16px;border-bottom:1px solid #DCE0DA;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="width:56px;height:56px;border-radius:999px;background:#EDEFEA;color:#4A5750;font-size:20px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">NR</span>
+              <span style="display:flex;flex-direction:column;min-width:0">
+                <span style="font-size:20px;font-weight:700;text-wrap:pretty">Nabila Ayu Ramadhani</span>
+                <span style="font-size:16px;color:#4A5750">18 bulan, 1 tahun 6 bulan</span>
+              </span>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;padding-left:68px">
+              <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:16px;font-weight:700"><i class="ph-bold ph-check" style="font-size:20px"></i>Gizi baik</span>
+              <span style="padding:6px 12px;border-radius:10px;border:1px solid #DCE0DA;color:#4A5750;font-size:16px">RT 03</span>
+            </div>
+          </div>
+          <div style="padding:14px 16px;border-bottom:1px solid #DCE0DA;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="width:56px;height:56px;border-radius:999px;background:#EDEFEA;color:#4A5750;font-size:20px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">MA</span>
+              <span style="display:flex;flex-direction:column;min-width:0">
+                <span style="font-size:20px;font-weight:700;text-wrap:pretty">Muhammad Alfarizqi Nurhidayat</span>
+                <span style="font-size:16px;color:#4A5750">31 bulan, 2 tahun 7 bulan</span>
+              </span>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;padding-left:68px">
+              <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:10px;background:#FBF1E3;border:1px solid #9A5B00;color:#9A5B00;font-size:16px;font-weight:700"><i class="ph-bold ph-warning" style="font-size:20px"></i>Gizi kurang</span>
+              <span style="padding:6px 12px;border-radius:10px;border:1px solid #DCE0DA;color:#4A5750;font-size:16px">RT 04</span>
+            </div>
+          </div>
+          <div style="padding:14px 16px;border-bottom:1px solid #DCE0DA;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="width:56px;height:56px;border-radius:999px;background:#EDEFEA;color:#4A5750;font-size:20px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">DP</span>
+              <span style="display:flex;flex-direction:column;min-width:0">
+                <span style="font-size:20px;font-weight:700;text-wrap:pretty">Dewa Putu Aryawan</span>
+                <span style="font-size:16px;color:#4A5750">7 bulan</span>
+              </span>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;padding-left:68px">
+              <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:10px;border:1px solid #4A5750;color:#4A5750;font-size:16px;font-weight:700"><i class="ph-bold ph-clock" style="font-size:20px"></i>Belum diukur</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:10px;background:#FBF1E3;border:1px solid #9A5B00;color:#9A5B00;font-size:16px;font-weight:700"><i class="ph-bold ph-identification-card" style="font-size:20px"></i>NIK belum lengkap</span>
+            </div>
+          </div>
+          <div style="padding:14px 16px;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="width:56px;height:56px;border-radius:999px;background:#EDEFEA;color:#4A5750;font-size:20px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">KH</span>
+              <span style="display:flex;flex-direction:column;min-width:0">
+                <span style="font-size:20px;font-weight:700;text-wrap:pretty">Kayla Hasna Zafira</span>
+                <span style="font-size:16px;color:#4A5750">43 bulan, 3 tahun 7 bulan</span>
+              </span>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;padding-left:68px">
+              <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:16px;font-weight:700"><i class="ph-bold ph-check" style="font-size:20px"></i>Gizi baik</span>
+              <span style="padding:6px 12px;border-radius:10px;border:1px solid #DCE0DA;color:#4A5750;font-size:16px">RT 03</span>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:auto;display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid #DCE0DA">
+          <span style="min-height:72px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#4A5750;border-top:3px solid transparent"><i class="ph-bold ph-house" style="font-size:28px"></i><span style="font-size:16px;font-weight:600">Beranda</span></span>
+          <span style="min-height:72px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#0F6E44;border-top:3px solid #0F6E44"><i class="ph-bold ph-baby" style="font-size:28px"></i><span style="font-size:16px;font-weight:700">Data Anak</span></span>
+          <span style="min-height:72px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#4A5750;border-top:3px solid transparent"><i class="ph-bold ph-file-text" style="font-size:28px"></i><span style="font-size:16px;font-weight:600">Laporan</span></span>
+          <span style="min-height:72px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#4A5750;border-top:3px solid transparent"><i class="ph-bold ph-gear" style="font-size:28px"></i><span style="font-size:16px;font-weight:600">Pengaturan</span></span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;flex-direction:column"><span style="font-size:20px;font-weight:700">A-4 Antrean sesi</span><span style="font-size:16px;color:#4A5750">Siapa berikutnya, sisa berapa, yang dilewati tidak hilang</span></div>
+      <div data-screen-label="A-4 Antrean sesi" style="width:360px;background:#FFFFFF;border:1px solid #DCE0DA;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 2px 8px rgba(22,33,28,0.08)">
+        <div style="min-height:72px;padding:8px 16px;border-bottom:1px solid #DCE0DA;display:flex;align-items:center;gap:12px">
+          <span style="display:flex;flex-direction:column;min-width:0;flex:1">
+            <span style="font-size:20px;font-weight:700;line-height:1.25">Sesi penimbangan</span>
+            <span style="font-size:16px;color:#4A5750;line-height:1.25">14 Agustus 2026</span>
+          </span>
+          <span style="min-height:56px;padding:10px 14px;border:1px solid #4A5750;border-radius:10px;font-size:16px;font-weight:700;display:inline-flex;align-items:center;flex-shrink:0">Tutup sesi</span>
+        </div>
+        <div style="padding:20px;display:flex;flex-direction:column;gap:20px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
+            <span style="font-size:20px;font-weight:700">Berikutnya</span>
+            <span style="font-size:18px;color:#4A5750">Sisa 24 anak</span>
+          </div>
+          <div style="border:2px solid #0F6E44;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:16px">
+            <div style="display:flex;align-items:center;gap:14px">
+              <span style="width:64px;height:64px;border-radius:999px;background:#E9F3EC;color:#0F6E44;font-size:24px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">NR</span>
+              <span style="display:flex;flex-direction:column;min-width:0">
+                <span style="font-size:24px;font-weight:800;text-wrap:pretty;line-height:1.25">Nabila Ayu Ramadhani</span>
+                <span style="font-size:18px;color:#4A5750">18 bulan, RT 03</span>
+              </span>
+            </div>
+            <div style="min-height:56px;border-radius:10px;background:#0F6E44;color:#FFFFFF;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:10px"><i class="ph-bold ph-scales" style="font-size:28px"></i>Mulai ukur Nabila</div>
+            <div style="min-height:56px;border-radius:10px;border:2px solid #0F6E44;color:#0F6E44;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:10px"><i class="ph-bold ph-arrow-counter-clockwise" style="font-size:28px"></i>Lewati, kembali nanti</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <span style="font-size:20px;font-weight:700">Menunggu</span>
+            <div style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #DCE0DA;border-radius:10px">
+              <span style="width:48px;height:48px;border-radius:999px;background:#EDEFEA;color:#4A5750;font-size:18px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">MA</span>
+              <span style="font-size:18px;font-weight:600;min-width:0;text-wrap:pretty">Muhammad Alfarizqi N.</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #DCE0DA;border-radius:10px">
+              <span style="width:48px;height:48px;border-radius:999px;background:#EDEFEA;color:#4A5750;font-size:18px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">KH</span>
+              <span style="font-size:18px;font-weight:600;min-width:0">Kayla Hasna Zafira</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;border-top:1px solid #DCE0DA;padding-top:16px">
+            <span style="font-size:20px;font-weight:700;display:inline-flex;align-items:center;gap:10px"><i class="ph-bold ph-arrow-counter-clockwise" style="font-size:28px;color:#9A5B00"></i>Dilewati, 2 anak</span>
+            <div style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #9A5B00;border-radius:10px;background:#FBF1E3">
+              <span style="width:48px;height:48px;border-radius:999px;background:#FFFFFF;color:#9A5B00;font-size:18px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">DP</span>
+              <span style="display:flex;flex-direction:column;min-width:0;flex:1">
+                <span style="font-size:18px;font-weight:700">Dewa Putu Aryawan</span>
+                <span style="font-size:16px;color:#4A5750">Anak sedang menyusu</span>
+              </span>
+              <span style="font-size:16px;font-weight:700;color:#0F6E44;flex-shrink:0">Ukur</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #9A5B00;border-radius:10px;background:#FBF1E3">
+              <span style="width:48px;height:48px;border-radius:999px;background:#FFFFFF;color:#9A5B00;font-size:18px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">RS</span>
+              <span style="display:flex;flex-direction:column;min-width:0;flex:1">
+                <span style="font-size:18px;font-weight:700">Raka Satria Wijaya</span>
+                <span style="font-size:16px;color:#4A5750">Menunggu ibunya</span>
+              </span>
+              <span style="font-size:16px;font-weight:700;color:#0F6E44;flex-shrink:0">Ukur</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;flex-direction:column"><span style="font-size:20px;font-weight:700">A-4 Langkah 1, kehadiran</span><span style="font-size:16px;color:#4A5750">Tidak hadir tetap disimpan untuk hitung D/S</span></div>
+      <div data-screen-label="A-4 Langkah 1 kehadiran" style="width:360px;background:#FFFFFF;border:1px solid #DCE0DA;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 2px 8px rgba(22,33,28,0.08)">
+        <div style="min-height:72px;padding:8px 16px;border-bottom:1px solid #DCE0DA;display:flex;align-items:center;gap:12px">
+          <i class="ph-bold ph-arrow-left" style="font-size:28px;flex-shrink:0"></i>
+          <span style="display:flex;flex-direction:column;min-width:0">
+            <span style="font-size:18px;font-weight:700;text-wrap:pretty;line-height:1.25">Nabila Ayu Ramadhani</span>
+            <span style="font-size:16px;color:#4A5750;line-height:1.25">Langkah 1 dari 4</span>
+          </span>
+        </div>
+        <div style="display:flex;gap:6px;padding:12px 16px;border-bottom:1px solid #DCE0DA">
+          <span style="flex:1;height:10px;border-radius:999px;background:#0F6E44"></span>
+          <span style="flex:1;height:10px;border-radius:999px;background:#DCE0DA"></span>
+          <span style="flex:1;height:10px;border-radius:999px;background:#DCE0DA"></span>
+          <span style="flex:1;height:10px;border-radius:999px;background:#DCE0DA"></span>
+        </div>
+        <div style="padding:24px 20px;display:flex;flex-direction:column;gap:24px">
+          <div style="display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center">
+            <span style="width:80px;height:80px;border-radius:999px;background:#EDEFEA;color:#4A5750;font-size:30px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">NR</span>
+            <span style="font-size:24px;font-weight:800;text-wrap:pretty;line-height:1.3">Nabila Ayu Ramadhani</span>
+            <span style="font-size:18px;color:#4A5750">18 bulan, RT 03, anak ke-2</span>
+          </div>
+          <div style="font-size:24px;font-weight:700;text-align:center">Apakah Nabila hadir hari ini?</div>
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div style="min-height:96px;border-radius:12px;background:#0F6E44;color:#FFFFFF;font-size:24px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:12px"><i class="ph-bold ph-check-circle" style="font-size:40px"></i>Hadir</div>
+            <div style="min-height:96px;border-radius:12px;border:2px solid #4A5750;color:#16211C;font-size:24px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:12px"><i class="ph-bold ph-x-circle" style="font-size:40px"></i>Tidak hadir</div>
+          </div>
+          <div style="border:1px solid #1148A8;border-radius:10px;background:#EAF0FB;padding:16px;display:flex;gap:12px;align-items:flex-start">
+            <i class="ph-bold ph-info" style="font-size:28px;color:#1148A8;flex-shrink:0"></i>
+            <span style="font-size:18px">Kalau tidak hadir, catatannya tetap disimpan lalu langsung lanjut ke anak berikutnya.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;flex-direction:column"><span style="font-size:20px;font-weight:700">A-4 Langkah 2 dan A-5</span><span style="font-size:16px;color:#4A5750">Keypad angka besar, angka aktif 40px</span></div>
+      <div data-screen-label="A-4 Langkah 2 antropometri" style="width:360px;background:#FFFFFF;border:1px solid #DCE0DA;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 2px 8px rgba(22,33,28,0.08)">
+        <div style="min-height:72px;padding:8px 16px;border-bottom:1px solid #DCE0DA;display:flex;align-items:center;gap:12px">
+          <i class="ph-bold ph-arrow-left" style="font-size:28px;flex-shrink:0"></i>
+          <span style="display:flex;flex-direction:column;min-width:0">
+            <span style="font-size:18px;font-weight:700;text-wrap:pretty;line-height:1.25">Nabila Ayu Ramadhani</span>
+            <span style="font-size:16px;color:#4A5750;line-height:1.25">Langkah 2 dari 4, antropometri</span>
+          </span>
+        </div>
+        <div style="display:flex;gap:6px;padding:12px 16px;border-bottom:1px solid #DCE0DA">
+          <span style="flex:1;height:10px;border-radius:999px;background:#0F6E44"></span>
+          <span style="flex:1;height:10px;border-radius:999px;background:#0F6E44"></span>
+          <span style="flex:1;height:10px;border-radius:999px;background:#DCE0DA"></span>
+          <span style="flex:1;height:10px;border-radius:999px;background:#DCE0DA"></span>
+        </div>
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:18px;font-weight:600">Berat badan</span>
+            <div style="min-height:88px;padding:12px 20px;border:2px solid #0F6E44;border-radius:10px;display:flex;align-items:center;justify-content:space-between;gap:16px">
+              <span style="font-size:40px;font-weight:800;line-height:1.1">9,4</span>
+              <span style="font-size:24px;font-weight:600;color:#4A5750">kg</span>
+            </div>
+            <span style="font-size:16px;color:#4A5750">Bulan lalu 9,0 kg.</span>
+          </div>
+          <div style="display:flex;gap:12px;align-items:center">
+            <span style="min-width:88px;min-height:56px;border:2px solid #0F6E44;border-radius:10px;color:#0F6E44;font-size:18px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px"><i class="ph-bold ph-minus" style="font-size:24px"></i>0,1</span>
+            <span style="min-width:88px;min-height:56px;border:2px solid #0F6E44;border-radius:10px;color:#0F6E44;font-size:18px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px"><i class="ph-bold ph-plus" style="font-size:24px"></i>0,1</span>
+            <span style="font-size:16px;color:#4A5750">Koreksi halus</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+            <span style="min-height:64px;border:1px solid #DCE0DA;border-radius:10px;font-size:30px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">1</span>
+            <span style="min-height:64px;border:1px solid #DCE0DA;border-radius:10px;font-size:30px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">2</span>
+            <span style="min-height:64px;border:1px solid #DCE0DA;border-radius:10px;font-size:30px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">3</span>
+            <span style="min-height:64px;border:1px solid #DCE0DA;border-radius:10px;font-size:30px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">4</span>
+            <span style="min-height:64px;border:1px solid #DCE0DA;border-radius:10px;font-size:30px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">5</span>
+            <span style="min-height:64px;border:1px solid #DCE0DA;border-radius:10px;font-size:30px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">6</span>
+            <span style="min-height:64px;border:1px solid #DCE0DA;border-radius:10px;font-size:30px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">7</span>
+            <span style="min-height:64px;border:1px solid #DCE0DA;border-radius:10px;font-size:30px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">8</span>
+            <span style="min-height:64px;border:1px solid #DCE0DA;border-radius:10px;font-size:30px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">9</span>
+            <span style="min-height:64px;border:1px solid #DCE0DA;border-radius:10px;font-size:30px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">,</span>
+            <span style="min-height:64px;border:1px solid #DCE0DA;border-radius:10px;font-size:30px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">0</span>
+            <span style="min-height:64px;border:1px solid #DCE0DA;border-radius:10px;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:0"><i class="ph-bold ph-backspace" style="font-size:26px"></i><span style="font-size:16px;font-weight:600">Hapus</span></span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;border-top:1px solid #DCE0DA;padding-top:16px">
+            <span style="font-size:18px;font-weight:600">Panjang badan</span>
+            <div style="min-height:72px;padding:12px 20px;border:1px solid #4A5750;border-radius:10px;display:flex;align-items:center;justify-content:space-between;gap:16px">
+              <span style="font-size:30px;font-weight:700;color:#4A5750">Belum diisi</span>
+              <span style="font-size:20px;font-weight:600;color:#4A5750">cm</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:18px;font-weight:600">Cara ukur</span>
+            <div style="display:flex;gap:12px">
+              <span style="flex:1;min-height:56px;border:2px solid #0F6E44;border-radius:10px;background:#E9F3EC;color:#0F6E44;font-size:18px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:8px"><i class="ph-bold ph-arrows-horizontal" style="font-size:24px"></i>Terlentang</span>
+              <span style="flex:1;min-height:56px;border:1px solid #4A5750;border-radius:10px;font-size:18px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px"><i class="ph-bold ph-arrows-vertical" style="font-size:24px"></i>Berdiri</span>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:auto;padding:16px 20px;border-top:1px solid #DCE0DA;background:#F6F7F5">
+          <div style="min-height:56px;border-radius:10px;background:#0F6E44;color:#FFFFFF;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:10px">Lanjut ke pemeriksaan<i class="ph-bold ph-arrow-right" style="font-size:28px"></i></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;flex-direction:column"><span style="font-size:20px;font-weight:700">A-5 Validasi lunak</span><span style="font-size:16px;color:#4A5750">Konfirmasi, bukan blokir</span></div>
+      <div data-screen-label="A-5 Validasi lunak" style="width:360px;background:#FFFFFF;border:1px solid #DCE0DA;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 2px 8px rgba(22,33,28,0.08)">
+        <div style="min-height:72px;padding:8px 16px;border-bottom:1px solid #DCE0DA;display:flex;align-items:center;gap:12px">
+          <i class="ph-bold ph-arrow-left" style="font-size:28px;flex-shrink:0"></i>
+          <span style="display:flex;flex-direction:column;min-width:0">
+            <span style="font-size:18px;font-weight:700;text-wrap:pretty;line-height:1.25">Nabila Ayu Ramadhani</span>
+            <span style="font-size:16px;color:#4A5750;line-height:1.25">Langkah 2 dari 4, antropometri</span>
+          </span>
+        </div>
+        <div style="padding:20px;display:flex;flex-direction:column;gap:20px">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:18px;font-weight:600">Berat badan</span>
+            <div style="min-height:88px;padding:12px 20px;border:2px solid #9A5B00;border-radius:10px;display:flex;align-items:center;justify-content:space-between;gap:16px">
+              <span style="font-size:40px;font-weight:800;line-height:1.1">4,2</span>
+              <span style="font-size:24px;font-weight:600;color:#4A5750">kg</span>
+            </div>
+          </div>
+          <div style="border:2px solid #9A5B00;border-radius:12px;padding:20px;background:#FBF1E3;display:flex;flex-direction:column;gap:16px">
+            <div style="display:flex;gap:12px;align-items:flex-start">
+              <i class="ph-bold ph-warning" style="font-size:32px;color:#9A5B00;flex-shrink:0"></i>
+              <span style="display:flex;flex-direction:column;gap:4px">
+                <span style="font-size:24px;font-weight:800;color:#9A5B00;line-height:1.3">Yakin dengan angka ini?</span>
+                <span style="font-size:18px">Bulan lalu 9,0 kg, sekarang 4,2 kg.</span>
+              </span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <span style="min-height:56px;border-radius:10px;border:2px solid #9A5B00;background:#FFFFFF;color:#9A5B00;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center">Perbaiki</span>
+              <span style="min-height:56px;border-radius:10px;background:#0F6E44;color:#FFFFFF;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center">Ya, benar</span>
+            </div>
+          </div>
+          <div style="border-top:1px solid #DCE0DA;padding-top:16px;display:flex;flex-direction:column;gap:12px">
+            <span style="font-size:18px;font-weight:700">Varian state</span>
+            <div style="border:1px solid #A3170F;border-radius:10px;background:#FCEDEC;padding:14px;display:flex;gap:10px;align-items:flex-start">
+              <i class="ph-fill ph-warning" style="font-size:26px;color:#A3170F;flex-shrink:0"></i>
+              <span style="font-size:16px">Di luar rentang: 34,0 kg tidak mungkin untuk balita. Peringatan lebih tegas, tetap bisa dilanjutkan.</span>
+            </div>
+            <div style="border:1px solid #9A5B00;border-radius:10px;background:#FBF1E3;padding:14px;display:flex;gap:10px;align-items:flex-start">
+              <i class="ph-bold ph-warning" style="font-size:26px;color:#9A5B00;flex-shrink:0"></i>
+              <span style="font-size:16px">Panjang badan lebih pendek dari bulan lalu, 73,7 cm menjadi 72,4 cm. Hampir selalu kesalahan ukur.</span>
+            </div>
+            <div style="border:1px solid #1148A8;border-radius:10px;background:#EAF0FB;padding:14px;display:flex;gap:10px;align-items:flex-start">
+              <i class="ph-bold ph-info" style="font-size:26px;color:#1148A8;flex-shrink:0"></i>
+              <span style="font-size:16px">Kunjungan pertama: tidak ada validasi selisih, hanya rentang. Layar tidak menampilkan "Bulan lalu: -".</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;flex-direction:column"><span style="font-size:20px;font-weight:700">A-4 Langkah 3, pemeriksaan tambahan</span><span style="font-size:16px;color:#4A5750">Semua opsional, tombol Lewati jelas</span></div>
+      <div data-screen-label="A-4 Langkah 3 pemeriksaan tambahan" style="width:360px;background:#FFFFFF;border:1px solid #DCE0DA;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 2px 8px rgba(22,33,28,0.08)">
+        <div style="min-height:72px;padding:8px 16px;border-bottom:1px solid #DCE0DA;display:flex;align-items:center;gap:12px">
+          <i class="ph-bold ph-arrow-left" style="font-size:28px;flex-shrink:0"></i>
+          <span style="display:flex;flex-direction:column;min-width:0">
+            <span style="font-size:18px;font-weight:700;text-wrap:pretty;line-height:1.25">Nabila Ayu Ramadhani</span>
+            <span style="font-size:16px;color:#4A5750;line-height:1.25">Langkah 3 dari 4, boleh dilewati</span>
+          </span>
+        </div>
+        <div style="display:flex;gap:6px;padding:12px 16px;border-bottom:1px solid #DCE0DA">
+          <span style="flex:1;height:10px;border-radius:999px;background:#0F6E44"></span>
+          <span style="flex:1;height:10px;border-radius:999px;background:#0F6E44"></span>
+          <span style="flex:1;height:10px;border-radius:999px;background:#0F6E44"></span>
+          <span style="flex:1;height:10px;border-radius:999px;background:#DCE0DA"></span>
+        </div>
+        <div style="padding:20px;display:flex;flex-direction:column;gap:16px">
+          <div style="border:1px solid #DCE0DA;border-radius:12px;padding:16px;background:#F6F7F5;display:flex;flex-direction:column;gap:12px">
+            <span style="font-size:20px;font-weight:700;display:inline-flex;align-items:center;gap:10px"><i class="ph-bold ph-syringe" style="font-size:28px;color:#0F6E44"></i>Imunisasi</span>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <span style="min-height:56px;padding:12px 16px;border:2px solid #0F6E44;border-radius:10px;background:#E9F3EC;color:#0F6E44;font-size:18px;font-weight:700;display:flex;align-items:center;gap:10px"><i class="ph-bold ph-check-square" style="font-size:28px"></i>Imunisasi dasar lengkap</span>
+              <span style="min-height:56px;padding:12px 16px;border:1px solid #4A5750;border-radius:10px;font-size:18px;font-weight:600;display:flex;align-items:center;gap:10px"><i class="ph-bold ph-square" style="font-size:28px;color:#4A5750"></i>Imunisasi booster lengkap</span>
+            </div>
+            <span style="font-size:16px;color:#4A5750">Detail per vaksin ada di Buku KIA fisik.</span>
+            <span style="min-height:56px;border:1px solid #4A5750;border-radius:10px;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center">Lewati imunisasi</span>
+          </div>
+          <div style="border:1px solid #DCE0DA;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px">
+            <span style="font-size:20px;font-weight:700;display:inline-flex;align-items:center;gap:10px"><i class="ph-bold ph-bowl-food" style="font-size:28px;color:#0F6E44"></i>Asupan gizi</span>
+            <span style="font-size:16px;color:#4A5750">ASI eksklusif, dapat MBG</span>
+            <span style="min-height:56px;border:1px solid #4A5750;border-radius:10px;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center">Lewati asupan gizi</span>
+          </div>
+          <div style="border:1px solid #DCE0DA;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px">
+            <span style="font-size:20px;font-weight:700;display:inline-flex;align-items:center;gap:10px"><i class="ph-bold ph-tooth" style="font-size:28px;color:#0F6E44"></i>Pemeriksaan gigi</span>
+            <span style="font-size:16px;color:#4A5750">Berlubang, bengkak, berdarah</span>
+            <span style="min-height:56px;border:1px solid #4A5750;border-radius:10px;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center">Lewati pemeriksaan gigi</span>
+          </div>
+          <div style="border:1px solid #DCE0DA;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px">
+            <span style="font-size:20px;font-weight:700;display:inline-flex;align-items:center;gap:10px"><i class="ph-bold ph-puzzle-piece" style="font-size:28px;color:#0F6E44"></i>KPSP, perkembangan</span>
+            <span style="font-size:16px;color:#4A5750">Kuesioner Pra Skrining Perkembangan, mengukur kemampuan anak sesuai umurnya</span>
+            <span style="min-height:56px;border:1px solid #4A5750;border-radius:10px;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center">Lewati KPSP</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;padding:16px 20px;border-top:1px solid #DCE0DA;background:#F6F7F5">
+          <div style="min-height:56px;border-radius:10px;background:#0F6E44;color:#FFFFFF;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:10px">Lihat hasil<i class="ph-bold ph-arrow-right" style="font-size:28px"></i></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;flex-direction:column"><span style="font-size:20px;font-weight:700">A-6 Hasil dan konfirmasi</span><span style="font-size:16px;color:#4A5750">Satu kartu per indeks, tanpa tombol rujukan</span></div>
+      <div data-screen-label="A-6 Hasil" style="width:360px;background:#FFFFFF;border:1px solid #DCE0DA;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 2px 8px rgba(22,33,28,0.08)">
+        <div style="min-height:72px;padding:8px 16px;border-bottom:1px solid #DCE0DA;display:flex;align-items:center;gap:12px">
+          <i class="ph-bold ph-arrow-left" style="font-size:28px;flex-shrink:0"></i>
+          <span style="display:flex;flex-direction:column;min-width:0">
+            <span style="font-size:18px;font-weight:700;text-wrap:pretty;line-height:1.25">Nabila Ayu Ramadhani</span>
+            <span style="font-size:16px;color:#4A5750;line-height:1.25">Langkah 4 dari 4, hasil</span>
+          </span>
+        </div>
+        <div style="padding:20px;display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;gap:16px;padding:16px;border:1px solid #DCE0DA;border-radius:12px;background:#F6F7F5">
+            <span style="display:flex;flex-direction:column"><span style="font-size:16px;color:#4A5750">Berat</span><span style="font-size:30px;font-weight:800">9,4 kg</span></span>
+            <span style="display:flex;flex-direction:column"><span style="font-size:16px;color:#4A5750">Panjang</span><span style="font-size:30px;font-weight:800">74,0 cm</span></span>
+          </div>
+
+          <div style="border:1px solid #DCE0DA;border-left:8px solid #14713D;border-radius:12px;padding:16px;background:#F6F7F5;display:flex;flex-direction:column;gap:12px">
+            <span style="font-size:18px;font-weight:700">Berat badan menurut umur, BB/U</span>
+            <span style="display:inline-flex;align-self:flex-start;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:18px;font-weight:700"><i class="ph-bold ph-check" style="font-size:24px"></i>Berat badan normal</span>
+            <span style="display:flex;align-items:baseline;gap:10px"><span style="font-size:40px;font-weight:800;line-height:1.1">-0,7</span><span style="font-size:16px;color:#4A5750">z-score</span></span>
+            <span style="font-size:18px">Berat badan anak sesuai untuk umurnya.</span>
+          </div>
+
+          <div style="border:1px solid #DCE0DA;border-left:8px solid #9A5B00;border-radius:12px;padding:16px;background:#F6F7F5;display:flex;flex-direction:column;gap:12px">
+            <span style="font-size:18px;font-weight:700">Panjang badan menurut umur, PB/U</span>
+            <span style="display:inline-flex;align-self:flex-start;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;background:#FBF1E3;border:1px solid #9A5B00;color:#9A5B00;font-size:18px;font-weight:700"><i class="ph-bold ph-warning" style="font-size:24px"></i>Pendek</span>
+            <span style="display:flex;align-items:baseline;gap:10px"><span style="font-size:40px;font-weight:800;line-height:1.1">-2,3</span><span style="font-size:16px;color:#4A5750">z-score</span></span>
+            <span style="font-size:18px">Panjang badan anak kurang untuk umurnya.</span>
+          </div>
+
+          <div style="border:1px solid #DCE0DA;border-left:8px solid #14713D;border-radius:12px;padding:16px;background:#F6F7F5;display:flex;flex-direction:column;gap:12px">
+            <span style="font-size:18px;font-weight:700">Berat badan menurut panjang badan, BB/PB</span>
+            <span style="display:inline-flex;align-self:flex-start;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:18px;font-weight:700"><i class="ph-bold ph-check" style="font-size:24px"></i>Gizi baik</span>
+            <span style="display:flex;align-items:baseline;gap:10px"><span style="font-size:40px;font-weight:800;line-height:1.1">0,5</span><span style="font-size:16px;color:#4A5750">z-score</span></span>
+            <span style="font-size:18px">Berat badan anak seimbang dengan panjang badannya.</span>
+          </div>
+
+          <span style="font-size:16px;color:#4A5750">Acuan: standar pertumbuhan WHO 2006, dihitung dari parameter LMS. Nilainya sama dengan tabel Permenkes No. 2 Tahun 2020.</span>
+
+          <div style="border:1px solid #9A5B00;border-radius:12px;background:#FBF1E3;padding:16px;display:flex;flex-direction:column;gap:12px">
+            <span style="font-size:20px;font-weight:700;color:#9A5B00">Saran tindak lanjut</span>
+            <span style="font-size:18px">Bawa Nabila ke Puskesmas dalam dua minggu untuk pemeriksaan lanjutan. Lanjutkan makanan bergizi dan pantau setiap bulan.</span>
+            <span style="font-size:18px;font-weight:700">Bidan Ratih Kusumaningrum</span>
+            <span style="font-size:18px">0812 8841 5502</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;padding:16px 20px;border-top:1px solid #DCE0DA;background:#F6F7F5;display:flex;flex-direction:column;gap:12px">
+          <div style="min-height:56px;border-radius:10px;background:#0F6E44;color:#FFFFFF;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:10px"><i class="ph-bold ph-check" style="font-size:28px"></i>Simpan dan lanjut ke Alfarizqi</div>
+          <span style="font-size:16px;color:#4A5750;text-align:center">Tombol menempel di bawah layar. Saat teks diperbesar 200%, tombol ini masuk ke dalam alur.</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;flex-direction:column"><span style="font-size:20px;font-weight:700">A-4 Tutup sesi</span><span style="font-size:16px;color:#4A5750">Termasuk berapa data masih menunggu terkirim</span></div>
+      <div data-screen-label="A-4 Tutup sesi" style="width:360px;background:#FFFFFF;border:1px solid #DCE0DA;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 2px 8px rgba(22,33,28,0.08)">
+        <div style="min-height:72px;padding:8px 16px;border-bottom:1px solid #DCE0DA;display:flex;align-items:center;gap:12px">
+          <i class="ph-bold ph-arrow-left" style="font-size:28px;flex-shrink:0"></i>
+          <span style="font-size:20px;font-weight:700">Tutup sesi</span>
+        </div>
+        <div style="padding:20px;display:flex;flex-direction:column;gap:20px">
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <span style="font-size:24px;font-weight:800;line-height:1.3">Sesi 14 Agustus 2026</span>
+            <span style="font-size:18px;color:#4A5750">Posyandu Melati 2, kader Siti Aminah</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;align-items:center;gap:14px;padding:16px;border:1px solid #DCE0DA;border-radius:12px;background:#F6F7F5">
+              <i class="ph-bold ph-scales" style="font-size:32px;color:#0F6E44;flex-shrink:0"></i>
+              <span style="font-size:18px;flex:1">Diukur</span>
+              <span style="font-size:40px;font-weight:800;line-height:1">18</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;padding:16px;border:1px solid #DCE0DA;border-radius:12px;background:#F6F7F5">
+              <i class="ph-bold ph-x-circle" style="font-size:32px;color:#4A5750;flex-shrink:0"></i>
+              <span style="font-size:18px;flex:1">Tidak hadir</span>
+              <span style="font-size:40px;font-weight:800;line-height:1">5</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;padding:16px;border:1px solid #9A5B00;border-radius:12px;background:#FBF1E3">
+              <i class="ph-bold ph-warning" style="font-size:32px;color:#9A5B00;flex-shrink:0"></i>
+              <span style="font-size:18px;flex:1;color:#9A5B00;font-weight:600">Perlu perhatian</span>
+              <span style="font-size:40px;font-weight:800;line-height:1;color:#9A5B00">3</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;padding:16px;border:1px solid #DCE0DA;border-radius:12px;background:#F6F7F5">
+              <i class="ph-bold ph-device-mobile" style="font-size:32px;color:#4A5750;flex-shrink:0"></i>
+              <span style="font-size:18px;flex:1">Menunggu terkirim</span>
+              <span style="font-size:40px;font-weight:800;line-height:1">3</span>
+            </div>
+          </div>
+          <div style="border:1px solid #1148A8;border-radius:10px;background:#EAF0FB;padding:16px;display:flex;gap:12px;align-items:flex-start">
+            <i class="ph-bold ph-info" style="font-size:28px;color:#1148A8;flex-shrink:0"></i>
+            <span style="font-size:18px">2 anak masih di kelompok Dilewati. Sesi bisa ditutup, mereka tetap tercatat belum diukur.</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;padding:16px 20px;border-top:1px solid #DCE0DA;background:#F6F7F5;display:flex;flex-direction:column;gap:12px">
+          <div style="min-height:56px;border-radius:10px;background:#0F6E44;color:#FFFFFF;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:10px"><i class="ph-bold ph-cloud-arrow-up" style="font-size:28px"></i>Kirim 3 data dan tutup</div>
+          <div style="min-height:56px;border-radius:10px;border:2px solid #0F6E44;color:#0F6E44;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center">Tutup tanpa kirim</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  </div>
+
+  
+
+  <div style="max-width:1200px;margin-top:56px;padding-top:24px;border-top:1px solid #DCE0DA;display:flex;flex-direction:column;gap:8px">
+    <div style="font-size:18px;font-weight:700">Belum masuk batch ini</div>
+    <div style="font-size:18px;color:#4A5750;max-width:72ch">A-1 login, A-10 layar bidan, A-12 antrean kirim dan state konflik. Ambang validasi lunak kini diatur di <a href="#2d">2d</a>, tidak lagi ditebak. Semua z-score di papan ini dihitung dari parameter LMS WHO 2006 pada berkas referensi Anda.</div>
+  </div>
+
+</section>
+</x-dc>
+</body>
+</html>

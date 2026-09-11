@@ -1,2 +1,6 @@
 resources/js/components/ui/*
 resources/views/mail/*
+
+# Dihasilkan demo/data/extract-demo-data.py. Memformat ulang di sini membuat
+# keluaran skrip dan isi repo berbeda setiap kali skrip dijalankan.
+demo/data/posyandu.json

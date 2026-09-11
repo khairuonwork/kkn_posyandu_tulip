@@ -27,3 +27,9 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# Skrip ekstraksi data demo ditulis dengan Python.
+__pycache__/
+
+# Hasil build demo statis.
+/dist-demo

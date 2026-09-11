@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css" />
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: #FFFFFF;
+    color: #16211C;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-size: 18px;
+    line-height: 1.6;
+    font-feature-settings: "tnum" 1, "lnum" 1;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: #0B6B70; text-decoration: underline; text-underline-offset: 3px; }
+  a:hover { color: #0F6E44; }
+  table { border-collapse: collapse; }
+  button { font-family: inherit; font-feature-settings: "tnum" 1; }
+  @keyframes kerlip { 0% { opacity: 1 } 50% { opacity: 0.45 } 100% { opacity: 1 } }
+</style>
+</helmet>
+
+<div style="max-width:1160px;margin:0 auto;padding:40px 24px 96px">
+
+  <header style="display:flex;flex-direction:column;gap:8px;padding-bottom:24px;border-bottom:1px solid #DCE0DA">
+    <h1 style="margin:0;font-size:40px;line-height:1.2;font-weight:800;letter-spacing:-0.02em">Portal Posyandu</h1>
+    <p style="margin:0;font-size:20px;color:#4A5750">Sistem desain. Tema terang dikunci, lansia-first sebagai default, bukan mode tambahan.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:12px">
+      <span style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border:1px solid #DCE0DA;border-radius:10px;background:#F6F7F5;font-size:16px;color:#4A5750">Teks dasar 18px</span>
+      <span style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border:1px solid #DCE0DA;border-radius:10px;background:#F6F7F5;font-size:16px;color:#4A5750">Target sentuh 56px</span>
+      <span style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border:1px solid #DCE0DA;border-radius:10px;background:#F6F7F5;font-size:16px;color:#4A5750">Spasi kelipatan 8px</span>
+      <span style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border:1px solid #DCE0DA;border-radius:10px;background:#F6F7F5;font-size:16px;color:#4A5750">Angka tabular</span>
+    </div>
+  </header>
+
+  <section style="padding-top:48px">
+    <h2 style="margin:0 0 8px;font-size:30px;font-weight:700">1. Warna dasar</h2>
+    <p style="margin:0 0 24px;font-size:18px;color:#4A5750;max-width:66ch">Hanya tema terang. Tidak ada mode gelap, tidak ada seksi yang membalik tema.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px">
+      <div style="border:1px solid #DCE0DA;border-radius:12px;overflow:hidden">
+        <div style="height:88px;background:#FFFFFF;border-bottom:1px solid #DCE0DA"></div>
+        <div style="padding:16px;background:#FFFFFF"><div style="font-size:18px;font-weight:600">Latar halaman</div><div style="font-size:16px;color:#4A5750">#FFFFFF</div></div>
+      </div>
+      <div style="border:1px solid #DCE0DA;border-radius:12px;overflow:hidden">
+        <div style="height:88px;background:#F6F7F5;border-bottom:1px solid #DCE0DA"></div>
+        <div style="padding:16px;background:#FFFFFF"><div style="font-size:18px;font-weight:600">Permukaan kartu</div><div style="font-size:16px;color:#4A5750">#F6F7F5</div></div>
+      </div>
+      <div style="border:1px solid #DCE0DA;border-radius:12px;overflow:hidden">
+        <div style="height:88px;background:#DCE0DA;border-bottom:1px solid #DCE0DA"></div>
+        <div style="padding:16px;background:#FFFFFF"><div style="font-size:18px;font-weight:600">Garis pemisah</div><div style="font-size:16px;color:#4A5750">#DCE0DA</div></div>
+      </div>
+      <div style="border:1px solid #DCE0DA;border-radius:12px;overflow:hidden">
+        <div style="height:88px;background:#16211C;border-bottom:1px solid #DCE0DA"></div>
+        <div style="padding:16px;background:#FFFFFF"><div style="font-size:18px;font-weight:600">Teks utama</div><div style="font-size:16px;color:#4A5750">#16211C</div></div>
+      </div>
+      <div style="border:1px solid #DCE0DA;border-radius:12px;overflow:hidden">
+        <div style="height:88px;background:#4A5750;border-bottom:1px solid #DCE0DA"></div>
+        <div style="padding:16px;background:#FFFFFF"><div style="font-size:18px;font-weight:600">Teks sekunder</div><div style="font-size:16px;color:#4A5750">#4A5750, kontras 7,4:1</div></div>
+      </div>
+      <div style="border:1px solid #DCE0DA;border-radius:12px;overflow:hidden">
+        <div style="height:88px;background:#0F6E44;border-bottom:1px solid #DCE0DA"></div>
+        <div style="padding:16px;background:#FFFFFF"><div style="font-size:18px;font-weight:600">Merek, aksi utama</div><div style="font-size:16px;color:#4A5750">#0F6E44</div></div>
+      </div>
+      <div style="border:1px solid #DCE0DA;border-radius:12px;overflow:hidden">
+        <div style="height:88px;background:#0B6B70;border-bottom:1px solid #DCE0DA"></div>
+        <div style="padding:16px;background:#FFFFFF"><div style="font-size:18px;font-weight:600">Aksen</div><div style="font-size:16px;color:#4A5750">#0B6B70</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:56px">
+    <h2 style="margin:0 0 8px;font-size:30px;font-weight:700">2. Empat nada keparahan</h2>
+    <p style="margin:0 0 24px;font-size:18px;color:#4A5750;max-width:66ch">Warna hanya menyampaikan seberapa mendesak. Nama kategori resmi selalu dicetak sebagai teks di dalam chip, dan setiap chip berisi ikon, teks, dan warna sekaligus.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(256px,1fr));gap:16px">
+      <div style="border:1px solid #DCE0DA;border-radius:12px;padding:20px;background:#F6F7F5;display:flex;flex-direction:column;gap:12px">
+        <span style="display:inline-flex;align-items:center;gap:10px;align-self:flex-start;padding:10px 16px;border-radius:10px;background:#FCEDEC;border:1px solid #A3170F;color:#A3170F;font-size:18px;font-weight:700"><i class="ph-fill ph-warning" style="font-size:28px"></i>Perlu tindakan</span>
+        <div style="font-size:18px;font-weight:600">Merah #A3170F</div>
+        <div style="font-size:16px;color:#4A5750">Segitiga seru penuh. Anak perlu dirujuk atau ditindaklanjuti bidan bulan ini.</div>
+      </div>
+      <div style="border:1px solid #DCE0DA;border-radius:12px;padding:20px;background:#F6F7F5;display:flex;flex-direction:column;gap:12px">
+        <span style="display:inline-flex;align-items:center;gap:10px;align-self:flex-start;padding:10px 16px;border-radius:10px;background:#FBF1E3;border:1px solid #9A5B00;color:#9A5B00;font-size:18px;font-weight:700"><i class="ph-bold ph-warning" style="font-size:28px"></i>Perlu perhatian</span>
+        <div style="font-size:18px;font-weight:600">Oranye #9A5B00</div>
+        <div style="font-size:16px;color:#4A5750">Segitiga seru garis. Pantau lebih dekat, belum mendesak.</div>
+      </div>
+      <div style="border:1px solid #DCE0DA;border-radius:12px;padding:20px;background:#F6F7F5;display:flex;flex-direction:column;gap:12px">
+        <span style="display:inline-flex;align-items:center;gap:10px;align-self:flex-start;padding:10px 16px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:18px;font-weight:700"><i class="ph-bold ph-check" style="font-size:28px"></i>Baik</span>
+        <div style="font-size:18px;font-weight:600">Hijau #14713D</div>
+        <div style="font-size:16px;color:#4A5750">Centang. Sesuai untuk umurnya.</div>
+      </div>
+      <div style="border:1px solid #DCE0DA;border-radius:12px;padding:20px;background:#F6F7F5;display:flex;flex-direction:column;gap:12px">
+        <span style="display:inline-flex;align-items:center;gap:10px;align-self:flex-start;padding:10px 16px;border-radius:10px;background:#EAF0FB;border:1px solid #1148A8;color:#1148A8;font-size:18px;font-weight:700"><i class="ph-bold ph-info" style="font-size:28px"></i>Catatan</span>
+        <div style="font-size:18px;font-weight:600">Biru #1148A8</div>
+        <div style="font-size:16px;color:#4A5750">Info. Dicatat, tidak mendesak.</div>
+      </div>
+    </div>
+
+    <div style="margin-top:32px;border:1px solid #9A5B00;border-radius:12px;padding:20px;background:#FBF1E3;display:flex;gap:14px;align-items:flex-start">
+      <i class="ph-bold ph-warning" style="font-size:28px;color:#9A5B00;flex-shrink:0"></i>
+      <div>
+        <div style="font-size:18px;font-weight:700;color:#9A5B00">Pemetaan di bawah ini belum dikonfirmasi bidan</div>
+        <div style="font-size:16px;color:#4A5750;margin-top:4px">Tabel pemetaan kategori ke nada belum saya terima. Isi berikut diturunkan dari kategori resmi Permenkes No. 2 Tahun 2020 sebagai usulan. Mohon dikoreksi sebelum implementasi.</div>
+      </div>
+    </div>
+
+    <div style="margin-top:20px;border:1px solid #DCE0DA;border-radius:12px;overflow:auto">
+      <table style="width:100%;min-width:720px;font-size:18px">
+        <thead>
+          <tr style="background:#F6F7F5">
+            <th style="text-align:left;padding:16px 20px;font-weight:700;border-bottom:1px solid #DCE0DA">Indeks</th>
+            <th style="text-align:left;padding:16px 20px;font-weight:700;border-bottom:1px solid #DCE0DA">Rentang z-score</th>
+            <th style="text-align:left;padding:16px 20px;font-weight:700;border-bottom:1px solid #DCE0DA">Kategori resmi</th>
+            <th style="text-align:left;padding:16px 20px;font-weight:700;border-bottom:1px solid #DCE0DA">Nada</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA;font-weight:600">BB/U</td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA">kurang dari -3 SD</td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA">Berat badan sangat kurang</td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA"><span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#FCEDEC;border:1px solid #A3170F;color:#A3170F;font-size:16px;font-weight:700"><i class="ph-fill ph-warning" style="font-size:20px"></i>Merah</span></td></tr>
+          <tr><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA"></td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA">-3 SD sampai kurang dari -2 SD</td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA">Berat badan kurang</td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA"><span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#FBF1E3;border:1px solid #9A5B00;color:#9A5B00;font-size:16px;font-weight:700"><i class="ph-bold ph-warning" style="font-size:20px"></i>Oranye</span></td></tr>
+          <tr><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA"></td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA">-2 SD sampai +1 SD</td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA">Berat badan normal</td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA"><span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:16px;font-weight:700"><i class="ph-bold ph-check" style="font-size:20px"></i>Hijau</span></td></tr>
+          <tr><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA"></td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA">lebih dari +1 SD</td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA">Risiko berat badan lebih</td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA"><span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#EAF0FB;border:1px solid #1148A8;color:#1148A8;font-size:16px;font-weight:700"><i class="ph-bold ph-info" style="font-size:20px"></i>Biru</span></td></tr>
+
+          <tr><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA;font-weight:600">PB/U atau TB/U</td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA">kurang dari -3 SD</td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA">Sangat pendek</td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA"><span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#FCEDEC;border:1px solid #A3170F;color:#A3170F;font-size:16px;font-weight:700"><i class="ph-fill ph-warning" style="font-size:20px"></i>Merah</span></td></tr>
+          <tr><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA"></td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA">-3 SD sampai kurang dari -2 SD</td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA">Pendek</td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA"><span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#FBF1E3;border:1px solid #9A5B00;color:#9A5B00;font-size:16px;font-weight:700"><i class="ph-bold ph-warning" style="font-size:20px"></i>Oranye</span></td></tr>
+          <tr><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA"></td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA">-2 SD sampai +3 SD</td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA">Normal</td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA"><span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:16px;font-weight:700"><i class="ph-bold ph-check" style="font-size:20px"></i>Hijau</span></td></tr>
+          <tr><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA"></td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA">lebih dari +3 SD</td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA">Tinggi</td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA"><span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#EAF0FB;border:1px solid #1148A8;color:#1148A8;font-size:16px;font-weight:700"><i class="ph-bold ph-info" style="font-size:20px"></i>Biru</span></td></tr>
+
+          <tr><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA;font-weight:600">BB/PB, BB/TB, IMT/U</td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA">kurang dari -3 SD</td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA">Gizi buruk</td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA"><span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#FCEDEC;border:1px solid #A3170F;color:#A3170F;font-size:16px;font-weight:700"><i class="ph-fill ph-warning" style="font-size:20px"></i>Merah</span></td></tr>
+          <tr><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA"></td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA">-3 SD sampai kurang dari -2 SD</td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA">Gizi kurang</td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA"><span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#FBF1E3;border:1px solid #9A5B00;color:#9A5B00;font-size:16px;font-weight:700"><i class="ph-bold ph-warning" style="font-size:20px"></i>Oranye</span></td></tr>
+          <tr><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA"></td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA">-2 SD sampai +1 SD</td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA">Gizi baik</td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA"><span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:16px;font-weight:700"><i class="ph-bold ph-check" style="font-size:20px"></i>Hijau</span></td></tr>
+          <tr><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA"></td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA">lebih dari +1 SD sampai +2 SD</td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA">Berisiko gizi lebih</td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA"><span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#EAF0FB;border:1px solid #1148A8;color:#1148A8;font-size:16px;font-weight:700"><i class="ph-bold ph-info" style="font-size:20px"></i>Biru</span></td></tr>
+          <tr><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA"></td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA">lebih dari +2 SD sampai +3 SD</td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA">Gizi lebih</td><td style="padding:14px 20px;border-bottom:1px solid #DCE0DA"><span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#FBF1E3;border:1px solid #9A5B00;color:#9A5B00;font-size:16px;font-weight:700"><i class="ph-bold ph-warning" style="font-size:20px"></i>Oranye</span></td></tr>
+          <tr><td style="padding:14px 20px"></td><td style="padding:14px 20px">lebih dari +3 SD</td><td style="padding:14px 20px">Obesitas</td><td style="padding:14px 20px"><span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#FCEDEC;border:1px solid #A3170F;color:#A3170F;font-size:16px;font-weight:700"><i class="ph-fill ph-warning" style="font-size:20px"></i>Merah</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section style="padding-top:56px">
+    <h2 style="margin:0 0 8px;font-size:30px;font-weight:700">3. Tipografi</h2>
+    <p style="margin:0 0 24px;font-size:18px;color:#4A5750;max-width:66ch">Plus Jakarta Sans untuk seluruh aplikasi. Semua angka memakai tabular numerals agar kolom tabel tidak bergeser.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:24px">
+      <div style="border:1px solid #DCE0DA;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;align-items:baseline;gap:16px"><span style="font-size:16px;color:#4A5750;min-width:96px">40 / 800</span><span style="font-size:40px;font-weight:800;line-height:1.2">9,2 kg</span></div>
+        <div style="display:flex;align-items:baseline;gap:16px"><span style="font-size:16px;color:#4A5750;min-width:96px">30 / 700</span><span style="font-size:30px;font-weight:700">Hasil pengukuran</span></div>
+        <div style="display:flex;align-items:baseline;gap:16px"><span style="font-size:16px;color:#4A5750;min-width:96px">24 / 700</span><span style="font-size:24px;font-weight:700">Nabila Ayu Ramadhani</span></div>
+        <div style="display:flex;align-items:baseline;gap:16px"><span style="font-size:16px;color:#4A5750;min-width:96px">20 / 600</span><span style="font-size:20px;font-weight:600">Langkah 2 dari 4</span></div>
+        <div style="display:flex;align-items:baseline;gap:16px"><span style="font-size:16px;color:#4A5750;min-width:96px">18 / 400</span><span style="font-size:18px">Teks isi, line-height 1,6</span></div>
+        <div style="display:flex;align-items:baseline;gap:16px"><span style="font-size:16px;color:#4A5750;min-width:96px">16 / 400</span><span style="font-size:16px">Batas terkecil, tidak ada teks di bawah ini</span></div>
+        <div style="border-top:1px solid #DCE0DA;padding-top:16px;font-size:18px;color:#4A5750">Di layar desktop batasnya naik jadi 18px. Tidak ada teks 16px di desktop, termasuk keterangan dan isi tabel, karena layar desktop dipakai sambil duduk lebih lama dan tabelnya lebih lebar.</div>
+      </div>
+      <div style="border:1px solid #DCE0DA;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px;background:#F6F7F5">
+        <div style="font-size:20px;font-weight:700">Uji keterbacaan digit</div>
+        <div style="font-size:16px;color:#4A5750">Dibaca sambil berdiri, layar silau, jarak lengan.</div>
+        <div style="display:flex;gap:24px;flex-wrap:wrap">
+          <div><div style="font-size:16px;color:#4A5750">1 vs 7</div><div style="font-size:40px;font-weight:700">1 7</div></div>
+          <div><div style="font-size:16px;color:#4A5750">0 vs O</div><div style="font-size:40px;font-weight:700">0 O</div></div>
+          <div><div style="font-size:16px;color:#4A5750">6 vs 8</div><div style="font-size:40px;font-weight:700">6 8</div></div>
+        </div>
+        <div style="border-top:1px solid #DCE0DA;padding-top:16px;font-size:16px;color:#4A5750">Tabular numerals aktif: kolom angka di tabel pertumbuhan sejajar sempurna walau jumlah digitnya berbeda.</div>
+        <div style="font-size:24px;font-weight:600">7,1<br />11,4<br />9,2</div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:56px">
+    <h2 style="margin:0 0 8px;font-size:30px;font-weight:700">4. Bentuk, spasi, elevasi</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px">
+      <div style="border:1px solid #DCE0DA;border-radius:12px;padding:20px;background:#F6F7F5;box-shadow:0 1px 2px rgba(22,33,28,0.06),0 2px 6px rgba(22,33,28,0.04)">
+        <div style="font-size:18px;font-weight:700">Kartu</div>
+        <div style="font-size:16px;color:#4A5750;margin-top:4px">Radius 12px. Padding 20px mobile, 24px desktop. Bayangan satu level, bernada latar.</div>
+      </div>
+      <div style="border:1px solid #DCE0DA;border-radius:10px;padding:20px;background:#F6F7F5">
+        <div style="font-size:18px;font-weight:700">Tombol dan field</div>
+        <div style="font-size:16px;color:#4A5750;margin-top:4px">Radius 10px. Satu sistem untuk seluruh aplikasi.</div>
+      </div>
+      <div style="border:1px solid #DCE0DA;border-radius:12px;padding:20px;background:#F6F7F5">
+        <div style="font-size:18px;font-weight:700">Spasi</div>
+        <div style="display:flex;align-items:flex-end;gap:8px;margin-top:12px">
+          <div style="width:8px;height:8px;background:#0F6E44"></div>
+          <div style="width:16px;height:16px;background:#0F6E44"></div>
+          <div style="width:24px;height:24px;background:#0F6E44"></div>
+          <div style="width:32px;height:32px;background:#0F6E44"></div>
+          <div style="width:48px;height:48px;background:#0F6E44"></div>
+        </div>
+        <div style="font-size:16px;color:#4A5750;margin-top:12px">8, 16, 24, 32, 48</div>
+      </div>
+      <div style="border:1px solid #DCE0DA;border-radius:12px;padding:20px;background:#F6F7F5">
+        <div style="font-size:18px;font-weight:700">Target sentuh</div>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:12px">
+          <div style="width:56px;height:56px;border-radius:10px;background:#0F6E44"></div>
+          <div style="width:56px;height:56px;border-radius:10px;background:#0F6E44"></div>
+        </div>
+        <div style="font-size:16px;color:#4A5750;margin-top:12px">Minimal 56 x 56, jarak antar target minimal 12.</div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:56px">
+    <h2 style="margin:0 0 8px;font-size:30px;font-weight:700">5. Ikon</h2>
+    <p style="margin:0 0 24px;font-size:18px;color:#4A5750;max-width:66ch">Phosphor Icons, weight bold, minimal 28px, selalu berpasangan dengan label teks. Tidak ada ikon tanpa label di mana pun.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px">
+      <div style="border:1px solid #DCE0DA;border-radius:12px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:8px"><i class="ph-bold ph-scales" style="font-size:32px;color:#0F6E44"></i><span style="font-size:18px;font-weight:600">Timbang</span></div>
+      <div style="border:1px solid #DCE0DA;border-radius:12px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:8px"><i class="ph-bold ph-ruler" style="font-size:32px;color:#0F6E44"></i><span style="font-size:18px;font-weight:600">Ukur tinggi</span></div>
+      <div style="border:1px solid #DCE0DA;border-radius:12px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:8px"><i class="ph-bold ph-baby" style="font-size:32px;color:#0F6E44"></i><span style="font-size:18px;font-weight:600">Daftar balita</span></div>
+      <div style="border:1px solid #DCE0DA;border-radius:12px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:8px"><i class="ph-bold ph-syringe" style="font-size:32px;color:#0F6E44"></i><span style="font-size:18px;font-weight:600">Imunisasi</span></div>
+      <div style="border:1px solid #DCE0DA;border-radius:12px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:8px"><i class="ph-bold ph-cloud-arrow-up" style="font-size:32px;color:#0F6E44"></i><span style="font-size:18px;font-weight:600">Kirim data</span></div>
+      <div style="border:1px solid #DCE0DA;border-radius:12px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:8px"><i class="ph-bold ph-chart-line" style="font-size:32px;color:#0F6E44"></i><span style="font-size:18px;font-weight:600">Pertumbuhan</span></div>
+      <div style="border:1px solid #DCE0DA;border-radius:12px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:8px"><i class="ph-bold ph-file-text" style="font-size:32px;color:#0F6E44"></i><span style="font-size:18px;font-weight:600">Laporan</span></div>
+      <div style="border:1px solid #DCE0DA;border-radius:12px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:8px"><i class="ph-bold ph-house" style="font-size:32px;color:#0F6E44"></i><span style="font-size:18px;font-weight:600">Beranda</span></div>
+    </div>
+  </section>
+
+  <section style="padding-top:56px">
+    <h2 style="margin:0 0 8px;font-size:30px;font-weight:700">6. Tombol</h2>
+    <p style="margin:0 0 24px;font-size:18px;color:#4A5750;max-width:66ch">Tinggi minimal 56px, teks 18px, radius 10px. Bahasa sehari-hari, bukan istilah sistem.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px">
+      <div style="border:1px solid #DCE0DA;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px">
+        <div style="font-size:20px;font-weight:700">Utama</div>
+        <button type="button" style="min-height:56px;padding:14px 24px;border:none;border-radius:10px;background:#0F6E44;color:#FFFFFF;font-size:18px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:10px;transition:background 160ms ease,transform 120ms ease" style-hover="background:#0C5A38" style-active="transform:translateY(1px)"><i class="ph-bold ph-check" style="font-size:28px"></i>Simpan hasil timbang</button>
+        <div style="font-size:20px;font-weight:700;margin-top:8px">Sekunder</div>
+        <button type="button" style="min-height:56px;padding:14px 24px;border:2px solid #0F6E44;border-radius:10px;background:#FFFFFF;color:#0F6E44;font-size:18px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:10px;transition:background 160ms ease" style-hover="background:#E9F3EC"><i class="ph-bold ph-arrow-counter-clockwise" style="font-size:28px"></i>Lewati, kembali nanti</button>
+        <div style="font-size:20px;font-weight:700;margin-top:8px">Tersier</div>
+        <button type="button" style="min-height:56px;padding:14px 20px;border:none;border-radius:10px;background:transparent;color:#0B6B70;font-size:18px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:10px;text-decoration:underline;text-underline-offset:4px" style-hover="background:#F6F7F5">Lihat grafik pertumbuhan</button>
+      </div>
+      <div style="border:1px solid #DCE0DA;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px;background:#F6F7F5">
+        <div style="font-size:20px;font-weight:700">State</div>
+        <button type="button" style="min-height:56px;padding:14px 24px;border:none;border-radius:10px;background:#0C5A38;color:#FFFFFF;font-size:18px;font-weight:700;cursor:pointer">Hover</button>
+        <button type="button" style="min-height:56px;padding:14px 24px;border:none;border-radius:10px;background:#0F6E44;color:#FFFFFF;font-size:18px;font-weight:700;outline:3px solid #1148A8;outline-offset:3px;cursor:pointer">Fokus keyboard</button>
+        <button type="button" disabled="" style="min-height:56px;padding:14px 24px;border:1px solid #DCE0DA;border-radius:10px;background:#EDEFEA;color:#4A5750;font-size:18px;font-weight:700;cursor:not-allowed">Nonaktif, isi berat dulu</button>
+        <button type="button" style="min-height:56px;padding:14px 24px;border:none;border-radius:10px;background:#0F6E44;color:#FFFFFF;font-size:18px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:10px;cursor:progress"><i class="ph-bold ph-circle-notch" style="font-size:28px;animation:kerlip 1s linear infinite"></i>Menyimpan di HP</button>
+        <div style="font-size:16px;color:#4A5750;border-top:1px solid #DCE0DA;padding-top:16px">Di mobile tombol utama menempel di bawah layar. Saat teks diperbesar 200%, tombol menempel otomatis berubah jadi tombol biasa di dalam alur agar tidak menutupi konten.</div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:56px">
+    <h2 style="margin:0 0 8px;font-size:30px;font-weight:700">7. Field dan input angka</h2>
+    <p style="margin:0 0 24px;font-size:18px;color:#4A5750;max-width:66ch">Label permanen di atas field. Satuan tercetak di dalam field, bukan di placeholder. Tidak pernah ada placeholder sebagai label.</p>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:24px">
+      <div style="border:1px solid #DCE0DA;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:24px">
+        <label style="display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:18px;font-weight:600">Nama anak</span>
+          <input type="text" value="Nabila Ayu Ramadhani" style="width:100%;min-width:0;min-height:56px;padding:12px 16px;border:1px solid #4A5750;border-radius:10px;font-size:18px;font-family:inherit;color:#16211C;background:#FFFFFF" />
+          <span style="font-size:16px;color:#4A5750">Sesuai Buku KIA.</span>
+        </label>
+        <label style="display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:18px;font-weight:600">NIK anak</span>
+          <input type="text" value="3204" style="width:100%;min-width:0;min-height:56px;padding:12px 16px;border:2px solid #A3170F;border-radius:10px;font-size:18px;font-family:inherit;color:#16211C;background:#FFFFFF" />
+          <span style="display:inline-flex;align-items:center;gap:8px;font-size:16px;color:#A3170F;font-weight:600"><i class="ph-fill ph-warning" style="font-size:20px"></i>NIK harus 16 angka. Baru terisi 4 angka.</span>
+        </label>
+        <label style="display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:18px;font-weight:600">Cara ukur panjang atau tinggi</span>
+          <span style="display:flex;gap:12px">
+            <span style="flex:1;min-height:56px;display:inline-flex;align-items:center;justify-content:center;gap:10px;border:2px solid #0F6E44;border-radius:10px;background:#E9F3EC;color:#0F6E44;font-size:18px;font-weight:700"><i class="ph-bold ph-arrows-horizontal" style="font-size:28px"></i>Terlentang</span>
+            <span style="flex:1;min-height:56px;display:inline-flex;align-items:center;justify-content:center;gap:10px;border:1px solid #4A5750;border-radius:10px;background:#FFFFFF;color:#16211C;font-size:18px;font-weight:600"><i class="ph-bold ph-arrows-vertical" style="font-size:28px"></i>Berdiri</span>
+          </span>
+          <span style="font-size:16px;color:#4A5750">Anak di bawah 24 bulan diukur terlentang.</span>
+        </label>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:18px;font-weight:600">Field nonaktif</span>
+          <div style="min-height:56px;padding:12px 16px;border:1px solid #DCE0DA;border-radius:10px;font-size:18px;color:#4A5750;background:#EDEFEA;display:flex;align-items:center">Terisi otomatis dari periode</div>
+        </div>
+      </div>
+
+      <div style="border:1px solid #DCE0DA;border-radius:12px;padding:24px;background:#F6F7F5;display:flex;flex-direction:column;gap:16px">
+        <div style="font-size:20px;font-weight:700">Keypad angka besar</div>
+        <div style="font-size:16px;color:#4A5750">Cara masuk utama. Tombol 64px, tiga kolom, koma dan hapus. Stepper 0,1 hanya muncul setelah ada angka.</div>
+
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:18px;font-weight:600">Berat badan</span>
+          <div style="min-height:88px;padding:12px 20px;border:2px solid #0F6E44;border-radius:10px;background:#FFFFFF;display:flex;align-items:center;justify-content:space-between;gap:16px">
+            <span style="font-size:40px;font-weight:800;line-height:1.1">{{ tampilBerat }}</span>
+            <span style="font-size:24px;font-weight:600;color:#4A5750">kg</span>
+          </div>
+          <span style="font-size:16px;color:#4A5750">{{ tampilPembanding }}</span>
+        </div>
+
+        <sc-if value="{{ adaNilai }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;gap:12px;align-items:center">
+            <button type="button" onClick="{{ turun }}" style="min-width:96px;min-height:56px;border:2px solid #0F6E44;border-radius:10px;background:#FFFFFF;color:#0F6E44;font-size:18px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px"><i class="ph-bold ph-minus" style="font-size:24px"></i>0,1</button>
+            <button type="button" onClick="{{ naik }}" style="min-width:96px;min-height:56px;border:2px solid #0F6E44;border-radius:10px;background:#FFFFFF;color:#0F6E44;font-size:18px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px"><i class="ph-bold ph-plus" style="font-size:24px"></i>0,1</button>
+            <span style="font-size:16px;color:#4A5750">Koreksi halus</span>
+          </div>
+        </sc-if>
+
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+          <button type="button" onClick="{{ tekan1 }}" style="min-height:64px;border:1px solid #DCE0DA;border-radius:10px;background:#FFFFFF;font-size:30px;font-weight:700;color:#16211C;cursor:pointer" style-active="background:#E9F3EC">1</button>
+          <button type="button" onClick="{{ tekan2 }}" style="min-height:64px;border:1px solid #DCE0DA;border-radius:10px;background:#FFFFFF;font-size:30px;font-weight:700;color:#16211C;cursor:pointer" style-active="background:#E9F3EC">2</button>
+          <button type="button" onClick="{{ tekan3 }}" style="min-height:64px;border:1px solid #DCE0DA;border-radius:10px;background:#FFFFFF;font-size:30px;font-weight:700;color:#16211C;cursor:pointer" style-active="background:#E9F3EC">3</button>
+          <button type="button" onClick="{{ tekan4 }}" style="min-height:64px;border:1px solid #DCE0DA;border-radius:10px;background:#FFFFFF;font-size:30px;font-weight:700;color:#16211C;cursor:pointer" style-active="background:#E9F3EC">4</button>
+          <button type="button" onClick="{{ tekan5 }}" style="min-height:64px;border:1px solid #DCE0DA;border-radius:10px;background:#FFFFFF;font-size:30px;font-weight:700;color:#16211C;cursor:pointer" style-active="background:#E9F3EC">5</button>
+          <button type="button" onClick="{{ tekan6 }}" style="min-height:64px;border:1px solid #DCE0DA;border-radius:10px;background:#FFFFFF;font-size:30px;font-weight:700;color:#16211C;cursor:pointer" style-active="background:#E9F3EC">6</button>
+          <button type="button" onClick="{{ tekan7 }}" style="min-height:64px;border:1px solid #DCE0DA;border-radius:10px;background:#FFFFFF;font-size:30px;font-weight:700;color:#16211C;cursor:pointer" style-active="background:#E9F3EC">7</button>
+          <button type="button" onClick="{{ tekan8 }}" style="min-height:64px;border:1px solid #DCE0DA;border-radius:10px;background:#FFFFFF;font-size:30px;font-weight:700;color:#16211C;cursor:pointer" style-active="background:#E9F3EC">8</button>
+          <button type="button" onClick="{{ tekan9 }}" style="min-height:64px;border:1px solid #DCE0DA;border-radius:10px;background:#FFFFFF;font-size:30px;font-weight:700;color:#16211C;cursor:pointer" style-active="background:#E9F3EC">9</button>
+          <button type="button" onClick="{{ tekanKoma }}" style="min-height:64px;border:1px solid #DCE0DA;border-radius:10px;background:#FFFFFF;font-size:30px;font-weight:700;color:#16211C;cursor:pointer" style-active="background:#E9F3EC">,</button>
+          <button type="button" onClick="{{ tekan0 }}" style="min-height:64px;border:1px solid #DCE0DA;border-radius:10px;background:#FFFFFF;font-size:30px;font-weight:700;color:#16211C;cursor:pointer" style-active="background:#E9F3EC">0</button>
+          <button type="button" onClick="{{ hapus }}" style="min-height:64px;border:1px solid #DCE0DA;border-radius:10px;background:#FFFFFF;color:#16211C;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:2px" style-active="background:#E9F3EC"><i class="ph-bold ph-backspace" style="font-size:28px"></i><span style="font-size:16px;font-weight:600">Hapus</span></button>
+        </div>
+
+        <button type="button" onClick="{{ periksa }}" style="min-height:56px;border:none;border-radius:10px;background:#0F6E44;color:#FFFFFF;font-size:18px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:10px"><i class="ph-bold ph-check" style="font-size:28px"></i>Lanjut</button>
+
+        <sc-if value="{{ tampilKonfirmasi }}" hint-placeholder-val="{{ false }}">
+          <div style="border:2px solid #9A5B00;border-radius:12px;padding:20px;background:#FBF1E3;display:flex;flex-direction:column;gap:16px">
+            <div style="display:flex;gap:12px;align-items:flex-start">
+              <i class="ph-bold ph-warning" style="font-size:28px;color:#9A5B00;flex-shrink:0"></i>
+              <div>
+                <div style="font-size:20px;font-weight:700;color:#9A5B00">Yakin dengan angka ini?</div>
+                <div style="font-size:18px;color:#16211C;margin-top:4px">{{ pesanKonfirmasi }}</div>
+              </div>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:12px">
+              <button type="button" onClick="{{ perbaiki }}" style="flex:1;min-width:140px;min-height:56px;border:2px solid #9A5B00;border-radius:10px;background:#FFFFFF;color:#9A5B00;font-size:18px;font-weight:700;cursor:pointer">Perbaiki</button>
+              <button type="button" onClick="{{ benar }}" style="flex:1;min-width:140px;min-height:56px;border:none;border-radius:10px;background:#0F6E44;color:#FFFFFF;font-size:18px;font-weight:700;cursor:pointer">Ya, benar</button>
+            </div>
+            <div style="font-size:16px;color:#4A5750">Validasi lunak, tidak memblokir. Ambang persis ditentukan bersama bidan sebelum implementasi.</div>
+          </div>
+        </sc-if>
+
+        <div style="border-top:1px solid #DCE0DA;padding-top:16px;display:flex;flex-direction:column;gap:12px">
+          <div style="font-size:18px;font-weight:700">Alternatif: input tersegmen</div>
+          <div style="display:flex;gap:12px;align-items:flex-end">
+            <label style="display:flex;flex-direction:column;gap:8px;flex:1;min-width:0">
+              <span style="font-size:18px;font-weight:600">Kilogram</span>
+              <input type="text" inputmode="numeric" value="9" style="width:100%;min-width:0;min-height:72px;padding:8px 12px;border:1px solid #4A5750;border-radius:10px;font-size:40px;font-weight:800;font-family:inherit;text-align:center;color:#16211C;background:#FFFFFF" />
+            </label>
+            <span style="font-size:40px;font-weight:800;padding-bottom:12px;flex-shrink:0">,</span>
+            <label style="display:flex;flex-direction:column;gap:8px;flex:1;min-width:0">
+              <span style="font-size:18px;font-weight:600">Ons</span>
+              <input type="text" inputmode="numeric" value="2" style="width:100%;min-width:0;min-height:72px;padding:8px 12px;border:1px solid #4A5750;border-radius:10px;font-size:40px;font-weight:800;font-family:inherit;text-align:center;color:#16211C;background:#FFFFFF" />
+            </label>
+          </div>
+          <div style="font-size:16px;color:#4A5750">Dipakai bila kader lebih terbiasa menyebut berat dalam kilogram dan ons. Desimal selalu koma, bukan titik.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:56px">
+    <h2 style="margin:0 0 8px;font-size:30px;font-weight:700">8. Chip</h2>
+    <p style="margin:0 0 24px;font-size:18px;color:#4A5750;max-width:66ch">Setiap chip berisi ikon, teks, dan warna. Warna tidak pernah jadi satu-satunya penanda.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px">
+      <div style="border:1px solid #DCE0DA;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px">
+        <div style="font-size:20px;font-weight:700">Status gizi</div>
+        <div style="display:flex;flex-wrap:wrap;gap:12px">
+          <span style="display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 14px;border-radius:10px;background:#FCEDEC;border:1px solid #A3170F;color:#A3170F;font-size:18px;font-weight:700"><i class="ph-fill ph-warning" style="font-size:24px"></i>Gizi buruk</span>
+          <span style="display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 14px;border-radius:10px;background:#FBF1E3;border:1px solid #9A5B00;color:#9A5B00;font-size:18px;font-weight:700"><i class="ph-bold ph-warning" style="font-size:24px"></i>Gizi kurang</span>
+          <span style="display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 14px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:18px;font-weight:700"><i class="ph-bold ph-check" style="font-size:24px"></i>Gizi baik</span>
+          <span style="display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 14px;border-radius:10px;background:#EAF0FB;border:1px solid #1148A8;color:#1148A8;font-size:18px;font-weight:700"><i class="ph-bold ph-info" style="font-size:24px"></i>Berisiko gizi lebih</span>
+        </div>
+        <div style="font-size:20px;font-weight:700;margin-top:8px">Status pertumbuhan</div>
+        <div style="display:flex;flex-wrap:wrap;gap:12px">
+          <span style="display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 14px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:18px;font-weight:700"><i class="ph-bold ph-check" style="font-size:24px"></i>N, naik</span>
+          <span style="display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 14px;border-radius:10px;background:#FBF1E3;border:1px solid #9A5B00;color:#9A5B00;font-size:18px;font-weight:700"><i class="ph-bold ph-warning" style="font-size:24px"></i>T, tidak naik</span>
+          <span style="display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 14px;border-radius:10px;background:#EAF0FB;border:1px solid #1148A8;color:#1148A8;font-size:18px;font-weight:700"><i class="ph-bold ph-info" style="font-size:24px"></i>O, tidak ditimbang bulan lalu</span>
+          <span style="display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 14px;border-radius:10px;background:#EAF0FB;border:1px solid #1148A8;color:#1148A8;font-size:18px;font-weight:700"><i class="ph-bold ph-info" style="font-size:24px"></i>B, baru pertama</span>
+        </div>
+      </div>
+      <div style="border:1px solid #DCE0DA;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px;background:#F6F7F5">
+        <div style="font-size:20px;font-weight:700">Kehadiran dan status simpan</div>
+        <div style="display:flex;flex-wrap:wrap;gap:12px">
+          <span style="display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 14px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:18px;font-weight:700"><i class="ph-bold ph-check" style="font-size:24px"></i>Sudah diukur</span>
+          <span style="display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 14px;border-radius:10px;background:#FFFFFF;border:1px solid #4A5750;color:#4A5750;font-size:18px;font-weight:700"><i class="ph-bold ph-clock" style="font-size:24px"></i>Belum diukur</span>
+          <span style="display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 14px;border-radius:10px;background:#FBF1E3;border:1px solid #9A5B00;color:#9A5B00;font-size:18px;font-weight:700"><i class="ph-bold ph-warning" style="font-size:24px"></i>Tidak hadir</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:12px">
+          <span style="display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 14px;border-radius:10px;background:#FFFFFF;border:1px solid #4A5750;color:#4A5750;font-size:18px;font-weight:700"><i class="ph-bold ph-device-mobile" style="font-size:24px"></i>Tersimpan di HP</span>
+          <span style="display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 14px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:18px;font-weight:700"><i class="ph-bold ph-cloud-check" style="font-size:24px"></i>Terkirim</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:12px">
+          <span style="display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 14px;border-radius:10px;background:#FBF1E3;border:1px solid #9A5B00;color:#9A5B00;font-size:18px;font-weight:700"><i class="ph-bold ph-identification-card" style="font-size:24px"></i>NIK belum lengkap</span>
+        </div>
+        <div style="font-size:16px;color:#4A5750;border-top:1px solid #DCE0DA;padding-top:16px">Chip filter pada daftar balita memakai bentuk yang sama, tinggi 56px, dengan penanda centang saat aktif.</div>
+        <div style="display:flex;flex-wrap:wrap;gap:12px">
+          <span style="display:inline-flex;align-items:center;gap:8px;min-height:56px;padding:12px 18px;border-radius:10px;background:#0F6E44;border:1px solid #0F6E44;color:#FFFFFF;font-size:18px;font-weight:700"><i class="ph-bold ph-check" style="font-size:24px"></i>Semua RT</span>
+          <span style="display:inline-flex;align-items:center;gap:8px;min-height:56px;padding:12px 18px;border-radius:10px;background:#FFFFFF;border:1px solid #4A5750;color:#16211C;font-size:18px;font-weight:600">RT 03</span>
+          <span style="display:inline-flex;align-items:center;gap:8px;min-height:56px;padding:12px 18px;border-radius:10px;background:#FFFFFF;border:1px solid #4A5750;color:#16211C;font-size:18px;font-weight:600">RT 04</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:56px">
+    <h2 style="margin:0 0 8px;font-size:30px;font-weight:700">9. Kartu</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:24px">
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div style="font-size:20px;font-weight:700">Kartu aksi, tinggi minimal 96px</div>
+        <button type="button" style="min-height:112px;padding:24px;border:none;border-radius:12px;background:#0F6E44;color:#FFFFFF;text-align:left;cursor:pointer;display:flex;align-items:center;gap:16px" style-hover="background:#0C5A38">
+          <i class="ph-bold ph-scales" style="font-size:40px;flex-shrink:0"></i>
+          <span style="display:flex;flex-direction:column;gap:4px">
+            <span style="font-size:24px;font-weight:800">Mulai Penimbangan Hari Ini</span>
+            <span style="font-size:18px;opacity:0.92">Posyandu Melati 2, periode Agustus 2026</span>
+          </span>
+          <i class="ph-bold ph-arrow-right" style="font-size:32px;margin-left:auto;flex-shrink:0"></i>
+        </button>
+
+        <div style="font-size:20px;font-weight:700;margin-top:8px">Baris anak, tinggi minimal 72px</div>
+        <div style="border:1px solid #DCE0DA;border-radius:12px;overflow:hidden">
+          <div style="display:flex;align-items:center;gap:16px;padding:16px 20px;min-height:80px;border-bottom:1px solid #DCE0DA;background:#FFFFFF">
+            <span style="width:56px;height:56px;border-radius:999px;background:#EDEFEA;color:#4A5750;font-size:20px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">NR</span>
+            <span style="display:flex;flex-direction:column;gap:4px;min-width:0">
+              <span style="font-size:20px;font-weight:700">Nabila Ayu Ramadhani</span>
+              <span style="font-size:18px;color:#4A5750">18 bulan, 1 tahun 6 bulan</span>
+            </span>
+            <span style="margin-left:auto;display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:18px;font-weight:700;flex-shrink:0"><i class="ph-bold ph-check" style="font-size:24px"></i>Gizi baik</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:16px;padding:16px 20px;min-height:80px;background:#FFFFFF">
+            <span style="width:56px;height:56px;border-radius:999px;background:#EDEFEA;color:#4A5750;font-size:20px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">MA</span>
+            <span style="display:flex;flex-direction:column;gap:4px;min-width:0">
+              <span style="font-size:20px;font-weight:700">Muhammad Alfarizqi Nurhidayat</span>
+              <span style="font-size:18px;color:#4A5750">31 bulan, 2 tahun 7 bulan</span>
+            </span>
+            <span style="margin-left:auto;display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;background:#FBF1E3;border:1px solid #9A5B00;color:#9A5B00;font-size:18px;font-weight:700;flex-shrink:0"><i class="ph-bold ph-warning" style="font-size:24px"></i>Gizi kurang</span>
+          </div>
+        </div>
+        <div style="font-size:16px;color:#4A5750">Di 360px baris hanya memuat inisial, nama, umur, dan satu chip. RT pindah ke baris kedua.</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div style="font-size:20px;font-weight:700">Kartu hasil per indeks</div>
+        <div style="border:1px solid #DCE0DA;border-left:8px solid #14713D;border-radius:12px;padding:24px;background:#F6F7F5;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap">
+            <span style="font-size:20px;font-weight:700">Berat badan menurut umur, BB/U</span>
+            <span style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:18px;font-weight:700"><i class="ph-bold ph-check" style="font-size:24px"></i>Berat badan normal</span>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:12px">
+            <span style="font-size:40px;font-weight:800;line-height:1.1">-0,4</span>
+            <span style="font-size:18px;color:#4A5750">z-score</span>
+          </div>
+          <div style="font-size:18px">Berat badan anak sesuai untuk umurnya.</div>
+        </div>
+
+        <div style="border:1px solid #DCE0DA;border-left:8px solid #9A5B00;border-radius:12px;padding:24px;background:#F6F7F5;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap">
+            <span style="font-size:20px;font-weight:700">Panjang badan menurut umur, PB/U</span>
+            <span style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;background:#FBF1E3;border:1px solid #9A5B00;color:#9A5B00;font-size:18px;font-weight:700"><i class="ph-bold ph-warning" style="font-size:24px"></i>Pendek</span>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:12px">
+            <span style="font-size:40px;font-weight:800;line-height:1.1">-2,3</span>
+            <span style="font-size:18px;color:#4A5750">z-score</span>
+          </div>
+          <div style="font-size:18px">Panjang badan anak kurang untuk umurnya. Perlu perhatian.</div>
+        </div>
+
+        <div style="font-size:16px;color:#4A5750">Acuan: Permenkes No. 2 Tahun 2020. Angka pada contoh ini ilustratif, bukan hasil hitung tabel resmi.</div>
+
+        <div style="border:1px solid #9A5B00;border-radius:12px;padding:20px;background:#FBF1E3;display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:20px;font-weight:700;color:#9A5B00">Saran tindak lanjut</div>
+          <div style="font-size:18px">Bawa anak ke Puskesmas dalam dua minggu untuk pemeriksaan lanjutan. Lanjutkan pemberian makanan bergizi dan pantau berat setiap bulan.</div>
+          <div style="font-size:18px;font-weight:600">Hubungi Bidan Ratih Kusumaningrum, 0812 8841 5502</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:56px">
+    <h2 style="margin:0 0 8px;font-size:30px;font-weight:700">10. Tabel pertumbuhan</h2>
+    <p style="margin:0 0 24px;font-size:18px;color:#4A5750;max-width:66ch">Tabel dulu, grafik kemudian. Di 360px kurva tujuh pita tidak terbaca oleh pengguna 65 tahun, jadi tampilan default adalah angka per periode.</p>
+    <div style="border:1px solid #DCE0DA;border-radius:12px;overflow:auto">
+      <table style="width:100%;min-width:760px;font-size:18px">
+        <thead>
+          <tr style="background:#F6F7F5">
+            <th style="text-align:left;padding:16px 20px;font-weight:700;border-bottom:1px solid #DCE0DA">Tanggal ukur</th>
+            <th style="text-align:right;padding:16px 20px;font-weight:700;border-bottom:1px solid #DCE0DA">Berat</th>
+            <th style="text-align:right;padding:16px 20px;font-weight:700;border-bottom:1px solid #DCE0DA">Panjang</th>
+            <th style="text-align:right;padding:16px 20px;font-weight:700;border-bottom:1px solid #DCE0DA">z-score BB/U</th>
+            <th style="text-align:left;padding:16px 20px;font-weight:700;border-bottom:1px solid #DCE0DA">Kategori</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td style="padding:16px 20px;border-bottom:1px solid #DCE0DA">14 Agu 2026</td><td style="padding:16px 20px;text-align:right;border-bottom:1px solid #DCE0DA;font-weight:700">9,2 kg</td><td style="padding:16px 20px;text-align:right;border-bottom:1px solid #DCE0DA">78,1 cm</td><td style="padding:16px 20px;text-align:right;border-bottom:1px solid #DCE0DA">-0,4</td><td style="padding:16px 20px;border-bottom:1px solid #DCE0DA"><span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:16px;font-weight:700"><i class="ph-bold ph-check" style="font-size:20px"></i>Gizi baik</span></td></tr>
+          <tr><td style="padding:16px 20px;border-bottom:1px solid #DCE0DA">10 Jul 2026</td><td style="padding:16px 20px;text-align:right;border-bottom:1px solid #DCE0DA;font-weight:700">8,9 kg</td><td style="padding:16px 20px;text-align:right;border-bottom:1px solid #DCE0DA">77,4 cm</td><td style="padding:16px 20px;text-align:right;border-bottom:1px solid #DCE0DA">-0,6</td><td style="padding:16px 20px;border-bottom:1px solid #DCE0DA"><span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:16px;font-weight:700"><i class="ph-bold ph-check" style="font-size:20px"></i>Gizi baik</span></td></tr>
+          <tr><td style="padding:16px 20px;border-bottom:1px solid #DCE0DA">12 Jun 2026</td><td style="padding:16px 20px;text-align:right;border-bottom:1px solid #DCE0DA;font-weight:700">8,8 kg</td><td style="padding:16px 20px;text-align:right;border-bottom:1px solid #DCE0DA">76,5 cm</td><td style="padding:16px 20px;text-align:right;border-bottom:1px solid #DCE0DA">-0,8</td><td style="padding:16px 20px;border-bottom:1px solid #DCE0DA"><span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#FBF1E3;border:1px solid #9A5B00;color:#9A5B00;font-size:16px;font-weight:700"><i class="ph-bold ph-warning" style="font-size:20px"></i>T, tidak naik</span></td></tr>
+          <tr><td style="padding:16px 20px">08 Mei 2026</td><td style="padding:16px 20px;text-align:right;font-weight:700">8,7 kg</td><td style="padding:16px 20px;text-align:right">75,8 cm</td><td style="padding:16px 20px;text-align:right">-0,7</td><td style="padding:16px 20px"><span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:10px;background:#E9F3EC;border:1px solid #14713D;color:#14713D;font-size:16px;font-weight:700"><i class="ph-bold ph-check" style="font-size:20px"></i>Gizi baik</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center">
+      <button type="button" style="min-height:56px;padding:14px 20px;border:2px solid #0F6E44;border-radius:10px;background:#FFFFFF;color:#0F6E44;font-size:18px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:10px" style-hover="background:#E9F3EC"><i class="ph-bold ph-chart-line" style="font-size:28px"></i>Lihat grafik</button>
+      <span style="font-size:16px;color:#4A5750">Grafik jadi tampilan default hanya di desktop 1024px ke atas.</span>
+    </div>
+  </section>
+
+  <section style="padding-top:56px">
+    <h2 style="margin:0 0 8px;font-size:30px;font-weight:700">11. State wajib</h2>
+    <p style="margin:0 0 24px;font-size:18px;color:#4A5750;max-width:66ch">Setiap layar punya keenam state ini. Skeleton berbentuk konten akhir, bukan spinner.</p>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:24px">
+      <div style="border:1px solid #DCE0DA;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px;align-items:flex-start">
+        <div style="font-size:20px;font-weight:700">Kosong</div>
+        <i class="ph-bold ph-baby" style="font-size:40px;color:#4A5750"></i>
+        <div style="font-size:18px">Belum ada balita terdaftar di RT ini.</div>
+        <button type="button" style="min-height:56px;padding:14px 20px;border:none;border-radius:10px;background:#0F6E44;color:#FFFFFF;font-size:18px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:10px"><i class="ph-bold ph-plus" style="font-size:28px"></i>Tambah balita</button>
+      </div>
+
+      <div style="border:1px solid #DCE0DA;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px">
+        <div style="font-size:20px;font-weight:700">Hasil pencarian nihil</div>
+        <i class="ph-bold ph-magnifying-glass" style="font-size:40px;color:#4A5750"></i>
+        <div style="font-size:18px">Tidak ada anak bernama "Rizqi Ananda" di Posyandu Melati 2.</div>
+        <button type="button" style="min-height:56px;padding:14px 20px;border:2px solid #0F6E44;border-radius:10px;background:#FFFFFF;color:#0F6E44;font-size:18px;font-weight:700;cursor:pointer">Hapus kata pencarian</button>
+      </div>
+
+      <div style="border:1px solid #DCE0DA;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px">
+        <div style="font-size:20px;font-weight:700">Memuat</div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;align-items:center;gap:16px;min-height:80px">
+            <div style="width:56px;height:56px;border-radius:999px;background:#EDEFEA;animation:kerlip 1.4s ease-in-out infinite"></div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+              <div style="height:20px;width:70%;border-radius:6px;background:#EDEFEA;animation:kerlip 1.4s ease-in-out infinite"></div>
+              <div style="height:18px;width:40%;border-radius:6px;background:#EDEFEA;animation:kerlip 1.4s ease-in-out infinite"></div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:16px;min-height:80px">
+            <div style="width:56px;height:56px;border-radius:999px;background:#EDEFEA;animation:kerlip 1.4s ease-in-out infinite"></div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+              <div style="height:20px;width:60%;border-radius:6px;background:#EDEFEA;animation:kerlip 1.4s ease-in-out infinite"></div>
+              <div style="height:18px;width:35%;border-radius:6px;background:#EDEFEA;animation:kerlip 1.4s ease-in-out infinite"></div>
+            </div>
+          </div>
+        </div>
+        <div style="font-size:16px;color:#4A5750">Skeleton berbentuk baris daftar, bukan spinner.</div>
+      </div>
+
+      <div style="border:1px solid #DCE0DA;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px;align-items:flex-start">
+        <div style="font-size:20px;font-weight:700">Error</div>
+        <i class="ph-fill ph-warning" style="font-size:40px;color:#A3170F"></i>
+        <div style="font-size:18px">Daftar balita gagal dimuat. Data yang sudah tersimpan di HP tetap aman.</div>
+        <button type="button" style="min-height:56px;padding:14px 20px;border:none;border-radius:10px;background:#0F6E44;color:#FFFFFF;font-size:18px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:10px"><i class="ph-bold ph-arrow-clockwise" style="font-size:28px"></i>Coba lagi</button>
+      </div>
+
+      <div style="border:1px solid #DCE0DA;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px">
+        <div style="font-size:20px;font-weight:700">Offline, bilah menetap</div>
+        <div style="border:1px solid #9A5B00;border-radius:10px;background:#FBF1E3;padding:14px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <i class="ph-bold ph-cloud-slash" style="font-size:28px;color:#9A5B00;flex-shrink:0"></i>
+          <span style="font-size:18px;font-weight:700;color:#9A5B00">3 data belum terkirim</span>
+          <button type="button" style="margin-left:auto;min-height:56px;padding:10px 16px;border:2px solid #9A5B00;border-radius:10px;background:#FFFFFF;color:#9A5B00;font-size:18px;font-weight:700;cursor:pointer">Kirim sekarang</button>
+        </div>
+        <div style="font-size:16px;color:#4A5750">Bilah ini menetap di atas selama masih ada data tertunda, di semua layar.</div>
+        <div style="border:1px solid #A3170F;border-radius:10px;background:#FCEDEC;padding:14px 16px;display:flex;align-items:flex-start;gap:12px">
+          <i class="ph-fill ph-warning" style="font-size:28px;color:#A3170F;flex-shrink:0"></i>
+          <span style="font-size:18px;color:#16211C">Tabel standar antropometri belum diunduh. Layar hasil belum bisa tampil saat offline.</span>
+        </div>
+        <button type="button" style="min-height:56px;padding:14px 20px;border:none;border-radius:10px;background:#0F6E44;color:#FFFFFF;font-size:18px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:10px"><i class="ph-bold ph-download-simple" style="font-size:28px"></i>Unduh tabel standar</button>
+      </div>
+
+      <div style="border:1px solid #DCE0DA;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px">
+        <div style="font-size:20px;font-weight:700">Sukses</div>
+        <div style="border:1px solid #14713D;border-radius:10px;background:#E9F3EC;padding:16px;display:flex;align-items:flex-start;gap:12px">
+          <i class="ph-bold ph-check-circle" style="font-size:28px;color:#14713D;flex-shrink:0"></i>
+          <span style="font-size:18px"><span style="font-weight:700">Hasil timbang Nabila tersimpan.</span> Tersimpan di HP, akan terkirim saat ada sinyal.</span>
+        </div>
+        <div style="font-size:20px;font-weight:700;margin-top:8px">Nama terpanjang, 40 karakter</div>
+        <div style="display:flex;align-items:center;gap:16px;padding:16px;min-height:80px;border:1px solid #DCE0DA;border-radius:10px">
+          <span style="width:56px;height:56px;border-radius:999px;background:#EDEFEA;color:#4A5750;font-size:20px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">MA</span>
+          <span style="display:flex;flex-direction:column;gap:4px;min-width:0">
+            <span style="font-size:20px;font-weight:700;text-wrap:pretty">Muhammad Alfarizqi Nurhidayat Putra</span>
+            <span style="font-size:18px;color:#4A5750">31 bulan, RT 04</span>
+          </span>
+        </div>
+        <div style="font-size:16px;color:#4A5750">Nama membungkus ke baris kedua, tidak dipotong dengan elipsis.</div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:56px">
+    <h2 style="margin:0 0 8px;font-size:30px;font-weight:700">12. Navigasi</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:24px">
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div style="font-size:20px;font-weight:700">Bilah bawah, mobile</div>
+        <div style="border:1px solid #DCE0DA;border-radius:12px;overflow:hidden;max-width:360px">
+          <div style="height:120px;background:#F6F7F5;display:flex;align-items:center;justify-content:center;font-size:16px;color:#4A5750">Isi layar</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid #DCE0DA;background:#FFFFFF">
+            <span style="min-height:72px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#0F6E44;border-top:3px solid #0F6E44"><i class="ph-bold ph-house" style="font-size:28px"></i><span style="font-size:16px;font-weight:700">Beranda</span></span>
+            <span style="min-height:72px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#4A5750;border-top:3px solid transparent"><i class="ph-bold ph-baby" style="font-size:28px"></i><span style="font-size:16px;font-weight:600">Balita</span></span>
+            <span style="min-height:72px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#4A5750;border-top:3px solid transparent"><i class="ph-bold ph-scales" style="font-size:28px"></i><span style="font-size:16px;font-weight:600">Timbang</span></span>
+            <span style="min-height:72px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#4A5750;border-top:3px solid transparent"><i class="ph-bold ph-cloud-arrow-up" style="font-size:28px"></i><span style="font-size:16px;font-weight:600">Kirim</span></span>
+          </div>
+        </div>
+        <div style="font-size:16px;color:#4A5750">Empat item, semuanya berlabel teks. Tidak ada ikon tanpa label.</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div style="font-size:20px;font-weight:700">Sidebar tetap, desktop</div>
+        <div style="border:1px solid #DCE0DA;border-radius:12px;overflow:hidden;display:flex">
+          <div style="width:232px;flex-shrink:0;border-right:1px solid #DCE0DA;background:#F6F7F5;padding:12px;display:flex;flex-direction:column;gap:8px">
+            <span style="min-height:56px;padding:12px 16px;border-radius:10px;background:#0F6E44;color:#FFFFFF;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:700"><i class="ph-bold ph-house" style="font-size:28px"></i>Beranda</span>
+            <span style="min-height:56px;padding:12px 16px;border-radius:10px;color:#16211C;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600"><i class="ph-bold ph-baby" style="font-size:28px"></i>Daftar balita</span>
+            <span style="min-height:56px;padding:12px 16px;border-radius:10px;color:#16211C;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600"><i class="ph-bold ph-scales" style="font-size:28px"></i>Meja ukur</span>
+            <span style="min-height:56px;padding:12px 16px;border-radius:10px;color:#16211C;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600"><i class="ph-bold ph-file-text" style="font-size:28px"></i>Laporan</span>
+          </div>
+          <div style="flex:1;min-width:0;padding:20px">
+            <div style="min-height:56px;border-bottom:1px solid #DCE0DA;display:flex;align-items:center;font-size:18px;font-weight:700;line-height:1.25;text-wrap:pretty">Posyandu Melati 2, RW 04</div>
+            <div style="padding-top:16px;font-size:16px;color:#4A5750">Header maksimal 72px. Teks di desktop tidak pernah dikecilkan demi memuat lebih banyak data.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:56px">
+    <h2 style="margin:0 0 8px;font-size:30px;font-weight:700">13. Grafik KMS, layar Detail anak</h2>
+    <p style="margin:0 0 24px;font-size:18px;color:#4A5750;max-width:66ch">Komponen yang sama dengan yang dipakai di layar Detail anak pada prototipe, bukan salinan yang digambar ulang. Perubahan pada komponen ini otomatis terlihat di kedua tempat.</p>
+
+    <dc-import name="GrafikKMS" kelamin="P" hint-size="100%,900px"></dc-import>
+
+    <div style="margin-top:24px;border:1px solid #DCE0DA;border-radius:12px;padding:24px;background:#F6F7F5;display:flex;flex-direction:column;gap:12px">
+      <div style="font-size:20px;font-weight:700">Aturan pakai</div>
+      <div style="font-size:18px;color:#4A5750;max-width:72ch;text-wrap:pretty">Pita, garis SD, dan legenda memakai warna KMS Buku KIA. Grafik ini dikecualikan dari palet aplikasi, supaya sama dengan buku cetak yang dipegang ibu. Kategori resmi tetap dibaca dari teks, bukan dari warna.</div>
+      <div style="font-size:18px;color:#4A5750;max-width:72ch;text-wrap:pretty">Garis kurva anak #16211C tebal 3,5 dengan halo putih tebal 8, titik ukur lingkaran putih bergaris #16211C. Garis terputus pada bulan tanpa penimbangan. Label sumbu di dalam SVG masih 16 dan 17px, di bawah batas 18px pada seksi 3, dipertahankan agar grafik sama persis dengan prototipe. Belum diputuskan.</div>
+      <div style="font-size:18px;color:#4A5750;max-width:72ch">Prop kelamin menentukan tabel standar yang dipakai, P atau L. Panel umur dipilih dari dalam komponen.</div>
+    </div>
+  </section>
+
+  <footer style="margin-top:64px;padding-top:24px;border-top:1px solid #DCE0DA;display:flex;flex-direction:column;gap:8px">
+    <div style="font-size:18px;font-weight:700">Yang belum terjawab</div>
+    <div style="font-size:18px;color:#4A5750;max-width:72ch">Tabel pemetaan kategori ke nada masih usulan saya, belum dikonfirmasi bidan. Ambang selisih pada validasi lunak masih ilustratif. Semua angka z-score di halaman ini contoh, bukan hasil hitung tabel standar resmi.</div>
+  </footer>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;adaPembanding&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Input angka&quot;,&quot;label&quot;:&quot;Ada data bulan lalu&quot;},&quot;beratBulanLalu&quot;:{&quot;editor&quot;:&quot;float&quot;,&quot;default&quot;:9.2,&quot;min&quot;:2,&quot;max&quot;:25,&quot;step&quot;:0.1,&quot;unit&quot;:&quot;kg&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Input angka&quot;},&quot;ambangSelisih&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:1.5,&quot;min&quot;:0.3,&quot;max&quot;:4,&quot;step&quot;:0.1,&quot;unit&quot;:&quot;kg&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Input angka&quot;,&quot;label&quot;:&quot;Ambang selisih untuk konfirmasi&quot;}}">
+class Component extends DCLogic {
+  state = { nilai: "", konfirmasi: false, pesan: "" };
+
+  get pembanding() {
+    return this.props.beratBulanLalu ?? 9.2;
+  }
+
+  get ambang() {
+    return this.props.ambangSelisih ?? 1.5;
+  }
+
+  set(nilai) {
+    this.setState({ nilai, konfirmasi: false });
+  }
+
+  angka(d) {
+    this.setState((s) => {
+      if (s.nilai.replace(",", "").length >= 4) return null;
+      return { nilai: s.nilai + d, konfirmasi: false };
+    });
+  }
+
+  fmt(x) {
+    return x.toFixed(1).replace(".", ",");
+  }
+
+  renderVals() {
+    const n = this.state.nilai;
+    const pembandingAda = this.props.adaPembanding ?? true;
+    const num = parseFloat(n.replace(",", "."));
+    const valid = !isNaN(num);
+
+    return {
+      tampilBerat: n === "" ? "0,0" : n,
+      adaNilai: n !== "",
+      tampilPembanding: pembandingAda
+        ? "Bulan lalu " + this.fmt(this.pembanding) + " kg."
+        : "Kunjungan pertama. Belum ada data pembanding, jadi hanya rentang yang divalidasi.",
+      tampilKonfirmasi: this.state.konfirmasi,
+      pesanKonfirmasi: this.state.pesan,
+      tekan1: () => this.angka("1"),
+      tekan2: () => this.angka("2"),
+      tekan3: () => this.angka("3"),
+      tekan4: () => this.angka("4"),
+      tekan5: () => this.angka("5"),
+      tekan6: () => this.angka("6"),
+      tekan7: () => this.angka("7"),
+      tekan8: () => this.angka("8"),
+      tekan9: () => this.angka("9"),
+      tekan0: () => this.angka("0"),
+      tekanKoma: () => this.setState((s) =>
+        s.nilai === "" || s.nilai.includes(",") ? null : { nilai: s.nilai + ",", konfirmasi: false }
+      ),
+      hapus: () => this.setState((s) => ({ nilai: s.nilai.slice(0, -1), konfirmasi: false })),
+      naik: () => {
+        const x = parseFloat(this.state.nilai.replace(",", "."));
+        if (!isNaN(x)) this.set(this.fmt(Math.min(x + 0.1, 40)));
+      },
+      turun: () => {
+        const x = parseFloat(this.state.nilai.replace(",", "."));
+        if (!isNaN(x)) this.set(this.fmt(Math.max(x - 0.1, 0)));
+      },
+      periksa: () => {
+        const num = parseFloat(this.state.nilai.replace(",", "."));
+        if (isNaN(num)) return;
+        if (num < 1.5 || num > 30) {
+          this.setState({
+            konfirmasi: true,
+            pesan: this.fmt(num) + " kg di luar rentang yang mungkin untuk balita. Periksa timbangan dan angka yang diketik."
+          });
+          return;
+        }
+        if (pembandingAda && Math.abs(num - this.pembanding) > this.ambang) {
+          this.setState({
+            konfirmasi: true,
+            pesan: "Bulan lalu " + this.fmt(this.pembanding) + " kg, sekarang " + this.fmt(num) + " kg."
+          });
+          return;
+        }
+        this.setState({ konfirmasi: false, pesan: "" });
+      },
+      perbaiki: () => this.setState({ konfirmasi: false, pesan: "" }),
+      benar: () => this.setState({ konfirmasi: false, pesan: "" })
+    };
+  }
+}
+</script>
+</body>
+</html>

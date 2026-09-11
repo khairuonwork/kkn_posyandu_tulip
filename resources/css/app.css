@@ -2,20 +2,81 @@
 
 @import 'tw-animate-css';
 
+/* Halaman dan komponen produk. Wajib ditulis eksplisit: build demo memakai
+   `root: 'demo'`, sehingga deteksi sumber otomatis Tailwind hanya menjangkau
+   demo/ dan setiap kelas yang cuma dipakai di resources/js akan hilang diam-diam
+   — termasuk `overflow-x-auto` yang menahan tabel lebar. */
+@source '../js';
 @source '../views';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 
 @custom-variant dark (&:is(.dark *));
 
+/* Token diambil dari docs/05-uiux-spec.md bagian 2 dan docs/10-prd-demo-frontend.md
+   bagian 8, yang keduanya bersumber langsung dari prototipe desain di docs/design/.
+
+   Nama variabel bawaan shadcn tidak diubah, sehingga seluruh komponen di
+   components/ui/** ikut berganti warna tanpa disentuh satu baris pun.
+
+   Berkas huruf tidak dimuat di sini. app.css milik produk, sedangkan huruf demo
+   berada di demo/assets/fonts/ — @font-face-nya ada di demo/index.css supaya
+   ketergantungan tetap satu arah. */
+
 @theme {
     --font-sans:
-        'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
+        'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif,
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
 
+    /* Satu tuas untuk seluruh jarak, tinggi, dan ukuran petak.
+       Setiap utilitas angka Tailwind — p-5, gap-7, h-13, size-13 — dihitung
+       dari sini, jadi menurunkannya mengecilkan keenam halaman sekaligus
+       tanpa menyentuh satu berkas .tsx pun.
+
+       3,4 px, turun dari 4 px bawaan. Angka ini dipilih dari batas bawahnya,
+       bukan dari rasio: `min-h-13` pada tombol dan kotak isian menjadi 44,2 px,
+       tepat di ambang sasaran sentuh bagian 2.5. Menurunkannya lagi
+       menjatuhkan tombol Detail dan Ubah di baris Data Anak ke bawah 44 px —
+       ukur ulang keduanya sebelum menyentuh nilai ini. */
+    --spacing: 3.4px;
+
+    /* Skala tipografi bagian 2.4, disetel ke ukuran yang diminta pemilik
+       produk: isi 15 px, label 13 px.
+
+       Ini di bawah batas 16/15 px yang ditulis bagian 2.4. Keputusannya
+       diambil sadar setelah melihat layar nyata pada zoom 90%, dan batas itu
+       tidak lagi berlaku sebagai lantai. Yang perlu diingat kalau ada keluhan
+       keterbacaan dari lapangan: 13 px memegang label, header tabel, dan baris
+       alasan di Beranda — justru teks yang paling perlu dibaca, dan kader
+       maupun bidan rata-rata bukan pengguna komputer harian. Naikkan dari
+       sini, jangan dari tempat lain. */
+    --text-xs: 11px;
+    --text-sm: 13px;
+    --text-base: 15px;
+    --text-lg: 17px;
+    --text-xl: 18px;
+    --text-2xl: 23px;
+    --text-3xl: 29px;
+    /* Skalanya berhenti di sini. Bagian 2.4 hanya menyebut dua ukuran angka
+       besar, 32 dan 40 px. Tailwind tetap mengirim text-5xl sampai text-9xl
+       (48-128 px) yang tidak pernah dipilih siapa pun - jangan dipakai; kelas
+       itu menembus ke bawaan Tailwind, bukan ke token ini. */
+    --text-4xl: 32px;
+
+    /* Radius Prototipe v2: kartu 20, tombol dan field 14, chip 10.
+
+       Naik dari 8/10/6 milik prototipe lama. Yang berubah hanya geometri —
+       seluruh warna tetap pada nilai revisi 11 September, termasuk --border
+       dan --border-strong yang sengaja tidak kembali ke #DCE0DA dan #A8B0A9
+       (1,3:1 dan 2,3:1, keduanya di bawah syarat 3:1 bagian 2.2). */
+    --radius-xl: calc(var(--radius) + 6px);
     --radius-lg: var(--radius);
-    --radius-md: calc(var(--radius) - 2px);
-    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 4px);
+    --radius-sm: calc(var(--radius) - 8px);
+
+    /* Bayangan kartu v2. Satu tingkat saja: offset 4px dengan blur lembut,
+       bukan halo tanpa offset. Kedalaman tetap terutama dinyatakan garis tepi. */
+    --shadow-card: 0 4px 14px rgba(22, 33, 28, 0.04);
 
     --color-background: var(--background);
     --color-foreground: var(--foreground);
@@ -59,77 +120,153 @@
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
+
+    /* Token tambahan yang tidak ada di shadcn, bagian 2.3.
+       Nada keparahan selalu berpasangan: teks dan latarnya. */
+    --color-surface: var(--surface);
+    --color-surface-subtle: var(--surface-subtle);
+    --color-surface-alt: var(--surface-alt);
+    --color-border-strong: var(--border-strong);
+
+    --color-tone-green: var(--tone-green);
+    --color-tone-green-bg: var(--tone-green-bg);
+    --color-tone-red: var(--tone-red);
+    --color-tone-red-bg: var(--tone-red-bg);
+    --color-tone-amber: var(--tone-amber);
+    --color-tone-amber-bg: var(--tone-amber-bg);
+    --color-tone-blue: var(--tone-blue);
+    --color-tone-blue-bg: var(--tone-blue-bg);
 }
 
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --destructive-foreground: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.87 0 0);
-    --chart-1: oklch(0.646 0.222 41.116);
-    --chart-2: oklch(0.6 0.118 184.704);
-    --chart-3: oklch(0.398 0.07 227.392);
-    --chart-4: oklch(0.828 0.189 84.429);
-    --chart-5: oklch(0.769 0.188 70.08);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.87 0 0);
+    /* Dasar halaman abu, isi di atas kartu putih — susunan Prototipe v2.
+       Sebelumnya keduanya putih dan kartu hanya dibatasi garis. */
+    --background: #edefea;
+    --foreground: #16211c;
+    --card: #ffffff;
+    --card-foreground: #16211c;
+    --popover: #ffffff;
+    --popover-foreground: #16211c;
+
+    --primary: #0f6e44;
+    --primary-foreground: #ffffff;
+    --secondary: #f1f3ef;
+    --secondary-foreground: #16211c;
+
+    --muted: #edefea;
+    --muted-foreground: #4a5750;
+    --accent: #e9f3ec;
+    --accent-foreground: #0f6e44;
+
+    --destructive: #a3170f;
+    --destructive-foreground: #ffffff;
+
+    --border: #c2c9c0;
+    --input: #a8b0a9;
+    --ring: #0f6e44;
+
+    --radius: 0.875rem;
+
+    /* Strip kepala kartu dan tabel. Senada sidebar, setingkat di atas
+       --surface-subtle. */
+    --surface: #f6f7f5;
+    --surface-subtle: #f1f3ef;
+    --surface-alt: #edefea;
+    --border-strong: #8b948c;
+
+    /* Empat nada keparahan bagian 2.3. Rasio kontrasnya sudah dihitung di
+       bagian 8; latar oranye tidak boleh digelapkan, marginnya tipis. */
+    --tone-green: #0f6e44;
+    --tone-green-bg: #e9f3ec;
+    --tone-red: #a3170f;
+    --tone-red-bg: #fcedec;
+    --tone-amber: #9a5b00;
+    --tone-amber-bg: #fbf1e3;
+    --tone-blue: #1148a8;
+    --tone-blue-bg: #eaf0fb;
+
+    /* Warna grafik dipakai hanya oleh komponen bawaan starter kit. Kurva KMS
+       memakai warna Buku KIA yang sengaja di luar palet ini. */
+    --chart-1: #0f6e44;
+    --chart-2: #1148a8;
+    --chart-3: #9a5b00;
+    --chart-4: #a3170f;
+    --chart-5: #4a5750;
+
+    --sidebar: #f6f7f5;
+    --sidebar-foreground: #16211c;
+    --sidebar-primary: #0f6e44;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #e9f3ec;
+    --sidebar-accent-foreground: #0f6e44;
+    --sidebar-border: #dce0da;
+    --sidebar-ring: #0f6e44;
 }
 
+/* Mode gelap tidak dibangun (bagian 2.6). Blok ini tetap ada supaya varian
+   `dark:` pada komponen shadcn tidak menjadi utilitas yang tidak dikenal;
+   tidak ada satu pun berkas yang memasang kelas .dark. */
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.145 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.145 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.985 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.396 0.141 25.723);
-    --destructive-foreground: oklch(0.637 0.237 25.331);
-    --border: oklch(0.269 0 0);
-    --input: oklch(0.269 0 0);
-    --ring: oklch(0.439 0 0);
-    --chart-1: oklch(0.488 0.243 264.376);
-    --chart-2: oklch(0.696 0.17 162.48);
-    --chart-3: oklch(0.769 0.188 70.08);
-    --chart-4: oklch(0.627 0.265 303.9);
-    --chart-5: oklch(0.645 0.246 16.439);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.985 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(0.269 0 0);
-    --sidebar-ring: oklch(0.439 0 0);
+    --background: #16211c;
+    --foreground: #ffffff;
+    --card: #16211c;
+    --surface: #16211c;
+    --card-foreground: #ffffff;
+    --popover: #16211c;
+    --popover-foreground: #ffffff;
+    --primary: #ffffff;
+    --primary-foreground: #16211c;
+    --secondary: #4a5750;
+    --secondary-foreground: #ffffff;
+    --muted: #4a5750;
+    --muted-foreground: #dce0da;
+    --accent: #4a5750;
+    --accent-foreground: #ffffff;
+    --destructive: #a3170f;
+    --destructive-foreground: #ffffff;
+    --border: #4a5750;
+    --input: #4a5750;
+    --ring: #0f6e44;
+    --sidebar: #16211c;
+    --sidebar-foreground: #ffffff;
+    --sidebar-primary: #ffffff;
+    --sidebar-primary-foreground: #16211c;
+    --sidebar-accent: #4a5750;
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: #4a5750;
+    --sidebar-ring: #0f6e44;
+}
+
+/* Bentuk berulang Prototipe v2.
+
+   Lima bentuk ini muncul puluhan kali di enam halaman: kartu, strip kepala di
+   dalam kartu, dua tombol, dan satu kotak isian. Ditulis sekali di sini supaya
+   geometrinya punya satu sumber — mengubah radius kartu tidak berarti menyisir
+   enam berkas .tsx. Warnanya tetap token bagian 2, bukan nilai mentah v2. */
+@layer components {
+    .kartu {
+        @apply rounded-xl border border-border bg-card shadow-[var(--shadow-card)];
+    }
+
+    /* Garis 2px, bukan 1px: strip ini memisahkan judul dari isi kartu, dan
+       pada tabel ia juga menjadi kepala kolom. */
+    .strip-kepala {
+        @apply border-b-2 border-border bg-surface px-5 py-4 sm:px-6 sm:py-5;
+    }
+
+    /* Tinggi kontrol v2 adalah 52px, naik dari 48px. Ditulis `min-h` supaya
+       label yang membungkus tidak terpotong. */
+    .tombol-utama {
+        @apply inline-flex min-h-13 items-center justify-center gap-2 rounded-lg bg-primary px-4.5 text-base font-bold text-primary-foreground shadow-[0_8px_18px_rgba(15,110,68,0.18)];
+    }
+
+    .tombol-kedua {
+        @apply inline-flex min-h-13 items-center justify-center gap-2 rounded-lg border border-border-strong bg-card px-4.5 text-base font-semibold;
+    }
+
+    .isian {
+        @apply h-13 rounded-lg border-2 border-border bg-surface px-3.5 text-base text-foreground;
+    }
 }
 
 @layer base {
@@ -139,5 +276,90 @@
 
     body {
         @apply bg-background text-foreground;
+    }
+
+    /* Angka wajib tabular. Tanpa ini kolom berat dan z-score tidak sejajar,
+       dan tabel adalah bentuk utama produk ini (bagian 2.4). */
+    body,
+    input,
+    table {
+        font-feature-settings:
+            'tnum' 1,
+            'lnum' 1;
+    }
+
+    /* Prototipe desain hanya memasangnya pada input; bagian 8 memberlakukannya
+       ke semua kontrol — nav, chip filter, tombol baris, tautan Detail. */
+    :focus-visible {
+        outline: 2px solid var(--ring);
+        outline-offset: 1px;
+    }
+
+    /* Gerak bagian 8.4: 200 ms. Warna latar ikut dianimasikan karena umpan
+       balik hover kini berupa permukaan, bukan transparansi. */
+    a,
+    button,
+    tbody tr {
+        transition:
+            background-color 200ms,
+            opacity 200ms;
+    }
+
+    /* Teks hitam yang meredup 15% terbaca seperti gangguan render, bukan
+       seperti hover. Tautan dan tombol memakai garis bawah dan permukaan. */
+    a:hover,
+    button:hover:not(:disabled) {
+        opacity: 0.85;
+    }
+
+    /* Selang-seling baris, mengikuti artboard v2: baris genap satu tingkat
+       di atas putih. Ditulis di @layer base supaya kelas utilitas pada baris
+       tertentu — mis. `bg-accent` pada baris yang sedang dibuka — tetap
+       menang tanpa perlu `!important`. */
+    tbody tr:nth-child(even) {
+        background-color: var(--surface);
+    }
+
+    /* Pita baris tabel. Data Anak adalah 101 baris x 7 kolom selebar 1105 px;
+       tanpa pita ini mata tidak punya apa pun untuk menjaga baris saat
+       menyeberang dari nama anak ke tombol Detail. Ini perbaikan keterbacaan
+       terbesar di seluruh produk. */
+    tbody tr:hover {
+        background-color: var(--surface-subtle);
+    }
+
+    /* Papan tombol mendapat pita yang sama, lebih pekat, saat fokus jatuh di
+       dalam baris — jadi Tab menelusuri tabel sejelas tetikus. */
+    tbody tr:has(:focus-visible) {
+        background-color: var(--accent);
+    }
+}
+
+/* Jeda bertahap kecil pada baris tabel saat filter berubah, supaya terlihat
+   isinya memang berganti dan bukan layar yang tidak merespons. */
+@keyframes baris-masuk {
+    from {
+        opacity: 0;
+        transform: translateY(2px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.baris-masuk {
+    animation: baris-masuk 200ms both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .baris-masuk {
+        animation: none;
+    }
+
+    a,
+    button,
+    tbody tr {
+        transition: none;
     }
 }

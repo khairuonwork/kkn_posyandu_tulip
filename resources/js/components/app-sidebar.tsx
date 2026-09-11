@@ -1,10 +1,8 @@
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid } from 'lucide-react';
+import { Baby, Calendar, FileText, House, Settings } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
-import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
-import { TeamSwitcher } from '@/components/team-switcher';
 import {
     Sidebar,
     SidebarContent,
@@ -17,6 +15,18 @@ import {
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 
+/**
+ * Sidebar Portal.
+ *
+ * Daftar nav ini kembaran dari `NAV` di demo/DemoApp.tsx, dan sengaja hidup
+ * dua tempat selama demo masih berjalan: vite.demo.config.ts hanya mengalihkan
+ * `@/lib/nav`, bukan cangkangnya. Saat demo/ dibuang (bagian 10 langkah 8),
+ * berkas inilah yang tersisa.
+ *
+ * Alamatnya masih teks biasa. Wayfinder baru menghasilkan `@/routes/*` setelah
+ * `php artisan` bisa dijalankan dan ketujuh controller ada (bagian 10); sampai
+ * itu, menuliskannya sebagai helper hanya menambah impor yang tidak terpecahkan.
+ */
 export function AppSidebar() {
     const page = usePage();
     const dashboardUrl = page.props.currentTeam
@@ -24,24 +34,11 @@ export function AppSidebar() {
         : '/';
 
     const mainNavItems: NavItem[] = [
-        {
-            title: 'Dashboard',
-            href: dashboardUrl,
-            icon: LayoutGrid,
-        },
-    ];
-
-    const footerNavItems: NavItem[] = [
-        {
-            title: 'Repository',
-            href: 'https://github.com/laravel/react-starter-kit',
-            icon: FolderGit2,
-        },
-        {
-            title: 'Documentation',
-            href: 'https://laravel.com/docs/starter-kits#react',
-            icon: BookOpen,
-        },
+        { title: 'Beranda', href: dashboardUrl, icon: House },
+        { title: 'Data Anak', href: '/balita', icon: Baby },
+        { title: 'Laporan', href: '/laporan', icon: FileText },
+        { title: 'Pengaturan', href: '/pengaturan', icon: Settings },
+        { title: 'Periode', href: '/periode', icon: Calendar },
     ];
 
     return (
@@ -56,19 +53,18 @@ export function AppSidebar() {
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <TeamSwitcher />
-                    </SidebarMenuItem>
-                </SidebarMenu>
             </SidebarHeader>
 
             <SidebarContent>
                 <NavMain items={mainNavItems} />
             </SidebarContent>
 
+            {/* Tautan Repository dan Documentation milik starter kit
+                dibuang - keduanya menunjuk ke github.com/laravel dan
+                laravel.com, bukan ke produk ini. TeamSwitcher juga dibuang:
+                hanya ada satu Posyandu (ADR-0004, dan 05-uiux-spec.md
+                bagian 4.4). */}
             <SidebarFooter>
-                <NavFooter items={footerNavItems} className="mt-auto" />
                 <NavUser />
             </SidebarFooter>
         </Sidebar>

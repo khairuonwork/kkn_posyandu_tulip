@@ -1,0 +1,319 @@
+## Portal Posyandu
+Sistem desain. Tema terang dikunci, lansia-first sebagai default, bukan mode tambahan.
+Teks dasar 18px
+Target sentuh 56px
+Spasi kelipatan 8px
+Angka tabular
+## 1. Warna dasar
+Hanya tema terang. Tidak ada mode gelap, tidak ada seksi yang membalik tema.
+Latar halaman
+#FFFFFF
+Permukaan kartu
+#F6F7F5
+Garis pemisah
+#DCE0DA
+Teks utama
+#16211C
+Teks sekunder
+#4A5750, kontras 7,4:1
+Merek, aksi utama
+#0F6E44
+Aksen
+#0B6B70
+## 2. Empat nada keparahan
+Warna hanya menyampaikan seberapa mendesak. Nama kategori resmi selalu dicetak sebagai teks di dalam chip, dan setiap chip berisi ikon, teks, dan warna sekaligus.
+Perlu tindakan
+Merah #A3170F
+Segitiga seru penuh. Anak perlu dirujuk atau ditindaklanjuti bidan bulan ini.
+Perlu perhatian
+Oranye #9A5B00
+Segitiga seru garis. Pantau lebih dekat, belum mendesak.
+Baik
+Hijau #14713D
+Centang. Sesuai untuk umurnya.
+Catatan
+Biru #1148A8
+Info. Dicatat, tidak mendesak.
+Pemetaan di bawah ini belum dikonfirmasi bidan
+Tabel pemetaan kategori ke nada belum saya terima. Isi berikut diturunkan dari kategori resmi Permenkes No. 2 Tahun 2020 sebagai usulan. Mohon dikoreksi sebelum implementasi.
+Indeks
+Rentang z-score
+Kategori resmi
+Nada
+BB/U
+kurang dari -3 SD
+Berat badan sangat kurang
+Merah
+-3 SD sampai kurang dari -2 SD
+Berat badan kurang
+Oranye
+-2 SD sampai +1 SD
+Berat badan normal
+Hijau
+lebih dari +1 SD
+Risiko berat badan lebih
+Biru
+PB/U atau TB/U
+kurang dari -3 SD
+Sangat pendek
+Merah
+-3 SD sampai kurang dari -2 SD
+Pendek
+Oranye
+-2 SD sampai +3 SD
+Normal
+Hijau
+lebih dari +3 SD
+Tinggi
+Biru
+BB/PB, BB/TB, IMT/U
+kurang dari -3 SD
+Gizi buruk
+Merah
+-3 SD sampai kurang dari -2 SD
+Gizi kurang
+Oranye
+-2 SD sampai +1 SD
+Gizi baik
+Hijau
+lebih dari +1 SD sampai +2 SD
+Berisiko gizi lebih
+Biru
+lebih dari +2 SD sampai +3 SD
+Gizi lebih
+Oranye
+lebih dari +3 SD
+Obesitas
+Merah
+## 3. Tipografi
+Plus Jakarta Sans untuk seluruh aplikasi. Semua angka memakai tabular numerals agar kolom tabel tidak bergeser.
+40 / 800
+9,2 kg
+30 / 700
+Hasil pengukuran
+24 / 700
+Nabila Ayu Ramadhani
+20 / 600
+Langkah 2 dari 4
+18 / 400
+Teks isi, line-height 1,6
+16 / 400
+Batas terkecil, tidak ada teks di bawah ini
+Di layar desktop batasnya naik jadi 18px. Tidak ada teks 16px di desktop, termasuk keterangan dan isi tabel, karena layar desktop dipakai sambil duduk lebih lama dan tabelnya lebih lebar.
+Uji keterbacaan digit
+Dibaca sambil berdiri, layar silau, jarak lengan.
+1 vs 7
+1 7
+0 vs O
+0 O
+6 vs 8
+6 8
+Tabular numerals aktif: kolom angka di tabel pertumbuhan sejajar sempurna walau jumlah digitnya berbeda.
+7,1 11,4 9,2
+## 4. Bentuk, spasi, elevasi
+Kartu
+Radius 12px. Padding 20px mobile, 24px desktop. Bayangan satu level, bernada latar.
+Tombol dan field
+Radius 10px. Satu sistem untuk seluruh aplikasi.
+Spasi
+8, 16, 24, 32, 48
+Target sentuh
+Minimal 56 x 56, jarak antar target minimal 12.
+## 5. Ikon
+Phosphor Icons, weight bold, minimal 28px, selalu berpasangan dengan label teks. Tidak ada ikon tanpa label di mana pun.
+Timbang
+Ukur tinggi
+Daftar balita
+Imunisasi
+Kirim data
+Pertumbuhan
+Laporan
+Beranda
+## 6. Tombol
+Tinggi minimal 56px, teks 18px, radius 10px. Bahasa sehari-hari, bukan istilah sistem.
+Utama
+Simpan hasil timbang
+Sekunder
+Lewati, kembali nanti
+Tersier
+Lihat grafik pertumbuhan
+State
+Hover
+Fokus keyboard
+Nonaktif, isi berat dulu
+Menyimpan di HP
+Di mobile tombol utama menempel di bawah layar. Saat teks diperbesar 200%, tombol menempel otomatis berubah jadi tombol biasa di dalam alur agar tidak menutupi konten.
+## 7. Field dan input angka
+Label permanen di atas field. Satuan tercetak di dalam field, bukan di placeholder. Tidak pernah ada placeholder sebagai label.
+Nama anak
+Sesuai Buku KIA.
+NIK anak
+NIK harus 16 angka. Baru terisi 4 angka.
+Cara ukur panjang atau tinggi
+Terlentang
+Berdiri
+Anak di bawah 24 bulan diukur terlentang.
+Field nonaktif
+Terisi otomatis dari periode
+Keypad angka besar
+Cara masuk utama. Tombol 64px, tiga kolom, koma dan hapus. Stepper 0,1 hanya muncul setelah ada angka.
+Berat badan
+{{ tampilBerat }}
+kg
+{{ tampilPembanding }}
+0,1
+0,1
+Koreksi halus
+1
+2
+3
+4
+5
+6
+7
+8
+9
+,
+0
+Hapus
+Lanjut
+Yakin dengan angka ini?
+{{ pesanKonfirmasi }}
+Perbaiki
+Ya, benar
+Validasi lunak, tidak memblokir. Ambang persis ditentukan bersama bidan sebelum implementasi.
+Alternatif: input tersegmen
+Kilogram
+,
+Ons
+Dipakai bila kader lebih terbiasa menyebut berat dalam kilogram dan ons. Desimal selalu koma, bukan titik.
+## 8. Chip
+Setiap chip berisi ikon, teks, dan warna. Warna tidak pernah jadi satu-satunya penanda.
+Status gizi
+Gizi buruk
+Gizi kurang
+Gizi baik
+Berisiko gizi lebih
+Status pertumbuhan
+N, naik
+T, tidak naik
+O, tidak ditimbang bulan lalu
+B, baru pertama
+Kehadiran dan status simpan
+Sudah diukur
+Belum diukur
+Tidak hadir
+Tersimpan di HP
+Terkirim
+NIK belum lengkap
+Chip filter pada daftar balita memakai bentuk yang sama, tinggi 56px, dengan penanda centang saat aktif.
+Semua RT
+RT 03
+RT 04
+## 9. Kartu
+Kartu aksi, tinggi minimal 96px
+Mulai Penimbangan Hari Ini
+Posyandu Melati 2, periode Agustus 2026
+Baris anak, tinggi minimal 72px
+NR
+Nabila Ayu Ramadhani
+18 bulan, 1 tahun 6 bulan
+Gizi baik
+MA
+Muhammad Alfarizqi Nurhidayat
+31 bulan, 2 tahun 7 bulan
+Gizi kurang
+Di 360px baris hanya memuat inisial, nama, umur, dan satu chip. RT pindah ke baris kedua.
+Kartu hasil per indeks
+Berat badan menurut umur, BB/U
+Berat badan normal
+-0,4
+z-score
+Berat badan anak sesuai untuk umurnya.
+Panjang badan menurut umur, PB/U
+Pendek
+-2,3
+z-score
+Panjang badan anak kurang untuk umurnya. Perlu perhatian.
+Acuan: Permenkes No. 2 Tahun 2020. Angka pada contoh ini ilustratif, bukan hasil hitung tabel resmi.
+Saran tindak lanjut
+Bawa anak ke Puskesmas dalam dua minggu untuk pemeriksaan lanjutan. Lanjutkan pemberian makanan bergizi dan pantau berat setiap bulan.
+Hubungi Bidan Ratih Kusumaningrum, 0812 8841 5502
+## 10. Tabel pertumbuhan
+Tabel dulu, grafik kemudian. Di 360px kurva tujuh pita tidak terbaca oleh pengguna 65 tahun, jadi tampilan default adalah angka per periode.
+Tanggal ukur
+Berat
+Panjang
+z-score BB/U
+Kategori
+14 Agu 2026
+9,2 kg
+78,1 cm
+-0,4
+Gizi baik
+10 Jul 2026
+8,9 kg
+77,4 cm
+-0,6
+Gizi baik
+12 Jun 2026
+8,8 kg
+76,5 cm
+-0,8
+T, tidak naik
+08 Mei 2026
+8,7 kg
+75,8 cm
+-0,7
+Gizi baik
+Lihat grafik
+Grafik jadi tampilan default hanya di desktop 1024px ke atas.
+## 11. State wajib
+Setiap layar punya keenam state ini. Skeleton berbentuk konten akhir, bukan spinner.
+Kosong
+Belum ada balita terdaftar di RT ini.
+Tambah balita
+Hasil pencarian nihil
+Tidak ada anak bernama "Rizqi Ananda" di Posyandu Melati 2.
+Hapus kata pencarian
+Memuat
+Skeleton berbentuk baris daftar, bukan spinner.
+Error
+Daftar balita gagal dimuat. Data yang sudah tersimpan di HP tetap aman.
+Coba lagi
+Offline, bilah menetap
+3 data belum terkirim
+Kirim sekarang
+Bilah ini menetap di atas selama masih ada data tertunda, di semua layar.
+Tabel standar antropometri belum diunduh. Layar hasil belum bisa tampil saat offline.
+Unduh tabel standar
+Sukses
+Hasil timbang Nabila tersimpan. Tersimpan di HP, akan terkirim saat ada sinyal.
+Nama terpanjang, 40 karakter
+MA
+Muhammad Alfarizqi Nurhidayat Putra
+31 bulan, RT 04
+Nama membungkus ke baris kedua, tidak dipotong dengan elipsis.
+## 12. Navigasi
+Bilah bawah, mobile
+Isi layar
+Beranda
+Balita
+Timbang
+Kirim
+Empat item, semuanya berlabel teks. Tidak ada ikon tanpa label.
+Sidebar tetap, desktop
+Beranda
+Daftar balita
+Meja ukur
+Laporan
+Posyandu Melati 2, RW 04
+Header maksimal 72px. Teks di desktop tidak pernah dikecilkan demi memuat lebih banyak data.
+## 13. Grafik KMS, layar Detail anak
+Komponen yang sama dengan yang dipakai di layar Detail anak pada prototipe, bukan salinan yang digambar ulang. Perubahan pada komponen ini otomatis terlihat di kedua tempat.
+Aturan pakai
+Pita, garis SD, dan legenda memakai warna KMS Buku KIA. Grafik ini dikecualikan dari palet aplikasi, supaya sama dengan buku cetak yang dipegang ibu. Kategori resmi tetap dibaca dari teks, bukan dari warna.
+Garis kurva anak #16211C tebal 3,5 dengan halo putih tebal 8, titik ukur lingkaran putih bergaris #16211C. Garis terputus pada bulan tanpa penimbangan. Label sumbu di dalam SVG masih 16 dan 17px, di bawah batas 18px pada seksi 3, dipertahankan agar grafik sama persis dengan prototipe. Belum diputuskan.
+Prop kelamin menentukan tabel standar yang dipakai, P atau L. Panel umur dipilih dari dalam komponen.
+Yang belum terjawab
+Tabel pemetaan kategori ke nada masih usulan saya, belum dikonfirmasi bidan. Ambang selisih pada validasi lunak masih ilustratif. Semua angka z-score di halaman ini contoh, bukan hasil hitung tabel standar resmi.
