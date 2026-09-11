@@ -93,6 +93,21 @@ type Ambang = {
     tinggiBerkurangMax: number;
 };
 
+type TabDetail = 'profil' | 'status' | 'kurva' | 'riwayat';
+
+const TAB_DETAIL: { nilai: TabDetail; label: string }[] = [
+    { nilai: 'profil', label: 'Profil Anak' },
+    { nilai: 'status', label: 'Status Gizi' },
+    { nilai: 'kurva', label: 'Kurva KMS' },
+    { nilai: 'riwayat', label: 'Riwayat Ukur' },
+];
+
+const PESAN_TAB_KOSONG: Record<Exclude<TabDetail, 'profil'>, string> = {
+    status: 'Belum ada pengukuran untuk anak ini, sehingga status gizi belum dapat dinilai.',
+    kurva: 'Belum ada pengukuran berat yang dapat digambarkan pada kurva KMS.',
+    riwayat: 'Belum ada riwayat pengukuran untuk anak ini.',
+};
+
 type Props = {
     anak: Anak;
     /** Seluruh pengukuran lintas periode, terbaru di atas. */
@@ -114,8 +129,17 @@ export default function DetailAnak({
     ambang,
 }: Props) {
     const [umurDisorot, setUmurDisorot] = useState<number | null>(null);
+    const [tabAktif, setTabAktif] = useState<TabDetail>('profil');
     const bolehUbah = peran !== 'kader';
     const terbaru = pengukuran[0] ?? null;
+    const nama = namaTampil(anak.nama);
+    const inisial = nama
+        .split(' ')
+        .filter((bagian) => bagian.length > 0)
+        .map((bagian) => bagian[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase();
 
     // Umur dihitung terhadap periode yang dilihat, bukan diambil dari
     // pengukuran terakhir. Untuk anak yang dua bulan tidak hadir, umur lama itu
@@ -213,7 +237,7 @@ export default function DetailAnak({
 
     return (
         <Halaman
-            judul={namaTampil(anak.nama)}
+            judul={nama}
             /* Jalan kembali menggantikan petak ikon. Labelnya ditulis lengkap:
                dulu ini kotak 44 px berisi panah saja - satu-satunya ikon tanpa
                teks di seluruh Portal, padahal prinsip P1 justru menyebut
@@ -243,64 +267,138 @@ export default function DetailAnak({
                 )
             }
         >
+            {/* Kategori ditata sebagai tab lembar kerja: satu kelompok data
+                tampil pada satu waktu, tetapi semua bagian tetap dapat dicapai
+                dalam satu langkah. */}
+            <div
+                className="mb-7 border-b border-border"
+                role="tablist"
+                aria-label="Kategori detail anak"
+            >
+                <div className="flex flex-wrap items-end gap-1">
+                    {TAB_DETAIL.map((tab) => {
+                        const aktif = tabAktif === tab.nilai;
+
+                        return (
+                            <button
+                                key={tab.nilai}
+                                id={`tab-${tab.nilai}`}
+                                type="button"
+                                role="tab"
+                                aria-selected={aktif}
+                                aria-controls={`panel-${tab.nilai}`}
+                                onClick={() => setTabAktif(tab.nilai)}
+                                className={`relative min-h-12 rounded-t-lg border px-4 text-base font-semibold transition-colors focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
+                                    aktif
+                                        ? 'z-10 -mb-px border-border bg-card text-foreground'
+                                        : 'border-transparent text-muted-foreground hover:border-border hover:bg-surface-subtle hover:text-foreground'
+                                }`}
+                            >
+                                {tab.label}
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+
             {/* Identitas memimpin halaman, seperti artboard Detail: satu
                 petak fakta registri yang dipisahkan garis tebal dari vonis di
                 bawahnya. Petak foto artboard tidak ikut — tidak ada satu pun
                 anak yang punya potret di arsip, dan kotak kosong bertuliskan
                 "Foto anak" pada 101 halaman adalah janji yang tidak ditepati. */}
-            <section className="mb-7 border-b-2 border-border pb-6">
-                <h2 className="sr-only">Identitas</h2>
-                <dl className="grid gap-x-10 gap-y-2.5 sm:grid-cols-2 xl:grid-cols-3">
-                    <BarisDefinisi label="Jenis kelamin">
+            <section
+                id="panel-profil"
+                role="tabpanel"
+                aria-labelledby="tab-profil"
+                hidden={tabAktif !== 'profil'}
+                className="mb-7 overflow-hidden rounded-xl border border-border bg-card"
+            >
+                <div className="flex flex-wrap items-center gap-4 bg-primary px-5 py-4 text-primary-foreground sm:px-6">
+                    <div
+                        aria-hidden="true"
+                        className="flex size-14 shrink-0 items-center justify-center rounded-full bg-card text-xl font-extrabold text-primary"
+                    >
+                        {inisial || '—'}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <h2 className="text-xl font-extrabold">Profil anak</h2>
+                        <p className="mt-0.5 text-base text-primary-foreground/80">
+                            {nama}
+                        </p>
+                    </div>
+                    <p className="text-base font-semibold text-primary-foreground">
                         {anak.jk === 'L'
                             ? 'Laki-laki'
                             : anak.jk === 'P'
                               ? 'Perempuan'
                               : KOSONG}
-                    </BarisDefinisi>
-                    <BarisDefinisi label="Tanggal lahir">
-                        {tanggalPanjang(anak.tglLahir)}
-                    </BarisDefinisi>
-                    <BarisDefinisi label="NIK">
-                        {nik(anak.nik)}
-                        {!anak.nikLengkap && (
-                            <span className="block text-sm text-tone-amber">
-                                NIK belum lengkap
-                            </span>
-                        )}
-                    </BarisDefinisi>
-                    <BarisDefinisi label="Ibu">
-                        {anak.namaOrtu ?? KOSONG}
-                    </BarisDefinisi>
-                    <BarisDefinisi label="Alamat">
-                        {anak.rt === null
-                            ? KOSONG
-                            : `RT ${anak.rt.padStart(2, '0')}`}
-                        {anak.anakKe !== null && `, anak ke-${anak.anakKe}`}
-                    </BarisDefinisi>
-                    <BarisDefinisi label="Berat lahir">
-                        {satuan(anak.bbLahirKg, 'kg', 2)}
-                        {anak.bbLahirMeragukan && (
-                            <span className="block text-sm text-tone-amber">
-                                Angka di arsip meragukan
-                            </span>
-                        )}
-                    </BarisDefinisi>
-                </dl>
+                        {umur !== null && ` · ${umurPanjang(umur)}`}
+                    </p>
+                </div>
+
+                <div className="p-5 sm:p-6">
+                    <dl className="grid gap-x-10 gap-y-4 sm:grid-cols-2 xl:grid-cols-3">
+                        <BarisDefinisi label="Tanggal lahir">
+                            {tanggalPanjang(anak.tglLahir)}
+                        </BarisDefinisi>
+                        <BarisDefinisi label="NIK">
+                            {nik(anak.nik)}
+                            {!anak.nikLengkap && (
+                                <span className="block text-sm text-tone-amber">
+                                    NIK belum lengkap
+                                </span>
+                            )}
+                        </BarisDefinisi>
+                        <BarisDefinisi label="Berat lahir">
+                            {satuan(anak.bbLahirKg, 'kg', 2)}
+                            {anak.bbLahirMeragukan && (
+                                <span className="block text-sm text-tone-amber">
+                                    Angka di arsip meragukan
+                                </span>
+                            )}
+                        </BarisDefinisi>
+                        <BarisDefinisi label="Ibu">
+                            {anak.namaOrtu ?? KOSONG}
+                        </BarisDefinisi>
+                        <BarisDefinisi label="Alamat">
+                            {anak.rt === null
+                                ? KOSONG
+                                : `RT ${anak.rt.padStart(2, '0')}`}
+                            {anak.anakKe !== null && `, anak ke-${anak.anakKe}`}
+                        </BarisDefinisi>
+                    </dl>
+
+                    <div className="mt-6 border-t border-border pt-5">
+                        <h3 className="text-base font-bold">
+                            Catatan kesehatan
+                        </h3>
+                        <p className="mt-1 max-w-[72ch] text-sm text-muted-foreground">
+                            Belum ada catatan imunisasi maupun catatan bidan.
+                            Saat tersedia, catatan terbaru akan muncul di sini
+                            agar riwayat kesehatan anak dapat dibaca dari satu
+                            tempat.
+                        </p>
+                    </div>
+                </div>
             </section>
 
-            {terbaru === null ? (
-                <p className="kartu bg-surface-subtle px-6 py-6 text-base">
-                    Belum ada satu pun pengukuran untuk anak ini, jadi status
-                    gizi dan kurva belum dapat ditampilkan.
-                </p>
+            {terbaru === null && tabAktif !== 'profil' ? (
+                <section
+                    id={`panel-${tabAktif}`}
+                    role="tabpanel"
+                    aria-labelledby={`tab-${tabAktif}`}
+                >
+                    <p className="kartu bg-surface-subtle px-6 py-6 text-base">
+                        {PESAN_TAB_KOSONG[tabAktif]}
+                    </p>
+                </section>
             ) : (
                 <>
                     {/* Pemilih periode di sidebar dulu tidak berpengaruh apa pun
                         di layar ini: 22 dari 123 anak terakhir ditimbang sebelum
                         Juni dan tetap menampilkan status hijau tanpa satu kata
                         pun bahwa angkanya sudah dua bulan. */}
-                    {basi && (
+                    {tabAktif === 'status' && basi && (
                         <p className="mb-7 flex max-w-[90ch] items-start gap-3 rounded-xl border border-tone-amber bg-tone-amber-bg p-5 text-base text-tone-amber">
                             <TriangleAlert
                                 className="mt-0.5 size-5 shrink-0"
@@ -317,7 +415,12 @@ export default function DetailAnak({
                         </p>
                     )}
 
-                    <section>
+                    <section
+                        id="panel-status"
+                        role="tabpanel"
+                        aria-labelledby="tab-status"
+                        hidden={tabAktif !== 'status'}
+                    >
                         <h2 className="text-xl font-extrabold">
                             Status pengukuran{' '}
                             {tanggalPanjang(terbaru.tanggalUkur)}
@@ -368,14 +471,12 @@ export default function DetailAnak({
 
                     {/* Kurva dan riwayat adalah cerita yang sama, jadi jaraknya
                         lebih rapat satu sama lain daripada ke bagian lain. */}
-                    <section className="mt-7">
-                        {/* Dulu bagian ini tidak punya judul sama sekali: yang
-                            terlihat hanya slogan Buku KIA, sehingga navigasi
-                            judul pembaca layar melewati 35% halaman. */}
-                        <h2 className="text-xl font-extrabold">
-                            Kurva berat badan menurut umur
-                        </h2>
-
+                    <section
+                        id="panel-kurva"
+                        role="tabpanel"
+                        aria-labelledby="tab-kurva"
+                        hidden={tabAktif !== 'kurva'}
+                    >
                         {riwayatKurva.length === 0 ? (
                             <p className="mt-2 text-base text-muted-foreground">
                                 Belum ada pengukuran berat yang dapat
@@ -388,39 +489,64 @@ export default function DetailAnak({
                             </p>
                         ) : (
                             anak.jk !== null && (
-                                <KmsChart
-                                    kelamin={anak.jk}
-                                    panelAwal={panelAwal}
-                                    skalaMax={skalaMax}
-                                    riwayat={riwayatKurva}
-                                    garisSd={garisSd}
-                                    umurDisorot={umurDisorot}
-                                    detail={pengukuran
-                                        .filter(
-                                            (
-                                                p,
-                                            ): p is Pengukuran & {
-                                                umurBulan: number;
-                                                bbKg: number;
-                                            } =>
-                                                p.umurBulan !== null &&
-                                                p.bbKg !== null,
-                                        )
-                                        .map((p) => ({
-                                            umurBulan: p.umurBulan,
-                                            beratKg: p.bbKg,
-                                            tanggal: p.tanggalUkur,
-                                            z: p.penilaian.BB_U?.z ?? null,
-                                            kategori:
-                                                p.penilaian.BB_U?.kategori ??
-                                                null,
-                                        }))}
-                                />
+                                <div className="overflow-hidden rounded-xl border border-border bg-card">
+                                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-surface-subtle px-4 py-3 sm:px-5">
+                                        <div>
+                                            <h2 className="text-xl font-extrabold">
+                                                Kartu Menuju Sehat
+                                            </h2>
+                                            <p className="mt-0.5 text-sm text-muted-foreground">
+                                                Berat badan menurut umur · WHO
+                                                2006
+                                            </p>
+                                        </div>
+                                        <p className="text-sm font-semibold text-muted-foreground">
+                                            {nama} · {umurPanjang(umur)}
+                                        </p>
+                                    </div>
+                                    <div className="px-4 py-3 sm:px-5">
+                                        <KmsChart
+                                            kelamin={anak.jk}
+                                            panelAwal={panelAwal}
+                                            skalaMax={skalaMax}
+                                            riwayat={riwayatKurva}
+                                            garisSd={garisSd}
+                                            umurDisorot={umurDisorot}
+                                            detail={pengukuran
+                                                .filter(
+                                                    (
+                                                        p,
+                                                    ): p is Pengukuran & {
+                                                        umurBulan: number;
+                                                        bbKg: number;
+                                                    } =>
+                                                        p.umurBulan !== null &&
+                                                        p.bbKg !== null,
+                                                )
+                                                .map((p) => ({
+                                                    umurBulan: p.umurBulan,
+                                                    beratKg: p.bbKg,
+                                                    tanggal: p.tanggalUkur,
+                                                    z:
+                                                        p.penilaian.BB_U?.z ??
+                                                        null,
+                                                    kategori:
+                                                        p.penilaian.BB_U
+                                                            ?.kategori ?? null,
+                                                }))}
+                                        />
+                                    </div>
+                                </div>
                             )
                         )}
                     </section>
 
-                    <section className="mt-7">
+                    <section
+                        id="panel-riwayat"
+                        role="tabpanel"
+                        aria-labelledby="tab-riwayat"
+                        hidden={tabAktif !== 'riwayat'}
+                    >
                         <div className="kartu overflow-hidden">
                             {/* Judul menyatu dengan kartunya di strip kepala,
                                 seperti artboard. */}
@@ -587,15 +713,6 @@ export default function DetailAnak({
                     </section>
                 </>
             )}
-
-            {/* Dulu dua section penuh - "Imunisasi" dan "Catatan bidan" -
-                masing-masing dengan judul sendiri, keduanya selalu kosong, di
-                setiap satu dari 101 anak. Faktanya muat dalam satu kalimat. */}
-            <p className="mt-10 max-w-[80ch] text-base text-muted-foreground">
-                Belum ada catatan imunisasi maupun catatan bidan untuk anak ini.
-                Detail per vaksin ada di Buku KIA fisik; aplikasi hanya
-                menyimpan status ringkas.
-            </p>
 
             {/* Tombol yang hanya memunculkan window.alert("Belum
                 tersedia di demo") dibuang. Kontrol yang menjanjikan sesuatu

@@ -19,12 +19,12 @@ import { useState } from 'react';
 import { satuan, tanggalRingkas, zScore } from '@/lib/format';
 import type { GarisSd, JenisKelamin } from '@/types/posyandu';
 
-const LEBAR = 1100;
-const TINGGI = 640;
-const KIRI = 70;
-const KANAN = 70;
-const ATAS = 20;
-const BAWAH = 80;
+const LEBAR = 1500;
+const TINGGI = 500;
+const KIRI = 64;
+const KANAN = 64;
+const ATAS = 12;
+const BAWAH = 60;
 
 const PLOT_LEBAR = LEBAR - KIRI - KANAN;
 const PLOT_TINGGI = TINGGI - ATAS - BAWAH;
@@ -214,14 +214,14 @@ export default function KmsChart({
                 </p>
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-3 flex flex-wrap gap-2">
                 {panelTampil.map((awal) => (
                     <button
                         key={awal}
                         type="button"
                         onClick={() => gantiPanel(awal)}
                         aria-pressed={panel === awal}
-                        className={`h-12 rounded-lg px-4 text-base font-semibold ${
+                        className={`min-h-10 rounded-lg px-3.5 text-sm font-semibold ${
                             panel === awal
                                 ? 'bg-primary text-primary-foreground'
                                 : 'border border-muted-foreground text-foreground'
@@ -232,36 +232,19 @@ export default function KmsChart({
                 ))}
             </div>
 
-            {/* Ukuran teks di sini satuan viewBox (1100 unit), bukan piksel.
-                Pada laptop 1267 px kurva merender 948 px, jadi faktor skalanya
-                0,862 - dan teks 16 unit turun jadi 13,8 px di layar, menembus
-                lantai 16 px pada bagian 2.4. Angka 19/20 unit dipilih supaya
-                sumbu terbaca >=16 px di laptop, dan min-w dinaikkan ke 900 px
-                supaya di tablet dan ponsel pun tidak jatuh di bawah ~15,5 px.
-                Ongkosnya gulir mendatar sedikit lebih panjang; untuk pembaca
-                yang tidak muda itu tukar yang benar.
-
-                Di ponsel kurva ini lebih lebar daripada layar, dan memang harus:
-                dikecilkan sampai muat, label bulan dan garis SD-nya tidak
-                terbaca lagi. Yang diperbaiki bukan lebarnya, melainkan bahwa
-                dulu tidak ada satu pun tanda ia bisa digeser. */}
-            <p className="mt-4 text-sm text-muted-foreground sm:hidden">
-                Geser kurva ke samping untuk melihat bulan berikutnya.
-            </p>
-
             {/* Grafik menggulir di dalam wadahnya sendiri; badan halaman tidak
                 pernah menggulir mendatar (docs/05-uiux-spec.md bagian 7).
                 `tabIndex` membuat wadah yang menggulir bisa digeser dengan
                 panah papan tombol, bukan hanya dengan jari. */}
             <div
-                className="mt-2 overflow-x-auto"
+                className="mt-3 overflow-x-auto"
                 tabIndex={0}
                 role="region"
                 aria-label="Kurva pertumbuhan, dapat digeser mendatar"
             >
                 <svg
                     viewBox={`0 0 ${LEBAR} ${TINGGI}`}
-                    className="h-auto w-full min-w-[900px]"
+                    className="h-auto w-full min-w-[820px]"
                     role="img"
                     aria-label={`Kurva berat badan menurut umur, acuan ${acuan} WHO 2006, panel ${panel} sampai ${panel + PANEL_BULAN} bulan`}
                 >
@@ -347,7 +330,7 @@ export default function KmsChart({
                                 x={KIRI - 10}
                                 y={y(kg) + 5}
                                 textAnchor="end"
-                                fontSize={19}
+                                fontSize={16}
                                 fontWeight={600}
                                 fill={TEKS_SEKUNDER}
                             >
@@ -356,7 +339,7 @@ export default function KmsChart({
                             <text
                                 x={KIRI + PLOT_LEBAR + 10}
                                 y={y(kg) + 5}
-                                fontSize={19}
+                                fontSize={16}
                                 fontWeight={600}
                                 fill={TEKS_SEKUNDER}
                             >
@@ -371,7 +354,7 @@ export default function KmsChart({
                             x={x(bulan)}
                             y={ATAS + PLOT_TINGGI + 26}
                             textAnchor="middle"
-                            fontSize={20}
+                            fontSize={17}
                             fontWeight={600}
                             fill={TEKS_SEKUNDER}
                         >
@@ -383,7 +366,7 @@ export default function KmsChart({
                         x={KIRI + PLOT_LEBAR / 2}
                         y={TINGGI - 24}
                         textAnchor="middle"
-                        fontSize={20}
+                        fontSize={17}
                         fontWeight={700}
                         fill={TINTA}
                     >
@@ -394,7 +377,7 @@ export default function KmsChart({
                         y={22}
                         transform="rotate(-90)"
                         textAnchor="middle"
-                        fontSize={20}
+                        fontSize={17}
                         fontWeight={700}
                         fill={TINTA}
                     >
@@ -431,40 +414,65 @@ export default function KmsChart({
 
                         {dalamPanel.map(([umur, kg], urutan) => {
                             const d = petaDetail.get(kunciTitik(umur, kg));
+                            const labelY = Math.max(
+                                ATAS + 16,
+                                y(kg) - (urutan % 2 === 0 ? 16 : 42),
+                            );
+                            const nilaiTitik =
+                                d?.z === null || d?.z === undefined
+                                    ? null
+                                    : `${zScore(d.z)} SD`;
 
                             return (
-                                <circle
-                                    key={`${kunciTitik(umur, kg)}|${urutan}`}
-                                    cx={x(umur)}
-                                    cy={y(kg)}
-                                    r={umur === umurDisorot ? 10 : 7}
-                                    fill="#FFFFFF"
-                                    stroke={TINTA}
-                                    strokeWidth={3.5}
-                                >
-                                    {/* <title> memberi tooltip asli peramban:
-                                    tanpa JS, dan ikut terbaca pembaca layar. */}
-                                    <title>
-                                        {[
-                                            tanggalRingkas(d?.tanggal ?? null),
-                                            satuan(kg, 'kg', 2),
-                                            `${umur} bulan`,
-                                            d?.z === null || d?.z === undefined
-                                                ? null
-                                                : `BB/U ${zScore(d.z)} SD`,
-                                            d?.kategori ?? null,
-                                        ]
-                                            .filter((b) => b !== null)
-                                            .join(' · ')}
-                                    </title>
-                                </circle>
+                                <g key={`${kunciTitik(umur, kg)}|${urutan}`}>
+                                    {nilaiTitik !== null && (
+                                        <text
+                                            x={x(umur)}
+                                            y={labelY}
+                                            textAnchor="middle"
+                                            fontSize={15}
+                                            fontWeight={700}
+                                            fill={TINTA}
+                                            stroke="#FFFFFF"
+                                            strokeWidth={4}
+                                            paintOrder="stroke"
+                                        >
+                                            {nilaiTitik}
+                                        </text>
+                                    )}
+                                    <circle
+                                        cx={x(umur)}
+                                        cy={y(kg)}
+                                        r={umur === umurDisorot ? 10 : 7}
+                                        fill="#FFFFFF"
+                                        stroke={TINTA}
+                                        strokeWidth={3.5}
+                                    >
+                                        {/* <title> memberi tooltip asli
+                                            peramban tanpa JS, dan ikut terbaca
+                                            pembaca layar. */}
+                                        <title>
+                                            {[
+                                                tanggalRingkas(
+                                                    d?.tanggal ?? null,
+                                                ),
+                                                satuan(kg, 'kg', 2),
+                                                nilaiTitik,
+                                                `${umur} bulan`,
+                                                d?.kategori ?? null,
+                                            ]
+                                                .filter((b) => b !== null)
+                                                .join(' · ')}
+                                        </title>
+                                    </circle>
+                                </g>
                             );
                         })}
                     </g>
                 </svg>
             </div>
 
-            <ul className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+            <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-sm">
                 <Legenda warna={PITA_HIJAU_TUA} teks="−1 sampai +1 SD" />
                 <Legenda
                     warna={PITA_HIJAU_MUDA}
@@ -477,7 +485,7 @@ export default function KmsChart({
                 <Legenda warna={GARIS_MERAH} teks="Garis merah, −3 SD" />
             </ul>
 
-            <p className="mt-3 text-sm text-muted-foreground">
+            <p className="mt-2 text-sm text-muted-foreground">
                 Garis anak terputus pada bulan tanpa penimbangan. Pita mengikuti
                 standar WHO 2006 yang dipakai KMS Buku KIA.
             </p>
