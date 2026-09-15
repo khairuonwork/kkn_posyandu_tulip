@@ -776,3 +776,594 @@ kosong di atas.
   `npm run demo`.
 - **Deploy.** Bagian 12 menyatakan T7 tidak memuat deploy; build tersimpan lokal
   di `dist-demo/`, yang masuk `.gitignore`.
+
+---
+
+## Perbaikan — label z-score pada kurva KMS berselang-seling
+
+Ditemukan dari layar: label di atas tiap titik naik-turun bergantian seperti
+tangga, sehingga kurvanya terbaca berantakan.
+
+**Sebabnya.** Jarak angkat label dihitung dari ganjil-genap urutan titik:
+
+```ts
+y(kg) - (urutan % 2 === 0 ? 16 : 42)
+```
+
+Selang-seling itu dipasang untuk menghindari tabrakan, dan tabrakannya memang
+tidak pernah ada. Diukur langsung dari SVG di peramban: lebar tiap label **92
+satuan**, jarak antar bulan **114 satuan** — tersisa 22 satuan, nol tumpang
+tindih mendatar.
+
+Yang membuatnya baru terlihat sekarang: ukuran teks label pernah dinaikkan dari
+15 menjadi 21 satuan, sementara angka 16 dan 42 tidak ikut ditinjau. Pada 21
+satuan, selisih 26 satuan antar label setara satu garis kilogram penuh.
+
+**Kenapa ini lebih dari sekadar tidak rapi.** Pada anak yang dipakai memeriksa,
+dua pengukuran pertama bernilai **+1,31** dan **+1,30** — hampir sama — tetapi
+labelnya berdiri terpaut 26 satuan. Di kartu pertumbuhan, tinggi sebuah angka
+dibaca sebagai besarnya angka itu. Yang dikodekan posisi label justru parity
+indeksnya.
+
+**Perbaikannya.** Jarak angkat dibuat tetap dan diturunkan dari ukuran
+penandanya, bukan ditulis sebagai angka lepas:
+
+```ts
+const LABEL_ANGKAT = TITIK_JARI + TITIK_GARIS / 2 + 7;
+```
+
+`LABEL_UKURAN`, `TITIK_JARI`, dan `TITIK_GARIS` kini berdiri satu kelompok dan
+dipakai bersama oleh teks maupun lingkaran titiknya, sehingga mengubah ukuran
+teks tidak bisa lagi diam-diam merusak jaraknya.
+
+Diverifikasi kembali di peramban: keenam label berjarak **tepat 16 satuan** di
+atas titiknya masing-masing, dan garis alasnya menurun 279 → 262 → 260 → 253 →
+252 → 248 mengikuti kurvanya.
+
+### Sekalian: `docs/design/` dikeluarkan dari ESLint
+
+`npm run lint:check` menunjukkan **801** galat, dan **778** di antaranya berasal
+dari `docs/design/support.js` dan `image-slot.js` — berkas prototipe hasil
+salinan Claude Design, bukan kode aplikasi. Galat sungguhan tenggelam di
+dalamnya. Sekelas dengan `dist-demo` yang sudah lebih dulu diabaikan.
+
+Sesudahnya: `lint:check` **23**, `types:check` **48**, `format:check` lulus —
+seluruhnya `@/routes` dan `@/actions` milik Wayfinder (D-04), nol di berkas
+mana pun yang disentuh perbaikan ini.
+
+---
+
+## Perbaikan — Detail anak: satu layar ditukar dengan kurva yang terbaca
+
+**Keluhannya:** Detail anak dulu muat satu layar tanpa menggulir, sekarang tidak.
+
+**Sebabnya.** Tata letak satu layar itu digerbangi `2xl`, yaitu **1536 px CSS**.
+Di bawah itu kedua kolom menumpuk dan yang menggulir bagian dalam `<main>`, bukan
+halamannya — sehingga terlihat seperti tata letaknya hilang, bukan seperti
+halaman biasa yang panjang. Terukur di peramban:
+
+| Lebar | `display` kolom | Tinggi isi vs ruang |
+|---|---|---|
+| 1440 px | `flex` (menumpuk) | 1.476 px dalam 830 px |
+| 1600 px | `grid` (dua kolom) | muat |
+
+Layar yang dipakai memeriksa berskala DPI, jadi 1.901 piksel fisik jatuh ke
+sekitar 1.520 px CSS — meleset belasan piksel dari gerbangnya.
+
+**Yang lebih serius daripada gerbang yang meleset.** Begitu gerbangnya terbuka,
+kurvanya justru jadi korban. Pada 1536 px, kolom kanan selebar 614 px:
+
+| | Nilai |
+|---|---|
+| Gambar kurva | 614 × 221 px |
+| 1 satuan viewBox | 0,409 px |
+| Teks label z-score | **8,6 px** |
+| Angka sumbu | **9,4 px** |
+| Ruang kartu tak terpakai | ±320 px |
+
+Batas terkecil pada [05-uiux-spec.md](05-uiux-spec.md) bagian 8 adalah **15 px**
+dan disebut tidak diturunkan lagi. Lebih jauh, perubahan yang sama menaikkan
+ukuran teks kurva dari 16-17 menjadi 23-24 satuan justru **karena** 10,6 px
+dianggap terlalu kecil — lalu menaruh kurvanya di kolom yang membuatnya 8,6 px.
+Dua niat baik yang saling meniadakan.
+
+Menurunkan gerbang ke 1280 px tidak menolong: kolom kurva tinggal ~500 px dan
+labelnya ~7 px.
+
+**Keputusan pemilik produk:** kurva lebar penuh, halaman boleh menggulir.
+Dasarnya bagian 9 — "Tunjuk kurvanya" adalah momen paling meyakinkan seluruh
+presentasi, dan kurva sebesar prangko melemahkan justru momen itu.
+
+**Yang dikerjakan.** Tata letak dua kolom dicabut dari Detail anak: `penuh` pada
+`<Halaman>`, seluruh kelas `2xl:grid`/`2xl:min-h-0`/`2xl:flex-1`, dan prop
+`penuh` pada `<KmsChart>`. Kurva **dipindah ke dalam kolom tunggal, sebelum tabel
+riwayat** — itu urutan bagian 6.5, dan sekaligus membuat kalimat yang sudah
+tercetak di kepala tabel ("menyorot titiknya pada kurva di atas") menjadi benar;
+selama ini kurvanya ada di sebelah kanan.
+
+**Hasilnya, diukur pada 1520 × 820:**
+
+| | Sebelum | Sesudah |
+|---|---|---|
+| Lebar kurva | 614 px | **1.232 px** |
+| Tinggi kurva | 221 px | **444 px** |
+| Label z-score | 8,6 px | **17,3 px** |
+| Angka sumbu | 9,4 px | **19,7 px** |
+| Urutan judul | Identitas · Status · Riwayat \| Kurva | Identitas · Status · **Kurva** · Riwayat |
+
+Pada 375 px tetap nol gulir mendatar. Gerbang bagian 14.9 tidak bergeser:
+`lint:check` 23, `types:check` 48, `format:check` lulus.
+
+**Catatan.** `penuh` tetap dipakai Data Balita dan Laporan. Keduanya layar tabel
+— tidak ada gambar berskala di dalamnya yang ikut mengecil saat kolomnya
+menyempit, jadi tinggi-jendela di sana tidak menukar apa pun.
+
+---
+
+## Perbaikan — Detail anak dirombak jadi satu layar
+
+Kelanjutan catatan sebelumnya. Pemilik produk meninjau ulang dan memilih **satu
+layar tanpa gulir tegak, dengan seluruh informasi tetap tampil** — jadi
+ongkosnya bukan lagi menggulir, melainkan kurva yang harus muat di kolom.
+
+### Susunannya sekarang
+
+| Baris | Isi | Tinggi pada 1520 × 820 |
+|---|---|---|
+| 1 | Identitas, empat kolom | 113 px |
+| 2 | Status pengukuran, tiga blok z-score | 182 px |
+| 3 | Kurva \| Riwayat, berdampingan 1,6 : 1 | 385 px |
+
+Baris ketiga menyerap sisa tinggi; tabel Riwayat menggulir di dalam wadahnya
+sendiri, mendatar maupun tegak. Total pas 820 px, nol gulir halaman.
+
+### Mode kompak pada kurva
+
+Ukuran teks di dalam SVG berbanding lurus dengan lebar tayangnya:
+
+```text
+px = satuan × lebarTayang / 1500
+```
+
+Pada kolom ~740 px, satuan 23–24 mendarat di 11–12 px — di bawah batas 15 px
+[05-uiux-spec.md](05-uiux-spec.md) bagian 8. Prop `kompak` menaikkan satuannya
+menjadi 32 dan 34, dihitung mundur dari kolom tersempit yang mungkin terjadi.
+
+Konsekuensinya **label z-score per titik ditiadakan di mode kompak**: pada
+satuan sebesar itu lebarnya 132 satuan sementara jarak antar bulan 114, jadi
+pasti bertabrakan. Angkanya tidak hilang — tetap ada di tooltip titik, dan di
+tabel Riwayat yang pada tata letak ini justru berdiri tepat di sebelahnya. Ini
+sekaligus mengembalikan rancangan asli bagian 6.5, yang memang hanya meminta
+tooltip.
+
+### Ambangnya 1500 px, bukan `xl`
+
+Dicoba dulu pada `xl` (1280 px) dan ditolak sendiri oleh angkanya: di sana
+kolom kurva tinggal ~595 px dan teksnya 11,9 px. Ambangnya dinaikkan ke lebar
+tempat angkanya benar-benar bertahan.
+
+| Lebar | Gulir | Lebar kurva | Teks tik |
+|---|---|---|---|
+| 1520 | tidak | 759 px | **16,2 px** |
+| 1500 (ambang) | tidak | 736 px | **15,7 px** |
+| 1440 | ya, kembali ke susunan lebar penuh | 1.152 px | **17,7 px** |
+| 375 | nol gulir mendatar | — | — |
+
+Di bawah 1500 px halaman kembali ke susunan satu kolom dengan kurva lebar penuh
+— bukan versi yang dipaksakan mengecil.
+
+### `penuh` jadi pilihan per layar
+
+`Halaman` dulu memakai satu ambang `lg` untuk semua. Menaikkannya ke 1500 px
+akan menyeret Beranda, Data Balita, dan Laporan ikut menggulir di rentang
+1024–1500 px, padahal ketiganya layar tabel: menyempitkan kolomnya hanya
+menambah gulir mendatar di dalam wadahnya sendiri, tidak ada gambar berskala
+yang ikut mengecil.
+
+Karena itu `penuh` berubah dari `boolean` menjadi `false | 'lg' | 'lebar'`.
+Tiga layar tabel memakai `"lg"`, Detail anak memakai `"lebar"`. Kelas
+Tailwind-nya ditulis utuh dalam konstanta, bukan dirakit dari potongan — kelas
+yang dirakit tidak terbaca pemindai Tailwind dan akan hilang diam-diam, persis
+kegagalan yang tercatat di T7.
+
+Gerbang bagian 14.9 tidak bergeser: `lint:check` 23, `types:check` 48,
+`format:check` lulus.
+
+---
+
+## Perbaikan — satu layar pada 1280 × 645, dan tabrakan teks kurva
+
+Lanjutan catatan sebelumnya. Dua hal dilaporkan sekaligus: layarnya masih
+menggulir pada zoom 100% dan baru muat pada 80%, lalu angka pada kurva saling
+menimpa.
+
+### Ukuran layar sebenarnya
+
+Dari fakta "80% muat, 100% tidak" ukuran viewport CSS-nya dapat dihitung mundur:
+sekitar **1280 × 645**. Dua angka sebelumnya salah dipakai sebagai patokan —
+ambang 1500 px tidak pernah aktif, dan seluruh pengukuran dilakukan pada tinggi
+820 px padahal yang tersedia hanya 645 px.
+
+### Susunan baru
+
+Dua kolom saja tidak cukup pada tinggi 645. Susunannya menjadi grid dua baris:
+
+| Baris | Isi | Tinggi |
+|---|---|---|
+| 1 | **Identitas \| Status pengukuran**, berdampingan | 175 px |
+| 2 | **Kurva \| Riwayat**, berdampingan 1,6 : 1 | 361 px |
+
+Susunan DOM-nya tidak diubah sama sekali: penempatan otomatis grid menaruh
+Identitas dan Status di baris pertama, dan baris kedua diberi `col-span-2`.
+Lebih sedikit yang bisa salah daripada memindah-mindah blok JSX.
+
+Penghematan lain yang tidak membuang informasi: vonis "Tidak perlu tindak lanjut
+bulan ini." naik sebaris dengan judul bagiannya — dulu satu baris penuh untuk
+lima kata — dan padding kartu indeks turun dari 20 ke 16.
+
+Total pada 1280 × 645: **645 px isi dalam 645 px ruang.** Nol gulir.
+
+### Angka kurva bertabrakan — akarnya sama dengan bug sebelumnya
+
+Ukuran teks dinaikkan ke 32 satuan, tetapi pinggiran kartu dan jarak antar
+labelnya tidak ikut ditinjau. Persis pola yang sama dengan label z-score
+berselang-seling: satu angka dinaikkan, angka lain yang bergantung padanya
+ditinggalkan.
+
+Tiga tabrakan yang terjadi:
+
+| Tabrakan | Sebab |
+|---|---|
+| Angka kg saling menimpa | jarak antar garis kg ~27 satuan, tinggi hurufnya ~51 |
+| Judul "Berat badan, kg" menimpa angka kg | pinggiran kiri 64 satuan, tidak cukup untuk teks 40 satuan |
+| Angka bulan menimpa "Umur, bulan" dan angka kg pojok | jarak label sumbu bawah masih 26 satuan dari zaman teks 17 satuan |
+
+Perbaikannya bukan menggeser satu-satu, melainkan **menjadikan geometri kartu
+sebagai satu kesatuan**: `GEOMETRI` kini punya dua ragam — `lebar` dan `kompak`
+— yang masing-masing memuat pinggiran, tinggi kartu, ukuran teks, jarak label
+sumbu, dan apakah label z-score per titik ditampilkan. Semuanya bergerak
+bersama.
+
+Ditambah dua aturan yang dihitung, bukan ditebak:
+
+- **Angka kg diencerkan** bila jaraknya lebih rapat daripada tinggi hurufnya:
+  `langkah = ceil(ukuranTeks / jarakAntarGarisKg)`. Pada ragam kompak hasilnya
+  tiap 2 kg. Garis bantunya tetap tiap 1 kg.
+- **Angka teratas hanya diberi label** bila jaraknya dari angka berlabel
+  sebelumnya memang cukup — tanpa itu skala 18 kg berlangkah 2 menghasilkan
+  "17" dan "18" berdempetan.
+
+Pinggiran bawah ragam kompak dihitung dari syaratnya, bukan dicoba-coba:
+`tikBawah >= 56` supaya angka bulan lepas dari angka kg di pojok, dan
+`tikBawah <= BAWAH - 69` supaya lepas dari judul sumbu. Keduanya hanya terpenuhi
+bila `BAWAH >= 125`; dipakai 132.
+
+### Hasil
+
+Diperiksa dengan menghitung perpotongan kotak teks di peramban, bukan dengan
+melihat:
+
+| Viewport | Gulir | Lebar kurva | Teks tik | Tabrakan teks |
+|---|---|---|---|---|
+| 1280 × 645 | **tidak** | 602 px | 16,1 px | **0** |
+| 1366 × 700 | tidak | 664 px | 17,7 px | 0 |
+| 1600 × 806 (zoom 80%) | tidak | 808 px | 21,5 px | 0 |
+| 375 × 760 | nol gulir mendatar | — | — | — |
+
+Diuji pada tiga anak berbeda, termasuk yang hanya punya satu pengukuran.
+
+### Yang belum beres
+
+Di bawah 1280 px halaman kembali ke susunan satu kolom dengan kurva lebar penuh.
+Di sana kurva memakai ragam `lebar` yang teksnya 23 satuan: pada viewport
+1100 px kurvanya 812 px dan teksnya jatuh ke **12,5 px**, di bawah batas 15 px.
+
+Tidak dikejar karena itu jalur cadangan di luar sasaran demo — bagian 3 menyebut
+demo dijalankan di laptop. Membetulkannya menuntut ragam geometri ketiga, dan
+ragam ketiga hanya masuk akal bila ada yang benar-benar memakainya.
+
+Gerbang bagian 14.9 tidak bergeser: `lint:check` 23, `types:check` 48,
+`format:check` lulus.
+
+---
+
+## Perbaikan — Identitas menimpa nilainya, dan kurva yang meluber
+
+Laporan berikutnya: pada zoom 90% masih menggulir, dan angka pada grafik
+bertabrakan. Yang ditemukan lebih dari itu — **label Identitas menimpa nilai
+kolom sebelahnya**, cacat yang terlewat karena tahap sebelumnya hanya memeriksa
+tabrakan teks **di dalam SVG**, bukan di seluruh halaman.
+
+### Cacat 1: label Identitas meluber
+
+`BarisDefinisi` memakai label selebar **160 px tetap** (`w-40 shrink-0`).
+Begitu barisnya berdiri di kolom selebar **111 px**, labelnya tidak menyusut —
+ia meluber menimpa kolom di sebelahnya. Terhitung **12 pasang** teks
+bertabrakan: "Tanggal lahir" di atas "Perempuan", "NIK" di atas
+"28 September 2025", dan seterusnya.
+
+Perbaikannya: varian **bertumpuk** — label di atas isinya, tanpa lebar tetap
+sama sekali, jadi tidak mungkin meluber. Bentuk bersanding tetap dipakai
+Pengaturan, yang kolomnya memang lebar.
+
+Identitas juga diberi porsi lebih besar daripada Status pengukuran
+(`1.6fr : 1fr`, dulu `1fr : 1.15fr`): delapan fakta butuh lebar, tiga kartu
+angka tidak.
+
+### Cacat 2: tinggi kurva sebanding dengan lebarnya
+
+Ini yang membuat jendela **lebih besar** justru menggulir. Tinggi gambar kurva
+sebanding dengan lebarnya, sedangkan tinggi jendela tidak tumbuh secepat itu:
+
+| Viewport | Ruang tegak bertambah | Tinggi kurva bertambah | Akibat |
+|---|---|---|---|
+| 1280 × 645 | — | 241 px | muat |
+| 1366 × 660 | +15 px | +21 px (262) | **menggulir** |
+
+Dua perbaikan yang harus berpasangan:
+
+1. `max-h-full` pada SVG — gambarnya mengecil dan memusat sendiri alih-alih
+   meluber.
+2. Akar kartu kurva `flex-1 min-h-0`, bukan `h-full`. Ini syarat butir 1
+   berfungsi: di dalam kolom lentur, `h-full` mengacu pada tinggi yang belum
+   pasti, sehingga `max-h-full` tidak punya patokan. Dengan `h-full` saja,
+   kartunya tetap meluber 6 px.
+
+### Cara memeriksanya berubah
+
+Tahap sebelumnya memeriksa perpotongan kotak teks hanya di dalam SVG, dan itulah
+sebabnya 12 tabrakan di Identitas lolos. Sekarang pemeriksaannya menyapu
+**seluruh `<main>`** — `dt`, `dd`, `h2`, `p`, `span`, `th`, `td` — dan
+menghitung tiap pasang yang berpotongan.
+
+### Hasil
+
+Diuji pada empat anak berbeda, termasuk yang hanya punya satu pengukuran:
+
+| Viewport | Gulir | Kurva | Teks tik | Tabrakan teks |
+|---|---|---|---|---|
+| 1280 × 600 | tidak | 611 × 182 | 12,2 px | 0 |
+| **1280 × 645** | **tidak** | 602 × 241 | 16,1 px | **0** |
+| 1366 × 660 | tidak | 664 × 243 | 16,2 px | 0 |
+| 1422 × 717 (zoom 90%) | tidak | 699 × 279 | 18,6 px | 0 |
+| 1920 × 1000 | tidak | 1005 × 402 | 26,8 px | 0 |
+| 375 × 760 | nol gulir mendatar | — | — | 0 |
+
+Seluruh lebar 1280 px ke atas kini muat satu layar. Di bawah tinggi ~645 px
+kurvanya mengecil sendiri dan teksnya turun di bawah 15 px — tetapi tidak ada
+yang terpotong dan tidak ada yang menggulir. Itu penurunan mutu yang bertahap,
+bukan kerusakan.
+
+Gerbang bagian 14.9 tidak bergeser: `lint:check` 23, `types:check` 48,
+`format:check` lulus.
+
+---
+
+## Perbaikan — tampilan blok Identitas
+
+Tiga dari empat saran diterapkan. Yang keempat dibatalkan setelah membaca kode.
+
+### Yang dikerjakan
+
+**1. Garis bawah tiap field dibuang.** Delapan garis selebar kolom di atas data
+baca-saja terbaca sebagai borang isian — afordansi yang keliru, karena tidak
+satu pun bisa diketik. Garis-garis itu juga elemen paling kontras di blok,
+mengalahkan angkanya sendiri. Pemisahnya kini tipografi label dan jaraknya
+(`gap-y` 2 → 3,5). [10-prd-demo-frontend.md](10-prd-demo-frontend.md) bagian 6.5
+memang menyebut daftar ini **"tanpa kotak"**.
+
+**2. Tanggal lahir membawa umurnya:** `28 September 2025, 8 bulan`, bentuk
+bagian 6.5. Umur adalah kunci seluruh z-score di layar ini; sebelumnya ia hanya
+ada di subjudul header, jauh dari tanggal yang menghasilkannya. Umur memang jadi
+muncul dua kali di layar — sebagai konteks di header, dan sebagai turunan
+tanggal lahir di sini.
+
+**3. `self-start`.** Blok ini sebelumnya diregangkan menyamai tinggi kartu
+Status di sebelahnya, sehingga baris terakhirnya mengambang di atas ruang
+kosong. Tingginya turun dari 175 menjadi **122 px**.
+
+### Yang dibatalkan, dan kenapa
+
+Saran keempat — menggabungkan `RT` dan `Anak ke-` menjadi satu field `Alamat`
+berbunyi `RT 02, anak ke-3`, persis bentuk bagian 6.5 — **tidak dikerjakan**.
+
+Saat membuka berkasnya, tepat di atas kedua field itu sudah ada komentar:
+
+> *Urutan kelahiran dulu ikut menumpang di baris "Alamat", padahal ia bukan
+> alamat: layar berbunyi "Alamat: RT 02, anak ke-3". Dua fakta, dua baris.*
+
+Jadi penggabungan itu sudah pernah dipasang dan sengaja dibatalkan, dengan
+alasan yang benar: urutan kelahiran bukan alamat. Sarannya dibuat sebelum
+komentar itu terbaca.
+
+Keuntungannya pun tipis: delapan field dalam empat kolom jatuh tepat dua baris
+penuh, sedangkan tujuh field menyisakan baris kedua yang timpang. Bagian 6.5
+tetap berbeda dari yang tampil di layar, dan perbedaan itu disengaja.
+
+### Yang sengaja tidak diubah
+
+- **`Berat lahir —` tetap ditampilkan** meski kosong. P2 dan DR-04 menyebut
+  nilai kosong harus terlihat sebagai `—`, bukan disembunyikan — menghilangkan
+  fieldnya membuat "tidak tercatat" tak bisa dibedakan dari "tidak ada
+  kolomnya".
+- **`Buku KIA: Ada` tetap teks, bukan chip berwarna.** Lebih cepat terbaca
+  sebagai chip, tetapi menambah elemen berwarna di blok yang tugasnya justru
+  tenang, sementara di layar ini warna sudah dipakai untuk vonis gizi.
+
+### Hasil
+
+| Viewport | Gulir | Kurva | Teks tik | Tabrakan teks |
+|---|---|---|---|---|
+| 1280 × 645 | tidak | 611 × 227 | 15,2 px | 0 |
+| 1422 × 717 | tidak | 699 × 279 | 18,6 px | 0 |
+| 375 × 760 | nol gulir mendatar | — | — | 0 |
+
+Gerbang bagian 14.9 tidak bergeser.
+
+---
+
+## Perbaikan — ambang tata letak dan urutan breakpoint Tailwind
+
+Pada zoom 100% Identitas melebar penuh dua kolom dan Status turun ke bawah;
+pada zoom 90% susunannya benar. Artinya kelas bergerbang itu **tidak aktif** di
+zoom 100%.
+
+### Sebab 1: ambang 1280 px kena lingkaran setan bilah gulir
+
+Lebar yang dipakai media query **tidak memasukkan bilah gulir**. Jendela 1280 px
+yang sempat menggulir melapor 1265 px, `xl:` mati, tata letaknya menumpuk, jadi
+lebih tinggi, bilah gulirnya menetap, dan keadaan itu mengunci dirinya sendiri.
+Tahap sebelumnya lolos karena 1280 × 645 muat **persis tanpa sisa** — nol margin,
+jadi selisih sekecil apa pun menjatuhkannya.
+
+Ambangnya diturunkan ke **1240 px**, dan angkanya dihitung, bukan dikira:
+kolom kurva = `0,615 × (lebar jendela − 328)`, dan supaya teks di dalamnya
+bertahan di 15 px kolomnya harus ≥ 560 px — terpenuhi mulai 1238 px.
+
+### Sebab 2: Tailwind mengurutkan breakpoint tanpa menyamakan satuan
+
+Perbaikan pertama tidak cukup, dan alasannya tersembunyi di berkas CSS hasil.
+
+`min-[1240px]:grid-cols-4` **dihasilkan dengan benar**, tetapi blok medianya
+dipancarkan di urutan paling depan:
+
+```text
+@media (width >= 1240px)   <- lebar
+@media (width >= 40rem)    <- sm
+@media (width >= 48rem)    <- md
+@media (width >= 64rem)    <- lg
+@media (width >= 80rem)    <- xl
+```
+
+Pada lebar 1265 px kedua blok cocok, dan `sm:grid-cols-2` yang berada lebih
+belakang memenangkan cascade. Identitas tetap dua kolom meski kelas empat
+kolomnya ada.
+
+Mendaftarkannya sebagai breakpoint bernama saja belum menyelesaikan: selama
+nilainya ditulis `1240px`, Tailwind tidak dapat membandingkannya dengan
+breakpoint bawaan yang semuanya `rem`, dan ia tetap terlempar ke depan.
+
+**Yang menyelesaikan: menulis nilainya dalam satuan yang sama.**
+
+```css
+@theme {
+    --breakpoint-lebar: 77.5rem; /* 1240px pada akar 16px */
+}
+```
+
+Urutannya kini benar: `40rem → 48rem → 64rem → 77.5rem → 80rem`.
+
+Pelajaran yang berlaku di luar kasus ini: **breakpoint kustom harus memakai
+satuan yang sama dengan breakpoint bawaan.** Mencampur `px` dan `rem` tidak
+menimbulkan galat apa pun — kelasnya tetap dihasilkan, hanya kalah cascade,
+dan itu jenis kegagalan yang paling lama dicari.
+
+### Juga dirapikan
+
+Kategori pada kartu indeks turun ke 15 px — batas terkecil bagian 8, bukan di
+bawahnya — supaya "Berat badan normal" tidak terpatah dua baris di kolom sempit.
+Baris atas menyusut dari 175 menjadi **168 px**.
+
+### Hasil
+
+| Viewport | Gulir | Kolom Identitas | Teks tik | Tabrakan |
+|---|---|---|---|---|
+| 1230 × 645 | ya, kembali satu kolom | 2 | — | — |
+| **1265 × 645** (1280 dengan bilah gulir) | **tidak** | **4** | 15,7 px | **0** |
+| 1280 × 645 | tidak | 4 | 15,7 px | 0 |
+| 1422 × 717 | tidak | 4 | 18,6 px | 0 |
+
+Gerbang bagian 14.9 tidak bergeser.
+
+> **Perhatian saat menjalankan:** perubahan pada blok `@theme` tidak terbaca
+> server dev yang sudah berjalan — Tailwind menyajikan CSS lama tanpa pesan
+> galat apa pun. Hentikan `npm run demo` lalu jalankan lagi.
+
+---
+
+## Perbaikan — ambang 1088 px, dan kurva yang ternyata dibatasi tinggi
+
+Keluhannya sama bunyinya dengan ronde sebelumnya, tetapi sebabnya lain:
+pada zoom 90% Identitas empat kolom, pada zoom 100% dua kolom. Ambang 77,5rem
+tercapai di zoom 90% dan tidak tercapai di zoom 100%, jadi jendela pengguna
+berada **di antara** keduanya.
+
+### Sebab: ambang 1240 px diturunkan dari asumsi yang salah
+
+Angka 1240 dihitung dengan anggapan kurva dibatasi **lebar** kolomnya. Diukur
+langsung, anggapan itu keliru: pada jendela 645 px tingginya, kotak SVG berhenti
+di ~203 px karena `max-h-full`, jadi skalanya `203/620` dan bukan `lebar/1500`.
+Lebar jendela tidak lagi menentukan ukuran teks kurva, sehingga ambang setinggi
+1240 px tidak membeli apa pun.
+
+Diukur ulang dari bawah: susunan dua kolom masih utuh — tanpa gulir, tanpa satu
+pun tabrakan — sampai **1088 px**. Ambangnya turun ke sana.
+
+```css
+@theme {
+    --breakpoint-lebar: 68rem; /* 1088px pada akar 16px */
+}
+```
+
+### `auto-fit` dicoba untuk Identitas, lalu dibatalkan
+
+Jumlah kolom yang dihitung dari lebar wadah terdengar lebih benar daripada
+ambang yang bisa meleset, dan sempat dipakai:
+`grid-cols-[repeat(auto-fit,minmax(11rem,1fr))]`.
+
+Hasil ukurnya menolak gagasan itu. Wadah Identitas bukan selebar halaman — ia
+1,6fr dari kolom kiri, yaitu **552 px** pada jendela 1180 px. `auto-fit` di sana
+menghasilkan 2 kolom, 3 kolom pada 1280 px, dan 5 kolom pada 1920 px: tidak
+pernah 4, dan berubah-ubah di tiap lebar. Delapan ruas yang menumpuk jadi tiga
+baris itu persis yang membuat blok ini terlihat memenuhi layar.
+
+Kembali ke jumlah tetap — `grid-cols-2 gap-x-6 lebar:grid-cols-4`. Delapan ruas
+dibagi empat kolom = dua baris rapi, sama di seluruh lebar di atas ambang.
+
+### Teks kurva 14,9 px — di bawah lantai bagian 8
+
+Konsekuensi dari temuan "dibatasi tinggi" di atas: dengan `KOMPAK_TIK` 46 teks
+tik mendarat di **14,9 px**, sementara `docs/05-uiux-spec.md` bagian 8 menyebut
+15 px sebagai lantai yang mengikat. Selisihnya sepersepuluh piksel, tetapi
+lantai yang dilanggar sedikit tetap dilanggar.
+
+`KOMPAK_TIK` naik ke **48** → 15,6 px pada kasus tersempit. Seluruh pinggiran
+ikut naik sendiri karena semuanya diturunkan dari angka ini.
+
+### Penjarangan label kg memakai ukuran huruf, bukan tinggi barisnya
+
+Pada `KOMPAK_TIK` 46 terukur **16 tabrakan** teks di dalam SVG. Penjarangan
+label kg membandingkan jarak antar garis dengan `g.tik` — ukuran hurufnya —
+padahal yang harus dibandingkan adalah tinggi kotak barisnya, yang lebih besar.
+
+```ts
+const tinggiBarisTeks = g.tik * 1.3;
+const langkahLabelKg = Math.max(1, Math.ceil(tinggiBarisTeks / jarakKg));
+```
+
+Pada 1180 px label kg kini muncul tiap 3 kg (1, 4, 7, 10, 13, 16).
+
+### Hasil
+
+Diukur pada halaman Detail anak, `#/balita/110`:
+
+| Viewport | Gulir | Kolom Identitas | Teks tik | Tabrakan SVG | Tabrakan halaman |
+|---|---|---|---|---|---|
+| 1024 × 645 | ya — di bawah ambang, satu kolom | 2 | — | 0 | 0 |
+| **1088 × 645** (ambang) | **tidak** | **4** | 15,7 px | **0** | **0** |
+| 1180 × 645 | tidak | 4 | 17,0 px | 0 | 0 |
+| 1280 × 645 | tidak | 4 | 18,2 px | 0 | 0 |
+| 1422 × 717 | tidak | 4 | 22,4 px | 0 | 0 |
+| 1920 × 937 | tidak | 4 | 32,2 px | 0 | 0 |
+| 375 × 760 | ya — memang bergulir | 1 | — | 0 | 0 |
+
+Konsol bersih (hanya HMR Vite dan anjuran React DevTools). Gerbang bagian 14.9
+tidak bergeser: `format:check` lulus, `lint:check` 23, `types:check` 48 —
+seluruhnya berkas `@/routes/**` bawaan Wayfinder.
+
+### Pelajaran
+
+Ambang tata letak harus diturunkan dari **ukuran yang benar-benar terukur**,
+bukan dari rumus yang menganggap satu dimensi yang mengikat. Rumus 1240 px itu
+rapi dan salah selama dua ronde karena tidak pernah dibandingkan dengan hasil
+`getBoundingClientRect()`.

@@ -1,5 +1,5 @@
 /**
- * Data Anak — docs/10-prd-demo-frontend.md bagian 6.4, tampilan Prototipe v2.
+ * Data Balita — docs/10-prd-demo-frontend.md bagian 6.4, tampilan Prototipe v2.
  *
  * Membuktikan bahwa mencari seorang anak butuh beberapa detik, bukan membuka
  * dua belas berkas Excel — dan sejak v2, bahwa memperbaiki satu angka salah
@@ -44,8 +44,20 @@ export type BarisAnak = {
     rt: string | null;
     namaOrtu: string | null;
     tanggalUkurTerakhir: string | null;
+    /** Kategori BB/TB saja — bukan alasan anak ini ditandai. */
     kategoriGizi: string | null;
     perluPerhatian: boolean;
+    /**
+     * Risiko yang dibawa sejak lahir, atau null.
+     *
+     * Berat lahir rendah dan tidak punya Buku KIA — keduanya sudah tercatat di
+     * arsip sejak impor dan tidak pernah sekali pun muncul di layar. Keduanya
+     * menaikkan kewaspadaan pada anak yang hari ini berstatus gizi baik.
+     */
+    risikoLahir: string | null;
+    /** Indeks yang memicu penanda perhatian: bisa BB/U atau TB/U, bukan BB/TB. */
+    indeksPemicu: Indeks | null;
+    kategoriPemicu: string | null;
     /** Null berarti tidak ada pengukuran pada periode ini, bukan nol. */
     bbKg: number | null;
     tinggiCm: number | null;
@@ -104,6 +116,52 @@ function keAngka(teks: string): number | null {
     return Number.isFinite(n) ? n : null;
 }
 
+/**
+ * Alasan baris ini ditandai, saat alasannya bukan BB/TB.
+ *
+ * Kolom `Status gizi` hanya membaca BB/TB; penanda perhatian membaca ketiga
+ * indeks. Tanpa baris ini, menyalakan "Hanya yang perlu perhatian" memulangkan
+ * sepuluh anak yang tujuh di antaranya berlabel `Gizi baik` - kolom yang
+ * seharusnya menjawab "kenapa dia di sini" justru berkata dia tidak apa-apa,
+ * dan penandanya terbaca rusak.
+ */
+function Pemicu({ baris }: { baris: BarisAnak }) {
+    if (
+        !baris.perluPerhatian ||
+        baris.indeksPemicu === null ||
+        baris.indeksPemicu === 'BB_TB' ||
+        baris.kategoriPemicu === null
+    ) {
+        return null;
+    }
+
+    return (
+        <span className="mt-1 block text-sm text-tone-amber">
+            Ditandai: {baris.kategoriPemicu} (
+            {labelIndeks(baris.indeksPemicu, baris.umurBulan)})
+        </span>
+    );
+}
+
+/**
+ * Risiko sejak lahir pada satu baris.
+ *
+ * Nada biru, bukan oranye: ini riwayat, bukan vonis bulan ini. Anak BBLR yang
+ * hari ini gizi baik tetap gizi baik — yang ditambahkan hanya alasan untuk
+ * memperhatikannya lebih lama.
+ */
+function Risiko({ baris }: { baris: BarisAnak }) {
+    if (baris.risikoLahir === null) {
+        return null;
+    }
+
+    return (
+        <span className="mt-1 block text-sm text-tone-blue">
+            {baris.risikoLahir}
+        </span>
+    );
+}
+
 export default function DaftarAnak({
     anak,
     wilayahRt,
@@ -118,6 +176,7 @@ export default function DaftarAnak({
     const [cari, setCari] = useState('');
     const [rt, setRt] = useState(rtTerkunci ?? '');
     const [hanyaPerhatian, setHanyaPerhatian] = useState(false);
+    const [hanyaRisiko, setHanyaRisiko] = useState(false);
     const [dibuka, setDibuka] = useState<number | null>(null);
     const [menambah, setMenambah] = useState(false);
 
@@ -147,19 +206,24 @@ export default function DaftarAnak({
                 return false;
             }
 
-            // Pencarian mencocokkan nama anak maupun nama ibu — itu cara kader
+            if (hanyaRisiko && baris.risikoLahir === null) {
+                return false;
+            }
+
+            // Pencarian mencocokkan nama balita maupun nama ibu — itu cara kader
             // mengingat.
             const sasaran =
                 `${baris.nama ?? ''} ${baris.namaOrtu ?? ''}`.toLowerCase();
 
             return kunci === '' || sasaran.includes(kunci);
         });
-    }, [anak, cari, rtAktif, hanyaPerhatian]);
+    }, [anak, cari, rtAktif, hanyaPerhatian, hanyaRisiko]);
 
     return (
         <Halaman
             ikon={Baby}
-            judul="Data Anak"
+            penuh="lg"
+            judul="Data Balita"
             subjudul={`${
                 rtTerkunci === null
                     ? `${anak.length} balita terdaftar di RW ${rw}`
@@ -191,11 +255,16 @@ export default function DaftarAnak({
                         htmlFor="cari-anak"
                         className="block text-sm font-semibold text-muted-foreground"
                     >
-                        Cari nama anak atau nama ibu
+                        Cari nama balita atau nama ibu
                     </label>
-                    <div className="isian mt-1.5 flex w-full items-center gap-2.5 px-3.5">
+                    {/* `items-stretch`, bukan `items-center`: dengan
+                        `items-center` kotak isian setinggi 45 px hanya
+                        meneruskan 15 px ke <input>, dan bantalan di atas serta
+                        di bawahnya mati terhadap sentuhan. Ini kotak pertama
+                        yang disentuh kader tiap sesi. */}
+                    <div className="isian mt-1.5 flex w-full items-stretch gap-2.5 px-3.5">
                         <Search
-                            className="size-5 shrink-0 text-muted-foreground"
+                            className="size-5 shrink-0 self-center text-muted-foreground"
                             strokeWidth={2.5}
                             aria-hidden="true"
                         />
@@ -204,7 +273,7 @@ export default function DaftarAnak({
                             type="search"
                             value={cari}
                             onChange={(e) => setCari(e.target.value)}
-                            className="min-w-0 flex-1 bg-transparent text-base outline-none"
+                            className="min-w-0 flex-1 self-stretch bg-transparent text-base outline-none"
                         />
                     </div>
                 </div>
@@ -258,6 +327,22 @@ export default function DaftarAnak({
                     <Filter className="size-5" strokeWidth={2.5} />
                     Hanya yang perlu perhatian
                 </button>
+
+                {/* Saringan kedua, bukan gabungan: "perlu perhatian" menyaring
+                    status gizi bulan ini, ini menyaring riwayat sejak lahir.
+                    Dua pertanyaan berbeda, dan seorang anak bisa masuk salah
+                    satu tanpa masuk yang lain. */}
+                <button
+                    type="button"
+                    aria-pressed={hanyaRisiko}
+                    onClick={() => setHanyaRisiko((b) => !b)}
+                    className={
+                        hanyaRisiko ? 'tombol-utama' : 'tombol-kedua bg-surface'
+                    }
+                >
+                    <Filter className="size-5" strokeWidth={2.5} />
+                    Berisiko sejak lahir
+                </button>
             </div>
 
             {menambah && (
@@ -282,7 +367,7 @@ export default function DaftarAnak({
                     <EmptyState
                         sebab={
                             cari.trim() === ''
-                                ? `Tidak ada anak yang cocok dengan filter di ${rtAktif === '' ? 'seluruh RT' : labelRt(rtAktif)}.`
+                                ? `Tidak ada balita yang cocok dengan filter di ${rtAktif === '' ? 'seluruh RT' : labelRt(rtAktif)}.`
                                 : `Tidak ada anak bernama "${cari.trim()}" di ${rtAktif === '' ? 'seluruh RT' : labelRt(rtAktif)}.`
                         }
                     >
@@ -333,6 +418,8 @@ export default function DaftarAnak({
                                                 </span>
                                             )}
                                         </span>
+                                        <Pemicu baris={baris} />
+                                        <Risiko baris={baris} />
                                     </span>
                                     <ChevronRight
                                         className="size-5 shrink-0 text-muted-foreground"
@@ -344,15 +431,19 @@ export default function DaftarAnak({
                         ))}
                     </ul>
 
-                    <div className="kartu mt-4 hidden overflow-hidden md:block">
-                        <Table>
+                    {/* Tabelnya dibatasi tinggi jendela: kartunya menyerap
+                        sisa ruang dan badan tabel yang menggulir, bukan
+                        halamannya. Kepala kolom `sticky` berlabuh ke wadah
+                        gulir itu, jadi ia tetap terbaca sampai baris ke-101. */}
+                    <div className="kartu mt-4 hidden overflow-hidden md:block lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
+                        <Table containerClassName="lg:min-h-0 lg:flex-1">
                             <TableHeader>
                                 {/* Menempel saat digulir: 101 baris tanpa ini
                                     berarti tujuh kolom tanpa nama begitu baris
                                     ketiga lewat. */}
                                 <TableRow className="sticky top-0 z-10">
                                     <TableHead scope="col" className="w-[28%]">
-                                        Nama anak
+                                        Nama balita
                                     </TableHead>
                                     <TableHead scope="col">Umur</TableHead>
                                     <TableHead scope="col">RT</TableHead>
@@ -375,12 +466,16 @@ export default function DaftarAnak({
                                         scope="col"
                                         className="hidden lg:table-cell"
                                     >
-                                        Diukur terakhir
+                                        Ditimbang terakhir
                                     </TableHead>
-                                    {/* Kolom ini tidak menyebut indeksnya, karena
-                                        indeksnya berbeda menurut umur anak. */}
+                                    {/* Menyebut indeksnya sekarang: kolom ini
+                                        hanya membaca BB/TB, sementara penanda
+                                        perhatian membaca ketiganya. Tanpa nama
+                                        indeks di kepala kolom, `Gizi baik` pada
+                                        baris bertanda terbaca sebagai bantahan,
+                                        bukan sebagai jawaban atas indeks lain. */}
                                     <TableHead scope="col">
-                                        Status gizi
+                                        Status gizi (BB/TB)
                                     </TableHead>
                                     <TableHead
                                         scope="col"
@@ -442,6 +537,8 @@ export default function DaftarAnak({
                                                         baris.kategoriGizi
                                                     }
                                                 />
+                                                <Pemicu baris={baris} />
+                                                <Risiko baris={baris} />
                                             </TableCell>
                                             {/* Dulu dua tautan teks setinggi 26 px.
                                                 Sekarang keduanya kotak sentuh penuh. */}
@@ -672,7 +769,7 @@ function EditorBaris({
                         daripada kotak yang tidak ada. */}
                     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                         <Isian
-                            label="Nama anak"
+                            label="Nama balita"
                             nilai={nama}
                             onGanti={setNama}
                         />
@@ -849,7 +946,7 @@ function FormTambah({
 
                 <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                     <Isian
-                        label="Nama anak"
+                        label="Nama balita"
                         nilai={nama}
                         onGanti={setNama}
                         petunjuk="Nama lengkap"
@@ -944,7 +1041,7 @@ function FormTambah({
                     </button>
                     {!lengkap && (
                         <p className="text-sm text-muted-foreground">
-                            Nama anak dan tanggal lahir harus diisi — umur anak
+                            Nama balita dan tanggal lahir harus diisi — umurnya
                             dihitung dari tanggal itu.
                         </p>
                     )}

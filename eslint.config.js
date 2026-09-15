@@ -112,6 +112,10 @@ export default [
             'node_modules',
             'public',
             'dist-demo',
+            // Prototipe desain hasil salinan dari Claude Design, bukan kode
+            // aplikasi. Dua berkasnya menyumbang 778 dari 801 galat dan
+            // menenggelamkan galat sungguhan.
+            'docs/design',
             'bootstrap/ssr',
             'tailwind.config.js',
             'vite.config.ts',

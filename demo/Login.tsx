@@ -18,7 +18,7 @@ const PERAN: { nilai: Peran; nama: string; keterangan: string }[] = [
     {
         nilai: 'kader',
         nama: 'Kader',
-        keterangan: 'Melihat data anak di RT binaannya',
+        keterangan: 'Melihat data balita di RT binaannya',
     },
     {
         nilai: 'bidan',
@@ -28,7 +28,7 @@ const PERAN: { nilai: Peran; nama: string; keterangan: string }[] = [
     {
         nilai: 'admin',
         nama: 'Admin',
-        keterangan: 'Mengelola akun, periode, dan ambang',
+        keterangan: 'Mengubah batas dan mengelola pengguna',
     },
 ];
 
@@ -271,11 +271,14 @@ export default function Login({ onMasuk }: Props) {
                 <Merek terang />
 
                 <div className="flex flex-1 flex-col justify-center py-10">
-                    {/* Kalimat ini inti produknya. Dulu dicetak seukuran
-                        keterangan kaki; sekarang ia berbunyi sebagai
-                        pernyataan, dengan angka nyata yang membuktikannya. */}
+                    {/* Kalimat ini inti produknya: riwayat tiap balita berhenti
+                        terpecah per buku dan per kader. Versi lama menutupnya
+                        dengan "Bukan dua belas berkas Excel" - sindiran ke cara
+                        kerja pembacanya sendiri, di layar internal, memakai
+                        angka yang tidak dibuktikan apa pun di halaman ini.
+                        Ketiga angka di bawah membuktikan cakupannya. */}
                     <p className="max-w-[16ch] text-3xl leading-tight font-extrabold text-balance">
-                        Satu anak, satu riwayat. Bukan dua belas berkas Excel.
+                        Satu balita, satu riwayat penimbangan.
                     </p>
 
                     <dl className="mt-10 flex flex-wrap gap-x-12 gap-y-6 border-t border-white/25 pt-8">
@@ -292,7 +295,7 @@ export default function Login({ onMasuk }: Props) {
                                 {data.periode.length}
                             </dt>
                             <dd className="mt-1 text-base text-white/80">
-                                periode kegiatan
+                                bulan kegiatan
                             </dd>
                         </div>
                         <div>

@@ -1,18 +1,11 @@
 /**
- * Kerangka aplikasi demo: router hash, state peran, dan shell tujuh layar.
+ * Kerangka aplikasi demo: router hash, state peran, dan shell enam layar.
  *
  * docs/10-prd-demo-frontend.md bagian 6.2. Berkas ini perancah — saat backend
  * siap, Inertia dan layout Laravel yang menggantikannya.
  */
 
-import {
-    Baby,
-    Calendar,
-    FileText,
-    House,
-    LogOut,
-    Settings,
-} from 'lucide-react';
+import { Baby, FileText, House, LogOut, Settings } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { ComponentType } from 'react';
 import FilterPeriode from '@/components/filter-periode';
@@ -25,12 +18,12 @@ import Laporan from '@/pages/laporan/index';
 import type { TabPeriode } from '@/pages/laporan/index';
 import type { Ambang } from '@/pages/pengaturan/index';
 import Pengaturan from '@/pages/pengaturan/index';
-import DaftarPeriode from '@/pages/periode/index';
-import type { Peran, Periode } from '@/types/posyandu';
+import type { Pengguna, Peran, Periode } from '@/types/posyandu';
 import Login from './Login';
 import { Link, navigate, useAlamat } from './nav';
 import {
     cakupanEnamBulan,
+    trenStatusGizi,
     cariPeriode,
     daftarAnak,
     daftarRt,
@@ -38,36 +31,17 @@ import {
     detailAnak,
     periodeTerakhirTerisi,
     periodeTerbaru,
-    csvLaporan,
-    daftarPeriode,
     PENGATURAN_BAWAAN,
+    PENGGUNA_CONTOH,
     PENGATURAN_TERAKHIR_DIUBAH,
     perluPerhatian,
     rekapPerRt,
+    trenDsPerRt,
     ringkasan,
     RT_KADER,
     standarLms,
     statusGizi,
 } from './store';
-
-/**
- * Unduhan berkas di sisi peramban.
- *
- * Di produk nanti ini menjadi respons streaming dari `LaporanController@export`
- * (bagian 10); di demo berkasnya disusun dari data JSON lalu diserahkan ke
- * peramban lewat blob.
- */
-function unduhBerkas(nama: string, isi: string): void {
-    const alamat = URL.createObjectURL(
-        new Blob([isi], { type: 'text/csv;charset=utf-8' }),
-    );
-    const tautan = document.createElement('a');
-
-    tautan.href = alamat;
-    tautan.download = nama;
-    tautan.click();
-    URL.revokeObjectURL(alamat);
-}
 
 type ButirNav = {
     href: string;
@@ -80,7 +54,7 @@ const SEMUA: Peran[] = ['kader', 'bidan', 'admin'];
 
 const NAV: ButirNav[] = [
     { href: '/beranda', label: 'Beranda', ikon: House, peran: SEMUA },
-    { href: '/balita', label: 'Data Anak', ikon: Baby, peran: SEMUA },
+    { href: '/balita', label: 'Data Balita', ikon: Baby, peran: SEMUA },
     { href: '/laporan', label: 'Laporan', ikon: FileText, peran: SEMUA },
     {
         href: '/pengaturan',
@@ -88,7 +62,6 @@ const NAV: ButirNav[] = [
         ikon: Settings,
         peran: ['bidan', 'admin'],
     },
-    { href: '/periode', label: 'Periode', ikon: Calendar, peran: ['admin'] },
 ];
 
 /**
@@ -98,12 +71,12 @@ const NAV: ButirNav[] = [
  * (ADR-0003); Portal hanya melaporkannya. Di demo angkanya tetap, supaya
  * keadaan ini terlihat tanpa harus mematikan jaringan.
  */
-const ANTREAN_CONTOH = { jumlah: 3, sejak: '14 Agustus, 09.12' };
+const ANTREAN_CONTOH = { jumlah: 3, sejak: '13 Juni, 09.12' };
 
 const KETERANGAN_PERAN: Record<Peran, string> = {
     kader: 'Melihat data RT binaannya saja.',
     bidan: 'Boleh mengubah batas pengukuran.',
-    admin: 'Boleh mengelola akun dan periode.',
+    admin: 'Boleh mengubah batas dan mengelola pengguna.',
 };
 
 const NAMA_PERAN: Record<Peran, string> = {
@@ -117,10 +90,9 @@ type Rute =
     | { nama: 'balita' }
     | { nama: 'detail'; id: number }
     | { nama: 'laporan' }
-    | { nama: 'pengaturan' }
-    | { nama: 'periode' };
+    | { nama: 'pengaturan' };
 
-/** Router demo, seluruhnya. Tanpa pustaka: enam alamat dan satu parameter. */
+/** Router demo, seluruhnya. Tanpa pustaka: lima alamat dan satu parameter. */
 function bacaRute(alamat: string): Rute {
     const detail = /^\/balita\/(\d+)$/.exec(alamat);
 
@@ -138,9 +110,6 @@ function bacaRute(alamat: string): Rute {
         case '/pengaturan':
             return { nama: 'pengaturan' };
 
-        case '/periode':
-            return { nama: 'periode' };
-
         default:
             return { nama: 'beranda' };
     }
@@ -150,10 +119,6 @@ function bacaRute(alamat: string): Rute {
 function boleh(rute: Rute, peran: Peran): boolean {
     if (rute.nama === 'pengaturan') {
         return peran !== 'kader';
-    }
-
-    if (rute.nama === 'periode') {
-        return peran === 'admin';
     }
 
     return true;
@@ -178,6 +143,7 @@ export default function DemoApp() {
         ANTREAN_CONTOH,
     );
     const [ambang, setAmbang] = useState<Ambang>(PENGATURAN_BAWAAN);
+    const [pengguna, setPengguna] = useState<Pengguna[]>(PENGGUNA_CONTOH);
     const alamat = useAlamat();
     const rute = bacaRute(alamat);
 
@@ -201,7 +167,11 @@ export default function DemoApp() {
     }
 
     return (
-        <div className="flex min-h-screen flex-col lg:flex-row">
+        /* Dari 1024 px ke atas cangkangnya setinggi jendela dan dokumennya
+           tidak pernah menggulir; yang menggulir `main`. Tanpa ini layar yang
+           meminta tinggi penuh (`Halaman penuh`) tidak punya tinggi pasti
+           untuk dibagi, dan `flex-1` di dalamnya jatuh ke tinggi isinya. */
+        <div className="flex min-h-screen flex-col lg:h-screen lg:flex-row lg:overflow-hidden">
             {/* Di bawah 1024 px bilah ini menempel di atas layar sebagai dua
                 baris ringkas — merek dengan periode, lalu menu mendatar.
                 Sebelumnya ia blok setinggi 342 px yang mendorong baris data
@@ -229,9 +199,9 @@ export default function DemoApp() {
                     </div>
                 </div>
 
-                {/* Membungkus, bukan menggulir mendatar. Dengan lima butir di
-                    layar 375 px, `overflow-x-auto` menyembunyikan Pengaturan dan
-                    Periode di luar tepi layar - persis "gerakan tersembunyi"
+                {/* Membungkus, bukan menggulir mendatar. Dengan empat butir di
+                    layar 375 px, `overflow-x-auto` menyembunyikan Pengaturan
+                    di luar tepi layar - persis "gerakan tersembunyi"
                     yang dilarang prinsip P1. Dua baris menampilkan semuanya. */}
                 <nav className="flex flex-wrap gap-0.5 px-3 pb-2 lg:flex-col lg:pb-0">
                     {/* Butir yang tidak berhak dihapus dari DOM, bukan dinonaktifkan. */}
@@ -275,11 +245,11 @@ export default function DemoApp() {
                 </div>
             </aside>
 
-            <div className="flex min-w-0 flex-1 flex-col">
+            <div className="flex min-w-0 flex-1 flex-col lg:min-h-0">
                 {/* Tanpa jarak tepi sendiri: bilah kepala tiap layar
                     membentang penuh sampai tepi, dan `Halaman` yang memberi
                     pinggir pada isinya. */}
-                <main className="min-w-0 flex-1">
+                <main className="flex min-w-0 flex-1 flex-col lg:min-h-0 lg:overflow-y-auto">
                     <Layar
                         rute={rute}
                         peran={peran}
@@ -289,7 +259,14 @@ export default function DemoApp() {
                         onGantiTabLaporan={setTabLaporan}
                         koreksi={koreksi}
                         tambahan={tambahan}
-                        antrean={antrean}
+                        /* Antrean hanya berlaku untuk periode terbaru. Tanpa
+                           syarat ini, membuka Mei 2026 tetap berbunyi "3 hasil
+                           belum terkirim, tersimpan sejak 13 Juni" - mengaku
+                           menahan data untuk bulan yang arsipnya sudah ditutup,
+                           bertanggal bulan lain pula. */
+                        antrean={
+                            periodeId === periodeTerbaru ? antrean : undefined
+                        }
                         onCobaKirim={() => setAntrean(undefined)}
                         onSimpanAnak={(anakId, patch) =>
                             setKoreksi((k) => ({ ...k, [anakId]: patch }))
@@ -299,6 +276,8 @@ export default function DemoApp() {
                         }
                         ambang={ambang}
                         onSimpanAmbang={setAmbang}
+                        pengguna={pengguna}
+                        onSimpanPengguna={setPengguna}
                     />
                 </main>
 
@@ -361,7 +340,7 @@ function PemilihPeran({
                         <label
                             key={p}
                             htmlFor={`peran-${ruang}-${p}`}
-                            className={`flex min-h-11 flex-1 cursor-pointer items-center justify-center px-2 text-base has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring ${
+                            className={`flex min-h-13 flex-1 cursor-pointer items-center justify-center px-2 text-base has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring ${
                                 peran === p
                                     ? 'bg-primary font-bold text-primary-foreground'
                                     : 'text-foreground'
@@ -431,6 +410,11 @@ function keBaris(
         tanggalUkurTerakhir: null,
         kategoriGizi: null,
         perluPerhatian: false,
+        // Balita baru: risiko lahir belum terisi sampai formnya menanyakan.
+        risikoLahir: null,
+        // Belum pernah ditimbang, jadi tidak ada indeks yang memicunya.
+        indeksPemicu: null,
+        kategoriPemicu: null,
         // Belum pernah ditimbang: null, bukan nol (DR-04).
         bbKg: null,
         tinggiCm: null,
@@ -471,6 +455,8 @@ type LayarProps = {
     onTambahAnak: (baru: AnakBaru) => void;
     ambang: Ambang;
     onSimpanAmbang: (nilai: Ambang) => void;
+    pengguna: Pengguna[];
+    onSimpanPengguna: (daftar: Pengguna[]) => void;
     tabLaporan: TabPeriode;
     onGantiTabLaporan: (tab: TabPeriode) => void;
 };
@@ -479,7 +465,7 @@ type LayarProps = {
  * Pemasok props tiap halaman — inilah yang nanti digantikan controller.
  *
  * Layar diisi bertahap mengikuti bagian 12: Beranda di T3, Data Anak dan Detail
- * anak di T4, Laporan di T5, Pengaturan dan Periode di T6.
+ * anak di T4, Laporan di T5, dan Pengaturan di T6.
  */
 function Layar({
     rute,
@@ -496,17 +482,24 @@ function Layar({
     onTambahAnak,
     ambang,
     onSimpanAmbang,
+    pengguna,
+    onSimpanPengguna,
 }: LayarProps) {
     const periode = cariPeriode(periodeId);
+    // Satu sumber untuk lingkup data kader, dipakai Beranda, Data Balita, dan
+    // Laporan sekaligus. Dulu hanya Data Balita yang menerimanya, sehingga dua
+    // layar lain membantah janji yang tertulis di kartu Masuk dan di sidebar.
+    const rtLingkup = peran === 'kader' ? RT_KADER : null;
 
     if (rute.nama === 'beranda' && periode !== null) {
         return (
             <Dashboard
                 periode={periode}
-                ringkasan={ringkasan(periodeId)}
-                statusGizi={statusGizi(periodeId)}
-                cakupanEnamBulan={cakupanEnamBulan()}
-                perluPerhatian={perluPerhatian(periodeId)}
+                ringkasan={ringkasan(periodeId, rtLingkup)}
+                statusGizi={statusGizi(periodeId, rtLingkup)}
+                cakupanEnamBulan={cakupanEnamBulan(rtLingkup)}
+                trenGizi={trenStatusGizi(rtLingkup)}
+                perluPerhatian={perluPerhatian(periodeId, rtLingkup)}
                 periodeTerisi={periodeTerakhirTerisi()}
                 belumTerkirim={antrean}
                 onCobaKirim={onCobaKirim}
@@ -529,7 +522,7 @@ function Layar({
                 wilayahRt={daftarRt()}
                 rw={data.meta.rw}
                 peran={peran}
-                rtTerkunci={peran === 'kader' ? RT_KADER : null}
+                rtTerkunci={rtLingkup}
                 periode={periode}
                 standarLms={standarLms}
                 onSimpanAnak={onSimpanAnak}
@@ -573,7 +566,7 @@ function Layar({
             tabLaporan === 'tahunan'
                 ? data.periode.map((p) => p.id)
                 : [periodeId];
-        const rekap = rekapPerRt(periodeDipakai);
+        const rekap = rekapPerRt(periodeDipakai, rtLingkup);
 
         return (
             <Laporan
@@ -582,19 +575,16 @@ function Layar({
                 onGantiTab={onGantiTabLaporan}
                 rekapPerRt={rekap.baris}
                 total={rekap.total}
-                wilayahRt={daftarRt()}
+                wilayahRt={rtLingkup === null ? daftarRt() : [rtLingkup]}
                 rw={data.meta.rw}
                 kelurahan={data.meta.kelurahan}
-                jumlahPeriode={periodeDipakai.length}
-                peran={peran}
+                trenRt={trenDsPerRt(rtLingkup)}
+                semuaPeriode={data.periode.map((p) => ({
+                    periodeId: p.id,
+                    label: p.label,
+                }))}
                 periodeTerisi={periodeTerakhirTerisi()}
                 onPindahPeriode={onPindahPeriode}
-                onUnduhCsv={() =>
-                    unduhBerkas(
-                        `posyandu-tulip-${tabLaporan === 'tahunan' ? '2026' : periodeId}.csv`,
-                        csvLaporan(periodeDipakai),
-                    )
-                }
             />
         );
     }
@@ -604,22 +594,11 @@ function Layar({
             <Pengaturan
                 ambang={ambang}
                 onSimpan={onSimpanAmbang}
-                standarVersi={data.meta.versiStandar}
-                barisStandar={data.meta.barisStandar}
+                peran={peran}
+                pengguna={pengguna}
+                wilayahRt={daftarRt()}
+                onSimpanPengguna={onSimpanPengguna}
                 terakhirDiubah={PENGATURAN_TERAKHIR_DIUBAH}
-            />
-        );
-    }
-
-    if (rute.nama === 'periode') {
-        return (
-            <DaftarPeriode
-                periode={daftarPeriode()}
-                periodeAktif={periodeId}
-                onPilih={(id) => {
-                    onPindahPeriode(id);
-                    navigate('/beranda');
-                }}
             />
         );
     }

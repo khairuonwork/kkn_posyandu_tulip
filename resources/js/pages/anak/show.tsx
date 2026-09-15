@@ -4,6 +4,13 @@
  * Layar yang paling sering membuat client mengangguk: riwayat pertumbuhan satu
  * anak sebagai satu garis.
  *
+ * Enam kalimat keterangan — acuan WHO, asumsi cara ukur, arti kolom N/T/O/B,
+ * dan keterangan kurva — dicabut dari layar ini atas permintaan pemilik produk.
+ * Teksnya beserta alasan dan risikonya ada di
+ * docs/12-teks-keterangan-layar-detail.md; dua di antaranya menyatakan asumsi
+ * sistem yang menurut prinsip P4 seharusnya terlihat di antarmuka, jadi berkas
+ * itu penampungan, bukan keputusan akhir.
+ *
  * Urutannya sengaja vonis dulu, identitas belakangan. Kader membuka layar ini
  * untuk tahu kondisi anaknya, bukan untuk membaca ulang NIK yang barusan ia
  * klik namanya.
@@ -93,21 +100,6 @@ type Ambang = {
     tinggiBerkurangMax: number;
 };
 
-type TabDetail = 'profil' | 'status' | 'kurva' | 'riwayat';
-
-const TAB_DETAIL: { nilai: TabDetail; label: string }[] = [
-    { nilai: 'profil', label: 'Profil Anak' },
-    { nilai: 'status', label: 'Status Gizi' },
-    { nilai: 'kurva', label: 'Kurva KMS' },
-    { nilai: 'riwayat', label: 'Riwayat Ukur' },
-];
-
-const PESAN_TAB_KOSONG: Record<Exclude<TabDetail, 'profil'>, string> = {
-    status: 'Belum ada pengukuran untuk anak ini, sehingga status gizi belum dapat dinilai.',
-    kurva: 'Belum ada pengukuran berat yang dapat digambarkan pada kurva KMS.',
-    riwayat: 'Belum ada riwayat pengukuran untuk anak ini.',
-};
-
 type Props = {
     anak: Anak;
     /** Seluruh pengukuran lintas periode, terbaru di atas. */
@@ -129,18 +121,27 @@ export default function DetailAnak({
     ambang,
 }: Props) {
     const [umurDisorot, setUmurDisorot] = useState<number | null>(null);
-    const [tabAktif, setTabAktif] = useState<TabDetail>('profil');
     const bolehUbah = peran !== 'kader';
-    const terbaru = pengukuran[0] ?? null;
-    const nama = namaTampil(anak.nama);
-    const inisial = nama
-        .split(' ')
-        .filter((bagian) => bagian.length > 0)
-        .map((bagian) => bagian[0])
-        .join('')
-        .slice(0, 2)
-        .toUpperCase();
-
+    // Pengukuran yang benar-benar berlaku untuk periode yang sedang dilihat.
+    //
+    // Dulu ini `pengukuran[0]`: yang terbaru lintas periode, tanpa melihat
+    // periode mana yang dipilih. Membuka Februari 2026 menampilkan pengukuran
+    // 13 Juni - DI BAWAH spanduk berbunyi "Belum ditimbang pada Februari
+    // 2026", padahal tabel riwayat tepat di bawahnya memuat baris 14 Feb.
+    // Spanduk itu klaim faktual tentang seorang anak bernama, digayakan
+    // sebagai peringatan paling mendesak di halaman, dan salah.
+    //
+    // `pengukuran` sudah terurut terbaru di atas, jadi yang pertama lolos
+    // saringan adalah yang paling dekat ke belakang. Tidak pernah ke depan:
+    // angka yang belum terjadi pada periode ini bukan status periode ini.
+    const batasTanggal = periode.tanggalKegiatan;
+    const terbaru =
+        (batasTanggal === null
+            ? pengukuran.find((p) => p.periodeId === periode.id)
+            : pengukuran.find(
+                  (p) =>
+                      p.tanggalUkur !== null && p.tanggalUkur <= batasTanggal,
+              )) ?? null;
     // Umur dihitung terhadap periode yang dilihat, bukan diambil dari
     // pengukuran terakhir. Untuk anak yang dua bulan tidak hadir, umur lama itu
     // salah — dan ia juga yang memilih label PB/U atau TB/U serta kalimat cara
@@ -237,12 +238,13 @@ export default function DetailAnak({
 
     return (
         <Halaman
-            judul={nama}
+            penuh="lebar"
+            judul={namaTampil(anak.nama)}
             /* Jalan kembali menggantikan petak ikon. Labelnya ditulis lengkap:
                dulu ini kotak 44 px berisi panah saja - satu-satunya ikon tanpa
                teks di seluruh Portal, padahal prinsip P1 justru menyebut
                pengguna yang bukan pemakai komputer harian. */
-            kembali={{ href: '/balita', label: 'Data Anak' }}
+            kembali={{ href: '/balita', label: 'Data Balita' }}
             /* Dulu berbunyi "Data Anak, detail. Data contoh." - remah
                breadcrumb dan catatan build, bukan kalimat tentang seorang
                anak. */
@@ -252,7 +254,7 @@ export default function DetailAnak({
                     : `RT ${anak.rt.padStart(2, '0')}`
             }. Data contoh.`}
             aksi={
-                /* Tombol Ubah data membuka baris anak ini di Data Anak, tempat
+                /* Tombol Ubah data membuka baris balita ini di Data Balita, tempat
                    editornya benar-benar ada. Dulu ia memanggil window.alert
                    berbunyi "Belum tersedia di demo". */
                 bolehUbah && (
@@ -267,457 +269,456 @@ export default function DetailAnak({
                 )
             }
         >
-            {/* Kategori ditata sebagai tab lembar kerja: satu kelompok data
-                tampil pada satu waktu, tetapi semua bagian tetap dapat dicapai
-                dalam satu langkah. */}
-            <div
-                className="mb-7 border-b border-border"
-                role="tablist"
-                aria-label="Kategori detail anak"
-            >
-                <div className="flex flex-wrap items-end gap-1">
-                    {TAB_DETAIL.map((tab) => {
-                        const aktif = tabAktif === tab.nilai;
+            {/* Dua kolom dari 1536 px ke atas, bukan 1024: fakta dan angka
+                di kiri, kurva di kanan.
 
-                        return (
-                            <button
-                                key={tab.nilai}
-                                id={`tab-${tab.nilai}`}
-                                type="button"
-                                role="tab"
-                                aria-selected={aktif}
-                                aria-controls={`panel-${tab.nilai}`}
-                                onClick={() => setTabAktif(tab.nilai)}
-                                className={`relative min-h-12 rounded-t-lg border px-4 text-base font-semibold transition-colors focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
-                                    aktif
-                                        ? 'z-10 -mb-px border-border bg-card text-foreground'
-                                        : 'border-transparent text-muted-foreground hover:border-border hover:bg-surface-subtle hover:text-foreground'
-                                }`}
-                            >
-                                {tab.label}
-                            </button>
-                        );
-                    })}
-                </div>
-            </div>
-
-            {/* Identitas memimpin halaman, seperti artboard Detail: satu
+                Ambangnya dinaikkan bersama skala tipografi. Pada 1280 px kolom
+                kanan hanya selebar 470 px, dan viewBox kurva 1500 satuan
+                mengecil 3,2x di sana — seluruh teks di dalam grafik (sumbu,
+                angka kg, label SD) turun ke sekitar 6 px, lebih kecil daripada
+                9 px yang baru saja dinaikkan. Di bawah 1536 px halaman ini
+                menumpuk satu kolom dan menggulir: kurva dapat lebar penuh dan
+                terbaca, dengan ongkos halaman yang tidak lagi muat sekali
+                tampil. Terbaca mengalahkan muat-sekali-layar. */}
+            <div className="flex flex-col gap-4 lebar:min-h-0 lebar:flex-1">
+                {/* Grid dua baris, bukan tumpukan. Identitas dan Status pengukuran
+                    mengisi baris pertama berdampingan lewat penempatan otomatis,
+                    jadi susunan DOM-nya tidak perlu diubah sama sekali; baris
+                    kedua membentang dua kolom dan menyerap sisa tinggi. */}
+                <div className="flex flex-col gap-3 lebar:grid lebar:min-h-0 lebar:flex-1 lebar:grid-cols-[1.6fr_1fr] lebar:grid-rows-[auto_1fr]">
+                    {/* Identitas memimpin halaman, seperti artboard Detail: satu
                 petak fakta registri yang dipisahkan garis tebal dari vonis di
                 bawahnya. Petak foto artboard tidak ikut — tidak ada satu pun
                 anak yang punya potret di arsip, dan kotak kosong bertuliskan
                 "Foto anak" pada 101 halaman adalah janji yang tidak ditepati. */}
-            <section
-                id="panel-profil"
-                role="tabpanel"
-                aria-labelledby="tab-profil"
-                hidden={tabAktif !== 'profil'}
-                className="mb-7 overflow-hidden rounded-xl border border-border bg-card"
-            >
-                <div className="flex flex-wrap items-center gap-4 bg-primary px-5 py-4 text-primary-foreground sm:px-6">
-                    <div
-                        aria-hidden="true"
-                        className="flex size-14 shrink-0 items-center justify-center rounded-full bg-card text-xl font-extrabold text-primary"
-                    >
-                        {inisial || '—'}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                        <h2 className="text-xl font-extrabold">Profil anak</h2>
-                        <p className="mt-0.5 text-base text-primary-foreground/80">
-                            {nama}
+                    {/* `self-start`: tanpa ini blok ini diregangkan menyamai tinggi kartu
+                        Status di sebelahnya, dan baris terakhirnya mengambang di
+                        atas ruang kosong. */}
+                    <section className="shrink-0 border-b-2 border-border pb-3 lebar:self-start">
+                        <h2 className="sr-only">Identitas</h2>
+                        {/* Empat kolom tetap, bukan `auto-fit`. Jumlah kolom yang
+                                dihitung dari lebar wadah terdengar lebih benar,
+                                tetapi wadahnya di sini cuma 1,6fr dari setengah
+                                halaman, jadi hasilnya dua atau tiga kolom — dan
+                                delapan ruas yang menumpuk jadi tiga baris itulah
+                                yang membuat blok ini terlihat menuhin layar.
+                                Delapan ruas dibagi empat kolom = dua baris rapi,
+                                sama di seluruh lebar di atas ambang `lebar`. */}
+                        <dl className="grid grid-cols-2 gap-x-6 gap-y-3.5 lebar:grid-cols-4">
+                            <BarisDefinisi tumpuk label="Jenis kelamin">
+                                {anak.jk === 'L'
+                                    ? 'Laki-laki'
+                                    : anak.jk === 'P'
+                                      ? 'Perempuan'
+                                      : KOSONG}
+                            </BarisDefinisi>
+                            {/* Umur berdampingan dengan tanggal yang
+                                menghasilkannya, bentuk bagian 6.5. Umur adalah
+                                kunci seluruh z-score di layar ini; sebelumnya ia
+                                hanya ada di subjudul header, jauh dari tanggal
+                                lahirnya. */}
+                            <BarisDefinisi tumpuk label="Tanggal lahir">
+                                {tanggalPanjang(anak.tglLahir)}
+                                {umur !== null && `, ${umurPanjang(umur)}`}
+                            </BarisDefinisi>
+                            <BarisDefinisi tumpuk label="NIK">
+                                {nik(anak.nik)}
+                                {!anak.nikLengkap && (
+                                    <span className="block text-sm text-tone-amber">
+                                        NIK belum lengkap
+                                    </span>
+                                )}
+                            </BarisDefinisi>
+                            <BarisDefinisi tumpuk label="Ibu">
+                                {anak.namaOrtu ?? KOSONG}
+                            </BarisDefinisi>
+                            {/* Urutan kelahiran dulu ikut menumpang di baris
+                                "Alamat", padahal ia bukan alamat: layar berbunyi
+                                "Alamat: RT 02, anak ke-3". Dua fakta, dua baris. */}
+                            <BarisDefinisi tumpuk label="RT">
+                                {anak.rt === null
+                                    ? KOSONG
+                                    : `RT ${anak.rt.padStart(2, '0')}`}
+                            </BarisDefinisi>
+                            <BarisDefinisi tumpuk label="Anak ke-">
+                                {anak.anakKe ?? KOSONG}
+                            </BarisDefinisi>
+                            <BarisDefinisi tumpuk label="Berat lahir">
+                                {satuan(anak.bbLahirKg, 'kg', 2)}
+                                {anak.bbLahirMeragukan && (
+                                    <span className="block text-sm text-tone-amber">
+                                        Angka di arsip meragukan
+                                    </span>
+                                )}
+                                {/* BBLR hanya ditandai bila angkanya
+                                    tepercaya: satu baris di arsip menyimpan
+                                    berat lahir yang satuannya diragukan, dan
+                                    angka yang diragukan tidak boleh memicu
+                                    penanda klinis. Berat lahir kosong juga
+                                    bukan BBLR - kosong berarti tidak tercatat,
+                                    bukan rendah. */}
+                                {anak.bbLahirKg !== null &&
+                                    !anak.bbLahirMeragukan &&
+                                    anak.bbLahirKg < 2.5 && (
+                                        <span className="block text-sm font-semibold text-tone-blue">
+                                            BBLR, di bawah 2,5 kg
+                                        </span>
+                                    )}
+                            </BarisDefinisi>
+                            {/* Dua fakta yang sudah ada di arsip sejak impor dan
+                                tidak pernah sekali pun muncul di layar. */}
+                            <BarisDefinisi tumpuk label="Buku KIA">
+                                {anak.bukuKia ? (
+                                    'Ada'
+                                ) : (
+                                    <span className="font-semibold text-tone-blue">
+                                        Belum ada
+                                    </span>
+                                )}
+                            </BarisDefinisi>
+                        </dl>
+                    </section>
+
+                    {terbaru === null ? (
+                        <p className="kartu bg-surface-subtle px-6 py-6 text-base">
+                            Belum ada pengukuran untuk anak ini sampai{' '}
+                            {periode.label}, jadi status gizi belum dapat
+                            ditampilkan.
                         </p>
-                    </div>
-                    <p className="text-base font-semibold text-primary-foreground">
-                        {anak.jk === 'L'
-                            ? 'Laki-laki'
-                            : anak.jk === 'P'
-                              ? 'Perempuan'
-                              : KOSONG}
-                        {umur !== null && ` · ${umurPanjang(umur)}`}
-                    </p>
-                </div>
-
-                <div className="p-5 sm:p-6">
-                    <dl className="grid gap-x-10 gap-y-4 sm:grid-cols-2 xl:grid-cols-3">
-                        <BarisDefinisi label="Tanggal lahir">
-                            {tanggalPanjang(anak.tglLahir)}
-                        </BarisDefinisi>
-                        <BarisDefinisi label="NIK">
-                            {nik(anak.nik)}
-                            {!anak.nikLengkap && (
-                                <span className="block text-sm text-tone-amber">
-                                    NIK belum lengkap
-                                </span>
-                            )}
-                        </BarisDefinisi>
-                        <BarisDefinisi label="Berat lahir">
-                            {satuan(anak.bbLahirKg, 'kg', 2)}
-                            {anak.bbLahirMeragukan && (
-                                <span className="block text-sm text-tone-amber">
-                                    Angka di arsip meragukan
-                                </span>
-                            )}
-                        </BarisDefinisi>
-                        <BarisDefinisi label="Ibu">
-                            {anak.namaOrtu ?? KOSONG}
-                        </BarisDefinisi>
-                        <BarisDefinisi label="Alamat">
-                            {anak.rt === null
-                                ? KOSONG
-                                : `RT ${anak.rt.padStart(2, '0')}`}
-                            {anak.anakKe !== null && `, anak ke-${anak.anakKe}`}
-                        </BarisDefinisi>
-                    </dl>
-
-                    <div className="mt-6 border-t border-border pt-5">
-                        <h3 className="text-base font-bold">
-                            Catatan kesehatan
-                        </h3>
-                        <p className="mt-1 max-w-[72ch] text-sm text-muted-foreground">
-                            Belum ada catatan imunisasi maupun catatan bidan.
-                            Saat tersedia, catatan terbaru akan muncul di sini
-                            agar riwayat kesehatan anak dapat dibaca dari satu
-                            tempat.
-                        </p>
-                    </div>
-                </div>
-            </section>
-
-            {terbaru === null && tabAktif !== 'profil' ? (
-                <section
-                    id={`panel-${tabAktif}`}
-                    role="tabpanel"
-                    aria-labelledby={`tab-${tabAktif}`}
-                >
-                    <p className="kartu bg-surface-subtle px-6 py-6 text-base">
-                        {PESAN_TAB_KOSONG[tabAktif]}
-                    </p>
-                </section>
-            ) : (
-                <>
-                    {/* Pemilih periode di sidebar dulu tidak berpengaruh apa pun
+                    ) : (
+                        <>
+                            {/* Pemilih periode di sidebar dulu tidak berpengaruh apa pun
                         di layar ini: 22 dari 123 anak terakhir ditimbang sebelum
                         Juni dan tetap menampilkan status hijau tanpa satu kata
                         pun bahwa angkanya sudah dua bulan. */}
-                    {tabAktif === 'status' && basi && (
-                        <p className="mb-7 flex max-w-[90ch] items-start gap-3 rounded-xl border border-tone-amber bg-tone-amber-bg p-5 text-base text-tone-amber">
-                            <TriangleAlert
-                                className="mt-0.5 size-5 shrink-0"
-                                strokeWidth={2.5}
-                                aria-hidden="true"
-                            />
-                            <span>
-                                <span className="font-bold">
-                                    Belum ditimbang pada {periode.label}.
-                                </span>{' '}
-                                Angka di bawah berasal dari pengukuran{' '}
-                                {tanggalPanjang(terbaru.tanggalUkur)}.
-                            </span>
-                        </p>
-                    )}
+                            {basi && (
+                                <p className="flex max-w-[90ch] shrink-0 items-start gap-3 rounded-xl border border-tone-amber bg-tone-amber-bg p-5 text-base text-tone-amber">
+                                    <TriangleAlert
+                                        className="mt-0.5 size-5 shrink-0"
+                                        strokeWidth={2.5}
+                                        aria-hidden="true"
+                                    />
+                                    <span>
+                                        <span className="font-bold">
+                                            Belum ditimbang pada {periode.label}
+                                            .
+                                        </span>{' '}
+                                        Angka di bawah berasal dari pengukuran{' '}
+                                        {tanggalPanjang(terbaru.tanggalUkur)}.
+                                    </span>
+                                </p>
+                            )}
 
-                    <section
-                        id="panel-status"
-                        role="tabpanel"
-                        aria-labelledby="tab-status"
-                        hidden={tabAktif !== 'status'}
-                    >
-                        <h2 className="text-xl font-extrabold">
-                            Status pengukuran{' '}
-                            {tanggalPanjang(terbaru.tanggalUkur)}
-                        </h2>
+                            <section>
+                                <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                                    <h2 className="text-xl font-extrabold">
+                                        Status pengukuran{' '}
+                                        {tanggalPanjang(terbaru.tanggalUkur)}
+                                    </h2>
+                                    {/* Vonis naik sebaris dengan judulnya: dulu ia
+                                        baris tersendiri di bawah ketiga kartu, satu
+                                        baris penuh untuk lima kata. */}
+                                    <p className="text-base font-bold">
+                                        {perluTindakLanjut
+                                            ? 'Perlu tindak lanjut bulan ini.'
+                                            : 'Tidak perlu tindak lanjut bulan ini.'}
+                                    </p>
+                                </div>
 
-                        {/* Tiga kartu indeks berdampingan, susunan artboard.
+                                {/* Tiga kartu indeks berdampingan, susunan artboard.
                             Yang terberat tetap di depan: urutannya dihitung
                             dari nadanya, bukan dari urutan tulis — supaya mata
                             jatuh lebih dulu pada vonis yang menentukan. */}
-                        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                            {terurut.map((i) => (
-                                <KartuIndeks
-                                    key={i.label}
-                                    label={i.label}
-                                    nilai={i.nilai}
-                                />
-                            ))}
-                        </div>
+                                <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                                    {terurut.map((i) => (
+                                        <KartuIndeks
+                                            key={i.label}
+                                            label={i.label}
+                                            nilai={i.nilai}
+                                        />
+                                    ))}
+                                </div>
 
-                        {/* Layar ini dulu tidak pernah menjawab pertanyaan yang
+                                {/* Layar ini dulu tidak pernah menjawab pertanyaan yang
                             jadi alasan keberadaannya: anak ini perlu
                             ditindaklanjuti atau tidak. */}
-                        <p className="mt-4 text-base font-bold">
-                            {perluTindakLanjut
-                                ? 'Perlu tindak lanjut bulan ini.'
-                                : 'Tidak perlu tindak lanjut bulan ini.'}
-                        </p>
+                            </section>
 
-                        <p className="mt-2 max-w-[80ch] text-sm text-pretty text-muted-foreground">
-                            Acuan standar pertumbuhan WHO 2006, dihitung dari
-                            parameter LMS. Nilainya sama dengan tabel Permenkes
-                            No. 2 Tahun 2020. Indeks mengikuti umur anak: BB/PB
-                            di bawah 24 bulan, BB/TB untuk 24 bulan ke atas.
-                        </p>
+                            {/* Kurva berdiri sebelum tabel riwayat, mengikuti urutan
+                                bagian 6.5 — dan membuat kalimat "kurva di atas" pada
+                                kepala tabel itu benar. Lebarnya penuh: di kolom
+                                setengah halaman gambarnya hanya 614 x 221 px dan teks
+                                labelnya 8,6 px, di bawah batas 15 px yang
+                                docs/05-uiux-spec.md bagian 8 sebut tidak diturunkan. */}
+                            {/* Baris bawah menyerap sisa tinggi layar: kurva di kiri,
+                                riwayat di kanan yang menggulir sendiri. Pembagian 1,6:1
+                                dipilih dari batas keterbacaan, bukan dari selera —
+                                kolom kurva harus tetap di atas ~780 px supaya teks di
+                                dalamnya bertahan di atas 15 px. */}
+                            <div className="grid gap-4 lebar:col-span-2 lebar:min-h-0 lebar:grid-cols-[1.6fr_1fr]">
+                                <section className="flex min-w-0 flex-col lebar:min-h-0">
+                                    {/* Dulu bagian ini tidak punya judul sama sekali: yang
+                                        terlihat hanya slogan Buku KIA, sehingga navigasi
+                                        judul pembaca layar melewati 35% halaman. */}
+                                    <h2 className="text-xl font-extrabold">
+                                        Kurva berat badan menurut umur
+                                    </h2>
 
-                        {/* Asumsi sistem harus terlihat di antarmuka, bukan hanya
-                            di basis data (prinsip P4). */}
-                        {terbaru.catatanUkur?.jenisUkur !== undefined && (
-                            <p className="mt-2 max-w-[80ch] text-sm text-muted-foreground">
-                                Cara ukur {terbaru.catatanUkur.jenisUkur}:{' '}
-                                {umur !== null && umur < 24
-                                    ? 'panjang badan, telentang'
-                                    : 'tinggi badan, berdiri'}
-                                . Berkas sumber tidak mencatatnya.
-                            </p>
-                        )}
-                    </section>
-
-                    {/* Kurva dan riwayat adalah cerita yang sama, jadi jaraknya
-                        lebih rapat satu sama lain daripada ke bagian lain. */}
-                    <section
-                        id="panel-kurva"
-                        role="tabpanel"
-                        aria-labelledby="tab-kurva"
-                        hidden={tabAktif !== 'kurva'}
-                    >
-                        {riwayatKurva.length === 0 ? (
-                            <p className="mt-2 text-base text-muted-foreground">
-                                Belum ada pengukuran berat yang dapat
-                                digambarkan.
-                            </p>
-                        ) : riwayatKurva.length < 2 ? (
-                            <p className="mt-2 text-base text-muted-foreground">
-                                Baru satu kali pengukuran — kurva muncul setelah
-                                pengukuran berikutnya.
-                            </p>
-                        ) : (
-                            anak.jk !== null && (
-                                <div className="overflow-hidden rounded-xl border border-border bg-card">
-                                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-surface-subtle px-4 py-3 sm:px-5">
-                                        <div>
+                                    {riwayatKurva.length === 0 ? (
+                                        <p className="mt-2 text-base text-muted-foreground">
+                                            Belum ada pengukuran berat yang
+                                            dapat digambarkan.
+                                        </p>
+                                    ) : riwayatKurva.length < 2 ? (
+                                        <p className="mt-2 text-base text-muted-foreground">
+                                            Baru satu kali pengukuran — kurva
+                                            muncul setelah pengukuran
+                                            berikutnya.
+                                        </p>
+                                    ) : (
+                                        anak.jk !== null && (
+                                            <KmsChart
+                                                kompak
+                                                penuh
+                                                kelamin={anak.jk}
+                                                panelAwal={panelAwal}
+                                                skalaMax={skalaMax}
+                                                riwayat={riwayatKurva}
+                                                garisSd={garisSd}
+                                                umurDisorot={umurDisorot}
+                                                detail={pengukuran
+                                                    .filter(
+                                                        (
+                                                            p,
+                                                        ): p is Pengukuran & {
+                                                            umurBulan: number;
+                                                            bbKg: number;
+                                                        } =>
+                                                            p.umurBulan !==
+                                                                null &&
+                                                            p.bbKg !== null,
+                                                    )
+                                                    .map((p) => ({
+                                                        umurBulan: p.umurBulan,
+                                                        beratKg: p.bbKg,
+                                                        tanggal: p.tanggalUkur,
+                                                        z:
+                                                            p.penilaian.BB_U
+                                                                ?.z ?? null,
+                                                        kategori:
+                                                            p.penilaian.BB_U
+                                                                ?.kategori ??
+                                                            null,
+                                                    }))}
+                                            />
+                                        )
+                                    )}
+                                </section>
+                                <section className="flex min-w-0 flex-col lebar:min-h-0">
+                                    <div className="kartu flex flex-col overflow-hidden lebar:min-h-0 lebar:flex-1">
+                                        {/* Judul menyatu dengan kartunya di strip kepala,
+                                    seperti artboard. */}
+                                        <div className="strip-kepala shrink-0">
                                             <h2 className="text-xl font-extrabold">
-                                                Kartu Menuju Sehat
+                                                Riwayat pengukuran
                                             </h2>
+                                            {/* Mengklik baris menyorot titiknya di kurva.
+                                        Dulu tidak ada satu pun tanda bahwa itu
+                                        mungkin, dan <tr onClick> tidak bisa
+                                        dijangkau papan tombol sama sekali. */}
                                             <p className="mt-0.5 text-sm text-muted-foreground">
-                                                Berat badan menurut umur · WHO
-                                                2006
+                                                Pilih tanggal untuk menyorot
+                                                titiknya pada kurva di atas.
+                                            </p>
+                                            <p className="mt-2 text-sm text-muted-foreground md:hidden">
+                                                Tabel ini lebih lebar daripada
+                                                layar. Geser ke samping untuk
+                                                melihat kolom status gizi.
                                             </p>
                                         </div>
-                                        <p className="text-sm font-semibold text-muted-foreground">
-                                            {nama} · {umurPanjang(umur)}
-                                        </p>
-                                    </div>
-                                    <div className="px-4 py-3 sm:px-5">
-                                        <KmsChart
-                                            kelamin={anak.jk}
-                                            panelAwal={panelAwal}
-                                            skalaMax={skalaMax}
-                                            riwayat={riwayatKurva}
-                                            garisSd={garisSd}
-                                            umurDisorot={umurDisorot}
-                                            detail={pengukuran
-                                                .filter(
-                                                    (
-                                                        p,
-                                                    ): p is Pengukuran & {
-                                                        umurBulan: number;
-                                                        bbKg: number;
-                                                    } =>
-                                                        p.umurBulan !== null &&
-                                                        p.bbKg !== null,
-                                                )
-                                                .map((p) => ({
-                                                    umurBulan: p.umurBulan,
-                                                    beratKg: p.bbKg,
-                                                    tanggal: p.tanggalUkur,
-                                                    z:
-                                                        p.penilaian.BB_U?.z ??
-                                                        null,
-                                                    kategori:
-                                                        p.penilaian.BB_U
-                                                            ?.kategori ?? null,
-                                                }))}
-                                        />
-                                    </div>
-                                </div>
-                            )
-                        )}
-                    </section>
 
-                    <section
-                        id="panel-riwayat"
-                        role="tabpanel"
-                        aria-labelledby="tab-riwayat"
-                        hidden={tabAktif !== 'riwayat'}
-                    >
-                        <div className="kartu overflow-hidden">
-                            {/* Judul menyatu dengan kartunya di strip kepala,
-                                seperti artboard. */}
-                            <div className="strip-kepala">
-                                <h2 className="text-xl font-extrabold">
-                                    Riwayat pengukuran
-                                </h2>
-                                {/* Mengklik baris menyorot titiknya di kurva.
-                                    Dulu tidak ada satu pun tanda bahwa itu
-                                    mungkin, dan <tr onClick> tidak bisa
-                                    dijangkau papan tombol sama sekali. */}
-                                <p className="mt-0.5 text-sm text-muted-foreground">
-                                    Pilih tanggal untuk menyorot titiknya pada
-                                    kurva di atas.
-                                </p>
-                                <p className="mt-2 text-sm text-muted-foreground md:hidden">
-                                    Tabel ini lebih lebar daripada layar. Geser
-                                    ke samping untuk melihat kolom z-score.
-                                </p>
-                            </div>
-
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead scope="col">
-                                            Tanggal
-                                        </TableHead>
-                                        <TableHead
-                                            scope="col"
-                                            className="hidden lg:table-cell"
-                                        >
-                                            Umur
-                                        </TableHead>
-                                        <TableHead scope="col">Berat</TableHead>
-                                        <TableHead scope="col">
-                                            Panjang atau Tinggi
-                                        </TableHead>
-                                        <TableHead scope="col">
-                                            {labelIndeks('BB_TB', umur)}
-                                        </TableHead>
-                                        <TableHead scope="col">
-                                            {labelIndeks('TB_U', umur)}
-                                        </TableHead>
-                                        <TableHead
-                                            scope="col"
-                                            className="hidden md:table-cell"
-                                        >
-                                            Pertumbuhan
-                                        </TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {pengukuran.map((p, urutan) => {
-                                        const sebab =
-                                            p.statusKehadiran === 'hadir'
-                                                ? null
-                                                : (ARTI_KEHADIRAN[
-                                                      p.statusKehadiran
-                                                  ] ?? null);
-                                        const peringatan = janggal(urutan);
-
-                                        return (
-                                            <TableRow
-                                                key={p.periodeId}
-                                                aria-current={
-                                                    p.umurBulan === umurDisorot
-                                                        ? 'true'
-                                                        : undefined
-                                                }
-                                                className={
-                                                    p.umurBulan === umurDisorot
-                                                        ? 'bg-accent'
-                                                        : ''
-                                                }
-                                            >
-                                                <TableCell className="py-1">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            setUmurDisorot(
-                                                                p.umurBulan,
-                                                            )
-                                                        }
-                                                        className="inline-flex min-h-13 items-center rounded-lg px-3 font-semibold text-primary underline"
+                                        <Table containerClassName="lebar:min-h-0 lebar:flex-1">
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead scope="col">
+                                                        Tanggal
+                                                    </TableHead>
+                                                    <TableHead
+                                                        scope="col"
+                                                        className="hidden lg:table-cell"
                                                     >
-                                                        {tanggalRingkas(
-                                                            p.tanggalUkur,
+                                                        Umur
+                                                    </TableHead>
+                                                    <TableHead scope="col">
+                                                        Berat
+                                                    </TableHead>
+                                                    <TableHead scope="col">
+                                                        Panjang atau Tinggi
+                                                    </TableHead>
+                                                    <TableHead scope="col">
+                                                        {labelIndeks(
+                                                            'BB_TB',
+                                                            umur,
                                                         )}
-                                                    </button>
-                                                    {/* Baris kosong sekarang
-                                                        menyebutkan sebabnya. */}
-                                                    {sebab !== null && (
-                                                        <span className="block px-3 pb-1 text-sm text-muted-foreground">
-                                                            {sebab}
-                                                        </span>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell className="hidden whitespace-nowrap lg:table-cell">
-                                                    {umurRingkas(p.umurBulan)}
-                                                </TableCell>
-                                                <TableCell className="whitespace-nowrap">
-                                                    {satuan(p.bbKg, 'kg', 2)}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {satuan(p.tinggiCm, 'cm')}
-                                                    {/* Keterangan cara ukur
-                                                        hanya bila ada angkanya:
-                                                        dulu ia tetap dicetak di
-                                                        bawah pengukuran yang
-                                                        tidak pernah terjadi. */}
-                                                    {p.tinggiCm !== null && (
-                                                        <span className="block text-sm text-muted-foreground">
-                                                            {p.umurBulan !==
-                                                                null &&
-                                                            p.umurBulan < 24
-                                                                ? 'panjang badan'
-                                                                : 'tinggi badan'}
-                                                        </span>
-                                                    )}
-                                                    {peringatan !== null && (
-                                                        <span className="mt-1 flex items-start gap-1.5 text-sm text-tone-amber">
-                                                            <TriangleAlert
-                                                                className="mt-0.5 size-4 shrink-0"
-                                                                strokeWidth={
-                                                                    2.5
-                                                                }
-                                                                aria-hidden="true"
-                                                            />
-                                                            {peringatan}
-                                                        </span>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <ZScoreCell
-                                                        nilai={
-                                                            p.penilaian.BB_TB
-                                                        }
-                                                    />
-                                                </TableCell>
-                                                <TableCell>
-                                                    <ZScoreCell
-                                                        nilai={p.penilaian.TB_U}
-                                                    />
-                                                </TableCell>
-                                                <TableCell className="hidden md:table-cell">
-                                                    {p.ntob === null
-                                                        ? KOSONG
-                                                        : (ARTI_NTOB[
-                                                              p.ntob.toUpperCase()
-                                                          ] ?? p.ntob)}
-                                                </TableCell>
-                                            </TableRow>
-                                        );
-                                    })}
-                                </TableBody>
-                            </Table>
-                        </div>
+                                                    </TableHead>
+                                                    <TableHead scope="col">
+                                                        {labelIndeks(
+                                                            'TB_U',
+                                                            umur,
+                                                        )}
+                                                    </TableHead>
+                                                    <TableHead
+                                                        scope="col"
+                                                        className="hidden md:table-cell"
+                                                    >
+                                                        Pertumbuhan
+                                                    </TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {pengukuran.map((p, urutan) => {
+                                                    const sebab =
+                                                        p.statusKehadiran ===
+                                                        'hadir'
+                                                            ? null
+                                                            : (ARTI_KEHADIRAN[
+                                                                  p
+                                                                      .statusKehadiran
+                                                              ] ?? null);
+                                                    const peringatan =
+                                                        janggal(urutan);
 
-                        <p className="mt-3 max-w-[80ch] text-sm text-muted-foreground">
-                            Kolom Pertumbuhan menampilkan huruf N, T, O, dan B
-                            apa adanya dari arsip. Aturan 1T/2T/3T belum
-                            diterapkan karena definisinya masih dikonfirmasi.
-                        </p>
-                    </section>
-                </>
-            )}
+                                                    return (
+                                                        <TableRow
+                                                            key={p.periodeId}
+                                                            aria-current={
+                                                                p.umurBulan ===
+                                                                umurDisorot
+                                                                    ? 'true'
+                                                                    : undefined
+                                                            }
+                                                            className={
+                                                                p.umurBulan ===
+                                                                umurDisorot
+                                                                    ? 'bg-accent'
+                                                                    : ''
+                                                            }
+                                                        >
+                                                            <TableCell className="py-1">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        setUmurDisorot(
+                                                                            p.umurBulan,
+                                                                        )
+                                                                    }
+                                                                    className="inline-flex min-h-13 items-center rounded-lg px-3 font-semibold text-primary underline"
+                                                                >
+                                                                    {tanggalRingkas(
+                                                                        p.tanggalUkur,
+                                                                    )}
+                                                                </button>
+                                                                {/* Baris kosong sekarang
+                                                            menyebutkan sebabnya. */}
+                                                                {sebab !==
+                                                                    null && (
+                                                                    <span className="block px-3 pb-1 text-sm text-muted-foreground">
+                                                                        {sebab}
+                                                                    </span>
+                                                                )}
+                                                            </TableCell>
+                                                            <TableCell className="hidden whitespace-nowrap lg:table-cell">
+                                                                {umurRingkas(
+                                                                    p.umurBulan,
+                                                                )}
+                                                            </TableCell>
+                                                            <TableCell className="whitespace-nowrap">
+                                                                {satuan(
+                                                                    p.bbKg,
+                                                                    'kg',
+                                                                    2,
+                                                                )}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                {satuan(
+                                                                    p.tinggiCm,
+                                                                    'cm',
+                                                                )}
+                                                                {/* Keterangan cara ukur
+                                                            hanya bila ada angkanya:
+                                                            dulu ia tetap dicetak di
+                                                            bawah pengukuran yang
+                                                            tidak pernah terjadi. */}
+                                                                {p.tinggiCm !==
+                                                                    null && (
+                                                                    <span className="block text-sm text-muted-foreground">
+                                                                        {p.umurBulan !==
+                                                                            null &&
+                                                                        p.umurBulan <
+                                                                            24
+                                                                            ? 'panjang badan'
+                                                                            : 'tinggi badan'}
+                                                                    </span>
+                                                                )}
+                                                                {peringatan !==
+                                                                    null && (
+                                                                    <span className="mt-1 flex items-start gap-1.5 text-sm text-tone-amber">
+                                                                        <TriangleAlert
+                                                                            className="mt-0.5 size-4 shrink-0"
+                                                                            strokeWidth={
+                                                                                2.5
+                                                                            }
+                                                                            aria-hidden="true"
+                                                                        />
+                                                                        {
+                                                                            peringatan
+                                                                        }
+                                                                    </span>
+                                                                )}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <ZScoreCell
+                                                                    nilai={
+                                                                        p
+                                                                            .penilaian
+                                                                            .BB_TB
+                                                                    }
+                                                                />
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <ZScoreCell
+                                                                    nilai={
+                                                                        p
+                                                                            .penilaian
+                                                                            .TB_U
+                                                                    }
+                                                                />
+                                                            </TableCell>
+                                                            <TableCell className="hidden md:table-cell">
+                                                                {p.ntob === null
+                                                                    ? KOSONG
+                                                                    : (ARTI_NTOB[
+                                                                          p.ntob.toUpperCase()
+                                                                      ] ??
+                                                                      p.ntob)}
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    );
+                                                })}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                </section>
+                            </div>
+                        </>
+                    )}
 
-            {/* Tombol yang hanya memunculkan window.alert("Belum
+                    {/* Tombol yang hanya memunculkan window.alert("Belum
                 tersedia di demo") dibuang. Kontrol yang menjanjikan sesuatu
                 lalu menolaknya lebih buruk daripada kontrol yang tidak ada;
                 kalimat di atas sudah menyebut keadaannya. */}
+                </div>
+            </div>
         </Halaman>
     );
 }
@@ -738,17 +739,17 @@ function KartuIndeks({
     const warna = WARNA_NADA[nadaKategori(nilai?.kategori ?? null)];
 
     return (
-        <div className="kartu p-5">
+        <div className="kartu p-3.5">
             <p className="text-sm font-bold text-muted-foreground">{label}</p>
             <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
                 <span
-                    className={`text-3xl leading-none font-extrabold ${warna}`}
+                    className={`text-2xl leading-none font-extrabold ${warna}`}
                 >
                     {nilai === undefined ? KOSONG : zScore(nilai.z)}
                 </span>
                 <span className="text-sm text-muted-foreground">SD</span>
             </p>
-            <p className={`mt-1.5 text-base font-bold text-pretty ${warna}`}>
+            <p className={`mt-1.5 text-sm font-bold text-pretty ${warna}`}>
                 {nilai?.kategori ?? 'Belum dapat dinilai'}
             </p>
         </div>

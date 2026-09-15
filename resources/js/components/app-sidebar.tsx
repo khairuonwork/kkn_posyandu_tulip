@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Baby, Calendar, FileText, House, Settings } from 'lucide-react';
+import { Baby, FileText, House, Settings } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -35,10 +35,9 @@ export function AppSidebar() {
 
     const mainNavItems: NavItem[] = [
         { title: 'Beranda', href: dashboardUrl, icon: House },
-        { title: 'Data Anak', href: '/balita', icon: Baby },
+        { title: 'Data Balita', href: '/balita', icon: Baby },
         { title: 'Laporan', href: '/laporan', icon: FileText },
         { title: 'Pengaturan', href: '/pengaturan', icon: Settings },
-        { title: 'Periode', href: '/periode', icon: Calendar },
     ];
 
     return (

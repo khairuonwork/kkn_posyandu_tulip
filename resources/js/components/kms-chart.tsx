@@ -19,15 +19,81 @@ import { useState } from 'react';
 import { satuan, tanggalRingkas, zScore } from '@/lib/format';
 import type { GarisSd, JenisKelamin } from '@/types/posyandu';
 
-const LEBAR = 1500;
-const TINGGI = 500;
-const KIRI = 64;
-const KANAN = 64;
-const ATAS = 12;
-const BAWAH = 60;
+/* Ukuran teks di dalam SVG memakai satuan viewBox, bukan piksel: pada lebar
+   tayang 992 px terhadap viewBox 1500, tiap satuan menyusut 1,5x. Nilai lama
+   16-17 satuan jatuh ke 10,6 px di layar — di bawah badan teks halamannya
+   sendiri, pada grafik yang justru harus dibaca kader. 23-24 satuan mendarat
+   di sekitar 15 px. */
+/**
+ * Geometri kartu, dua ragam.
+ *
+ * Seluruh angka di dalam SVG memakai satuan viewBox, dan ukuran tayangnya
+ * `px = satuan x lebarTayang / g.LEBAR`. Karena itu ragam kompak bukan sekadar
+ * "teks lebih besar": pinggirannya ikut melebar untuk menampung teks yang lebih
+ * besar itu, dan kartunya dibuat lebih jangkung supaya garis kilogram tidak
+ * berdempetan. Menaikkan ukuran teks tanpa menaikkan pinggirannya persis yang
+ * membuat angka kg saling menimpa dan judul sumbu terpotong.
+ */
+/**
+ * Ukuran teks ragam kompak, dan seluruh pinggiran diturunkan darinya.
+ *
+ * Diturunkan, bukan ditulis satu-satu: tiga kali berturut-turut angka ini
+ * dinaikkan tanpa pinggirannya ikut ditinjau, dan tiga kali pula teksnya
+ * bertabrakan — angka kg saling menimpa, judul sumbu menimpa angka, angka
+ * bulan menimpa judulnya. Sekarang semuanya bergerak bersama.
+ *
+ * 48 dihitung dari kasus tersempit yang terukur. Pada jendela 1088-1180 x 645
+ * SVG-nya dibatasi tinggi, bukan lebar: kotaknya berhenti di ~203 px, jadi
+ * skalanya 203/620 dan bukan lebar/1500. Lantai 15 px pada docs/05-uiux-spec.md
+ * §8 menuntut 15 x 620 / 203 = 45,8 -- tetapi angka 46 mendarat di 14,9 px
+ * karena tinggi sebenarnya 201 px. 48 memberi 15,6 px dengan sisa aman.
+ */
+const KOMPAK_TIK = 48;
 
-const PLOT_LEBAR = LEBAR - KIRI - KANAN;
-const PLOT_TINGGI = TINGGI - ATAS - BAWAH;
+const GEOMETRI = {
+    /** Kurva selebar halaman. */
+    lebar: {
+        LEBAR: 1500,
+        TINGGI: 540,
+        KIRI: 64,
+        KANAN: 64,
+        ATAS: 12,
+        BAWAH: 96,
+        tik: 23,
+        judulSumbu: 24,
+        tikBawah: 26,
+        labelTitik: true,
+    },
+    /** Kurva di kolom sempit. Pinggirannya ikut ukuran teks, lihat di atas. */
+    kompak: {
+        LEBAR: 1500,
+        TINGGI: 620,
+        /* Menampung angka kg dua digit dan judul sumbu tegak berdampingan. */
+        KIRI: Math.round(KOMPAK_TIK * 3.3),
+        KANAN: Math.round(KOMPAK_TIK * 1.7),
+        ATAS: 16,
+        /* Garis sumbu, angka bulan, lalu judul "Umur, bulan" — tiga hal
+           berurutan, masing-masing setinggi ~1,28 kali ukuran teksnya. */
+        BAWAH: Math.round(KOMPAK_TIK * 3.3),
+        tik: KOMPAK_TIK,
+        judulSumbu: KOMPAK_TIK,
+        /* Cukup jauh supaya angka bulan lepas dari angka kg di pojok, dan
+           masih menyisakan ruang untuk judul sumbu di bawahnya. */
+        tikBawah: Math.round(KOMPAK_TIK * 1.45),
+        labelTitik: false,
+    },
+};
+
+/* Label z-score di atas tiap titik, dan jarak angkatnya.
+   Diikat menjadi satu kelompok dengan sengaja: ukuran teksnya pernah dinaikkan
+   15 -> 21 satuan tanpa jarak angkatnya ikut ditinjau, dan labelnya jadi
+   menempel ke penanda titik. Yang di bawah ini bergerak bersama. */
+const LABEL_UKURAN = 21;
+const TITIK_JARI = 7;
+const TITIK_GARIS = 3.5;
+/* Dari pusat titik ke garis alas teks: jari-jari penanda, tebal garisnya, lalu
+   sisa ruang supaya halo putih teks tidak menyentuh penandanya. */
+const LABEL_ANGKAT = TITIK_JARI + TITIK_GARIS / 2 + 7;
 
 /** Satu panel memuat jendela 12 bulan, sama seperti lembar KMS Buku KIA. */
 const PANEL_BULAN = 12;
@@ -87,6 +153,32 @@ type Props = {
     /** Titik yang sedang disorot dari tabel riwayat. */
     umurDisorot?: number | null;
     onGantiPanel?: (awal: number) => void;
+    /**
+     * Kurva berdiri di kolom sempit, bukan selebar halaman.
+     *
+     * Ukuran teks di dalam SVG berbanding lurus dengan lebar tayangnya:
+     * `px = satuan x lebarTayang / 1500`. Pada kolom ~790 px, satuan 23-24
+     * mendarat di 12 px — di bawah batas 15 px yang docs/05-uiux-spec.md
+     * bagian 8 sebut tidak diturunkan. Mode ini menaikkan satuannya supaya
+     * hasil akhirnya tetap di atas batas itu.
+     *
+     * Konsekuensinya label z-score per titik ditiadakan: pada satuan sebesar
+     * itu lebarnya 132 satuan sementara jarak antar bulan hanya 114, jadi
+     * pasti bertabrakan. Angkanya tetap ada di tooltip titik dan di tabel
+     * Riwayat, yang pada tata letak ini berdiri tepat di sebelahnya.
+     */
+    kompak?: boolean;
+    /**
+     * Kurva mengisi tinggi wadahnya, bukan lebarnya.
+     *
+     * Dipakai layar Detail yang dibatasi tinggi jendela. Bawaannya `w-full`
+     * dengan tinggi mengikuti rasio — bagus untuk satu kolom penuh, tapi di
+     * kolom setengah lebar ia tetap selebar `min-w` dan tingginya ikut memaksa
+     * halaman menggulir. Dengan `penuh`, tingginya yang dipatok dan lebarnya
+     * yang mengikuti; kelebihan lebar digeser mendatar di dalam wadahnya
+     * sendiri, seperti sebelumnya.
+     */
+    penuh?: boolean;
 };
 
 export default function KmsChart({
@@ -98,7 +190,12 @@ export default function KmsChart({
     detail = [],
     umurDisorot = null,
     onGantiPanel,
+    penuh = false,
+    kompak = false,
 }: Props) {
+    const g = kompak ? GEOMETRI.kompak : GEOMETRI.lebar;
+    const plotLebar = g.LEBAR - g.KIRI - g.KANAN;
+    const plotTinggi = g.TINGGI - g.ATAS - g.BAWAH;
     const [panel, setPanel] = useState(panelAwal);
     const gantiPanel = (awal: number) => {
         setPanel(awal);
@@ -132,10 +229,30 @@ export default function KmsChart({
     const skala = Math.max(skalaMax, Math.ceil(sdTertinggi));
 
     const x = (umur: number) =>
-        KIRI + ((umur - panel) / PANEL_BULAN) * PLOT_LEBAR;
-    const y = (kg: number) => ATAS + (1 - (kg - 1) / (skala - 1)) * PLOT_TINGGI;
+        g.KIRI + ((umur - panel) / PANEL_BULAN) * plotLebar;
+    const y = (kg: number) =>
+        g.ATAS + (1 - (kg - 1) / (skala - 1)) * plotTinggi;
 
     const kgPanel = Array.from({ length: skala }, (_, i) => i + 1);
+    /* Garis bantu tetap tiap 1 kg, tetapi angkanya diencerkan bila jaraknya
+       lebih rapat daripada tinggi hurufnya sendiri. Pada ragam kompak jarak
+       antar garis kg ~30 satuan sementara hurufnya 40 — tanpa ini angkanya
+       saling menimpa, persis yang terjadi sebelum perbaikan ini. */
+    const jarakKg = plotTinggi / Math.max(1, skala - 1);
+    /* Yang harus muat adalah **kotak** teksnya, bukan ukuran fontnya. Kotak
+       satu baris kira-kira 1,3 kali ukuran font; memakai ukuran font apa adanya
+       membuat langkahnya kurang satu, dan angka kg tetap bersinggungan. */
+    const tinggiBarisTeks = g.tik * 1.3;
+    const langkahLabelKg = Math.max(1, Math.ceil(tinggiBarisTeks / jarakKg));
+    /* Angka teratas ikut diberi label hanya bila jaraknya dari angka berlabel
+       sebelumnya memang cukup. Tanpa syarat itu, skala 18 kg berlangkah 2
+       menghasilkan "17" dan "18" berdempetan di ujung atas. */
+    const labelKg = kgPanel.filter((kg) => (kg - 1) % langkahLabelKg === 0);
+    const kgTerakhir = labelKg[labelKg.length - 1];
+
+    if (kgTerakhir !== skala && skala - kgTerakhir >= langkahLabelKg) {
+        labelKg.push(skala);
+    }
 
     /** Titik sepanjang satu garis SD di dalam panel aktif. */
     const titikSd = (z: number) =>
@@ -198,38 +315,39 @@ export default function KmsChart({
     );
     const acuan = kelamin === 'P' ? 'perempuan' : 'laki-laki';
 
+    /* `flex-1 min-h-0`, bukan `h-full`: di dalam kolom lentur `h-full` mengacu
+       pada tinggi yang belum pasti, sehingga `max-h-full` pada SVG di bawahnya
+       tidak punya patokan dan kartunya tetap meluber. */
     return (
-        <div>
-            <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                    <p className="text-base font-bold">
-                        Timbanglah Anak Anda Setiap Bulan
-                    </p>
-                    <p className="text-base font-bold">
-                        Anak Sehat, Tambah Umur, Tambah Berat, Tambah Pandai
-                    </p>
+        <div className={penuh ? 'flex min-h-0 flex-1 flex-col' : ''}>
+            {/* Dua baris slogan Buku KIA - "Timbanglah Anak Anda Setiap
+                Bulan" dan "Anak Sehat, Tambah Umur, Tambah Berat, Tambah
+                Pandai" - dicabut dari sini. Keduanya menyapa orang tua, bukan
+                petugas, dan satu-satunya Title Case di seluruh Portal, tepat di
+                bawah judul aslinya. Slogan itu memang ada di KMS fisik; di sana
+                pembacanya orang tua. */}
+            <div className="mt-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                <div className="flex flex-wrap gap-2">
+                    {panelTampil.map((awal) => (
+                        <button
+                            key={awal}
+                            type="button"
+                            onClick={() => gantiPanel(awal)}
+                            aria-pressed={panel === awal}
+                            className={`min-h-13 rounded-lg px-3.5 text-sm font-semibold ${
+                                panel === awal
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'border border-muted-foreground text-foreground'
+                            }`}
+                        >
+                            {awal}-{awal + PANEL_BULAN} bulan
+                        </button>
+                    ))}
                 </div>
+
                 <p className="text-sm font-semibold text-muted-foreground">
                     Acuan {acuan}, WHO 2006
                 </p>
-            </div>
-
-            <div className="mt-3 flex flex-wrap gap-2">
-                {panelTampil.map((awal) => (
-                    <button
-                        key={awal}
-                        type="button"
-                        onClick={() => gantiPanel(awal)}
-                        aria-pressed={panel === awal}
-                        className={`min-h-10 rounded-lg px-3.5 text-sm font-semibold ${
-                            panel === awal
-                                ? 'bg-primary text-primary-foreground'
-                                : 'border border-muted-foreground text-foreground'
-                        }`}
-                    >
-                        {awal}-{awal + PANEL_BULAN} bulan
-                    </button>
-                ))}
             </div>
 
             {/* Grafik menggulir di dalam wadahnya sendiri; badan halaman tidak
@@ -237,24 +355,46 @@ export default function KmsChart({
                 `tabIndex` membuat wadah yang menggulir bisa digeser dengan
                 panah papan tombol, bukan hanya dengan jari. */}
             <div
-                className="mt-3 overflow-x-auto"
+                className={`gulir-dalam mt-3 overflow-auto ${
+                    penuh ? 'lg:min-h-0 lg:flex-1' : ''
+                }`}
                 tabIndex={0}
                 role="region"
                 aria-label="Kurva pertumbuhan, dapat digeser mendatar"
             >
                 <svg
-                    viewBox={`0 0 ${LEBAR} ${TINGGI}`}
-                    className="h-auto w-full min-w-[820px]"
+                    viewBox={`0 0 ${g.LEBAR} ${g.TINGGI}`}
+                    className={
+                        // Lebar yang menentukan, di semua ukuran. Dulu pada `lg`
+                        // ia `h-full w-auto`: lebarnya mengikuti rasio 3:1
+                        // viewBox terhadap tinggi kartu, sehingga kolom 918 px
+                        // diminta memuat gambar 2.457 px - label sumbu
+                        // "Umur, bulan" terpotong jadi "U" di tepi kanan, dengan
+                        // bilah gulir mendatar di bawahnya. Di bawah `lg` gulir
+                        // mendatar itu memang disengaja (lihat aria-label
+                        // pembungkusnya), jadi hanya `min-w` yang dilepas.
+                        // `max-h-full` menutup tegangan pokok kartu ini: tinggi
+                        // gambar sebanding dengan lebarnya, sedangkan tinggi
+                        // jendela tidak ikut tumbuh secepat itu. Pada 1366x660
+                        // kurvanya jadi 21 px lebih tinggi daripada di
+                        // 1280x645 padahal ruang tegaknya hanya bertambah 15 px,
+                        // dan halamannya menggulir lagi. Dengan batas ini
+                        // gambarnya mengecil dan memusat sendiri, tidak pernah
+                        // meluber.
+                        penuh
+                            ? 'h-auto max-h-full w-full min-w-[820px] lg:min-w-0'
+                            : 'h-auto w-full min-w-[820px]'
+                    }
                     role="img"
                     aria-label={`Kurva berat badan menurut umur, acuan ${acuan} WHO 2006, panel ${panel} sampai ${panel + PANEL_BULAN} bulan`}
                 >
                     <defs>
                         <clipPath id="kms-bidang">
                             <rect
-                                x={KIRI}
-                                y={ATAS}
-                                width={PLOT_LEBAR}
-                                height={PLOT_TINGGI}
+                                x={g.KIRI}
+                                y={g.ATAS}
+                                width={plotLebar}
+                                height={plotTinggi}
                             />
                         </clipPath>
                     </defs>
@@ -275,8 +415,8 @@ export default function KmsChart({
                                         key={`m${bulan}-${pecahan}`}
                                         x1={x(bulan + pecahan)}
                                         x2={x(bulan + pecahan)}
-                                        y1={ATAS}
-                                        y2={ATAS + PLOT_TINGGI}
+                                        y1={g.ATAS}
+                                        y2={g.ATAS + plotTinggi}
                                         stroke={TINTA}
                                         strokeWidth={0.6}
                                         opacity={0.35}
@@ -287,8 +427,8 @@ export default function KmsChart({
                         {kgPanel.map((kg) => (
                             <line
                                 key={`kg${kg}`}
-                                x1={KIRI}
-                                x2={KIRI + PLOT_LEBAR}
+                                x1={g.KIRI}
+                                x2={g.KIRI + plotLebar}
                                 y1={y(kg)}
                                 y2={y(kg)}
                                 stroke={TINTA}
@@ -302,8 +442,8 @@ export default function KmsChart({
                                 key={`b${bulan}`}
                                 x1={x(bulan)}
                                 x2={x(bulan)}
-                                y1={ATAS}
-                                y2={ATAS + PLOT_TINGGI}
+                                y1={g.ATAS}
+                                y2={g.ATAS + plotTinggi}
                                 stroke={TINTA}
                                 strokeWidth={1.6}
                             />
@@ -324,22 +464,22 @@ export default function KmsChart({
 
                     {/* Label kg di kiri dan kanan sekaligus, supaya mata tidak
                         perlu menyeberangi seluruh lebar kartu. */}
-                    {kgPanel.map((kg) => (
+                    {labelKg.map((kg) => (
                         <g key={`lkg${kg}`}>
                             <text
-                                x={KIRI - 10}
+                                x={g.KIRI - 10}
                                 y={y(kg) + 5}
                                 textAnchor="end"
-                                fontSize={16}
+                                fontSize={g.tik}
                                 fontWeight={600}
                                 fill={TEKS_SEKUNDER}
                             >
                                 {kg}
                             </text>
                             <text
-                                x={KIRI + PLOT_LEBAR + 10}
+                                x={g.KIRI + plotLebar + 10}
                                 y={y(kg) + 5}
-                                fontSize={16}
+                                fontSize={g.tik}
                                 fontWeight={600}
                                 fill={TEKS_SEKUNDER}
                             >
@@ -352,9 +492,9 @@ export default function KmsChart({
                         <text
                             key={`lb${bulan}`}
                             x={x(bulan)}
-                            y={ATAS + PLOT_TINGGI + 26}
+                            y={g.ATAS + plotTinggi + g.tikBawah}
                             textAnchor="middle"
-                            fontSize={17}
+                            fontSize={g.judulSumbu}
                             fontWeight={600}
                             fill={TEKS_SEKUNDER}
                         >
@@ -363,21 +503,21 @@ export default function KmsChart({
                     ))}
 
                     <text
-                        x={KIRI + PLOT_LEBAR / 2}
-                        y={TINGGI - 24}
+                        x={g.KIRI + plotLebar / 2}
+                        y={g.TINGGI - 18}
                         textAnchor="middle"
-                        fontSize={17}
+                        fontSize={g.judulSumbu}
                         fontWeight={700}
                         fill={TINTA}
                     >
                         Umur, bulan
                     </text>
                     <text
-                        x={-(ATAS + PLOT_TINGGI / 2)}
+                        x={-(g.ATAS + plotTinggi / 2)}
                         y={22}
                         transform="rotate(-90)"
                         textAnchor="middle"
-                        fontSize={17}
+                        fontSize={g.judulSumbu}
                         fontWeight={700}
                         fill={TINTA}
                     >
@@ -414,39 +554,57 @@ export default function KmsChart({
 
                         {dalamPanel.map(([umur, kg], urutan) => {
                             const d = petaDetail.get(kunciTitik(umur, kg));
+                            /* Jarak angkat tetap, tidak lagi berselang-seling
+                               menurut ganjil-genap urutan.
+                               Selang-seling itu dipasang untuk menghindari
+                               tabrakan yang ternyata tidak pernah ada: label
+                               selebar 92 satuan berdiri pada jarak bulan 114
+                               satuan, jadi masih sisa 22. Yang dihasilkannya
+                               justru salah baca — pada anak ini +1,31 dan +1,30
+                               hampir sama nilainya tetapi labelnya terpaut 26
+                               satuan, sehingga tinggi label membaca parity
+                               indeks, bukan angkanya. Di kartu pertumbuhan itu
+                               bukan sekadar tidak rapi. */
                             const labelY = Math.max(
-                                ATAS + 16,
-                                y(kg) - (urutan % 2 === 0 ? 16 : 42),
+                                g.ATAS + LABEL_UKURAN,
+                                y(kg) - LABEL_ANGKAT,
                             );
                             const nilaiTitik =
                                 d?.z === null || d?.z === undefined
                                     ? null
                                     : `${zScore(d.z)} SD`;
+                            const labelTampil = g.labelTitik
+                                ? nilaiTitik
+                                : null;
 
                             return (
                                 <g key={`${kunciTitik(umur, kg)}|${urutan}`}>
-                                    {nilaiTitik !== null && (
+                                    {labelTampil !== null && (
                                         <text
                                             x={x(umur)}
                                             y={labelY}
                                             textAnchor="middle"
-                                            fontSize={15}
+                                            fontSize={LABEL_UKURAN}
                                             fontWeight={700}
                                             fill={TINTA}
                                             stroke="#FFFFFF"
                                             strokeWidth={4}
                                             paintOrder="stroke"
                                         >
-                                            {nilaiTitik}
+                                            {labelTampil}
                                         </text>
                                     )}
                                     <circle
                                         cx={x(umur)}
                                         cy={y(kg)}
-                                        r={umur === umurDisorot ? 10 : 7}
+                                        r={
+                                            umur === umurDisorot
+                                                ? TITIK_JARI + 3
+                                                : TITIK_JARI
+                                        }
                                         fill="#FFFFFF"
                                         stroke={TINTA}
-                                        strokeWidth={3.5}
+                                        strokeWidth={TITIK_GARIS}
                                     >
                                         {/* <title> memberi tooltip asli
                                             peramban tanpa JS, dan ikut terbaca
@@ -484,11 +642,6 @@ export default function KmsChart({
                 />
                 <Legenda warna={GARIS_MERAH} teks="Garis merah, −3 SD" />
             </ul>
-
-            <p className="mt-2 text-sm text-muted-foreground">
-                Garis anak terputus pada bulan tanpa penimbangan. Pita mengikuti
-                standar WHO 2006 yang dipakai KMS Buku KIA.
-            </p>
         </div>
     );
 }

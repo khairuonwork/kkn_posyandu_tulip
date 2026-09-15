@@ -23,6 +23,22 @@
    ketergantungan tetap satu arah. */
 
 @theme {
+    /* Ambang tata letak satu layar Detail anak. Dihitung, bukan dikira-kira:
+       kolom kurva = 0,615 x (lebar jendela - 328), dan supaya teks di dalam
+       kurva bertahan di 15 px kolomnya harus >= 560 px — terpenuhi mulai
+       1238 px pada ukuran teks kurva 40 satuan; dengan 46 satuan syaratnya
+       turun ke 1088 px, dan itulah nilai yang dipakai (68rem).
+       Ditulis sebagai breakpoint bernama supaya ikut diurutkan
+       bersama sm/md/lg/xl; varian arbitrer `min-[...]:` tidak, dan kalah
+       cascade melawan `sm:`.
+
+       Ditulis dalam rem, bukan px, dan itu wajib: Tailwind mengurutkan blok
+       media menurut nilai numeriknya tanpa menyamakan satuan lebih dulu.
+       Breakpoint bawaan semuanya rem (40/48/64/80), jadi `1240px` tidak bisa
+       dibandingkan dan terlempar ke urutan paling depan — tepat di tempat ia
+       kalah melawan `sm:`. 68rem = 1088px pada akar 16px. */
+    --breakpoint-lebar: 68rem;
+
     --font-sans:
         'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif,
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
@@ -33,35 +49,51 @@
        dari sini, jadi menurunkannya mengecilkan keenam halaman sekaligus
        tanpa menyentuh satu berkas .tsx pun.
 
-       3,4 px, turun dari 4 px bawaan. Angka ini dipilih dari batas bawahnya,
-       bukan dari rasio: `min-h-13` pada tombol dan kotak isian menjadi 44,2 px,
-       tepat di ambang sasaran sentuh bagian 2.5. Menurunkannya lagi
-       menjatuhkan tombol Detail dan Ubah di baris Data Anak ke bawah 44 px —
-       ukur ulang keduanya sebelum menyentuh nilai ini. */
-    --spacing: 3.4px;
+       3,5 px, naik dari 2,25 px. `min-h-13` pada tombol dan kotak isian
+       menjadi 45,5 px — di atas ambang sasaran sentuh 44 px bagian 2.5.
 
-    /* Skala tipografi bagian 2.4, disetel ke ukuran yang diminta pemilik
-       produk: isi 15 px, label 13 px.
+       Nilai sebelumnya diturunkan ke 2,25 px supaya ukuran fisik di layar
+       pemilik produk (1920 px, penskalaan Windows 150%, zoom peramban 75%)
+       sama persis dengan yang sudah ia setujui. Alasannya: "Portal ini dipakai
+       duduk di depan laptop dengan tetikus, bukan disentuh jari."
 
-       Ini di bawah batas 16/15 px yang ditulis bagian 2.4. Keputusannya
-       diambil sadar setelah melihat layar nyata pada zoom 90%, dan batas itu
-       tidak lagi berlaku sebagai lantai. Yang perlu diingat kalau ada keluhan
-       keterbacaan dari lapangan: 13 px memegang label, header tabel, dan baris
-       alasan di Beranda — justru teks yang paling perlu dibaca, dan kader
-       maupun bidan rata-rata bukan pengguna komputer harian. Naikkan dari
-       sini, jangan dari tempat lain. */
+       Produknya membantah kalimat itu. Ada daftar kartu khusus ponsel, ada
+       pengalih peran yang turun ke kaki halaman di bawah 1024 px, ada navigasi
+       yang membungkus dua baris, dan tiga petunjuk gulir `md:hidden`. Seluruh
+       lapisan itu dibangun untuk jari. Pada 2,25 px tidak satu pun elemen
+       interaktif di seluruh Portal mencapai 44 px — yang tertinggi 29 px — dan
+       kotak isian pencarian, hal pertama yang disentuh kader tiap sesi, hanya
+       15 px dengan bantalan di sekelilingnya mati terhadap sentuhan.
+
+       Zoom peramban menyelesaikan masalah satu orang tanpa memaksakan
+       ukurannya ke lima puluh kader. Kalau kerapatan lama tetap dibutuhkan,
+       tempatnya preferensi per pengguna, bukan token bersama. */
+    --spacing: 3.5px;
+
+    /* Skala tipografi bagian 2.4.
+
+       Versi sebelumnya menaruh isi di 10 px dan label di 9 px — jauh di bawah
+       lantai 16/15 px yang ditulis bagian 2.4, disetel ke zoom 75% pada layar
+       pemilik produk. Komentar versi itu menutup dengan kalimatnya sendiri:
+       "9 px memegang label, header tabel, dan baris alasan di Beranda — justru
+       teks yang paling perlu dibaca... Naikkan dari sini, jangan dari tempat
+       lain." Inilah tempat itu.
+
+       Isi kembali ke 14 px dan label ke 12 px: belum menyentuh lantai 16/15,
+       tapi terbaca oleh kader dan bidan yang rata-rata bukan pengguna komputer
+       harian, dan masih menahan keenam layar dalam satu tampilan. */
     --text-xs: 11px;
-    --text-sm: 13px;
-    --text-base: 15px;
-    --text-lg: 17px;
-    --text-xl: 18px;
-    --text-2xl: 23px;
-    --text-3xl: 29px;
+    --text-sm: 12px;
+    --text-base: 14px;
+    --text-lg: 15px;
+    --text-xl: 17px;
+    --text-2xl: 21px;
+    --text-3xl: 28px;
     /* Skalanya berhenti di sini. Bagian 2.4 hanya menyebut dua ukuran angka
        besar, 32 dan 40 px. Tailwind tetap mengirim text-5xl sampai text-9xl
        (48-128 px) yang tidak pernah dipilih siapa pun - jangan dipakai; kelas
        itu menembus ke bawaan Tailwind, bukan ke token ini. */
-    --text-4xl: 32px;
+    --text-4xl: 30px;
 
     /* Radius Prototipe v2: kartu 20, tombol dan field 14, chip 10.
 
@@ -264,8 +296,35 @@
         @apply inline-flex min-h-13 items-center justify-center gap-2 rounded-lg border border-border-strong bg-card px-4.5 text-base font-semibold;
     }
 
+    /* `h-14`, bukan `h-13`: garis tepi 2 px memakan tinggi dari dalam, jadi
+       kotak 45,5 px hanya menyisakan 42 px untuk <input> di dalamnya — 2 px di
+       bawah ambang sasaran sentuh. 49 px menyisakan 45 px. */
     .isian {
-        @apply h-13 rounded-lg border-2 border-border bg-surface px-3.5 text-base text-foreground;
+        @apply h-14 rounded-lg border-2 border-border bg-surface px-3.5 text-base text-foreground;
+    }
+
+    /* Wadah yang menggulir di dalam kartu.
+     *
+     * Bilah gulir bawaan peramban tidak mengikuti palet mana pun, dan di sini
+     * ia satu-satunya tanda bahwa masih ada isi di bawah lipatan kartu — jadi
+     * ia dibuat selalu terlihat, bukan muncul saat disentuh tetikus. */
+    .gulir-dalam {
+        scrollbar-width: thin;
+        scrollbar-color: var(--border-strong) var(--surface);
+    }
+
+    .gulir-dalam::-webkit-scrollbar {
+        width: 10px;
+    }
+
+    .gulir-dalam::-webkit-scrollbar-track {
+        background: var(--surface);
+    }
+
+    .gulir-dalam::-webkit-scrollbar-thumb {
+        border: 3px solid var(--surface);
+        border-radius: 999px;
+        background: var(--border-strong);
     }
 }
 

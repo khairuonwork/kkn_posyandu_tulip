@@ -34,7 +34,7 @@ export default function FilterPeriode({ periode, nilai, onGanti }: Props) {
                     id="filter-periode"
                     value={nilai}
                     onChange={(e) => onGanti(e.target.value)}
-                    className="h-12 appearance-none rounded-lg border border-border-strong bg-background pr-10 pl-3.5 text-base"
+                    className="h-13 appearance-none rounded-lg border border-border-strong bg-background pr-10 pl-3.5 text-base"
                 >
                     {periode.map((p) => (
                         <option key={p.id} value={p.id}>

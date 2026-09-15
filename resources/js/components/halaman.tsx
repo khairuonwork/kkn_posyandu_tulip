@@ -16,6 +16,13 @@ import { Head, Link } from '@/lib/nav';
 
 type Ikon = ComponentType<{ className?: string; strokeWidth?: number }>;
 
+/* Ditulis utuh, bukan dirakit dari potongan: Tailwind hanya menghasilkan kelas
+   yang terbaca sebagai teks lengkap di dalam berkas sumber. */
+const KELAS_PENUH = {
+    lg: 'lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:py-4',
+    lebar: 'lebar:flex lebar:min-h-0 lebar:flex-1 lebar:flex-col lebar:py-4',
+} as const;
+
 type Props = {
     /** Judul layar. Juga dipakai sebagai judul tab peramban. */
     judul: string;
@@ -29,6 +36,21 @@ type Props = {
     kembali?: { href: string; label: string };
     /** Tombol di ujung kanan bilah. */
     aksi?: ReactNode;
+    /**
+     * Layar yang mengisi tinggi jendela persis, tanpa menggulir halaman.
+     *
+     * Isinya menjadi kolom lentur setinggi sisa layar; bagian di dalamnya yang
+     * diberi `flex-1 min-h-0` yang menyerap sisa ruang dan menggulir sendiri.
+     * Di bawah ambangnya halaman menggulir seperti biasa — di layar sempit
+     * tidak ada tinggi tetap yang bisa dibagi.
+     *
+     * Ambangnya dipilih per layar karena isinya berbeda watak. `lg` (1024 px)
+     * untuk layar tabel: menyempitkan kolom tabel hanya menambah gulir mendatar
+     * di dalam wadahnya sendiri. `lebar` (1280 px) untuk Detail anak, yang
+     * memuat kurva berskala dan karena itu butuh kolom lebih lapang sebelum
+     * susunan satu layarnya masuk akal.
+     */
+    penuh?: false | 'lg' | 'lebar';
     children: ReactNode;
 };
 
@@ -38,6 +60,7 @@ export default function Halaman({
     ikon: Ikon,
     kembali,
     aksi,
+    penuh = false,
     children,
 }: Props) {
     return (
@@ -47,7 +70,7 @@ export default function Halaman({
             {/* Menempel hanya di layar lebar. Di bawah 1024 px sidebar demo
                 sudah menempel di puncak layar; dua bilah lengket di koordinat
                 yang sama akan saling menimpa. */}
-            <header className="z-10 flex min-h-19 flex-wrap items-center gap-x-5 gap-y-3 border-b border-border bg-card px-4 py-3.5 sm:px-7 lg:sticky lg:top-0">
+            <header className="z-10 flex min-h-19 shrink-0 flex-wrap items-center gap-x-5 gap-y-3 border-b border-border bg-card px-4 py-3.5 sm:px-7 lg:sticky lg:top-0">
                 {kembali !== undefined ? (
                     <Link
                         href={kembali.href}
@@ -92,7 +115,13 @@ export default function Halaman({
                 )}
             </header>
 
-            <div className="px-4 py-6 sm:px-7 sm:py-7">{children}</div>
+            <div
+                className={`px-4 py-6 sm:px-7 sm:py-7 ${
+                    penuh === false ? '' : KELAS_PENUH[penuh]
+                }`}
+            >
+                {children}
+            </div>
         </>
     );
 }
