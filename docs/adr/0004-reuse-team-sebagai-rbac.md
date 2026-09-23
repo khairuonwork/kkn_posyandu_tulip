@@ -1,7 +1,9 @@
 # ADR-0004 — Reuse tabel `teams`/`Membership` sebagai RBAC single-tenant
 
-- **Status:** Accepted
+- **Status:** Superseded oleh [ADR-0006](0006-pindah-ke-express-react-postgres.md) — 2026-09-21
 - **Tanggal:** 2026-09-09
+
+> **Catatan 21 September 2026.** Keputusan ini bertumpu pada tabel `teams` bawaan Laravel *starter kit*. Setelah [ADR-0006](0006-pindah-ke-express-react-postgres.md), RBAC dibangun sendiri di Express dan fondasi itu tidak lagi ada. Yang **tetap berlaku**: pemetaan tiga peran di bawah, dan keputusan mempertahankan kolom `team_id` pada tabel domain.
 
 ## Konteks
 
@@ -42,7 +44,7 @@ Yang **tidak** dilakukan adalah menyimpan biaya kosmetiknya: *prefix* URL dan *s
 | `Bidan` | Bidan / Koordinator | Kelola master data, koreksi pengukuran, putuskan penggabungan duplikat, lihat seluruh RT, unduh rekap. |
 | `Kader` | Kader | Baca data anak dan riwayat, lihat dashboard. Tanpa hak ubah. |
 
-Matriks izin lengkap ada di [03-sdd.md](../03-sdd.md).
+Matriks izin lengkap ada di [arsitektur](../arsitektur.md).
 
 ## Konsekuensi
 

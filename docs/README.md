@@ -1,76 +1,98 @@
 # Dokumentasi Portal Posyandu Tulip
 
-Dokumentasi teknis dan produk untuk **Portal Posyandu Tulip** — sistem pencatatan, pemantauan, dan pelaporan status gizi balita Posyandu Tulip RW 18, Kelurahan Citeureup.
+| | |
+|---|---|
+| **Jenis** | Orientasi — peta dokumentasi |
+| **Status** | hidup |
+| **Perubahan berarti terakhir** | 22 September 2026 |
 
-## Konvensi
+**Portal Posyandu Tulip** — sistem pencatatan, pemantauan, dan pelaporan status gizi balita Posyandu Tulip RW 18, Kelurahan Citeureup.
 
-- Bahasa dokumen: **Indonesia**. Istilah teknis (*primary key*, *migration*, *controller*, *z-score*) tetap bahasa Inggris agar cocok dengan nama di kode.
-- Setiap keputusan arsitektural yang mahal untuk dibalik ditulis sebagai **ADR** di `adr/`, bukan dikubur di dalam dokumen panjang.
-- Setiap asumsi yang belum dikonfirmasi pemilik program masuk ke [`99-open-issues.md`](99-open-issues.md) — **tidak ditebak diam-diam di dalam kode**.
-- Diagram memakai Mermaid agar ter-render langsung di GitHub dan tetap bisa di-*diff*.
+Halaman ini memberi tahu **mana yang perlu dibaca dan mana yang tidak**.
 
-## Daftar dokumen
+---
 
-| No | Dokumen | Untuk siapa | Status |
-|---|---|---|---|
-| 01 | [PRD Produk](01-prd.md) | Pemilik program, dosen pembimbing, tim pengembang | selesai |
-| 02 | [Software Requirements Specification](02-srs.md) | Pengembang, QA | selesai |
-| 03 | [Software Design Document](03-sdd.md) | Pengembang | selesai |
-| 04 | [Spesifikasi Antropometri & Z-Score](04-spesifikasi-antropometri.md) | Pengembang, Bidan/TPG | selesai |
-| 05 | [UI/UX Specification](05-uiux-spec.md) | Pengembang frontend, designer | sebagian — menunggu [OI-08](99-open-issues.md) |
-| 06 | [Migrasi Data Arsip Excel](06-migrasi-data.md) | Pengembang, pemilik data | selesai |
-| 07 | Test Plan | QA, pengembang | belum ditulis (Fase 5) |
-| 08 | Panduan Operasional | Admin sistem | belum ditulis (Fase 5) |
-| 09 | Manual Kader | Kader, Bidan | belum ditulis (Fase 5) |
-| 10 | [PRD Demo Frontend](10-prd-demo-frontend.md) | Tim pengembang, presenter demo | selesai |
-| 99 | [Open Issues](99-open-issues.md) | Semua | hidup |
+## Baru pertama kali? Baca empat ini
 
-### Architecture Decision Records
+Empat berkas, sekitar dua puluh menit, dan cukup untuk memahami produknya tanpa bertanya.
+
+| Urutan | Berkas | Menjawab |
+|---|---|---|
+| 1 | **[Ringkasan](ringkasan.md)** | Aplikasi ini apa, untuk siapa, masalah apa yang dipecahkannya |
+| 2 | **[Fitur](fitur.md)** | Apa yang sudah berjalan hari ini, dan apa yang belum |
+| 3 | **[Arsitektur](arsitektur.md)** | Teknologinya apa, permintaan mengalir ke mana, berkas ditaruh di mana |
+| 4 | **[Basis Data](database.md)** | Tabelnya apa saja dan bagaimana saling terhubung |
+
+Bertemu istilah asing — SKDN, KBM, NTOB, D/S? Semuanya ada di **[Glosarium](glosarium.md)**.
+
+Cara menjalankan aplikasinya ada di [`README.md`](../README.md) di akar repo.
+
+---
+
+## Sedang mengerjakan sesuatu?
+
+| Berkas | Untuk apa |
+|---|---|
+| **[Rencana kerja](rencana-kerja.md)** | Apa yang dikerjakan berikutnya, urutannya, dan apa yang menahannya |
+| **[Pertanyaan terbuka](pertanyaan-terbuka.md)** | Hal yang belum diputuskan pemilik program. **Jangan ditebak diam-diam di dalam kode** |
+| **[PRD](prd/README.md)** | Apa yang akan dibangun: kontrak produk, fitur dasar, fitur dari feedback |
+| **[Panduan penulisan](panduan-penulisan.md)** | Cara menulis dokumen di repo ini. Baca sebelum menambah atau menyunting apa pun di sini |
+
+---
+
+## Dibuka saat butuh angka pasti
+
+Isi [`rujukan/`](rujukan) tidak untuk dibaca berurutan. Dibuka saat ada pertanyaan yang jawabannya harus persis.
+
+| Berkas | Jawabannya |
+|---|---|
+| [Antropometri & Z-Score](rujukan/antropometri.md) | Rumus LMS, ambang PMK 2/2020, koreksi ekstrem WHO |
+| [UI/UX](rujukan/ui-ux.md) | Token warna, tipografi, komponen, aksesibilitas |
+| [Layar demo](rujukan/layar-demo.md) | Rancangan ketujuh layar sampai bunyi kalimatnya — enam di antaranya sudah dibangun |
+| [Migrasi data](rujukan/migrasi-data.md) | Aturan impor arsip Excel: normalisasi, pencocokan, konflik |
+| [Format laporan F1](rujukan/format-laporan-f1.md) | 22 butir blangko F1 Gizi dan struktur Buku 7 |
+| [SRS](rujukan/srs.md) | Kebutuhan fungsional FR-nn dan non-fungsional NFR-nn |
+
+---
+
+## Keputusan arsitektur
+
+Satu berkas untuk satu keputusan yang **mahal kalau dibalik** — bukan cara kerja sistem, melainkan kenapa jalan A dipilih dan jalan B tidak. Tidak pernah dihapus; yang sudah tidak berlaku ditandai *Superseded*.
 
 | ADR | Judul | Status |
 |---|---|---|
 | [0001](adr/0001-primary-key-strategy.md) | Surrogate ID sebagai primary key, NIK sebagai natural key | Accepted |
 | [0002](adr/0002-metode-z-score-who-lms.md) | Z-score dihitung dengan metode WHO LMS | Accepted |
 | [0003](adr/0003-batas-portal-vs-aplikasi-tablet.md) | Batas tanggung jawab Portal dan Aplikasi Tablet | Accepted |
-| [0004](adr/0004-reuse-team-sebagai-rbac.md) | Reuse tabel `teams`/`Membership` sebagai RBAC single-tenant | Accepted |
+| [0004](adr/0004-reuse-team-sebagai-rbac.md) | Reuse tabel `teams`/`Membership` sebagai RBAC single-tenant | Superseded oleh 0006 |
+| [0005](adr/0005-migrasi-metode-zscore.md) | Perlakuan riwayat gizi saat metode perhitungan berganti | Accepted |
+| [0006](adr/0006-pindah-ke-express-react-postgres.md) | Pindah ke Express + React + PostgreSQL dengan REST API | Accepted |
+| [0007](adr/0007-jejak-audit-lewat-trigger.md) | Jejak audit ditegakkan trigger, identitas pelaku lewat variabel sesi | Accepted |
 
-## Glosarium
+---
 
-Istilah lapangan yang muncul di data dan dokumen. Definisi yang **belum dikonfirmasi** ditandai dengan ⚠️ dan dicatat di [`99-open-issues.md`](99-open-issues.md).
+## Jarang perlu dibuka
 
-| Istilah | Arti |
-|---|---|
-| **Posyandu** | Pos Pelayanan Terpadu. Unit layanan kesehatan dasar berbasis masyarakat di tingkat RW. |
-| **Kader** | Relawan masyarakat yang menjalankan kegiatan Posyandu, termasuk penimbangan dan pencatatan. |
-| **TPG** | Tenaga Pelaksana Gizi di Puskesmas. |
-| **Balita** | Anak Bawah Lima Tahun (0–59 bulan). |
-| **Sasaran (S)** | Jumlah seluruh balita yang terdaftar di wilayah kerja Posyandu pada satu periode. |
-| **Ditimbang (D)** | Jumlah balita yang benar-benar hadir dan ditimbang pada periode tersebut. |
-| **D/S** | Rasio kehadiran = `D ÷ S`. Indikator utama partisipasi masyarakat. |
-| **SKDN** | Set indikator cakupan Posyandu: **S**asaran, **K**epemilikan KMS, **D**itimbang, **N**aik berat badannya. |
-| **KMS** | Kartu Menuju Sehat. Kartu berisi kurva pertumbuhan anak terhadap garis standar. |
-| **Buku KIA** | Buku Kesehatan Ibu dan Anak, tempat KMS berada. |
-| **KBM** | Kenaikan Berat badan Minimum. Ambang kenaikan berat per bulan menurut umur. |
-| **N** | Berat badan **N**aik, yaitu kenaikan ≥ KBM dibanding penimbangan sebelumnya. |
-| **T** | Berat badan **T**idak naik (kenaikan < KBM, tetap, atau turun). |
-| **NTOB** ⚠️ | Kode gabungan status penimbangan pada data sumber. Dugaan: **N**aik / **T**idak naik / **O** tidak ditimbang bulan lalu / **B**aru pertama kali. **Belum dikonfirmasi.** |
-| **1T / 2T / 3T** ⚠️ | Berat badan tidak naik 1×, 2×, atau 3× berturut-turut. Ambang tindak lanjut. **Aturan resmi belum dikonfirmasi.** |
-| **Balita Bersinar** ⚠️ | Kategori khusus pada laporan Juni 2026. **Arti belum dikonfirmasi.** |
-| **F1 Gizi** | Format laporan bulanan gizi dari Posyandu ke Puskesmas. |
-| **Buku 7** | Buku register agregasi sasaran dan kehadiran per bulan. |
-| **Z-score** | Simpangan nilai ukur anak dari median populasi rujukan, dinyatakan dalam satuan standar deviasi. |
-| **LMS** | Tiga parameter distribusi rujukan WHO: **L** (Box-Cox power), **M** (median), **S** (coefficient of variation). |
-| **BB/U** | Indeks Berat Badan menurut Umur → deteksi *underweight*. |
-| **TB/U**, **PB/U** | Indeks Tinggi (atau Panjang) Badan menurut Umur → deteksi *stunting*. |
-| **BB/TB**, **BB/PB** | Indeks Berat Badan menurut Tinggi/Panjang Badan → deteksi *wasting* dan *overweight*. |
-| **IMT/U** | Indeks Massa Tubuh menurut Umur. |
-| **LILA** | Lingkar Lengan Atas. |
-| **LIKA** | Lingkar Kepala. |
-| **PB vs TB** | **P**anjang **B**adan diukur telentang (< 24 bulan); **T**inggi **B**adan diukur berdiri (≥ 24 bulan). Selisih konversi 0,7 cm. |
-| **PMK 2/2020** | Peraturan Menteri Kesehatan No. 2 Tahun 2020 tentang Standar Antropometri Anak. Sumber ambang kategori status gizi. |
-| **IMD** | Inisiasi Menyusu Dini. |
-| **e-PPGBM** | Elektronik Pencatatan dan Pelaporan Gizi Berbasis Masyarakat (sistem Kemenkes). Di luar lingkup MVP. |
+Berkas di [`riwayat/`](riwayat) bertanda status `beku`: isinya sudah tidak diperbarui, dan sebagian menyebut hal yang sekarang tidak ada lagi. Dibuka kalau kamu perlu menelusuri asal-usul sebuah keputusan.
 
-## Menjalankan dokumentasi ini
+- [Catatan tahap demo](riwayat/catatan-tahap-demo.md) — catatan pengerjaan demo frontend, beserta keputusan yang waktu itu ditunda
+- [Teks yang dicabut dari layar](riwayat/teks-dicabut-dari-layar.md) — kalimat, tombol, dan kartu yang dihapus atas permintaan pemilik produk, beserta risiko yang ditinggalkannya
 
-Dokumen ini adalah *docs-as-code*: ikut versi git bersama kode. Perubahan spesifikasi dan perubahan implementasi masuk dalam satu *pull request* yang sama, sehingga dokumen tidak pernah tertinggal dari kode.
+Folder [`design/`](design/README.md) berisi salinan artboard prototipe. Nilai token warna dan tipografi yang berlaku ada di [UI/UX](rujukan/ui-ux.md), bukan di berkas-berkas itu.
+
+---
+
+## Susunannya
+
+```text
+docs/
+  ringkasan · fitur · arsitektur · database · glosarium    ← baca ini dulu
+  rencana-kerja · pertanyaan-terbuka · panduan-penulisan   ← saat mengerjakan
+  prd/        format-prd · prd-utama · dasar/ · feedback/  ← apa yang akan dibangun
+  rujukan/    dibuka saat butuh angka pasti
+  riwayat/    beku
+  adr/        keputusan yang mahal dibalik
+  design/     salinan artboard
+```
+
+Disusun ulang 22 September 2026. Sebelumnya seluruh berkas duduk di satu tingkat dengan nomor 00–99 yang tidak menyiratkan urutan baca.

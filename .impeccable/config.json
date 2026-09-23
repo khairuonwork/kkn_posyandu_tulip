@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "plus jakarta sans",
+        "createdAt": "2026-09-21T11:14:06.264Z",
+        "reason": "Sistem desain proyek yang sudah divalidasi ke pemilik program, bukan pilihan sesi ini: docs/design/portal-sistem-desain.txt baris 89 'Plus Jakarta Sans untuk seluruh aplikasi', dispesifikasikan ulang di docs/rujukan/ui-ux.md bagian 2.4 baris 78. Berkasnya subset .woff2 lokal yang di-commit, nol rujukan domain luar, karena demo harus utuh saat Wi-Fi dimatikan (docs/rujukan/layar-demo.md bagian 4). Mengganti typeface berarti meredesain sistem desain yang sudah disetujui, bukan menyunting CSS."
+      }
+    ]
+  }
+}

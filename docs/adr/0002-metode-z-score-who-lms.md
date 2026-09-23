@@ -4,6 +4,8 @@
 - **Tanggal:** 2026-09-09
 - **Menggantikan:** rancangan `STANDAR_ANTROPOMETRI` bergaya tabel SD pada ERD v1.0
 
+> **Catatan 22 September 2026.** Metodenya **tetap berlaku utuh**. Dua jalur berkas yang disebut di bagian Konsekuensi sudah pindah sejak [ADR-0006](0006-pindah-ke-express-react-postgres.md): *seed* kini di `server/db/data/who-lms.json`, dan rumusnya di `server/src/antropometri/`. Kesetaraan dengan implementasi PHP lama dibekukan di `server/test/acuan-php.json` — 2.076 kasus, selisih terbesar 4,4 × 10⁻¹⁵.
+
 ## Konteks
 
 File referensi `ref kemenkes & who.xlsx` yang dipelihara pemilik program berisi **dua** bentuk standar sekaligus untuk indeks yang sama:
@@ -33,7 +35,7 @@ L != 0 :  Z = ((X / M)^L - 1) / (L * S)
 L == 0 :  Z = ln(X / M) / S
 ```
 
-Untuk indeks berbasis berat (BB/U, BB/TB, IMT/U), bila hasilnya berada di luar rentang ±3, WHO menetapkan koreksi ekstrapolasi linear. Koreksi ini **diterapkan**, tidak disederhanakan. Rinciannya di [04-spesifikasi-antropometri.md](../04-spesifikasi-antropometri.md).
+Untuk indeks berbasis berat (BB/U, BB/TB, IMT/U), bila hasilnya berada di luar rentang ±3, WHO menetapkan koreksi ekstrapolasi linear. Koreksi ini **diterapkan**, tidak disederhanakan. Rinciannya di [`rujukan/antropometri.md`](../rujukan/antropometri.md).
 
 Tabel referensi berpindah dari kolom `-3sd … +3sd` menjadi kolom `l`, `m`, `s` pada tabel `standar_lms`.
 

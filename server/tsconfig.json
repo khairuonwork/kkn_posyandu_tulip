@@ -1,0 +1,29 @@
+{
+    "compilerOptions": {
+        "target": "es2023",
+        "lib": ["es2023"],
+        "module": "nodenext",
+        "moduleResolution": "nodenext",
+        "types": ["node"],
+
+        "strict": true,
+        "noUncheckedIndexedAccess": false,
+        "noImplicitOverride": true,
+        "noFallthroughCasesInSwitch": true,
+
+        // Node menjalankan TypeScript dengan membuang anotasi tipe, bukan
+        // dengan mengompilasi. Sintaks yang tidak dapat dibuang begitu saja —
+        // `enum`, `namespace`, parameter properti pada konstruktor — karena itu
+        // dilarang di sini, bukan sekadar tidak dianjurkan.
+        "erasableSyntaxOnly": true,
+        "verbatimModuleSyntax": true,
+        "allowImportingTsExtensions": true,
+        "rewriteRelativeImportExtensions": true,
+
+        "noEmit": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "resolveJsonModule": true
+    },
+    "include": ["src", "db", "test"]
+}

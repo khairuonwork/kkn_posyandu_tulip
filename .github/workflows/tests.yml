@@ -10,7 +10,70 @@ permissions:
   contents: read
 
 jobs:
-  ci:
+  server:
+    runs-on: ubuntu-latest
+
+    # Sebagian pengujian menuntut PostgreSQL sungguhan: yang membuktikan nilai
+    # L, M, S melewati kolom numeric tanpa bergeser, dan bahwa penjaga peran
+    # versus RT binaan benar-benar ditegakkan skema. Keduanya tidak dapat
+    # dipalsukan dengan tiruan.
+    services:
+      db:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: posyandu
+          POSTGRES_PASSWORD: posyandu
+          POSTGRES_DB: posyandu_tulip
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U posyandu -d posyandu_tulip"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgres://posyandu:posyandu@127.0.0.1:5432/posyandu_tulip
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Node 24: server dan test-nya ditulis TypeScript dan dijalankan langsung
+      # tanpa langkah build, memakai pembuangan anotasi tipe bawaan Node.
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install
+        working-directory: server
+        run: npm ci
+
+      - name: Migrate
+        working-directory: server
+        run: node db/migrate.ts
+
+      - name: Seed
+        working-directory: server
+        run: node db/seed-standar-lms.ts
+
+      # Gerbang terpenting di seluruh repo: 2.076 kasus acuan memastikan mesin
+      # gizi tidak bergeser satu angka pun dari implementasi yang sudah
+      # diterima. Lihat docs/adr/0006-pindah-ke-express-react-postgres.md.
+      - name: Test
+        working-directory: server
+        run: npm test
+
+      - name: Types
+        working-directory: server
+        run: npm run types:check
+
+  client:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,20 +82,38 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
-        with:
-          php-version: '8.3'
-          tools: composer:v2
-          coverage: none
-
       - name: Setup Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: '22'
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: client/package-lock.json
 
-      - name: Setup Application
-        run: composer setup
+      - name: Install
+        working-directory: client
+        run: npm ci
 
-      - name: Run CI Checks
-        run: composer ci:check
+      # Mengikat salinan z-score di peramban ke berkas acuan yang sama dengan
+      # server, sehingga pratinjau yang dilihat kader tidak dapat menyimpang
+      # dari angka yang akhirnya tersimpan.
+      - name: Test
+        working-directory: client
+        run: npm test
+
+      - name: Types
+        working-directory: client
+        run: npm run types:check
+
+      - name: Lint
+        working-directory: client
+        run: npm run lint:check
+
+      - name: Format
+        working-directory: client
+        run: npm run format:check
+
+      # Demo statis adalah satu-satunya build yang ada sampai SPA punya
+      # endpoint untuk dipanggil (ADR-0006 langkah 5).
+      - name: Build demo
+        working-directory: client
+        run: npm run demo:build

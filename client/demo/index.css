@@ -1,0 +1,9 @@
+/* Entri CSS demo.
+ *
+ * Seluruh isinya — token, utilitas, dan huruf — datang dari app.css milik
+ * produk. Demo tidak lagi menambahkan apa pun: sejak aplikasi punya entrinya
+ * sendiri, keduanya memuat huruf yang sama, dan menyalin @font-face ke dua
+ * tempat adalah cara termudah membuat keduanya berbeda diam-diam.
+ */
+
+@import '../src/app.css';

@@ -1,0 +1,27 @@
+{
+    "compilerOptions": {
+        "target": "ESNext",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "jsx": "react-jsx",
+
+        "strict": true,
+        "isolatedModules": true,
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        "skipLibCheck": true,
+
+        // Dipakai swauji di src/lib/*.check.ts, yang dijalankan langsung oleh
+        // Node dan karena itu harus menulis ekstensi .ts pada impornya. Aman:
+        // proyek ini tidak pernah meng-emit lewat tsc — Vite yang membangun.
+        "allowImportingTsExtensions": true,
+        "resolveJsonModule": true,
+        "noEmit": true,
+
+        "baseUrl": ".",
+        "paths": {
+            "@/*": ["./src/*"]
+        }
+    },
+    "include": ["src", "demo", "test", "vite.config.ts", "vite.demo.config.ts"]
+}

@@ -1,0 +1,36 @@
+# PostgreSQL untuk pengembangan lokal.
+#
+#     docker compose up -d
+#
+# Data tinggal di volume bernama, jadi `down` tanpa `-v` tidak menghapusnya.
+
+services:
+    db:
+        image: postgres:17-alpine
+        environment:
+            POSTGRES_USER: posyandu
+            POSTGRES_PASSWORD: posyandu
+            POSTGRES_DB: posyandu_tulip
+        # 5433, bukan 5432, dan dikunci ke 127.0.0.1.
+        #
+        # Port bawaan PostgreSQL sering sudah dipakai layanan yang terpasang
+        # langsung di mesin. Bila itu terjadi, Docker tetap berhasil menyala —
+        # ia hanya kebagian alamat IPv6 sementara layanan lama memegang IPv4 —
+        # dan sambungan ke `localhost` mendarat di basis data yang salah.
+        # Gejalanya menyesatkan: "password authentication failed", seolah
+        # kredensialnya keliru, padahal servernya yang berbeda.
+        #
+        # Mengikat ke 127.0.0.1 sekalian menutup basis data pengembangan dari
+        # jaringan sekitar.
+        ports:
+            - '127.0.0.1:5433:5432'
+        volumes:
+            - data:/var/lib/postgresql/data
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U posyandu -d posyandu_tulip']
+            interval: 5s
+            timeout: 5s
+            retries: 10
+
+volumes:
+    data:

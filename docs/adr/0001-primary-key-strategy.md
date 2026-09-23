@@ -4,6 +4,8 @@
 - **Tanggal:** 2026-09-09
 - **Menggantikan:** rancangan `ERD_DIGITALISASI_POSYANDU_TULIP.md` v1.0 yang memakai `nik` sebagai PK
 
+> **Catatan 22 September 2026.** Keputusannya **tetap berlaku utuh**; dua rinciannya sudah berubah bentuk sejak [ADR-0006](0006-pindah-ke-express-react-postgres.md). Surrogate key kini `bigint GENERATED ALWAYS AS IDENTITY` PostgreSQL, bukan auto-increment Laravel. Dan *unique index* pada `nik` kini berupa indeks parsial `WHERE deleted_at IS NULL` — perilaku `NULL` yang disebut di bagian Konsekuensi tidak lagi jadi penopangnya.
+
 ## Konteks
 
 ERD v1.0 menetapkan `ANAK.nik` dan `ORANG_TUA.nik_ortu` sebagai *primary key*, dengan alasan NIK adalah identitas yang dipakai di lapangan. Namun PRD v1.0 bagian 7 justru mensyaratkan hal sebaliknya: "Kunci primer aplikasi adalah UUID/internal ID; **bukan** nama, nomor urut Excel, atau NIK." Dua dokumen yang sama-sama disetujui saling bertentangan, dan implementasi tidak bisa dimulai sebelum ini diputuskan.
@@ -36,7 +38,7 @@ NIK juga bukan angka meskipun terlihat seperti angka: 16 digit, boleh berawalan 
 
 **Yang menjadi tanggung jawab tambahan:**
 
-- Pencocokan identitas saat impor menjadi logika aplikasi, bukan lagi dijamin *constraint* basis data. Aturannya ditetapkan di [06-migrasi-data.md](../06-migrasi-data.md).
+- Pencocokan identitas saat impor menjadi logika aplikasi, bukan lagi dijamin *constraint* basis data. Aturannya ditetapkan di [`rujukan/migrasi-data.md`](../rujukan/migrasi-data.md).
 - *Unique index* pada `nik` tetap wajib supaya dua profil tidak menempati NIK yang sama. Perilaku `NULL` pada *unique index* sudah sesuai di SQLite, MySQL, maupun PostgreSQL: banyak `NULL` diizinkan.
 
 ## Alternatif yang ditolak

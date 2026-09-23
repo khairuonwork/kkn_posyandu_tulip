@@ -1,0 +1,30 @@
+{
+    "name": "posyandu-tulip-server",
+    "private": true,
+    "type": "module",
+    "engines": {
+        "node": ">=24"
+    },
+    "scripts": {
+        "test": "node --env-file-if-exists=.env --test \"test/**/*.test.ts\"",
+        "types:check": "tsc --noEmit",
+        "dev": "node --env-file=.env --watch src/http/server.ts",
+        "mulai": "node --env-file-if-exists=.env src/http/server.ts",
+        "migrate": "node --env-file=.env db/migrate.ts",
+        "seed": "node --env-file=.env db/seed-standar-lms.ts",
+        "pengguna:buat": "node --env-file=.env db/buat-pengguna.ts",
+        "pengguna:sandi": "node --env-file=.env db/ganti-sandi.ts",
+        "db:up": "docker compose up -d",
+        "db:down": "docker compose down"
+    },
+    "dependencies": {
+        "express": "^5.2.1",
+        "pg": "^8.13.1"
+    },
+    "devDependencies": {
+        "@types/express": "^5.0.6",
+        "@types/node": "^22.13.5",
+        "@types/pg": "^8.11.10",
+        "typescript": "^5.7.2"
+    }
+}

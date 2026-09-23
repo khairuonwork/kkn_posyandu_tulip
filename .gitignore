@@ -1,35 +1,18 @@
-/.phpunit.cache
-/bootstrap/ssr
-/node_modules
-/public/build
-/public/fonts-manifest.dev.json
-/public/hot
-/public/storage
-/storage/*.key
-/storage/pail
-/resources/js/actions
-/resources/js/routes
-/resources/js/wayfinder
-/vendor
-.DS_Store
+node_modules/
+dist-demo/
+
 .env
 .env.backup
 .env.production
-.phpactor.json
-.phpunit.result.cache
-Homestead.json
-Homestead.yaml
+
+# Skrip ekstraksi data ditulis dengan Python.
+__pycache__/
+
+.DS_Store
 npm-debug.log
 yarn-error.log
-/auth.json
 /.fleet
 /.idea
 /.nova
 /.vscode
 /.zed
-
-# Skrip ekstraksi data demo ditulis dengan Python.
-__pycache__/
-
-# Hasil build demo statis.
-/dist-demo

@@ -3,6 +3,8 @@
 - **Status:** Accepted, dengan satu bagian **terbuka**
 - **Tanggal:** 2026-09-09
 
+> **Catatan 22 September 2026.** Pembagian tanggung jawab Portal dan Aplikasi Tablet **tetap berlaku utuh** — itulah inti ADR ini, dan tidak ada yang berubah. Tiga penyebutan teknologi di dalamnya sudah usang sejak [ADR-0006](0006-pindah-ke-express-react-postgres.md): Portal bukan lagi Laravel + Inertia melainkan Express + React SPA, impornya bukan `php artisan posyandu:import` melainkan skrip di `server/db/` yang **belum dibangun**, dan rumus z-score kini tinggal di `server/src/antropometri/`. Nama teknologinya berubah; batas tanggung jawabnya tidak.
+
 ## Konteks
 
 PRD v1.0 memperlakukan produk ini sebagai satu aplikasi utuh, termasuk pencatatan di lokasi Posyandu. Ternyata pemilik program merencanakan **dua** aplikasi:
@@ -45,7 +47,7 @@ Sampai diputuskan, data model Portal dirancang **netral** terhadap ketiganya:
 - *Constraint* `unique(anak_id, periode_id)` membuat pengiriman ulang bersifat *idempotent*, apa pun jalurnya.
 - Tidak ada logika yang mengasumsikan pengukuran selalu dibuat lewat antarmuka Portal.
 
-Isu ini terdaftar di [99-open-issues.md](../99-open-issues.md).
+Isu ini terdaftar di [`pertanyaan-terbuka.md`](../pertanyaan-terbuka.md).
 
 ## Konsekuensi
 
