@@ -22,7 +22,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { pecahan, persenSaja, tanggalPanjang } from '@/lib/format';
+import { pecahan, persenSaja } from '@/lib/format';
 import type { Periode, Peran } from '@/types/posyandu';
 
 export type BarisRekapRt = {
@@ -36,10 +36,9 @@ export type BarisRekapRt = {
     bgm: number;
 };
 
-export type TabPeriode = 'harian' | 'bulanan' | 'tahunan';
+export type TabPeriode = 'bulanan' | 'tahunan';
 
 const TAB: { nilai: TabPeriode; label: string }[] = [
-    { nilai: 'harian', label: 'Harian' },
     { nilai: 'bulanan', label: 'Bulanan' },
     { nilai: 'tahunan', label: 'Tahunan' },
 ];
@@ -132,14 +131,6 @@ export default function Laporan({
                     </button>
                 ))}
             </div>
-
-            {tab === 'harian' && (
-                <p className="mt-3 text-sm text-muted-foreground">
-                    Satu sesi penimbangan,{' '}
-                    {tanggalPanjang(periode.tanggalKegiatan)}. Data impor hanya
-                    memuat satu tanggal ukur per periode.
-                </p>
-            )}
 
             {tab === 'tahunan' && (
                 <p className="mt-3 text-sm text-muted-foreground">

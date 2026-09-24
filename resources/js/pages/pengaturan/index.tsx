@@ -5,7 +5,14 @@
  * tercatat, dan kader tidak pernah diblokir oleh sistem.
  */
 
-import { Check, Info, Lock, Settings } from 'lucide-react';
+import {
+    Check,
+    CheckCircle2,
+    Info,
+    KeyRound,
+    Lock,
+    Settings,
+} from 'lucide-react';
 import { useState } from 'react';
 import BarisDefinisi from '@/components/baris-definisi';
 import Halaman from '@/components/halaman';
@@ -24,6 +31,13 @@ export type Ambang = {
     turunMax: number;
     tinggiBerkurangMax: number;
     umurMaxBulan: number;
+    ambangWaspada: number;
+    ambangRujukan: number;
+};
+
+export type StandarisasiAntropometri = {
+    standar: 'who_permenkes_2020' | 'who_2007' | 'cdc_2000';
+    koreksiPosisiOtomatis: boolean;
 };
 
 type Props = {
@@ -31,14 +45,63 @@ type Props = {
     standarVersi: string;
     barisStandar: number;
     terakhirDiubah: { tanggal: string; oleh: string };
+    standarisasi: StandarisasiAntropometri;
     /** Tanpa ini tombol simpan dirender nonaktif beserta alasannya. */
     onSimpan?: (nilai: Ambang) => void;
+    onSimpanStandarisasi?: (nilai: StandarisasiAntropometri) => void;
 };
 
 const IZIN_PERAN = [
     { peran: 'Bidan', izin: 'Boleh mengubah', boleh: true },
     { peran: 'Admin', izin: 'Boleh mengubah', boleh: true },
     { peran: 'Kader', izin: 'Menu ini tidak tampil', boleh: false },
+];
+
+const MENU_AKSES = [
+    {
+        peran: 'Kader',
+        keterangan: 'Wilayah binaan dan layanan hari Posyandu.',
+        menu: ['Pendaftaran & Ukur', 'Data Anak RT binaan'],
+    },
+    {
+        peran: 'Bidan',
+        keterangan: 'Memeriksa seluruh data dan menindaklanjuti hasil.',
+        menu: ['Pendaftaran & Ukur', 'Data Anak', 'Laporan'],
+    },
+    {
+        peran: 'Admin',
+        keterangan: 'Mengelola data sumber dan konfigurasi portal.',
+        menu: ['Sasaran & Impor', 'Laporan', 'Pengaturan', 'Periode'],
+    },
+] as const;
+
+const STANDAR_ANTROPOMETRI: {
+    nilai: StandarisasiAntropometri['standar'];
+    judul: string;
+    cakupan: string;
+    keterangan: string;
+}[] = [
+    {
+        nilai: 'who_permenkes_2020',
+        judul: 'Permenkes RI No. 2/2020 + WHO LMS 2006',
+        cakupan: 'Standar operasional balita 0–60 bulan',
+        keterangan:
+            'Dipakai untuk hitung LMS, KMS, penapisan stunting, wasting, dan underweight pada Portal SIMPATIK.',
+    },
+    {
+        nilai: 'who_2007',
+        judul: 'WHO Reference 2007',
+        cakupan: 'Pembanding usia 5–19 tahun',
+        keterangan:
+            'Tidak digunakan untuk penilaian balita. Tabel LMS-nya harus tersedia di server sebelum dipakai untuk perhitungan.',
+    },
+    {
+        nilai: 'cdc_2000',
+        judul: 'CDC Growth Charts 2000',
+        cakupan: 'Pembanding klinis',
+        keterangan:
+            'Bukan standar nasional Posyandu. Pilihan ini hanya untuk studi pembanding setelah tabel acuan disahkan.',
+    },
 ];
 
 /**
@@ -60,17 +123,30 @@ export default function Pengaturan({
     standarVersi,
     barisStandar,
     terakhirDiubah,
+    standarisasi,
     onSimpan,
+    onSimpanStandarisasi,
 }: Props) {
     // Nilai dapat diubah selama sesi; tidak ada yang tersimpan (bagian 11).
     const [nilai, setNilai] = useState(ambang);
+    const [rumus, setRumus] = useState(standarisasi);
+    const [aksesMenu, setAksesMenu] = useState(
+        Object.fromEntries(
+            MENU_AKSES.flatMap((akses) =>
+                akses.menu.map((menu) => [`${akses.peran}-${menu}`, true]),
+            ),
+        ),
+    );
     const ubah = (kunci: keyof Ambang, isi: string) =>
         setNilai({ ...nilai, [kunci]: Number(isi.replace(',', '.')) });
     // Dua belas angka bisa diubah dan tombol simpannya dulu berada di kaki
     // gulir panjang, tanpa satu tanda pun bahwa ada yang belum tersimpan.
-    const belumTersimpan = (Object.keys(ambang) as (keyof Ambang)[]).some(
-        (k) => nilai[k] !== ambang[k],
-    );
+    const belumTersimpan =
+        (Object.keys(ambang) as (keyof Ambang)[]).some(
+            (k) => nilai[k] !== ambang[k],
+        ) ||
+        rumus.standar !== standarisasi.standar ||
+        rumus.koreksiPosisiOtomatis !== standarisasi.koreksiPosisiOtomatis;
 
     return (
         <Halaman
@@ -91,6 +167,134 @@ export default function Pengaturan({
                         pengukuran baru, data lama tidak dihitung ulang.
                     </p>
                 </div>
+
+                <section className="kartu overflow-hidden">
+                    <div className="strip-kepala">
+                        <h2 className="text-xl font-extrabold">
+                            Standarisasi perhitungan antropometri
+                        </h2>
+                        <p className="mt-0.5 max-w-[88ch] text-sm text-pretty text-muted-foreground">
+                            Metode LMS menghitung z-score; ambang Permenkes
+                            membaca hasilnya untuk layanan Posyandu. Keduanya
+                            disimpan sebagai satu pengaturan yang dapat diaudit.
+                        </p>
+                    </div>
+
+                    <div className="divide-y divide-border">
+                        {STANDAR_ANTROPOMETRI.map((standar) => {
+                            const dipilih = rumus.standar === standar.nilai;
+
+                            return (
+                                <label
+                                    key={standar.nilai}
+                                    className={`flex cursor-pointer gap-3 px-5 py-5 sm:px-6 ${
+                                        dipilih
+                                            ? 'bg-tone-green-bg'
+                                            : 'hover:bg-surface-subtle'
+                                    }`}
+                                >
+                                    <input
+                                        type="radio"
+                                        name="standar-antropometri"
+                                        value={standar.nilai}
+                                        checked={dipilih}
+                                        onChange={() =>
+                                            setRumus({
+                                                ...rumus,
+                                                standar: standar.nilai,
+                                            })
+                                        }
+                                        className="mt-1 size-4 accent-primary"
+                                    />
+                                    <span className="min-w-0 flex-1">
+                                        <span className="flex flex-wrap items-center gap-2">
+                                            <span className="font-bold">
+                                                {standar.judul}
+                                            </span>
+                                            {dipilih && (
+                                                <CheckCircle2
+                                                    className="size-5 text-tone-green"
+                                                    strokeWidth={2.5}
+                                                    aria-label="Standar terpilih"
+                                                />
+                                            )}
+                                        </span>
+                                        <span className="mt-1 block text-sm font-semibold text-muted-foreground">
+                                            {standar.cakupan}
+                                        </span>
+                                        <span className="mt-1 block max-w-[84ch] text-sm text-muted-foreground">
+                                            {standar.keterangan}
+                                        </span>
+                                    </span>
+                                </label>
+                            );
+                        })}
+                    </div>
+
+                    <div className="border-t border-border px-5 py-5 sm:px-6">
+                        <label className="flex cursor-pointer items-start gap-3">
+                            <input
+                                type="checkbox"
+                                checked={rumus.koreksiPosisiOtomatis}
+                                onChange={(event) =>
+                                    setRumus({
+                                        ...rumus,
+                                        koreksiPosisiOtomatis:
+                                            event.target.checked,
+                                    })
+                                }
+                                className="mt-0.5 size-4 accent-primary"
+                            />
+                            <span>
+                                <span className="font-bold">
+                                    Koreksi posisi ukur otomatis ±0,7 cm
+                                </span>
+                                <span className="mt-1 block max-w-[82ch] text-sm text-muted-foreground">
+                                    Protokol WHO: anak &lt;24 bulan yang diukur
+                                    berdiri dikurangi 0,7 cm; anak ≥24 bulan
+                                    yang diukur telentang ditambah 0,7 cm.
+                                </span>
+                            </span>
+                        </label>
+                    </div>
+                </section>
+
+                <section className="kartu overflow-hidden">
+                    <div className="strip-kepala">
+                        <h2 className="text-xl font-extrabold">
+                            Ambang pemantauan dan rujukan
+                        </h2>
+                        <p className="mt-0.5 max-w-[88ch] text-sm text-pretty text-muted-foreground">
+                            Ambang ini menyalakan edukasi KMS dan arahan tindak
+                            lanjut; kategori status gizi resmi tetap mengikuti
+                            Permenkes.
+                        </p>
+                    </div>
+                    <div className="grid gap-5 p-5 sm:grid-cols-2 sm:p-6">
+                        <Isian
+                            id="ambang-waspada"
+                            label="Zona waspada"
+                            satuan="SD"
+                            nilai={nilai.ambangWaspada}
+                            desimal={2}
+                            onGanti={(v) => ubah('ambangWaspada', v)}
+                        />
+                        <Isian
+                            id="ambang-rujukan"
+                            label="Anjuran hubungi faskes"
+                            satuan="SD"
+                            nilai={nilai.ambangRujukan}
+                            desimal={2}
+                            onGanti={(v) => ubah('ambangRujukan', v)}
+                        />
+                    </div>
+                    <p className="border-t border-border px-5 py-4 text-sm text-muted-foreground sm:px-6">
+                        Nilai awal mengikuti diskusi kader: zona waspada −1,00
+                        SD dan arahan faskes pada z-score ≤ −1,96 SD. Keduanya
+                        harus disahkan Puskesmas sebelum dipakai pada data
+                        produksi.
+                    </p>
+                </section>
 
                 <section className="kartu overflow-hidden">
                     <div className="strip-kepala">
@@ -141,6 +345,69 @@ export default function Pengaturan({
                             onMin={(v) => ubah('likaMin', v)}
                             onMax={(v) => ubah('likaMax', v)}
                         />
+                    </div>
+                </section>
+
+                <section className="kartu overflow-hidden">
+                    <div className="strip-kepala flex items-start gap-3">
+                        <KeyRound
+                            className="mt-0.5 size-5 shrink-0 text-primary"
+                            strokeWidth={2.5}
+                            aria-hidden="true"
+                        />
+                        <div>
+                            <h2 className="text-xl font-extrabold">
+                                Akses menu per peran
+                            </h2>
+                            <p className="mt-0.5 max-w-[80ch] text-sm text-pretty text-muted-foreground">
+                                Tetapkan menu yang terlihat oleh setiap peran.
+                                Pembatasan wilayah dan izin ubah tetap diperiksa
+                                kembali oleh server.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="divide-y divide-border">
+                        {MENU_AKSES.map((akses) => (
+                            <section
+                                key={akses.peran}
+                                className="px-5 py-5 sm:px-6"
+                            >
+                                <h3 className="font-bold">{akses.peran}</h3>
+                                <p className="mt-0.5 text-sm text-muted-foreground">
+                                    {akses.keterangan}
+                                </p>
+                                <div className="mt-4 flex flex-wrap gap-x-5 gap-y-3">
+                                    {akses.menu.map((menu) => {
+                                        const kunci = `${akses.peran}-${menu}`;
+
+                                        return (
+                                            <label
+                                                key={kunci}
+                                                className="flex min-h-11 items-center gap-2.5 text-sm font-semibold"
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={aksesMenu[kunci]}
+                                                    onChange={(event) =>
+                                                        setAksesMenu(
+                                                            (nilaiSaatIni) => ({
+                                                                ...nilaiSaatIni,
+                                                                [kunci]:
+                                                                    event.target
+                                                                        .checked,
+                                                            }),
+                                                        )
+                                                    }
+                                                    className="size-4 accent-primary"
+                                                />
+                                                {menu}
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            </section>
+                        ))}
                     </div>
                 </section>
 
@@ -197,11 +464,11 @@ export default function Pengaturan({
                         />
                         <div>
                             <h2 className="text-xl font-extrabold">
-                                Ambang z-score, terkunci
+                                Kategori z-score Permenkes, terkunci
                             </h2>
                             <p className="mt-0.5 text-sm text-pretty text-muted-foreground">
-                                Ditetapkan Permenkes No. 2 Tahun 2020, tidak
-                                bisa diubah dari aplikasi.
+                                Batas kategori klinis ditetapkan Permenkes No. 2
+                                Tahun 2020 dan tidak bisa diubah dari aplikasi.
                             </p>
                         </div>
                     </div>
@@ -281,7 +548,10 @@ export default function Pengaturan({
                 <button
                     type="button"
                     disabled={onSimpan === undefined || !belumTersimpan}
-                    onClick={() => onSimpan?.(nilai)}
+                    onClick={() => {
+                        onSimpan?.(nilai);
+                        onSimpanStandarisasi?.(rumus);
+                    }}
                     className="tombol-utama disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
                 >
                     Simpan pengaturan
@@ -289,7 +559,10 @@ export default function Pengaturan({
                 <button
                     type="button"
                     disabled={!belumTersimpan}
-                    onClick={() => setNilai(ambang)}
+                    onClick={() => {
+                        setNilai(ambang);
+                        setRumus(standarisasi);
+                    }}
                     className="tombol-kedua disabled:cursor-not-allowed disabled:opacity-50"
                 >
                     Kembalikan ke bawaan

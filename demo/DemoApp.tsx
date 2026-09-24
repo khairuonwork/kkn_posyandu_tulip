@@ -8,10 +8,13 @@
 import {
     Baby,
     Calendar,
+    CreditCard,
     FileText,
     House,
     LogOut,
     Settings,
+    Stethoscope,
+    Upload,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { ComponentType } from 'react';
@@ -21,11 +24,17 @@ import DaftarAnak from '@/pages/anak/index';
 import type { AnakBaru, BarisAnak, PatchAnak } from '@/pages/anak/index';
 import DetailAnak from '@/pages/anak/show';
 import Dashboard from '@/pages/dashboard';
+import KartuSasaran from '@/pages/kartu-sasaran/index';
 import Laporan from '@/pages/laporan/index';
 import type { TabPeriode } from '@/pages/laporan/index';
-import type { Ambang } from '@/pages/pengaturan/index';
+import LayananPosyandu from '@/pages/layanan/index';
 import Pengaturan from '@/pages/pengaturan/index';
+import type {
+    Ambang,
+    StandarisasiAntropometri,
+} from '@/pages/pengaturan/index';
 import DaftarPeriode from '@/pages/periode/index';
+import SasaranImpor from '@/pages/sasaran/index';
 import type { Peran, Periode } from '@/types/posyandu';
 import Login from './Login';
 import { Link, navigate, useAlamat } from './nav';
@@ -42,6 +51,7 @@ import {
     daftarPeriode,
     PENGATURAN_BAWAAN,
     PENGATURAN_TERAKHIR_DIUBAH,
+    STANDARISASI_BAWAAN,
     perluPerhatian,
     rekapPerRt,
     ringkasan,
@@ -80,8 +90,26 @@ const SEMUA: Peran[] = ['kader', 'bidan', 'admin'];
 
 const NAV: ButirNav[] = [
     { href: '/beranda', label: 'Beranda', ikon: House, peran: SEMUA },
+    {
+        href: '/layanan',
+        label: 'Pendaftaran & Ukur',
+        ikon: Stethoscope,
+        peran: SEMUA,
+    },
     { href: '/balita', label: 'Data Anak', ikon: Baby, peran: SEMUA },
+    {
+        href: '/kartu-sasaran',
+        label: 'Kartu Sasaran',
+        ikon: CreditCard,
+        peran: ['bidan', 'admin'],
+    },
     { href: '/laporan', label: 'Laporan', ikon: FileText, peran: SEMUA },
+    {
+        href: '/sasaran',
+        label: 'Sasaran & Impor',
+        ikon: Upload,
+        peran: ['admin'],
+    },
     {
         href: '/pengaturan',
         label: 'Pengaturan',
@@ -114,26 +142,43 @@ const NAMA_PERAN: Record<Peran, string> = {
 
 type Rute =
     | { nama: 'beranda' }
+    | { nama: 'layanan' }
     | { nama: 'balita' }
     | { nama: 'detail'; id: number }
     | { nama: 'laporan' }
+    | { nama: 'sasaran' }
+    | { nama: 'kartu-sasaran'; id?: number }
     | { nama: 'pengaturan' }
     | { nama: 'periode' };
 
 /** Router demo, seluruhnya. Tanpa pustaka: enam alamat dan satu parameter. */
 function bacaRute(alamat: string): Rute {
     const detail = /^\/balita\/(\d+)$/.exec(alamat);
+    const kartu = /^\/kartu-sasaran\/(\d+)$/.exec(alamat);
 
     if (detail !== null) {
         return { nama: 'detail', id: Number(detail[1]) };
+    }
+
+    if (kartu !== null) {
+        return { nama: 'kartu-sasaran', id: Number(kartu[1]) };
     }
 
     switch (alamat) {
         case '/balita':
             return { nama: 'balita' };
 
+        case '/layanan':
+            return { nama: 'layanan' };
+
         case '/laporan':
             return { nama: 'laporan' };
+
+        case '/sasaran':
+            return { nama: 'sasaran' };
+
+        case '/kartu-sasaran':
+            return { nama: 'kartu-sasaran' };
 
         case '/pengaturan':
             return { nama: 'pengaturan' };
@@ -178,6 +223,8 @@ export default function DemoApp() {
         ANTREAN_CONTOH,
     );
     const [ambang, setAmbang] = useState<Ambang>(PENGATURAN_BAWAAN);
+    const [standarisasi, setStandarisasi] =
+        useState<StandarisasiAntropometri>(STANDARISASI_BAWAAN);
     const alamat = useAlamat();
     const rute = bacaRute(alamat);
 
@@ -299,6 +346,8 @@ export default function DemoApp() {
                         }
                         ambang={ambang}
                         onSimpanAmbang={setAmbang}
+                        standarisasi={standarisasi}
+                        onSimpanStandarisasi={setStandarisasi}
                     />
                 </main>
 
@@ -471,6 +520,8 @@ type LayarProps = {
     onTambahAnak: (baru: AnakBaru) => void;
     ambang: Ambang;
     onSimpanAmbang: (nilai: Ambang) => void;
+    standarisasi: StandarisasiAntropometri;
+    onSimpanStandarisasi: (nilai: StandarisasiAntropometri) => void;
     tabLaporan: TabPeriode;
     onGantiTabLaporan: (tab: TabPeriode) => void;
 };
@@ -496,6 +547,8 @@ function Layar({
     onTambahAnak,
     ambang,
     onSimpanAmbang,
+    standarisasi,
+    onSimpanStandarisasi,
 }: LayarProps) {
     const periode = cariPeriode(periodeId);
 
@@ -538,6 +591,27 @@ function Layar({
         );
     }
 
+    if (rute.nama === 'layanan') {
+        const detail = detailAnak(110);
+        const terbaru = detail?.pengukuran[0] ?? null;
+        const nama = detail?.anak.nama ?? 'Sasaran contoh';
+
+        return (
+            <LayananPosyandu
+                sasaranContoh={{
+                    kodeKartu: detail?.anak.nik ?? 'KMS-110',
+                    nama,
+                    namaIbu: detail?.anak.namaOrtu ?? null,
+                    rt: detail?.anak.rt ?? null,
+                    umur: '8 bulan',
+                    bukuKia: detail?.anak.bukuKia ?? false,
+                    beratTerakhir: terbaru?.bbKg ?? 15,
+                    tanggalUkurTerakhir: terbaru?.tanggalUkur ?? null,
+                }}
+            />
+        );
+    }
+
     if (rute.nama === 'detail' && periode !== null) {
         const detail = detailAnak(rute.id);
 
@@ -566,9 +640,8 @@ function Layar({
     }
 
     if (rute.nama === 'laporan' && periode !== null) {
-        // Tab Tahunan menjumlahkan seluruh periode; Harian dan Bulanan memakai
-        // periode terpilih saja, karena data impor hanya punya satu tanggal
-        // ukur per periode.
+        // Tab Tahunan menjumlahkan seluruh periode, sedangkan Bulanan memakai
+        // periode yang dipilih.
         const periodeDipakai =
             tabLaporan === 'tahunan'
                 ? data.periode.map((p) => p.id)
@@ -599,11 +672,21 @@ function Layar({
         );
     }
 
+    if (rute.nama === 'sasaran') {
+        return <SasaranImpor />;
+    }
+
+    if (rute.nama === 'kartu-sasaran') {
+        return <KartuSasaran sasaran={data.anak} terpilihAwal={rute.id} />;
+    }
+
     if (rute.nama === 'pengaturan') {
         return (
             <Pengaturan
                 ambang={ambang}
+                standarisasi={standarisasi}
                 onSimpan={onSimpanAmbang}
+                onSimpanStandarisasi={onSimpanStandarisasi}
                 standarVersi={data.meta.versiStandar}
                 barisStandar={data.meta.barisStandar}
                 terakhirDiubah={PENGATURAN_TERAKHIR_DIUBAH}

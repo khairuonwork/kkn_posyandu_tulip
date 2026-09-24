@@ -7,12 +7,12 @@
  * docs/11-catatan-tahap-demo.md.
  */
 
-import { Eye, EyeOff, HeartPulse, Loader2, TriangleAlert } from 'lucide-react';
+import { Eye, EyeOff, Loader2, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import type { Peran } from '@/types/posyandu';
+import ilustrasiPosyandu from './assets/login-posyandu-illustration-v1.png';
 import { Head } from './nav';
-import { data } from './store';
 
 const PERAN: { nilai: Peran; nama: string; keterangan: string }[] = [
     {
@@ -64,11 +64,23 @@ export default function Login({ onMasuk }: Props) {
     };
 
     return (
-        <div className="flex min-h-screen">
+        <div className="relative isolate flex min-h-screen overflow-hidden">
             {/* Judul tab ikut kembali saat Keluar ditekan; tanpa ini ia
                 tertinggal pada layar yang barusan ditutup. */}
             <Head title="Masuk" />
-            {/* Irama tegaknya rapat dengan sengaja. Pada skala v2 isian
+            <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+            >
+                <span className="absolute -top-8 -left-24 h-px w-80 rotate-[31deg] bg-primary/18" />
+                <span className="absolute top-7 -left-28 h-px w-80 rotate-[31deg] bg-primary/12" />
+                <span className="absolute top-22 -left-20 h-px w-72 rotate-[31deg] bg-primary/8" />
+                <span className="absolute -right-24 -bottom-8 h-px w-80 rotate-[31deg] bg-primary/18" />
+                <span className="absolute -right-28 bottom-7 h-px w-80 rotate-[31deg] bg-primary/12" />
+                <span className="absolute -right-20 bottom-22 h-px w-72 rotate-[31deg] bg-primary/8" />
+            </div>
+            <main className="flex w-full">
+                {/* Irama tegaknya rapat dengan sengaja. Pada skala v2 isian
                 menjadi 52 px dan judul 36 px, sehingga blok bagian 6.1 apa
                 adanya mendorong tombol Masuk ke bawah lipatan laptop 1440x900.
                 Jarak antar bagian dirapatkan sampai tombolnya kembali terlihat
@@ -79,181 +91,188 @@ export default function Login({ onMasuk }: Props) {
                 menjadi #EDEFEA, `bg-background` membuat kedua panel berwarna
                 abu dan pembagian dua panelnya lenyap. Bagian 6.1 menetapkan
                 kiri #FFFFFF, kanan #F6F7F5. */}
-            <div className="flex w-full items-center justify-start bg-card px-6 py-5 sm:px-10 lg:w-[60%] xl:w-[52%] xl:min-w-[560px] xl:px-16">
-                {/* Blok maks 400 px sesuai bagian 6.1. Sebelumnya 560 px, yang
+                <div className="flex w-full flex-col items-center justify-center bg-transparent px-6 py-12 sm:px-12 xl:w-[54%] xl:px-20">
+                    {/* Blok maks 400 px sesuai bagian 6.1. Sebelumnya 560 px, yang
                     menarik baris isian jadi selebar tabel. */}
-                <div className="w-full max-w-[400px]">
-                    {/* Mereknya pindah ke panel hijau, tapi panel itu hilang di
-                        bawah 1024 px — dan layar Masuk tanpa nama produk sama
-                        sekali adalah harga yang terlalu mahal. Di ponsel ia
-                        tetap di sini; di desktop hanya ada satu, di kanan. */}
-                    <div className="lg:hidden">
+                    <div className="w-full max-w-[480px]">
                         <Merek />
-                    </div>
 
-                    <h1 className="mt-5 text-3xl font-extrabold tracking-[-0.02em] lg:mt-0">
-                        Masuk
-                    </h1>
+                        <h1 className="mt-10 text-4xl font-extrabold tracking-[-0.03em] lg:text-5xl">
+                            Selamat datang
+                        </h1>
 
-                    <p className="mt-2 max-w-[44ch] text-base text-muted-foreground">
-                        Catatan pertumbuhan balita Posyandu Tulip.
-                    </p>
+                        <p className="mt-3 max-w-[44ch] text-lg leading-relaxed text-muted-foreground">
+                            Masuk untuk melanjutkan pencatatan dan pemantauan
+                            tumbuh kembang balita.
+                        </p>
 
-                    <form onSubmit={kirim} className="mt-5">
-                        {galat !== null && (
-                            <div
-                                role="alert"
-                                className="mb-4 flex items-start gap-2.5 rounded-lg border border-tone-red bg-tone-red-bg p-4 text-sm font-semibold text-tone-red"
-                            >
-                                <TriangleAlert
-                                    className="mt-0.5 size-4 shrink-0"
-                                    strokeWidth={2.5}
-                                    aria-hidden="true"
-                                />
-                                {galat}
-                            </div>
-                        )}
-
-                        <div className="space-y-4">
-                            <div>
-                                <label
-                                    htmlFor="email"
-                                    className="block text-sm font-semibold text-muted-foreground"
+                        <form onSubmit={kirim} className="mt-9">
+                            {galat !== null && (
+                                <div
+                                    role="alert"
+                                    className="mb-4 flex items-start gap-2.5 rounded-lg border border-tone-red bg-tone-red-bg p-4 text-sm font-semibold text-tone-red"
                                 >
-                                    Email
-                                </label>
-                                <input
-                                    id="email"
-                                    type="email"
-                                    value={email}
-                                    disabled={memuat}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    className={`isian mt-1.5 w-full disabled:opacity-60 ${
-                                        galat === null ? '' : 'border-tone-red'
-                                    }`}
-                                />
-                            </div>
+                                    <TriangleAlert
+                                        className="mt-0.5 size-4 shrink-0"
+                                        strokeWidth={2.5}
+                                        aria-hidden="true"
+                                    />
+                                    {galat}
+                                </div>
+                            )}
 
-                            <div>
-                                <label
-                                    htmlFor="sandi"
-                                    className="block text-sm font-semibold text-muted-foreground"
-                                >
-                                    Kata sandi
-                                </label>
-                                <div className="relative mt-1.5">
+                            <div className="space-y-6">
+                                <div>
+                                    <label
+                                        htmlFor="email"
+                                        className="block text-base font-semibold text-muted-foreground"
+                                    >
+                                        Email
+                                    </label>
                                     <input
-                                        id="sandi"
-                                        type={
-                                            sandiTerbaca ? 'text' : 'password'
-                                        }
-                                        value={sandi}
+                                        id="email"
+                                        type="email"
+                                        value={email}
+                                        placeholder="nama@posyandu.id"
                                         disabled={memuat}
                                         onChange={(e) =>
-                                            setSandi(e.target.value)
+                                            setEmail(e.target.value)
                                         }
-                                        className={`isian w-full pr-13 disabled:opacity-60 ${
+                                        className={`isian mt-2 w-full text-lg placeholder:text-lg disabled:opacity-60 ${
                                             galat === null
                                                 ? ''
                                                 : 'border-tone-red'
                                         }`}
                                     />
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            setSandiTerbaca(!sandiTerbaca)
-                                        }
-                                        aria-label={
-                                            sandiTerbaca
-                                                ? 'Sembunyikan kata sandi'
-                                                : 'Tampilkan kata sandi'
-                                        }
-                                        className="absolute top-1/2 right-0 flex size-13 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground"
+                                </div>
+
+                                <div>
+                                    <label
+                                        htmlFor="sandi"
+                                        className="block text-base font-semibold text-muted-foreground"
                                     >
-                                        {sandiTerbaca ? (
-                                            <EyeOff
-                                                className="size-5"
-                                                strokeWidth={2.5}
-                                            />
-                                        ) : (
-                                            <Eye
-                                                className="size-5"
-                                                strokeWidth={2.5}
-                                            />
-                                        )}
-                                    </button>
+                                        Kata sandi
+                                    </label>
+                                    <div className="relative mt-1.5">
+                                        <input
+                                            id="sandi"
+                                            type={
+                                                sandiTerbaca
+                                                    ? 'text'
+                                                    : 'password'
+                                            }
+                                            value={sandi}
+                                            placeholder="Masukkan kata sandi"
+                                            disabled={memuat}
+                                            onChange={(e) =>
+                                                setSandi(e.target.value)
+                                            }
+                                            className={`isian w-full pr-13 text-lg placeholder:text-lg disabled:opacity-60 ${
+                                                galat === null
+                                                    ? ''
+                                                    : 'border-tone-red'
+                                            }`}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setSandiTerbaca(!sandiTerbaca)
+                                            }
+                                            aria-label={
+                                                sandiTerbaca
+                                                    ? 'Sembunyikan kata sandi'
+                                                    : 'Tampilkan kata sandi'
+                                            }
+                                            className="absolute top-1/2 right-0 flex size-13 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground"
+                                        >
+                                            {sandiTerbaca ? (
+                                                <EyeOff
+                                                    className="size-5"
+                                                    strokeWidth={2.5}
+                                                />
+                                            ) : (
+                                                <Eye
+                                                    className="size-5"
+                                                    strokeWidth={2.5}
+                                                />
+                                            )}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <fieldset className="mt-4" disabled={memuat}>
-                            <legend className="sr-only">Masuk sebagai</legend>
-                            {/* Bertumpuk vertikal, bukan segmented control.
+                            <fieldset className="mt-7" disabled={memuat}>
+                                <legend className="sr-only">
+                                    Masuk sebagai
+                                </legend>
+                                {/* Bertumpuk vertikal, bukan segmented control.
                                 Bagian 6.1 menolaknya secara khusus: di sidebar
                                 pemilih peran adalah pengalih cepat, di sini ia
                                 pilihan pertama yang butuh keterangan per peran
                                 - dan keterangan itu tidak muat dalam segmen. */}
-                            <div className="flex flex-col gap-2">
-                                {PERAN.map((p) => (
-                                    <label
-                                        key={p.nilai}
-                                        htmlFor={`masuk-peran-${p.nilai}`}
-                                        className={`flex min-h-16 cursor-pointer items-center gap-3 rounded-lg border-2 px-4 py-3 ${
-                                            peran === p.nilai
-                                                ? 'border-primary bg-tone-green-bg'
-                                                : 'border-border'
-                                        }`}
-                                    >
-                                        <input
-                                            id={`masuk-peran-${p.nilai}`}
-                                            type="radio"
-                                            name="peran"
-                                            value={p.nilai}
-                                            checked={peran === p.nilai}
-                                            onChange={() => setPeran(p.nilai)}
-                                            className="size-5 shrink-0 accent-primary"
-                                        />
-                                        <span className="min-w-0">
-                                            <span
-                                                className={`block text-base font-bold ${
-                                                    peran === p.nilai
-                                                        ? 'text-primary'
-                                                        : ''
-                                                }`}
-                                            >
-                                                {p.nama}
+                                <div className="flex flex-col gap-3">
+                                    {PERAN.map((p) => (
+                                        <label
+                                            key={p.nilai}
+                                            htmlFor={`masuk-peran-${p.nilai}`}
+                                            className={`flex min-h-20 cursor-pointer items-center gap-4 rounded-xl border-2 px-5 py-4 ${
+                                                peran === p.nilai
+                                                    ? 'border-primary bg-tone-green-bg'
+                                                    : 'border-border'
+                                            }`}
+                                        >
+                                            <input
+                                                id={`masuk-peran-${p.nilai}`}
+                                                type="radio"
+                                                name="peran"
+                                                value={p.nilai}
+                                                checked={peran === p.nilai}
+                                                onChange={() =>
+                                                    setPeran(p.nilai)
+                                                }
+                                                className="size-5 shrink-0 accent-primary"
+                                            />
+                                            <span className="min-w-0">
+                                                <span
+                                                    className={`block text-lg font-bold ${
+                                                        peran === p.nilai
+                                                            ? 'text-primary'
+                                                            : ''
+                                                    }`}
+                                                >
+                                                    {p.nama}
+                                                </span>
+                                                <span className="block text-base text-muted-foreground">
+                                                    {p.keterangan}
+                                                </span>
                                             </span>
-                                            <span className="block text-sm text-muted-foreground">
-                                                {p.keterangan}
-                                            </span>
-                                        </span>
-                                    </label>
-                                ))}
-                            </div>
-                        </fieldset>
+                                        </label>
+                                    ))}
+                                </div>
+                            </fieldset>
 
-                        <button
-                            type="submit"
-                            disabled={kosong || memuat}
-                            className="tombol-utama mt-4 w-full disabled:bg-border disabled:text-muted-foreground disabled:shadow-none"
-                        >
-                            {memuat && (
-                                <Loader2
-                                    className="size-5 animate-spin"
-                                    aria-hidden="true"
-                                />
-                            )}
-                            {memuat ? 'Masuk…' : 'Masuk'}
-                        </button>
-                    </form>
+                            <button
+                                type="submit"
+                                disabled={kosong || memuat}
+                                className="tombol-utama mt-7 w-full text-lg disabled:bg-border disabled:text-muted-foreground disabled:shadow-none"
+                            >
+                                {memuat && (
+                                    <Loader2
+                                        className="size-5 animate-spin"
+                                        aria-hidden="true"
+                                    />
+                                )}
+                                {memuat ? 'Masuk…' : 'Masuk'}
+                            </button>
+                        </form>
 
-                    <p className="mt-3 text-center text-sm font-medium text-muted-foreground">
-                        Mode demo — data contoh, tidak tersimpan.
-                    </p>
+                        <p className="mt-5 text-center text-base font-medium text-muted-foreground">
+                            Mode demo — data contoh, tidak tersimpan.
+                        </p>
+                    </div>
                 </div>
-            </div>
 
-            {/*
+                {/*
                 Panel kanan hijau pekat, bukan abu. Ia yang memegang merek
                 sekarang, jadi warnanya harus menyatakan produk — bukan sekadar
                 membagi layar jadi dua.
@@ -267,49 +286,26 @@ export default function Login({ onMasuk }: Props) {
                 — bukan abu. Abu di atas permukaan berwarna selalu terbaca
                 seperti teks mati, bukan seperti teks pendukung.
             */}
-            <div className="hidden flex-col bg-primary px-10 py-10 text-primary-foreground lg:flex lg:w-[40%] xl:w-[48%] xl:px-16">
-                <Merek terang />
+                <div
+                    className="relative hidden overflow-hidden bg-[#0b5334] text-primary-foreground xl:my-6 xl:mr-6 xl:flex xl:w-[46%] xl:flex-col xl:rounded-[2rem]"
+                    style={{
+                        backgroundImage: `linear-gradient(rgba(7, 80, 52, 0.36), rgba(7, 80, 52, 0.68)), url(${ilustrasiPosyandu})`,
+                        backgroundPosition: 'center',
+                        backgroundSize: 'cover',
+                    }}
+                >
+                    <div className="relative z-10 flex flex-1 flex-col justify-end p-8 pb-12 xl:p-12 xl:pb-16">
+                        <p className="max-w-[18ch] text-3xl leading-tight font-extrabold text-balance">
+                            Pencatatan balita yang lebih dekat dengan pelayanan.
+                        </p>
 
-                <div className="flex flex-1 flex-col justify-center py-10">
-                    {/* Kalimat ini inti produknya. Dulu dicetak seukuran
-                        keterangan kaki; sekarang ia berbunyi sebagai
-                        pernyataan, dengan angka nyata yang membuktikannya. */}
-                    <p className="max-w-[16ch] text-3xl leading-tight font-extrabold text-balance">
-                        Satu anak, satu riwayat. Bukan dua belas berkas Excel.
-                    </p>
-
-                    <dl className="mt-10 flex flex-wrap gap-x-12 gap-y-6 border-t border-white/25 pt-8">
-                        <div>
-                            <dt className="text-2xl font-extrabold">
-                                {data.anak.length}
-                            </dt>
-                            <dd className="mt-1 text-base text-white/80">
-                                balita dalam arsip
-                            </dd>
-                        </div>
-                        <div>
-                            <dt className="text-2xl font-extrabold">
-                                {data.periode.length}
-                            </dt>
-                            <dd className="mt-1 text-base text-white/80">
-                                periode kegiatan
-                            </dd>
-                        </div>
-                        <div>
-                            <dt className="text-2xl font-extrabold">
-                                RW {data.meta.rw}
-                            </dt>
-                            <dd className="mt-1 text-base text-white/80">
-                                Kelurahan {data.meta.kelurahan}
-                            </dd>
-                        </div>
-                    </dl>
+                        <p className="mt-5 max-w-[40ch] text-base leading-relaxed text-white/80">
+                            Satu tempat untuk mencatat hasil ukur, memantau
+                            riwayat, dan menyiapkan tindak lanjut keluarga.
+                        </p>
+                    </div>
                 </div>
-
-                <p className="text-base text-white/80">
-                    Data Januari–Juni 2026, dianonimkan untuk demo.
-                </p>
-            </div>
+            </main>
         </div>
     );
 }
@@ -324,16 +320,13 @@ function Merek({ terang = false }: { terang?: boolean }) {
     return (
         <div>
             <div className="flex items-center gap-3">
-                <HeartPulse
+                <ShieldCheck
                     className={`size-7 shrink-0 ${terang ? '' : 'text-primary'}`}
                     strokeWidth={2.5}
                     aria-hidden="true"
                 />
-                {/* Nama produk: keputusan P1 pada bagian 13.3.
-                    `Catatan Posyandu` dan `SIMPATIK Posyandu` pada artboard
-                    tidak dipakai. */}
                 <span className="text-lg font-extrabold">
-                    Portal Posyandu Tulip
+                    SIMPATIK Posyandu
                 </span>
             </div>
 
@@ -342,7 +335,7 @@ function Merek({ terang = false }: { terang?: boolean }) {
                     terang ? 'text-white/80' : 'text-muted-foreground'
                 }`}
             >
-                RW 18 Kelurahan Citeureup
+                Sistem Informasi Posyandu
             </p>
         </div>
     );
