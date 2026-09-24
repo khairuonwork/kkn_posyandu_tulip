@@ -592,22 +592,36 @@ function Layar({
     }
 
     if (rute.nama === 'layanan') {
-        const detail = detailAnak(110);
-        const terbaru = detail?.pengukuran[0] ?? null;
-        const nama = detail?.anak.nama ?? 'Sasaran contoh';
-
         return (
             <LayananPosyandu
-                sasaranContoh={{
-                    kodeKartu: detail?.anak.nik ?? 'KMS-110',
-                    nama,
-                    namaIbu: detail?.anak.namaOrtu ?? null,
-                    rt: detail?.anak.rt ?? null,
-                    umur: '8 bulan',
-                    bukuKia: detail?.anak.bukuKia ?? false,
-                    beratTerakhir: terbaru?.bbKg ?? 15,
-                    tanggalUkurTerakhir: terbaru?.tanggalUkur ?? null,
-                }}
+                sasaran={data.anak.map((anak) => {
+                    const terbaru = detailAnak(anak.id)?.pengukuran[0] ?? null;
+
+                    return {
+                        id: anak.id,
+                        nama: anak.nama,
+                        nik: anak.nik,
+                        nikLengkap: anak.nikLengkap,
+                        namaIbu: anak.namaOrtu,
+                        nikOrtu: anak.nikOrtu,
+                        rt: anak.rt,
+                        umur:
+                            terbaru?.umurBulan === null ||
+                            terbaru?.umurBulan === undefined
+                                ? 'umur belum tersedia'
+                                : `${terbaru.umurBulan} bulan`,
+                        tglLahir: anak.tglLahir,
+                        jk: anak.jk,
+                        anakKe: anak.anakKe,
+                        bbLahirKg: anak.bbLahirKg,
+                        pbLahirCm: anak.pbLahirCm,
+                        bukuKia: anak.bukuKia,
+                        imd: anak.imd,
+                        imunisasiLengkap: null,
+                        beratTerakhir: terbaru?.bbKg ?? null,
+                        tanggalUkurTerakhir: terbaru?.tanggalUkur ?? null,
+                    };
+                })}
             />
         );
     }
@@ -677,7 +691,19 @@ function Layar({
     }
 
     if (rute.nama === 'kartu-sasaran') {
-        return <KartuSasaran sasaran={data.anak} terpilihAwal={rute.id} />;
+        return (
+            <KartuSasaran
+                sasaran={data.anak.map((anak) => ({
+                    id: anak.id,
+                    nama: anak.nama,
+                    nik: anak.nik,
+                    namaIbu: anak.namaOrtu,
+                    tglLahir: anak.tglLahir ?? 'Tanggal lahir belum dicatat',
+                    rt: anak.rt,
+                }))}
+                terpilihAwal={rute.id}
+            />
+        );
     }
 
     if (rute.nama === 'pengaturan') {

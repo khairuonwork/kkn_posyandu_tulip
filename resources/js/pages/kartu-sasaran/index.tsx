@@ -1,9 +1,12 @@
 import { CreditCard, Download, Printer, ShieldCheck } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { useMemo, useState } from 'react';
 import Halaman from '@/components/halaman';
+import { kodeKartuSasaran, payloadKartuSasaran } from '@/lib/kartu-sasaran';
 
 export type SasaranKartu = {
-    nama: string;
+    id: number | string;
+    nama: string | null;
     nik: string | null;
     namaIbu: string | null;
     tglLahir: string;
@@ -131,7 +134,8 @@ export default function KartuSasaran({ sasaran, terpilihAwal }: Props) {
                                                                 POSYANDU
                                                             </p>
                                                             <p className="mt-[2mm] truncate text-[10px] font-extrabold">
-                                                                {anak.nama}
+                                                                {anak.nama ??
+                                                                    'Nama belum dicatat'}
                                                             </p>
                                                             <p className="mt-[1mm] text-[7px] text-muted-foreground">
                                                                 NIK:{' '}
@@ -152,15 +156,18 @@ export default function KartuSasaran({ sasaran, terpilihAwal }: Props) {
                                                             </p>
                                                         </div>
                                                         <p className="border-t border-[#b9cbbb] pt-[1mm] text-[7px] font-bold text-primary">
-                                                            SPT-
-                                                            {(
-                                                                anak.nik ??
-                                                                String(i)
-                                                            ).slice(-8)}
+                                                            {kodeKartuSasaran(
+                                                                anak,
+                                                            )}
                                                         </p>
                                                     </div>
-                                                    <QrContoh
-                                                        kode={`SPT-${(anak.nik ?? String(i)).slice(-8)}`}
+                                                    <QrSasaran
+                                                        payload={payloadKartuSasaran(
+                                                            anak,
+                                                        )}
+                                                        label={kodeKartuSasaran(
+                                                            anak,
+                                                        )}
                                                         ukuran="w-[24mm]"
                                                         tinggi="h-[24mm]"
                                                     />
@@ -193,7 +200,7 @@ export default function KartuSasaran({ sasaran, terpilihAwal }: Props) {
                     {tampil.map((anak, i) => {
                         const id = sasaran.indexOf(anak);
 
-                        const kode = `SPT-${(anak.nik ?? String(id + 1)).slice(-8)}`;
+                        const kode = kodeKartuSasaran(anak);
                         const aktif = pilihan.has(id);
 
                         return (
@@ -213,7 +220,8 @@ export default function KartuSasaran({ sasaran, terpilihAwal }: Props) {
                                                 </span>
                                             </div>
                                             <h2 className="mt-3 truncate text-lg font-extrabold">
-                                                {anak.nama}
+                                                {anak.nama ??
+                                                    'Nama belum dicatat'}
                                             </h2>
                                             <p className="mt-1 text-xs text-muted-foreground">
                                                 {anak.namaIbu ??
@@ -229,7 +237,11 @@ export default function KartuSasaran({ sasaran, terpilihAwal }: Props) {
                                         </p>
                                     </div>
                                     <div className="flex w-[36%] flex-col items-center justify-center border-l border-[#c7cec5] bg-[#e6eee8] p-5">
-                                        <QrContoh kode={kode} ukuran="w-24" />
+                                        <QrSasaran
+                                            payload={payloadKartuSasaran(anak)}
+                                            label={kode}
+                                            ukuran="w-24"
+                                        />
                                         <span className="mt-2 text-center text-[10px] font-bold text-primary">
                                             PINDAI
                                         </span>
@@ -244,63 +256,29 @@ export default function KartuSasaran({ sasaran, terpilihAwal }: Props) {
     );
 }
 
-function QrContoh({
-    kode,
+function QrSasaran({
+    payload,
+    label,
     ukuran = 'w-40',
     tinggi,
 }: {
-    kode: string;
+    payload: string;
+    label: string;
     ukuran?: string;
     tinggi?: string;
 }) {
-    const n = 21;
-    const isi = Array.from(
-        { length: n * n },
-        (_, i) =>
-            (i * 17 +
-                kode.charCodeAt(i % kode.length) * 7 +
-                Math.floor(i / n) * 13) %
-                9 <
-            4,
-    );
-    const hitam = (r: number, c: number) => {
-        for (const [y, x] of [
-            [0, 0],
-            [0, n - 7],
-            [n - 7, 0],
-        ]) {
-            if (r >= y && r < y + 7 && c >= x && c < x + 7) {
-                const a = r - y;
-                const b = c - x;
-
-                return (
-                    a === 0 ||
-                    a === 6 ||
-                    b === 0 ||
-                    b === 6 ||
-                    (a >= 2 && a <= 4 && b >= 2 && b <= 4)
-                );
-            }
-        }
-
-        return isi[r * n + c];
-    };
-
     return (
         <div
-            aria-label={`QR contoh untuk ${kode}`}
-            className={`grid ${ukuran} ${tinggi ?? 'aspect-square'} shrink-0 grid-cols-[repeat(21,minmax(0,1fr))] gap-px self-start bg-white p-2`}
+            aria-label={`QR kartu ${label}`}
+            className={`${ukuran} ${tinggi ?? 'aspect-square'} shrink-0 self-start bg-white p-2`}
         >
-            {Array.from({ length: n * n }, (_, i) => (
-                <span
-                    key={i}
-                    className={
-                        hitam(Math.floor(i / n), i % n)
-                            ? 'aspect-square bg-foreground'
-                            : 'aspect-square bg-white'
-                    }
-                />
-            ))}
+            <QRCodeSVG
+                value={payload}
+                level="M"
+                marginSize={0}
+                className="h-full w-full"
+                title={`Kartu sasaran ${label}`}
+            />
         </div>
     );
 }
