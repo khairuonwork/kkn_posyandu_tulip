@@ -32,10 +32,16 @@ import DaftarAnak from '@/pages/anak/index';
 import type { AnakBaru, BarisAnak, PatchAnak } from '@/pages/anak/index';
 import DetailAnak from '@/pages/anak/show';
 import Dashboard from '@/pages/dashboard';
+import KartuSasaran from '@/pages/kartu-sasaran/index';
 import Laporan from '@/pages/laporan/index';
 import type { TabPeriode } from '@/pages/laporan/index';
+import LayananPosyandu from '@/pages/layanan/index';
 import Pengaturan from '@/pages/pengaturan/index';
-import type { Ambang } from '@/pages/pengaturan/index';
+import type {
+    Ambang,
+    StandarisasiAntropometri,
+} from '@/pages/pengaturan/index';
+import SasaranImpor from '@/pages/sasaran/index';
 import type { Pengguna, Peran, Periode } from '@/types/posyandu';
 
 /**
@@ -107,6 +113,8 @@ export type LayarProps = {
     onTambahAnak: (baru: AnakBaru) => void;
     ambang: Ambang;
     onSimpanAmbang: (nilai: Ambang) => void;
+    standarisasi: StandarisasiAntropometri;
+    onSimpanStandarisasi: (nilai: StandarisasiAntropometri) => void;
     pengguna: Pengguna[];
     onSimpanPengguna: (daftar: Pengguna[]) => void;
     tabLaporan: TabPeriode;
@@ -128,6 +136,8 @@ export function Layar({
     onTambahAnak,
     ambang,
     onSimpanAmbang,
+    standarisasi,
+    onSimpanStandarisasi,
     pengguna,
     onSimpanPengguna,
 }: LayarProps) {
@@ -176,6 +186,26 @@ export function Layar({
         );
     }
 
+    if (rute.nama === 'layanan') {
+        const detail = detailAnak(110);
+        const terbaru = detail?.pengukuran[0] ?? null;
+
+        return (
+            <LayananPosyandu
+                sasaranContoh={{
+                    kodeKartu: detail?.anak.nik ?? 'KMS-110',
+                    nama: detail?.anak.nama ?? 'Sasaran contoh',
+                    namaIbu: detail?.anak.namaOrtu ?? null,
+                    rt: detail?.anak.rt ?? null,
+                    umur: '8 bulan',
+                    bukuKia: detail?.anak.bukuKia ?? false,
+                    beratTerakhir: terbaru?.bbKg ?? 15,
+                    tanggalUkurTerakhir: terbaru?.tanggalUkur ?? null,
+                }}
+            />
+        );
+    }
+
     if (rute.nama === 'detail' && periode !== null) {
         const detail = detailAnak(rute.id);
 
@@ -200,9 +230,8 @@ export function Layar({
     }
 
     if (rute.nama === 'laporan' && periode !== null) {
-        // Tab Tahunan menjumlahkan seluruh periode; Harian dan Bulanan memakai
-        // periode terpilih saja, karena data impor hanya punya satu tanggal
-        // ukur per periode.
+        // Tab Tahunan menjumlahkan seluruh periode, sedangkan Bulanan memakai
+        // periode yang dipilih.
         const periodeDipakai =
             tabLaporan === 'tahunan'
                 ? data.periode.map((p) => p.id)
@@ -230,11 +259,32 @@ export function Layar({
         );
     }
 
+    if (rute.nama === 'sasaran') {
+        return <SasaranImpor />;
+    }
+
+    if (rute.nama === 'kartu-sasaran') {
+        // Alamat memuat id anak, sedangkan KartuSasaran memilih menurut urutan
+        // di daftar — id 110 bukan baris ke-110.
+        const urutan = data.anak.findIndex((a) => a.id === rute.id);
+
+        return (
+            <KartuSasaran
+                sasaran={data.anak}
+                terpilihAwal={urutan === -1 ? undefined : urutan}
+            />
+        );
+    }
+
     if (rute.nama === 'pengaturan') {
         return (
             <Pengaturan
                 ambang={ambang}
+                standarisasi={standarisasi}
                 onSimpan={onSimpanAmbang}
+                onSimpanStandarisasi={onSimpanStandarisasi}
+                standarVersi={data.meta.versiStandar}
+                barisStandar={data.meta.barisStandar}
                 peran={peran}
                 pengguna={pengguna}
                 wilayahRt={daftarRt()}

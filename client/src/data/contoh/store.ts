@@ -687,6 +687,13 @@ export const PENGATURAN_BAWAAN = {
     turunMax: 1.5,
     tinggiBerkurangMax: 0.5,
     umurMaxBulan: 60,
+    ambangWaspada: -1.0,
+    ambangRujukan: -1.96,
+};
+
+export const STANDARISASI_BAWAAN = {
+    standar: 'who_permenkes_2020' as const,
+    koreksiPosisiOtomatis: true,
 };
 
 /** Batas berat lahir rendah, Kemenkes dan WHO: di bawah 2,5 kg. */

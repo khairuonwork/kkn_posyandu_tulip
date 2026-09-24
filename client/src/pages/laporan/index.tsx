@@ -25,7 +25,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { KOSONG, pecahan, persenSaja, tanggalPanjang } from '@/lib/format';
+import { KOSONG, pecahan, persenSaja } from '@/lib/format';
 import type { Periode } from '@/types/posyandu';
 
 export type BarisRekapRt = {
@@ -46,10 +46,9 @@ export type BarisTrenRt = {
     rerata: number | null;
 };
 
-export type TabPeriode = 'harian' | 'bulanan' | 'tahunan';
+export type TabPeriode = 'bulanan' | 'tahunan';
 
 const TAB: { nilai: TabPeriode; label: string }[] = [
-    { nilai: 'harian', label: 'Harian' },
     { nilai: 'bulanan', label: 'Bulanan' },
     { nilai: 'tahunan', label: 'Tahunan' },
 ];
@@ -59,18 +58,11 @@ const TAB: { nilai: TabPeriode; label: string }[] = [
  *
  * `Tahunan` dulu berbunyi "Tahun 2026" padahal arsip demo hanya memuat enam
  * bulan — angkanya terbaca sebagai setahun penuh, dan kalau dipakai melapor ke
- * Puskesmas itu salah lapor. `Harian` dulu tidak menyebut satu tanggal pun,
- * sehingga tab yang isinya sama persis dengan Bulanan terbaca seperti tab
- * rusak; arsip memang hanya punya satu tanggal ukur per periode, dan
- * menuliskannya membuat tab itu punya arti.
+ * Puskesmas itu salah lapor.
  */
 function judulRentang(tab: TabPeriode, periode: Periode): string {
     if (tab === 'tahunan') {
         return 'Januari–Juni 2026';
-    }
-
-    if (tab === 'harian' && periode.tanggalKegiatan !== null) {
-        return `Sesi penimbangan ${tanggalPanjang(periode.tanggalKegiatan)}`;
     }
 
     return periode.label;

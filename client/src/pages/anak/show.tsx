@@ -16,7 +16,14 @@
  * klik namanya.
  */
 
-import { Pencil, TriangleAlert } from 'lucide-react';
+import {
+    CreditCard,
+    MessageCircle,
+    Pencil,
+    ShieldCheck,
+    Syringe,
+    TriangleAlert,
+} from 'lucide-react';
 import { useState } from 'react';
 import BarisDefinisi from '@/components/baris-definisi';
 import Halaman from '@/components/halaman';
@@ -59,7 +66,6 @@ import type {
 
 /** Skala tegak bawaan kartu KMS, dinaikkan bila anaknya melebihi itu. */
 const SKALA_MAX_BAWAAN = 18;
-
 const ARTI_NTOB: Record<string, string> = {
     N: 'N, naik',
     T: 'T, tidak naik',
@@ -98,6 +104,8 @@ type Ambang = {
     turunMax: number;
     naikMax: number;
     tinggiBerkurangMax: number;
+    ambangWaspada: number;
+    ambangRujukan: number;
 };
 
 type Props = {
@@ -180,6 +188,17 @@ export default function DetailAnak({
             i.nilai?.kategori !== undefined &&
             PERLU_TINDAK_LANJUT.includes(i.nilai.kategori),
     );
+    const perluRujukan = indeks.some(
+        (i) => i.nilai !== undefined && i.nilai.z <= ambang.ambangRujukan,
+    );
+    const perluWaspada = indeks.some(
+        (i) => i.nilai !== undefined && i.nilai.z <= ambang.ambangWaspada,
+    );
+    const edukasiKms = perluRujukan
+        ? 'Hasil pengukuran perlu ditindaklanjuti. Silakan hubungi fasilitas kesehatan atau dokter terdekat untuk penilaian lebih lanjut.'
+        : perluWaspada || perluTindakLanjut
+          ? 'Pertumbuhan perlu dipantau lebih dekat. Pastikan anak hadir pada penimbangan berikutnya dan diskusikan asupan makan dengan kader atau bidan.'
+          : 'Pertumbuhan saat ini berada dalam pemantauan. Lanjutkan makan beragam sesuai usia dan datang kembali pada penimbangan bulan depan.';
 
     // Titik kurva hanya dari pengukuran yang punya umur dan berat sekaligus.
     const riwayatKurva = pengukuran
@@ -257,16 +276,31 @@ export default function DetailAnak({
                 /* Tombol Ubah data membuka baris balita ini di Data Balita, tempat
                    editornya benar-benar ada. Dulu ia memanggil window.alert
                    berbunyi "Belum tersedia di demo". */
-                bolehUbah && (
-                    <Link href="/balita" className="tombol-kedua">
-                        <Pencil
-                            className="size-5 text-muted-foreground"
-                            strokeWidth={2.5}
-                            aria-hidden="true"
-                        />
-                        Ubah data
-                    </Link>
-                )
+                <>
+                    {bolehUbah && (
+                        <Link
+                            href={`/kartu-sasaran/${anak.id}`}
+                            className="tombol-kedua"
+                        >
+                            <CreditCard
+                                className="size-5"
+                                strokeWidth={2.5}
+                                aria-hidden="true"
+                            />
+                            Cetak kartu
+                        </Link>
+                    )}
+                    {bolehUbah && (
+                        <Link href="/balita" className="tombol-kedua">
+                            <Pencil
+                                className="size-5 text-muted-foreground"
+                                strokeWidth={2.5}
+                                aria-hidden="true"
+                            />
+                            Ubah data
+                        </Link>
+                    )}
+                </>
             }
         >
             {/* Dua kolom dari 1536 px ke atas, bukan 1024: fakta dan angka
@@ -379,6 +413,52 @@ export default function DetailAnak({
                         </dl>
                     </section>
 
+                    <section className="shrink-0">
+                        <h3 className="text-base font-bold">
+                            Skrining saat pendaftaran
+                        </h3>
+                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                            <div className="flex gap-3 rounded-lg bg-surface-subtle p-4">
+                                <ShieldCheck
+                                    className={`mt-0.5 size-5 shrink-0 ${
+                                        anak.bukuKia
+                                            ? 'text-tone-green'
+                                            : 'text-tone-amber'
+                                    }`}
+                                    strokeWidth={2.5}
+                                    aria-hidden="true"
+                                />
+                                <div>
+                                    <p className="font-bold">Buku KIA</p>
+                                    <p className="mt-0.5 text-sm text-muted-foreground">
+                                        {anak.bukuKia
+                                            ? 'Tercatat pada data sasaran.'
+                                            : 'Belum tercatat. Konfirmasi saat daftar.'}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex gap-3 rounded-lg bg-surface-subtle p-4">
+                                <Syringe
+                                    className="mt-0.5 size-5 shrink-0 text-tone-amber"
+                                    strokeWidth={2.5}
+                                    aria-hidden="true"
+                                />
+                                <div>
+                                    <p className="font-bold">Imunisasi</p>
+                                    <p className="mt-0.5 text-sm text-muted-foreground">
+                                        Belum dipastikan dari arsip ini.
+                                        Konfirmasi dan lengkapi saat daftar.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <p className="mt-3 max-w-[78ch] text-sm text-muted-foreground">
+                            Saat kartu sasaran dipindai, item yang belum lengkap
+                            ini muncul sebagai skrining awal sebelum anak
+                            dicatat hadir.
+                        </p>
+                    </section>
+
                     {terbaru === null ? (
                         <p className="kartu bg-surface-subtle px-6 py-6 text-base">
                             Belum ada pengukuran untuk anak ini sampai{' '}
@@ -442,6 +522,52 @@ export default function DetailAnak({
                                 {/* Layar ini dulu tidak pernah menjawab pertanyaan yang
                             jadi alasan keberadaannya: anak ini perlu
                             ditindaklanjuti atau tidak. */}
+                                <div
+                                    className={`mt-5 rounded-xl p-5 ${
+                                        perluRujukan
+                                            ? 'bg-tone-red-bg text-tone-red'
+                                            : 'bg-surface-subtle text-foreground'
+                                    }`}
+                                >
+                                    <h3 className="text-base font-extrabold">
+                                        Arahan untuk keluarga
+                                    </h3>
+                                    <p className="mt-1 max-w-[76ch] text-base text-pretty">
+                                        {edukasiKms}
+                                    </p>
+                                    {perluRujukan && (
+                                        <p className="mt-2 text-sm font-semibold">
+                                            Ambang kerja rujukan: z-score ≤{' '}
+                                            {zScore(ambang.ambangRujukan)} SD.
+                                            Perlu pengesahan Puskesmas sebelum
+                                            digunakan sebagai aturan produksi.
+                                        </p>
+                                    )}
+                                    {perluWaspada && !perluRujukan && (
+                                        <p className="mt-2 text-sm font-semibold">
+                                            Zona waspada dimulai pada z-score ≤{' '}
+                                            {zScore(ambang.ambangWaspada)} SD.
+                                        </p>
+                                    )}
+                                    <button
+                                        type="button"
+                                        disabled
+                                        className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg border border-current px-3.5 text-sm font-bold opacity-60"
+                                        title="Nomor WhatsApp wali belum tersedia di arsip"
+                                    >
+                                        <MessageCircle
+                                            className="size-5"
+                                            strokeWidth={2.5}
+                                            aria-hidden="true"
+                                        />
+                                        Kirim ringkasan ke WhatsApp
+                                    </button>
+                                    <p className="mt-2 text-sm">
+                                        Nomor WhatsApp wali dan persetujuan
+                                        pengiriman belum ada di arsip, sehingga
+                                        pesan belum dapat dikirim.
+                                    </p>
+                                </div>
                             </section>
 
                             {/* Kurva berdiri sebelum tabel riwayat, mengikuti urutan

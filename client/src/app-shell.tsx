@@ -7,7 +7,15 @@
  * dan yang dipakai.
  */
 
-import { Baby, FileText, House, Settings } from 'lucide-react';
+import {
+    Baby,
+    CreditCard,
+    FileText,
+    House,
+    Settings,
+    Stethoscope,
+    Upload,
+} from 'lucide-react';
 import type { ComponentType, ReactNode } from 'react';
 import FilterPeriode from '@/components/filter-periode';
 import { data } from '@/data/contoh/store';
@@ -16,25 +24,42 @@ import type { Peran } from '@/types/posyandu';
 
 export type Rute =
     | { nama: 'beranda' }
+    | { nama: 'layanan' }
     | { nama: 'balita' }
     | { nama: 'detail'; id: number }
     | { nama: 'laporan' }
+    | { nama: 'sasaran' }
+    | { nama: 'kartu-sasaran'; id?: number }
     | { nama: 'pengaturan' };
 
-/** Router, seluruhnya. Tanpa pustaka: lima alamat dan satu parameter. */
+/** Router, seluruhnya. Tanpa pustaka: delapan alamat dan dua parameter. */
 export function bacaRute(alamat: string): Rute {
     const detail = /^\/balita\/(\d+)$/.exec(alamat);
+    const kartu = /^\/kartu-sasaran\/(\d+)$/.exec(alamat);
 
     if (detail !== null) {
         return { nama: 'detail', id: Number(detail[1]) };
+    }
+
+    if (kartu !== null) {
+        return { nama: 'kartu-sasaran', id: Number(kartu[1]) };
     }
 
     switch (alamat) {
         case '/balita':
             return { nama: 'balita' };
 
+        case '/layanan':
+            return { nama: 'layanan' };
+
         case '/laporan':
             return { nama: 'laporan' };
+
+        case '/sasaran':
+            return { nama: 'sasaran' };
+
+        case '/kartu-sasaran':
+            return { nama: 'kartu-sasaran' };
 
         case '/pengaturan':
             return { nama: 'pengaturan' };
@@ -52,8 +77,12 @@ export function bacaRute(alamat: string): Rute {
  * tentang apa yang bisa dilakukan, bukan mencegah siapa pun melakukannya.
  */
 export function boleh(rute: Rute, peran: Peran): boolean {
-    if (rute.nama === 'pengaturan') {
+    if (rute.nama === 'pengaturan' || rute.nama === 'kartu-sasaran') {
         return peran !== 'kader';
+    }
+
+    if (rute.nama === 'sasaran') {
+        return peran === 'admin';
     }
 
     return true;
@@ -70,8 +99,26 @@ const SEMUA: Peran[] = ['kader', 'bidan', 'admin'];
 
 const NAV: ButirNav[] = [
     { href: '/beranda', label: 'Beranda', ikon: House, peran: SEMUA },
+    {
+        href: '/layanan',
+        label: 'Pendaftaran & Ukur',
+        ikon: Stethoscope,
+        peran: SEMUA,
+    },
     { href: '/balita', label: 'Data Balita', ikon: Baby, peran: SEMUA },
+    {
+        href: '/kartu-sasaran',
+        label: 'Kartu Sasaran',
+        ikon: CreditCard,
+        peran: ['bidan', 'admin'],
+    },
     { href: '/laporan', label: 'Laporan', ikon: FileText, peran: SEMUA },
+    {
+        href: '/sasaran',
+        label: 'Sasaran & Impor',
+        ikon: Upload,
+        peran: ['admin'],
+    },
     {
         href: '/pengaturan',
         label: 'Pengaturan',

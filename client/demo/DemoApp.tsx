@@ -19,13 +19,17 @@ import {
     PENGATURAN_BAWAAN,
     PENGGUNA_CONTOH,
     periodeTerbaru,
+    STANDARISASI_BAWAAN,
 } from '@/data/contoh/store';
 import { Layar } from '@/layar';
 import { navigate, useAlamat } from '@/lib/nav';
 import type { AnakBaru, PatchAnak } from '@/pages/anak/index';
 import Login from '@/pages/auth/login';
 import type { TabPeriode } from '@/pages/laporan/index';
-import type { Ambang } from '@/pages/pengaturan/index';
+import type {
+    Ambang,
+    StandarisasiAntropometri,
+} from '@/pages/pengaturan/index';
 import type { Pengguna, Peran } from '@/types/posyandu';
 
 /**
@@ -115,6 +119,8 @@ function PortalDemo({
         ANTREAN_CONTOH,
     );
     const [ambang, setAmbang] = useState<Ambang>(PENGATURAN_BAWAAN);
+    const [standarisasi, setStandarisasi] =
+        useState<StandarisasiAntropometri>(STANDARISASI_BAWAAN);
     const [pengguna, setPengguna] = useState<Pengguna[]>(PENGGUNA_CONTOH);
 
     const alamat = useAlamat();
@@ -166,6 +172,8 @@ function PortalDemo({
                 onTambahAnak={(baru) => setTambahan((t) => [...t, baru])}
                 ambang={ambang}
                 onSimpanAmbang={setAmbang}
+                standarisasi={standarisasi}
+                onSimpanStandarisasi={setStandarisasi}
                 pengguna={pengguna}
                 onSimpanPengguna={setPengguna}
             />
