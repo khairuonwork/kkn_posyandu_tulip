@@ -16,7 +16,8 @@ Definisi yang **belum dikonfirmasi** ditandai ⚠️ dan dicatat di [Pertanyaan 
 |---|---|
 | **SIMPATIK Posyandu** | Nama aplikasi ini di layar sejak 24 September 2026. Dokumen yang lebih lama menyebutnya Portal Posyandu Tulip. |
 | **Portal** | Sebutan internal untuk aplikasi web ini, untuk membedakannya dari Aplikasi Tablet. |
-| **Aplikasi Tablet** | Aplikasi terpisah untuk meja penimbangan pada hari Posyandu. Belum dibangun; batasnya dengan Portal di [ADR-0003](adr/0003-batas-portal-vs-aplikasi-tablet.md). |
+| **Aplikasi Tablet** | Aplikasi Android terpisah untuk meja penimbangan pada hari Posyandu. Pemindai kartunya (v1.6) sudah dipakai; batasnya dengan Portal di [ADR-0003](adr/0003-batas-portal-vs-aplikasi-tablet.md). |
+| **Kode kartu** | `SPT-` dan id balita delapan digit, dicetak di kartu balita, misalnya `SPT-00000110`. QR di kartu memuat id dan NIK balita dengan format `SIMPATIK:SASARAN:1:<id>:<NIK>` ([format](arsitektur.md#kartu-balita)). |
 | **Posyandu** | Pos Pelayanan Terpadu. Unit layanan kesehatan dasar berbasis masyarakat di tingkat RW. |
 | **Kader** | Relawan masyarakat yang menjalankan kegiatan Posyandu, termasuk penimbangan dan pencatatan. |
 | **TPG** | Tenaga Pelaksana Gizi di Puskesmas. |

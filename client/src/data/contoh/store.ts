@@ -13,7 +13,8 @@ import {
     nadaKategori,
     PERLU_TINDAK_LANJUT,
 } from '@/components/status-gizi-badge';
-import { kodeKartu, labelIndeks, umurBulanPada, zScore } from '@/lib/format';
+import { labelIndeks, umurBulanPada, zScore } from '@/lib/format';
+import { kodeKartuSasaran } from '@/lib/kartu-sasaran';
 import type { BarisLms } from '@/lib/z-score';
 import type { BarisAnak } from '@/pages/anak/index';
 import type { BalitaKartu } from '@/pages/kartu-sasaran/index';
@@ -93,7 +94,7 @@ export function balitaKartu(periodeId: string): BalitaKartu[] {
                 rt: anak.rt,
                 namaIbu: anak.namaOrtu,
                 nik: anak.nik,
-                kode: kodeKartu(anak.nik, anak.id),
+                kode: kodeKartuSasaran(anak),
                 umurBulan: umur,
                 aktif: !pindah.has(anak.id) && (umur === null || umur < 60),
             };
@@ -134,8 +135,15 @@ export function balitaPenimbangan(periodeId: string): BalitaTimbang[] {
             umurBulan: umurBulanPada(anak.tglLahir, tanggal),
             rt: anak.rt,
             namaIbu: anak.namaOrtu,
-            kodeKartu: kodeKartu(anak.nik, anak.id),
+            kodeKartu: kodeKartuSasaran(anak),
             nik: anak.nik,
+            nikLengkap: anak.nikLengkap,
+            nikOrtu: anak.nikOrtu,
+            tglLahir: anak.tglLahir,
+            anakKe: anak.anakKe,
+            bbLahirKg: anak.bbLahirKg,
+            pbLahirCm: anak.pbLahirCm,
+            imd: anak.imd,
             bukuKia: anak.bukuKia,
             terakhir:
                 ukur === undefined

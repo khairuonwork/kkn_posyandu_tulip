@@ -74,6 +74,7 @@ export default function KartuSasaran({
         rt: b.rt,
         namaIbu: b.namaIbu,
         nik: b.nik,
+        id: b.anakId,
         kode: b.kode,
     }));
     const aktif = Math.min(tampil, Math.max(0, kartu.length - 1));

@@ -35,7 +35,7 @@ Ditetapkan [ADR-0006](adr/0006-pindah-ke-express-react-postgres.md).
 | Uji | `node:test` bawaan Node, di `server/` dan `client/` |
 | Lint & format | ESLint 9, Prettier |
 
-Dua dependensi runtime di seluruh server: `express` dan `pg`. Di client lima: `react`, `react-dom`, `lucide-react`, `clsx`, dan `tailwind-merge`.
+Dua dependensi runtime di seluruh server: `express` dan `pg`. Di client tujuh: `react`, `react-dom`, `lucide-react`, `clsx`, `tailwind-merge`, `qrcode.react` untuk QR kartu, dan `@zxing/browser` untuk kamera pemindai. Yang terakhir baru diunduh saat kamera dibuka.
 
 ## Prinsip
 
@@ -113,7 +113,8 @@ client/
   src/components/             kms-chart, status-gizi-badge, kartu-balita,
                               dialog, halaman, filter-periode, empty-state,
                               ui/table
-  src/lib/                    nav, sesi, pengguna, format, z-score, kategori, utils
+  src/lib/                    nav, sesi, pengguna, format, kartu-sasaran,
+                              z-score, kategori, utils
   src/data/contoh/            data contoh — sementara, sampai endpoint ada
   src/assets/fonts/
   test/
@@ -194,11 +195,11 @@ Alamatnya memakai hash (`#/balita/12`), bukan path. Router dan penjaga rutenya a
 | Alamat | Berkas di `client/src/pages/` | Peran | Isi |
 |---|---|---|---|
 | `#/beranda` | `dashboard.tsx` | semua | Angka S, D, D/S, dan N bulan berjalan; sebaran status gizi; cakupan dan tren enam bulan; daftar Perlu perhatian |
-| `#/layanan` | `layanan/index.tsx` | semua | Penimbangan: cari balita, catat berat dan tinggi. Belum menyimpan |
+| `#/layanan` | `layanan/index.tsx` | semua | Penimbangan: pindai kartu dengan kamera atau cari balita, periksa identitas, masukkan antrean hari ini, lalu catat berat dan tinggi. Hasil ukur belum disimpan; antrean hanya di peramban |
 | `#/balita` | `anak/index.tsx` | semua | Data Balita: tabel, pencarian, saringan, tambah dan ubah |
 | `#/balita/{id}` | `anak/show.tsx` | semua | Detail Balita: identitas, kurva KMS, status gizi, riwayat singkat, dialog Ubah data dan Cetak kartu |
 | `#/balita/{id}/riwayat` | `anak/riwayat.tsx` | semua | Seluruh hasil ukur satu balita beserta z-score |
-| `#/kartu-sasaran`, `#/kartu-sasaran/{id}` | `kartu-sasaran/index.tsx` | bidan, admin | Kartu Balita: pilih balita, pratinjau, cetak |
+| `#/kartu-sasaran`, `#/kartu-sasaran/{id}` | `kartu-sasaran/index.tsx` | bidan, admin | Kartu Balita: pilih balita, pratinjau, cetak kartu ber-QR |
 | `#/laporan` | `laporan/index.tsx` | semua | Rekap SKDN per RT, bulanan atau enam bulan |
 | `#/sasaran` | `sasaran/index.tsx` | admin | Sasaran & Impor: rancangan alur impor data Puskesmas, belum membaca berkas |
 | `#/pengaturan` | `pengaturan/index.tsx` | bidan, admin | Batas angka ukur, ambang rujukan, pengguna dan peran (admin, tersambung ke `/api/pengguna`), standar perhitungan, riwayat perubahan |
@@ -216,6 +217,17 @@ Daftar lengkapnya di [UI/UX bagian 4](rujukan/ui-ux.md#4-inventory-komponen). Du
 |---|---|
 | `components/kms-chart.tsx` | Kurva KMS: pita SD sebagai latar, titik penimbangan di atasnya, panah untuk berpindah rentang umur. **SVG langsung, tanpa pustaka grafik.** |
 | `components/ui/table.tsx` | Tabel dari shadcn/ui, satu-satunya komponen yang diambil dari sana. Dipakai lima layar bertabel. |
+
+### Kartu balita
+
+Kode dan QR kartu ditulis sekali di `client/src/lib/kartu-sasaran.ts`. Formatnya sama dengan pemindai Android v1.6:
+
+| Bagian | Bentuk | Contoh |
+|---|---|---|
+| Kode yang dicetak | `SPT-` dan id balita delapan digit | `SPT-00000110` |
+| Isi QR | `SIMPATIK:SASARAN:1:<id>:<NIK tanpa spasi>` | `SIMPATIK:SASARAN:1:110:3204016201250002` |
+
+Angka `1` adalah versi format; pemindai menolak versi yang tidak dikenalnya. Mengubah bentuknya berarti menaikkan versi di Portal dan aplikasi Android sekaligus. Karena kodenya memakai id, id balita harus sama di kedua aplikasi ([OI-03](pertanyaan-terbuka.md#oi-03--mekanisme-aliran-data-portal--aplikasi-tablet)).
 
 ### Konvensi
 

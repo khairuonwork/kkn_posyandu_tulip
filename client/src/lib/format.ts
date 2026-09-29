@@ -115,14 +115,6 @@ export function nik(nilai: string | null): string {
     return nilai.replace(/(.{4})(?=.)/g, '$1 ');
 }
 
-/**
- * Kode di kartu balita: `SPT-` dan delapan digit terakhir NIK. Balita tanpa
- * NIK memakai id arsipnya, yang tidak berubah saat daftar diurutkan ulang.
- */
-export function kodeKartu(nikAnak: string | null, id: number): string {
-    return `SPT-${(nikAnak ?? String(id)).slice(-8)}`;
-}
-
 /** `14 Agu 2026` — bentuk untuk tabel. */
 export function tanggalRingkas(iso: string | null): string {
     const t = urai(iso);

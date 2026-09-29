@@ -6,12 +6,15 @@
  * yang keluar dari printer. Ukurannya ditulis dalam px pada skala 428 × 270
  * (5 px per mm); layar dan kertas menyesuaikannya lewat `zoom`.
  *
- * QR-nya contoh, bukan kode yang bisa dipindai: pembuat QR sungguhan butuh
- * pustaka, dan kodenya sendiri sudah tercetak sebagai teks di kaki kartu.
+ * QR-nya berisi payload kartu dari `lib/kartu-sasaran.ts`, format yang sama
+ * dengan pemindai Android v1.6. Kodenya juga tercetak sebagai teks di kaki
+ * kartu, untuk diketik bila kamera tidak tersedia.
  */
 
+import { QRCodeSVG } from 'qrcode.react';
 import { createPortal } from 'react-dom';
 import { KOSONG, nik, tanggalRingkas } from '@/lib/format';
+import { payloadKartuSasaran } from '@/lib/kartu-sasaran';
 
 export type DataKartu = {
     nama: string | null;
@@ -19,6 +22,7 @@ export type DataKartu = {
     rt: string | null;
     namaIbu: string | null;
     nik: string | null;
+    id: number;
     kode: string;
 };
 
@@ -69,7 +73,14 @@ export default function KartuBalita({ kartu, lembaga, skala = 1 }: Props) {
                         </Isi>
                     </dl>
                 </div>
-                <QrContoh kode={kartu.kode} className="size-[120px] shrink-0" />
+                {/* Dua modul tepi putih; sisanya dari latar kartu. */}
+                <QRCodeSVG
+                    value={payloadKartuSasaran(kartu)}
+                    level="M"
+                    marginSize={2}
+                    aria-hidden="true"
+                    className="size-[120px] shrink-0"
+                />
             </div>
 
             <div className="mx-[18px] flex h-11 shrink-0 items-center justify-between gap-3 border-t border-border">
@@ -102,69 +113,6 @@ function Isi({
                 {children}
             </dd>
         </div>
-    );
-}
-
-/**
- * Pola QR contoh 25 × 25: tiga penanda sudut, isinya dari kode kartu, jadi
- * tiap kartu tampak berbeda.
- */
-export function QrContoh({
-    kode,
-    className,
-}: {
-    kode: string;
-    className?: string;
-}) {
-    const n = 25;
-    const hitam = (r: number, c: number) => {
-        for (const [y, x] of [
-            [0, 0],
-            [0, n - 7],
-            [n - 7, 0],
-        ]) {
-            if (r >= y - 1 && r <= y + 7 && c >= x - 1 && c <= x + 7) {
-                const a = r - y;
-                const b = c - x;
-
-                return (
-                    a >= 0 &&
-                    a <= 6 &&
-                    b >= 0 &&
-                    b <= 6 &&
-                    (a === 0 ||
-                        a === 6 ||
-                        b === 0 ||
-                        b === 6 ||
-                        (a >= 2 && a <= 4 && b >= 2 && b <= 4))
-                );
-            }
-        }
-
-        const i = r * n + c;
-
-        return (i * 17 + kode.charCodeAt(i % kode.length) * 7 + r * 13) % 9 < 4;
-    };
-    let d = '';
-
-    for (let r = 0; r < n; r++) {
-        for (let c = 0; c < n; c++) {
-            if (hitam(r, c)) {
-                d += `M${c} ${r}h1v1h-1z`;
-            }
-        }
-    }
-
-    return (
-        <svg
-            viewBox={`0 0 ${n} ${n}`}
-            shapeRendering="crispEdges"
-            aria-hidden="true"
-            className={className}
-        >
-            <rect width={n} height={n} fill="#ffffff" />
-            <path d={d} fill="#16211c" />
-        </svg>
     );
 }
 

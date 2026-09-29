@@ -47,7 +47,6 @@ import {
 } from '@/components/ui/table';
 import {
     angka,
-    kodeKartu,
     KOSONG,
     labelIndeks,
     namaTampil,
@@ -59,6 +58,7 @@ import {
     umurRingkas,
     zScore,
 } from '@/lib/format';
+import { kodeKartuSasaran } from '@/lib/kartu-sasaran';
 import { kbmKg } from '@/lib/kategori';
 import { Link } from '@/lib/nav';
 import type { PatchAnak } from '@/pages/anak/index';
@@ -1168,7 +1168,8 @@ function DialogCetak({
         rt: anak.rt,
         namaIbu: anak.namaOrtu,
         nik: anak.nik,
-        kode: kodeKartu(anak.nik, anak.id),
+        id: anak.id,
+        kode: kodeKartuSasaran(anak),
     };
 
     return (

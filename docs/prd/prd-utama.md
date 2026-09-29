@@ -194,6 +194,6 @@ Persetujuan memakai `disetujui`, `usulan`, atau `ditunda` bila keputusannya jela
 | F11 — Aksesibilitas tampilan | Perlu konfirmasi | Belum ditetapkan | OI-19 |
 | F12 — Manajemen sasaran | Perlu konfirmasi untuk perluasannya | Belum ditetapkan | OI-19; status anak dan penyimpanan riwayat yang sudah ada tetap berlaku |
 | F13 — Checklist stimulasi | Perlu konfirmasi untuk lingkupnya; pengerjaan tertahan OI-18 | Belum ditetapkan | OI-19 dan [OI-18](../pertanyaan-terbuka.md#oi-18--naskah-pertanyaan-checklist-stimulasi) |
-| Scan ID Card / QR | Ditunda pada catatan feedback | Belum ditetapkan; milik Tablet | [TASK-5.3](../riwayat/backlog-feedback.md#task-53-integrasi-scan-id-card-sasaran-status-pending), pemilik program; tanggal keputusan belum tercatat |
+| Scan ID Card / QR | Perlu konfirmasi; kartu ber-QR dan pemindaian kamera sudah ada di Portal sebagai demo sejak perubahan `a10c886` digabungkan | Belum ditetapkan; pemindai Android v1.6 sudah dipakai | OI-19 dan OI-20; [TASK-5.3](../riwayat/backlog-feedback.md#task-53-integrasi-scan-id-card-sasaran-status-pending) |
 
 Sesudah pemilik program menjawab OI-19/OI-20, perbarui baris yang terdampak dengan nama/peran penyetuju, tanggal absolut, dan rujukan keputusan. Indeks PRD dan dokumen orientasi cukup menautkan bagian ini. Tidak ada perubahan hak akses atau perluasan produk yang ditetapkan oleh penataan dokumentasi 23 September 2026 ini.

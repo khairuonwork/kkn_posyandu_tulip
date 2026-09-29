@@ -21,7 +21,6 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, test } from 'node:test';
 
-import { kodeKartu } from '../src/lib/format.ts';
 import { kategoriDariZ, kbmKg } from '../src/lib/kategori.ts';
 import type { BarisLms } from '../src/lib/z-score.ts';
 import {
@@ -315,12 +314,5 @@ describe('KBM per umur', () => {
         assert.equal(kbmKg(60), 0.2);
         assert.equal(kbmKg(61), null);
         assert.equal(kbmKg(null), null);
-    });
-});
-
-describe('kode kartu balita', () => {
-    test('delapan digit terakhir NIK, atau id arsip bila NIK kosong', () => {
-        assert.equal(kodeKartu('3277514921534050', 110), 'SPT-21534050');
-        assert.equal(kodeKartu(null, 7), 'SPT-7');
     });
 });

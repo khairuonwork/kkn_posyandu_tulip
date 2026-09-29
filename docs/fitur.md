@@ -20,7 +20,8 @@ Urutan pengerjaan yang berlaku ada di [Rencana kerja](rencana-kerja.md). Perilak
 | Perhitungan umur, skema basis data, aturan integritasnya | **Berjalan** |
 | Login, tiga peran, pembatasan kader ke RT binaan | **Berjalan** — ditegakkan server, bukan antarmuka |
 | Kelola akun di Pengaturan › Pengguna dan peran | **Berjalan** — tersimpan ke basis data lewat `/api/pengguna`, khusus admin, tercatat di audit. Wajib ganti kata sandi awal saat pertama masuk belum ada |
-| Sembilan layar: Beranda, Penimbangan, Data Balita, Detail Balita, Detail riwayat penimbangan, Kartu Balita, Laporan, Sasaran & Impor, Pengaturan ([peta layar](mulai-di-sini.md#peta-layar)) | **Tampilannya jadi** — masih menampilkan [data contoh](rujukan/data-contoh.md), kecuali daftar akun. Penimbangan dan Sasaran & Impor belum menyimpan apa pun |
+| Sembilan layar: Beranda, Penimbangan, Data Balita, Detail Balita, Detail riwayat penimbangan, Kartu Balita, Laporan, Sasaran & Impor, Pengaturan ([peta layar](mulai-di-sini.md#peta-layar)) | **Tampilannya jadi** — masih menampilkan [data contoh](rujukan/data-contoh.md), kecuali daftar akun. Sasaran & Impor belum menyimpan apa pun; Penimbangan hanya menyimpan antrean hari ini di peramban |
+| Kartu balita ber-QR dan pemindaiannya | **Berjalan di peramban** — QR kartu bisa dipindai kamera di Penimbangan maupun pemindai Android v1.6 ([format](arsitektur.md#kartu-balita)). Antrean hari ini tersimpan di peramban, belum ke server |
 | Jalur dari basis data ke layar | **Baru untuk daftar akun** — data balita, pengukuran, dan laporan belum |
 | Penyimpanan hasil perhitungan gizi | **Berjalan** — `hitungDanSimpan()`, lihat [B01](prd/dasar/B01-simpan-hasil-gizi.md) |
 | Pencatatan riwayat perubahan (audit) | **Berjalan setelah migrasi 004–005** — trigger tujuh tabel; cakupan dan batasnya di [Basis Data](database.md#audit), kontrak selesai di [B02](prd/dasar/B02-jejak-audit.md) |
@@ -55,13 +56,13 @@ Diurutkan menurut nilai, bukan kemudahan:
 
 1. **Export F1 Gizi dan Buku 7** — usulan perluasan dicatat pada [F09](prd/feedback/README.md). Status lingkup mengikuti PRD utama bagian 13; perkembangan format ada di [OI-07](pertanyaan-terbuka.md).
 2. **Aturan tindak lanjut otomatis** 1T/2T/3T — usulan fitur di [F06](prd/feedback/README.md). Keputusan aturan data O/B pada DR-11 tetap berlaku; persetujuan rilis fitur mengikuti PRD utama bagian 13.
-3. **Aplikasi Tablet** dan mekanisme aliran datanya.
-4. **Kartu barcode/QR per anak** untuk mempercepat antrean. Ini milik Aplikasi Tablet.
+3. **Aplikasi Tablet** — pemindai Android v1.6 sudah dipakai; yang belum adalah mekanisme aliran datanya ke Portal ([OI-03](pertanyaan-terbuka.md#oi-03--mekanisme-aliran-data-portal--aplikasi-tablet)).
+4. **Kartu barcode/QR per anak** untuk mempercepat antrean. Kartu dan pemindaiannya sudah ada di Portal dan pemindai Android; yang tersisa menyambungkannya ke data sungguhan.
 5. **Modul impor in-app** dengan *staging* dan antrean verifikasi, bila arsip Excel ternyata menjadi jalur data rutin dan bukan migrasi sekali jalan.
 6. **KPSP dan deteksi dini tumbuh kembang** — usulan checklist ringkas ada di [F13](prd/feedback/F13-stimulasi-perkembangan.md). Persetujuan lingkup mengikuti PRD utama bagian 13; naskahnya tertahan OI-18. Pemeriksaan gigi dan rujukan tetap di fase berikutnya ([OI-14](pertanyaan-terbuka.md)).
 7. **Portal orang tua**, setelah kebijakan privasi dan *consent* tersedia.
 
-Nomor urut di atas **tidak diubah**, karena dokumen lain merujuknya menurut nomor. Butir 3, 4, dan 5 tetap di fase berikutnya; catatan keputusan kartu barcode/QR (no. 4) ada di PRD utama bagian 13.
+Nomor urut di atas **tidak diubah**, karena dokumen lain merujuknya menurut nomor. Butir 3 dan 5 tetap di fase berikutnya, dan butir 4 sebagian sudah dikerjakan. Catatan keputusan kartu barcode/QR (no. 4) ada di PRD utama bagian 13.
 
 ---
 

@@ -90,7 +90,9 @@ Tiga kemungkinan: basis data bersama, impor berkala, atau API sinkronisasi. Rinc
 
 **Sementara ini:** data model dibuat netral. `pengukuran.sumber` sudah menyediakan nilai `tablet`, dan *constraint* `unique(anak_id, periode_id)` membuat pengiriman ulang bersifat *idempotent* apa pun jalurnya.
 
-**Perlu diputuskan sebelum** pembangunan Aplikasi Tablet dimulai, karena menentukan apakah kontrak API perlu dirancang.
+**Sejak 29 September 2026:** kartu balita Portal memakai format QR yang sama dengan pemindai Android v1.6 ([format](arsitektur.md#kartu-balita)). Kodenya memakai id balita, jadi mekanisme apa pun yang dipilih harus menjaga id yang sama di kedua aplikasi.
+
+**Perlu diputuskan sebelum** aplikasi Android mengirim data ke Portal, karena menentukan apakah kontrak API perlu dirancang.
 
 ---
 
@@ -451,6 +453,6 @@ Pada pemeriksaan 23 September 2026, PRD utama menyatakan lingkup diperluas dan m
 
 **Yang dibutuhkan:** tentukan apakah kebutuhan input tersebut milik Tablet, koreksi oleh Bidan di Portal, atau perluasan Portal untuk input kader saat kegiatan. Jika Portal diperluas, sebutkan tindakan kader yang diizinkan dan pihak yang memeriksa koreksinya.
 
-**Keadaan sejak 26 September 2026:** Portal punya layar **Penimbangan** (cari balita, catat berat dan tinggi) dari mockup yang disetujui pemilik produk, dan menunya tampil bagi ketiga peran. Hasil ukurnya belum dikirim ke server, jadi layar itu belum memberi hak tulis apa pun; isu ini yang menentukan apakah nanti boleh.
+**Keadaan sejak 26 September 2026:** Portal punya layar **Penimbangan** dari mockup yang disetujui pemilik produk, dan menunya tampil bagi ketiga peran. Sejak perubahan katou tanggal 24 September 2026 (`a10c886`) digabungkan, layar itu juga membuka kamera untuk memindai kartu, menampilkan kekurangan identitas, dan mencatat antrean hari ini di peramban. Hasil ukur dan antrean belum dikirim ke server, jadi layar itu belum memberi hak tulis apa pun; isu ini yang menentukan apakah nanti boleh.
 
 **Sementara ini:** batas yang tercatat di ADR-0003 dan [otorisasi yang sudah diterapkan](arsitektur.md#otorisasi) tetap berlaku. User story feedback dipertahankan sebagai usulan; kalimatnya tidak memberikan hak tulis baru. Setelah keputusan tersedia, selaraskan persona, PRD fitur, dan matriks izin sebelum implementasi.

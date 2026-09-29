@@ -188,7 +188,7 @@ Bagian ini adalah **sumber tunggal** daftar komponen. Seluruhnya ada di `client/
 | `ui/table.tsx` | Tabel dari shadcn/ui, satu-satunya komponen yang diambil dari sana. Dipakai Data Balita, Detail Balita, Detail riwayat penimbangan, Laporan, dan Pengaturan |
 | `status-gizi-badge.tsx` | Lencana kategori berwarna. **Sumber tunggal** pemetaan bagian 3 |
 | `kms-chart.tsx` | Kurva KMS. **SVG langsung, tanpa pustaka grafik**: yang dibutuhkan hanya beberapa pita dan garis SD serta sederet titik, sedangkan membuat pustaka grafik menggambar pita SD menuntut kustomisasi yang lebih panjang daripada SVG-nya sendiri |
-| `kartu-balita.tsx` | Satu desain kartu balita untuk tampilan di layar dan lembar cetak |
+| `kartu-balita.tsx` | Satu desain kartu balita untuk tampilan di layar dan lembar cetak. QR-nya bisa dipindai (`qrcode.react`); formatnya di [Arsitektur — Kartu balita](../arsitektur.md#kartu-balita) |
 | `dialog.tsx` | Dialog modal memakai `<dialog>` bawaan peramban: fokus terkurung, Esc menutup, isi di belakangnya tidak bisa disentuh |
 | `filter-periode.tsx` | Pemilih periode di sidebar dan di bilah atas tablet tegak, memakai `<select>` asli |
 | `empty-state.tsx` | Keadaan kosong: menyebutkan sebab dan menawarkan jalan keluar, bukan sekadar "tidak ada data" |
@@ -259,7 +259,7 @@ Warna garis tidak memenuhi 3:1 untuk komponen non-teks: `#DCE0DA` 1,3:1 · `#D5D
 | Elemen interaktif | Prototipe desain memakai `<span role="button" tabindex="0">` karena kanvas desain tidak punya `<button>`. Implementasi memakai `<button>` dan `<a>` asli, bukan meniru pola itu. |
 | Target sentuh | Lihat bagian 2.5: 45,5 px di kode, target 52 px menunggu keputusan. Tidak ada kontrol di bawah 44 px. |
 | Label | Label permanen bertulisan tebal di atas setiap field. `placeholder` dikosongkan dan tidak pernah menggantikan label. |
-| Ikon | Lucide, selalu berpasangan dengan teks. Pengecualiannya tiga tombol yang maknanya jelas dari letaknya: panah kembali di kepala Detail Balita, tombol Keluar di kartu akun, dan panah rentang umur kurva KMS. Ketiganya wajib ber-`aria-label`. |
+| Ikon | Lucide, selalu berpasangan dengan teks. Pengecualiannya empat tombol yang maknanya jelas dari letaknya: panah kembali di kepala Detail Balita, tombol Keluar di kartu akun, panah rentang umur kurva KMS, dan tombol Tutup kamera di Penimbangan. Keempatnya wajib ber-`aria-label`. |
 | Status | Tidak pernah disampaikan lewat warna saja — selalu ada teks kategori (bagian 3). |
 | Tabel | Daftar anak di prototipe desain adalah CSS grid; implementasi memakai `<table>` dengan `<th scope="col">`. Tabel riwayat pengukuran dan rekap per RT di prototipe desain sudah `<table>`. |
 | Angka | `font-feature-settings: "tnum" 1, "lnum" 1` di `body` dan `input`, agar kolom angka sejajar dan tidak bergeser saat diketik. |

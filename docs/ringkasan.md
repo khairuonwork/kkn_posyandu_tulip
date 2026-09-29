@@ -16,7 +16,7 @@ Apa saja yang bisa dilakukannya ada di [Fitur](fitur.md). Bagaimana ia disusun a
 
 SIMPATIK Posyandu — di dokumen disebut juga Portal Posyandu Tulip, atau cukup Portal — adalah aplikasi web internal untuk kader, Bidan, dan admin Posyandu Tulip. Portal menyimpan satu profil tetap per balita, satu riwayat pertumbuhan lintas bulan dan tahun, menghitung status gizi secara otomatis dari standar WHO, dan menghasilkan rekap yang selama ini disusun manual dari puluhan file Excel.
 
-Portal adalah *system of record* dan pusat analitik. Pencatatan di meja penimbangan diserahkan ke Aplikasi Tablet yang terpisah ([ADR-0003](adr/0003-batas-portal-vs-aplikasi-tablet.md)). Sejak 26 September 2026 Portal juga punya layar Penimbangan, tetapi layar itu belum menyimpan apa pun; siapa yang berhak mencatat lewat Portal masih dibahas di [OI-20](pertanyaan-terbuka.md#oi-20--input-lapangan-dan-hak-kader-di-portal).
+Portal adalah *system of record* dan pusat analitik. Pencatatan di meja penimbangan diserahkan ke Aplikasi Tablet, aplikasi Android terpisah yang pemindai kartunya (v1.6) sudah dipakai ([ADR-0003](adr/0003-batas-portal-vs-aplikasi-tablet.md)). Sejak akhir September 2026 Portal juga punya layar Penimbangan yang bisa memindai kartu dan mencatat antrean hari ini, tetapi hasil ukurnya belum disimpan; siapa yang berhak mencatat lewat Portal masih dibahas di [OI-20](pertanyaan-terbuka.md#oi-20--input-lapangan-dan-hak-kader-di-portal).
 
 ## Masalah yang dipecahkan
 
@@ -50,7 +50,7 @@ Peran diurutkan menaik: Kader < Bidan < Admin. Peran yang lebih tinggi memiliki 
 ```mermaid
 flowchart LR
     Excel["Arsip Excel 2025-2026"]
-    Tablet["Aplikasi Tablet<br/>terpisah, belum dibangun"]
+    Tablet["Aplikasi Tablet (Android)<br/>terpisah, pemindai v1.6 dipakai"]
 
     subgraph Portal["SIMPATIK Posyandu - produk ini"]
         Master["Master data<br/>anak, orang tua, RT"]
@@ -72,7 +72,7 @@ flowchart LR
 Dua garis putus-putus adalah jalur masuk data yang **belum berdiri**:
 
 - **Impor arsip Excel.** Rancangannya lengkap di [`rujukan/migrasi-data.md`](rujukan/migrasi-data.md), tetapi perintahnya belum dibangun di stack sekarang — lihat butir 3 pada [`rencana-kerja.md`](rencana-kerja.md).
-- **Aplikasi Tablet.** Cara ia menyerahkan data ke Portal (basis data bersama, impor berkala, atau API) belum diputuskan. Data model Portal dirancang netral terhadap ketiganya.
+- **Aplikasi Tablet.** Pemindainya sudah dipakai dan membaca kartu balita dengan format yang sama dengan Portal. Cara ia menyerahkan data ke Portal (basis data bersama, impor berkala, atau API) belum diputuskan. Data model Portal dirancang netral terhadap ketiganya.
 
 Garis penuh menggambarkan rancangan, bukan keadaan hari ini. Keempat kotak di dalam Portal tidak sama-sama berdiri — mana yang sudah dan mana yang belum ada di [Fitur](fitur.md), dan urutan mengerjakan sisanya di [Rencana kerja](rencana-kerja.md).
 
