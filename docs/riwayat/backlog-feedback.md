@@ -1,5 +1,13 @@
 # 📋 Backlog & Rencana Pengembangan: Posyandu Tulip
 
+| | |
+|---|---|
+| **Jenis** | Sejarah — backlog awal dari feedback lapangan |
+| **Status** | beku |
+| **Perubahan berarti terakhir** | 29 September 2026 — dipindah dari `issue.md` di akar repo |
+
+Isinya sudah diteruskan menjadi PRD fitur F01–F13 di [`prd/feedback/`](../prd/feedback/README.md). Butir yang ditunda, seperti TASK-5.3, dicatat di [PRD utama bagian 13](../prd/prd-utama.md#13-status-lingkup).
+
 Dokumen ini merupakan rekapitulasi modular dari seluruh kebutuhan, fitur baru, validasi, dan penyesuaian alur kerja Posyandu Tulip. Dokumen ini disusun sesuai prinsip **KISS & YAGNI**, menyediakan opsi solusi (Sederhana vs Kompleks), serta memetakan pertanyaan klarifikasi bisnis.
 
 ---

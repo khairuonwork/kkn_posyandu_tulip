@@ -4,9 +4,9 @@
 |---|---|
 | **Jenis** | Rujukan |
 | **Status** | hidup |
-| **Perubahan berarti terakhir** | 22 September 2026 |
+| **Perubahan berarti terakhir** | 29 September 2026 |
 
-Berkas ini menetapkan **cara menulis dokumen** di repo Portal Posyandu Tulip: jenis dokumennya apa saja, bahasanya bagaimana, dan bentuk baku PRD serta ADR.
+Berkas ini menetapkan **cara menulis dokumen** di repo SIMPATIK Posyandu: jenis dokumennya apa saja, bahasanya bagaimana, dan bentuk baku PRD serta ADR.
 
 Ia tidak berisi satu pun keputusan produk. Kalau yang kamu cari adalah *apa yang dibangun*, mulai dari [`README.md`](README.md).
 
@@ -22,8 +22,8 @@ Ada empat jenis, dibedakan dari **apa yang sedang dilakukan pembacanya**:
 
 | Jenis | Pembacanya sedang | Menjawab | Berkas di repo ini |
 |---|---|---|---|
-| **Orientasi** | baru datang | "Bagaimana saya memulai?" | [`README.md`](README.md) (peta), [`ringkasan.md`](ringkasan.md), [`fitur.md`](fitur.md), [`glosarium.md`](glosarium.md), [`../README.md`](../README.md) (cara menjalankan) |
-| **Panduan** | sedang bekerja | "Bagaimana cara melakukan X?" | *belum ada* — Panduan Operasional dan Manual Kader |
+| **Orientasi** | baru datang | "Bagaimana saya memulai?" | [`README.md`](README.md) (peta), [`ringkasan.md`](ringkasan.md), [`fitur.md`](fitur.md), [`glosarium.md`](glosarium.md) |
+| **Panduan** | sedang bekerja | "Bagaimana cara melakukan X?" | [`../README.md`](../README.md) (pengembangan lokal); panduan operasional dan manual kader belum ada |
 | **Rujukan** | sedang mencari | "Apa persisnya aturan atau nilai Y?" | seluruh isi [`rujukan/`](rujukan), ditambah [`arsitektur.md`](arsitektur.md), [`database.md`](database.md), dan berkas ini |
 | **Penjelasan** | ingin paham | "Kenapa dirancang begini?" | [`adr/`](adr), [`rencana-kerja.md`](rencana-kerja.md), [`pertanyaan-terbuka.md`](pertanyaan-terbuka.md) |
 
@@ -31,7 +31,7 @@ Ada empat jenis, dibedakan dari **apa yang sedang dilakukan pembacanya**:
 
 ### Dua kategori lain yang sering tertukar dengan dokumentasi
 
-**Kontrak / rencana** — seluruh isi [`prd/`](prd/README.md), ditambah [`rujukan/layar-demo.md`](rujukan/layar-demo.md). Tiga tingkat: produk, layar, fitur.
+**Kontrak / rencana** — seluruh isi [`prd/`](prd/README.md). Tiga tingkat: produk, layar, fitur. Tingkat layar tidak punya dokumen kontrak sendiri: rancangannya adalah mockup yang disetujui pemilik produk pada 26 September 2026 beserta kodenya, dan petanya di [Mulai di sini](mulai-di-sini.md#peta-layar).
 
 Ini **bukan dokumentasi.** Dokumentasi menjelaskan apa yang *sudah* ada; PRD menjelaskan apa yang *akan* ada. Keduanya mudah tertukar: PRD yang fiturnya sudah dibangun akan terbaca sebagai deskripsi sistem, padahal kode sesudahnya bergerak dan PRD-nya tidak. Karena itu tiap PRD wajib punya status, dan status `selesai` berarti **beku** — bukan "sudah benar", melainkan "berhenti dijadikan rujukan; yang berlaku sekarang ada di kode dan di dokumen rujukan".
 
@@ -61,15 +61,13 @@ Kalau sebuah fakta terasa perlu ditulis di dua tempat, itu tandanya satu dari ke
 
 ### Nomor bagian tidak pernah digeser
 
-Rujukan dari dalam kode berbentuk `docs/`rujukan/layar-demo.md` bagian 6.4` — terpaku ke **nomor**, bukan ke judul. Hitungan saat ini:
+Rujukan dari dalam kode menyebut **nomor** bagian, bukan judulnya — misalnya `docs/rujukan/antropometri.md bagian 2` atau `docs/rujukan/ui-ux.md bagian 9`. Menyisipkan bagian baru di tengah membuat komentar itu menunjuk tempat yang salah, dengan nol perubahan fungsional.
 
-```
-docs/`rujukan/layar-demo.md` bagian 6.4       25 rujukan dari kode
-docs/`rujukan/ui-ux.md` bagian 8                 15 rujukan
-docs/`rujukan/antropometri.md` bagian 2  12 rujukan
-```
+Karena itu **tambahan baru ditaruh di ujung.** Bagian yang sudah tidak berlaku dipindah ke [`riwayat/`](riwayat), dan nomornya tidak dipakai ulang untuk isi lain. Sebelum memindah sebuah bagian, cari dulu siapa yang merujuknya:
 
-Menyisipkan bagian baru di tengah membuat 25 komentar kode menunjuk tempat yang salah, dengan nol perubahan fungsional. **Tambahan baru ditaruh di ujung.** Bagian yang sudah tidak berlaku ditandai usang, bukan dihapus — nomornya tetap terpakai supaya tidak ada yang mewarisinya.
+```bash
+grep -rn "ui-ux.md bagian" client server docs
+```
 
 ### Asumsi tidak ditebak diam-diam
 
@@ -102,7 +100,7 @@ Tiga baris, tepat di bawah judul:
 | `selesai` | isinya final untuk lingkupnya; perubahan berarti butuh alasan |
 | `beku` | tidak diperbarui lagi; isinya merekam keadaan pada saat ditulis |
 
-Alasannya konkret: [`10`](rujukan/layar-demo.md) dan [`11`](riwayat/catatan-tahap-demo.md) bersama-sama berisi 2.590 baris yang sebagian besar sudah lewat, dan tidak ada satu pun penanda yang memberi tahu pembaca baru hal itu. Tiga baris di kepala berkas akan mencegahnya terulang.
+Alasannya konkret: [PRD demo frontend](riwayat/layar-demo.md) dan [catatan tahap demo](riwayat/catatan-tahap-demo.md) pernah bersama-sama berisi 2.590 baris yang sebagian besar sudah lewat, tanpa satu pun penanda yang memberi tahu pembaca baru hal itu. Tiga baris di kepala berkas mencegahnya terulang.
 
 *"Perubahan berarti"* artinya isinya berubah, bukan salah ketik yang diperbaiki.
 

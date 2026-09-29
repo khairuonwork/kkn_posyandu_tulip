@@ -4,9 +4,9 @@
 |---|---|
 | **Jenis** | Rujukan |
 | **Status** | hidup |
-| **Perubahan berarti terakhir** | 22 September 2026 |
+| **Perubahan berarti terakhir** | 29 September 2026 |
 
-Bentuk tabel, relasi antar tabel, dan aturan integritas Portal Posyandu Tulip. Inilah yang mengikat berkas migrasi di `server/db/migrations/`.
+Bentuk tabel, relasi antar tabel, dan aturan integritas SIMPATIK Posyandu. Inilah yang mengikat berkas migrasi di `server/db/migrations/`.
 
 Kenapa bentuknya begini dan bukan yang lain, ada di [ADR-0001](adr/0001-primary-key-strategy.md) (kunci utama) dan [ADR-0006](adr/0006-pindah-ke-express-react-postgres.md) (pindah ke PostgreSQL). Aturan data yang mengikat seluruh sistem — DR-01 sampai DR-11 yang berkali-kali dirujuk di bawah — ada di [PRD utama](prd/prd-utama.md).
 
@@ -43,7 +43,7 @@ erDiagram
     PENGGUNA {
         id id PK
         string nama
-        string email
+        string username "unik, huruf kecil, untuk masuk"
         string kata_sandi_hash "scrypt"
         enum peran "kader, bidan, admin"
         id wilayah_rt_id FK "nullable, wajib bila kader"
@@ -171,7 +171,7 @@ Hanya kolom yang menuntut penjelasan. Kolom `id`, `created_at`, dan `updated_at`
 
 | Kolom | Tipe | Aturan |
 |---|---|---|
-| `posyandu_id` | FK → `posyandu` | Selalu Posyandu Tulip untuk saat ini. Tabel ini dulu bernama `teams` warisan *starter kit* Laravel ([ADR-0004](adr/0004-reuse-team-sebagai-rbac.md), sudah digantikan); sejak [ADR-0006](adr/0006-pindah-ke-express-react-postgres.md) namanya menyebut hal yang sebenarnya. |
+| `posyandu_id` | FK → `posyandu` | Selalu Posyandu Tulip untuk saat ini. |
 | `rt` | `string(3)` | String, bukan integer — menjaga bentuk `01`. |
 | `rw` | `string(3)` | Selalu `18` untuk saat ini. |
 
@@ -271,9 +271,10 @@ Jejak perubahan (DR-09). Diisi **trigger**, bukan kode aplikasi, sehingga tidak 
 |---|---|---|
 | `tabel`, `baris_id` | `text`, `bigint` | Baris mana yang berubah. Bukan *foreign key*: jejaknya harus bertahan setelah barisnya dihapus |
 | `aksi` | `text` | `insert`, `update`, atau `delete` |
-| `sebelum`, `sesudah` | `jsonb` | Baris **utuh**, bukan hanya kolom yang berubah. `sebelum` kosong pada insert, `sesudah` kosong pada delete |
+| `sebelum`, `sesudah` | `jsonb` | Snapshot baris, **kecuali `pengguna.kata_sandi_hash`**. `sebelum` NULL pada insert, `sesudah` NULL pada delete. Perubahan sandi tetap menghasilkan audit tanpa hash |
 | `pengguna_id` | FK → `pengguna` `nullable` | `ON DELETE SET NULL` — menghapus akun tidak menghapus jejaknya. Kosong untuk perubahan dari baris perintah |
 | `sumber` | `text` | Mis. `aplikasi`, `cli`, `hitung-gizi`. `tidak diketahui` bila aplikasi tidak menyetelnya |
+| `pada` | `timestamptz` | Waktu peristiwa di database, memakai `clock_timestamp()` |
 
 *Index:* `(tabel, baris_id, pada DESC)` dan `(pengguna_id, pada DESC)` — dua bentuk pertanyaan yang nyata: riwayat satu baris, dan apa yang dikerjakan satu pengguna.
 
@@ -283,6 +284,12 @@ Jejak perubahan (DR-09). Diisi **trigger**, bukan kode aplikasi, sehingga tidak 
 
 Tabel ini tidak pernah menghapus isinya sendiri. Kebijakan retensinya menunggu [OI-10](pertanyaan-terbuka.md).
 
+Migrasi `004_audit.sql` mulai merekam perubahan setelah dipasang; data lama tidak mendapat riwayat buatan. Update tanpa perubahan tidak menambah audit. Perubahan data dan audit commit atau rollback bersama. Menghapus akun pelaku mengosongkan `pengguna_id`, termasuk pada peristiwa penghapusan akun sendiri.
+
+Perilaku snapshot tanpa hash, waktu peristiwa, dan penghapusan akun sendiri berlaku setelah migrasi `005_audit_tanpa_hash_sandi.sql`. Migrasi ini juga menghapus kolom hash dari snapshot pengguna yang telanjur dicatat versi 004, tanpa mengubah kolom lain maupun menghapus peristiwa audit.
+
+Audit mencakup INSERT/UPDATE/DELETE biasa, termasuk soft delete lewat UPDATE. Akses baca dan TRUNCATE tidak dicatat. Pemilik database masih dapat mengubah audit atau menonaktifkan trigger; ini bukan perlindungan antimanipulasi. Identitas pelaku berasal dari konteks yang diberikan aplikasi, bukan hasil autentikasi oleh trigger. Cara mengirim konteks ada di [Arsitektur](arsitektur.md#transaksi-dan-audit).
+
 ## Enum
 
 Enum berupa *union type* TypeScript, bukan `string` bebas — di `server/src/antropometri/indeks.ts`, `server/src/auth/peran.ts`, dan `client/src/types/posyandu.ts`. Bukan `enum` TypeScript: Node menjalankan berkas `.ts` dengan membuang anotasi tipe, dan `enum` bukan sintaks yang dapat dibuang begitu saja (`erasableSyntaxOnly`).
@@ -290,4 +297,3 @@ Enum berupa *union type* TypeScript, bukan `string` bebas — di `server/src/ant
 Di basis data nilainya tersimpan sebagai `text` dengan `CHECK`, bukan tipe enum PostgreSQL: menambah satu nilai pada `CHECK` adalah satu `ALTER`, sedangkan pada tipe enum ia menyeret dependensi tipe. Tersimpan sebagai teks juga agar terbaca saat inspeksi manual.
 
 ---
-

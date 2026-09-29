@@ -37,7 +37,7 @@ Seperti tombol Unduh CSV, tombol **Cetak A4** pernah ada dan dicabut atas permin
 
 ## 3. Perilaku yang diharapkan
 
-Tombol **Cetak** di bilah kepala Laporan dan Detail anak. Ditekan → dialog cetak peramban terbuka dengan halaman yang sudah bersih.
+Tombol **Cetak** di bilah kepala Laporan dan Detail Balita. Ditekan → dialog cetak peramban terbuka dengan halaman yang sudah bersih.
 
 **Cetak dikerjakan CSS, bukan JavaScript.** Tidak ada komponen "versi cetak" tersendiri. Alasannya: dua tata letak untuk satu isi berarti dua tempat yang harus diubah bersama, dan yang cetak adalah yang tidak pernah dibuka siapa pun selama pengembangan — jadi ia yang basi lebih dulu. Satu isi, satu sumber, aturan cetak yang menyembunyikan dan mengatur ulang.
 

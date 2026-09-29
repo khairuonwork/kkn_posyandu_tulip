@@ -1,7 +1,7 @@
 /**
  * Keadaan kosong yang dirancang, bukan kebetulan.
  *
- * Butir K5 pada docs/rujukan/layar-demo.md bagian 3 adalah kriteria yang
+ * Butir K5 pada docs/riwayat/layar-demo.md bagian 3 adalah kriteria yang
  * paling sering gagal saat demo: layar kosong tanpa penjelasan. Karena itu
  * komponen ini **mewajibkan** sebuah sebab, dan menawarkan jalan keluar bila
  * ada — bukan sekadar menulis "tidak ada data"

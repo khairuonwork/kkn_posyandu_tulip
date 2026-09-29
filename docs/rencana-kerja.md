@@ -4,9 +4,9 @@
 |---|---|
 | **Jenis** | Penjelasan |
 | **Status** | hidup |
-| **Perubahan berarti terakhir** | 21 September 2026 |
+| **Perubahan berarti terakhir** | 29 September 2026 |
 
-Daftar pekerjaan untuk menyelesaikan **kebutuhan inti** Portal Posyandu Tulip — kemampuan yang membuat aplikasi ini berfungsi sebagai sistem pencatatan Posyandu.
+Daftar pekerjaan untuk menyelesaikan **kebutuhan inti** SIMPATIK Posyandu — kemampuan yang membuat aplikasi ini berfungsi sebagai sistem pencatatan Posyandu.
 
 Ini **bukan** daftar fitur hasil feedback lapangan. Ketiga belas fitur itu punya daftarnya sendiri di [`prd_feedback/README.md`](prd/feedback/README.md) dan dikerjakan setelah dasarnya berdiri.
 
@@ -42,6 +42,8 @@ Dikerjakan sekarang, bukan nanti: kalau ditunda, setiap fitur yang terlanjur dib
 
 **Hasilnya:** tabel `audit` diisi trigger basis data pada tujuh tabel yang isinya diketik manusia, jadi tidak ada jalur mutasi yang bisa lupa mencatat — termasuk perubahan lewat `psql` langsung. Identitas pelakunya dikirim aplikasi lewat variabel sesi transaksi. Rinciannya di [B02](prd/dasar/B02-jejak-audit.md), keputusannya di [ADR-0007](adr/0007-jejak-audit-lewat-trigger.md).
 
+Verifikasi 23 September 2026: berkas yang sebelumnya dirujuk tetapi belum tersedia sudah dilengkapi. Migrasi database kosong, upgrade skema 003, migrasi ulang, type-check, dan seluruh pengujian server lolos dengan PostgreSQL 17. Cakupan serta pengecualian audit ada di [Basis Data](database.md#audit); ini mencatat INSERT/UPDATE/DELETE, bukan seluruh operasi administratif database.
+
 Yang **belum** ada: layar untuk membacanya (menunggu butir 4) dan kebijakan retensi (menunggu [OI-10](pertanyaan-terbuka.md)).
 
 ### 3. Memasukkan data arsip Excel
@@ -54,9 +56,9 @@ Dikerjakan sebelum layar disambungkan, karena basis datanya sekarang kosong — 
 
 > Bila ingin melihat hasil lebih cepat, alternatifnya memasukkan sepuluh sampai dua puluh anak contoh dulu, kerjakan nomor 4, baru pemasukan data penuh. Lebih cepat terlihat, tetapi nomor 3 tetap harus dikerjakan.
 
-### 4. Menyambungkan kelima layar ke basis data
+### 4. Menyambungkan layar ke basis data
 
-Saat aplikasi menjadi nyata. Kelima layar berhenti menampilkan data contoh dan mulai menampilkan data sungguhan: daftar balita, pencarian dan penyaringan, detail anak beserta kurva pertumbuhannya, rekap per RT, cakupan penimbangan, dan daftar anak yang perlu perhatian.
+Saat aplikasi menjadi nyata. Layar berhenti menampilkan data contoh dan mulai menampilkan data sungguhan: daftar balita, pencarian dan penyaringan, detail balita beserta kurva pertumbuhannya, rekap per RT, cakupan penimbangan, dan daftar balita yang perlu perhatian.
 
 Lompatan yang paling terlihat hasilnya. Di sisi tampilan hanya satu berkas yang berubah — memang dirancang begitu sejak awal.
 
@@ -88,7 +90,7 @@ Fiturnya pernah dibuat dan berfungsi, lalu tombolnya dicabut atas permintaan pem
 
 ## Pertanyaan yang belum terjawab
 
-Seluruh pertanyaan di bawah sudah dicek terhadap dokumen feedback dan **tidak terjawab di sana**. Dua pertanyaan lain yang sempat ada sudah dicoret karena feedback menjawabnya: arti kolom Gakin/Non-Gakin pada blangko F1, dan aturan retensi data anak yang lulus atau pindah.
+Daftar di bawah menunjukkan pekerjaan yang membutuhkan jawaban lanjutan. Status keputusan dipelihara di [Pertanyaan terbuka](pertanyaan-terbuka.md). Klaim sebelumnya bahwa arti `G`/`NG` sudah dijawab oleh feedback dikoreksi pada 23 September 2026; konfirmasi pengguna dan dampaknya ada di [OI-17](pertanyaan-terbuka.md#oi-17--sumber-data-status-desil-dan-kategori-gakin). Aturan mempertahankan riwayat anak yang lulus atau pindah terpisah dari pertanyaan tersebut; kebijakan retensi menyeluruh tetap mengikuti OI-10.
 
 ### Menahan pekerjaan
 
@@ -118,15 +120,13 @@ Di seluruh arsip, huruf O tidak pernah muncul sekali pun. Berkas pertumbuhan mem
 
 **5. Dari mana data desil dan status Gakin berasal?**
 
-Apakah ikut dalam berkas dari Puskesmas, atau diisi kader saat pendaftaran. Pencarian menyeluruh di semua arsip tidak menemukan satu pun kolomnya — padahal blangko F1 menuntut pemecahan itu.
+Status sumber data, pihak yang mengisinya, dan pertanyaan terpisah tentang arti `G`/`NG` dipelihara di [OI-17](pertanyaan-terbuka.md#oi-17--sumber-data-status-desil-dan-kategori-gakin).
 
-Feedback juga menanyakan hal yang sama, jadi memang belum pernah terjawab.
-
-*Menahan:* laporan F1.
+*Menahan:* penetapan jalur data F08 dan pemetaan kategori pada laporan F09, sesuai rincian OI-17.
 
 **6. Apakah kelompok desil ditampilkan di F1, atau di laporan terpisah?**
 
-Feedback meminta F1 dipecah tiga arah: jenis kelamin, Gakin, dan kelompok desil. Blangko F1 yang ada hanya punya dua — jenis kelamin dan Gakin, tanpa kolom desil.
+Feedback meminta pemecahan menurut jenis kelamin, Gakin, dan kelompok desil. Struktur blangko yang sudah diperiksa memakai jenis kelamin serta kolom `G`/`NG`, tanpa kolom desil; makna kedua huruf mengikuti [OI-17](pertanyaan-terbuka.md#oi-17--sumber-data-status-desil-dan-kategori-gakin). Penempatan desil tetap memerlukan keputusan bentuk laporan.
 
 *Menahan:* bentuk akhir laporan F1.
 
@@ -172,6 +172,6 @@ Harus selesai sebelum sistem menyimpan data sungguhan di server yang dapat diaks
 
 Dokumen feedback mengajukan lima pertanyaan. Tiga di antaranya kini sudah ada jawabannya, dan sebaiknya ikut dikirim agar percakapannya timbal balik:
 
-1. **Ambang anjuran ke fasilitas kesehatan** — sudah dijawab dan ditutup pada 17 September 2026.
+1. **Ambang anjuran ke fasilitas kesehatan** — jawaban dan tanggal konfirmasinya ada di [OI-16](riwayat/pertanyaan-terjawab.md#oi-16--ambang-rujukan-ke-faskes-arti-196).
 2. **Apakah Posyandu punya format F1 resmi** — ya, ada. Ditemukan di arsip pada 21 September 2026, lengkap 22 butir beserta kodenya. Tercatat di [`rujukan/format-laporan-f1.md`](rujukan/format-laporan-f1.md).
 3. **Mode pengembangan** — terjawab oleh keadaan; migrasi teknologi sudah dikerjakan.

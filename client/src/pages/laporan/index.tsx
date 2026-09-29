@@ -1,15 +1,16 @@
 /**
- * Laporan — docs/rujukan/layar-demo.md bagian 6.6.
+ * Laporan — rekap SKDN per RT, mengikuti mockup yang disetujui 26 September
+ * 2026 (rancangan awal: docs/riwayat/layar-demo.md bagian 6.6).
  *
- * Agregat SKDN per RT, bentuk yang dipakai laporan Posyandu.
+ * Rentang laporan dipilih di bilah kepala: bulan yang sedang dibuka, atau
+ * enam bulan terakhir. Satu kartu tabel berisi saringan RT, kolom yang bisa
+ * diurutkan, dan baris Total. Dari 1024 px tabelnya yang menggulir, bukan
+ * halamannya.
  *
- * Layar ini dibatasi tinggi jendela: tabelnya yang menggulir, bukan halamannya.
- *
- * Tombol Unduh CSV dan Cetak A4 dicabut atas permintaan pemilik produk, begitu
- * pula empat kalimat keterangan — legenda SKDN termasuk. Semuanya beserta
- * risikonya tercatat di docs/riwayat/teks-dicabut-dari-layar.md bagian B. `csvLaporan()`
- * di demo/store.ts sengaja dibiarkan utuh supaya mengembalikan tombolnya cukup
- * satu blok JSX.
+ * Tombol Unduh CSV dan Cetak A4 dicabut atas permintaan pemilik produk
+ * (docs/riwayat/teks-dicabut-dari-layar.md bagian B). `csvLaporan()` di
+ * data/contoh/store.ts sengaja dibiarkan utuh supaya mengembalikan tombolnya
+ * cukup satu blok JSX.
  */
 
 import { FileText } from 'lucide-react';
@@ -21,11 +22,11 @@ import {
     TableBody,
     TableCell,
     TableFooter,
-    TableHead,
+    TableHeadUrut,
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { KOSONG, pecahan, persenSaja } from '@/lib/format';
+import { persenSaja } from '@/lib/format';
 import type { Periode } from '@/types/posyandu';
 
 export type BarisRekapRt = {
@@ -39,33 +40,46 @@ export type BarisRekapRt = {
     bgm: number;
 };
 
-/** Satu RT dengan D/S-nya sepanjang enam bulan. */
-export type BarisTrenRt = {
-    rt: string;
-    ds: (number | null)[];
-    rerata: number | null;
-};
-
 export type TabPeriode = 'bulanan' | 'tahunan';
 
-const TAB: { nilai: TabPeriode; label: string }[] = [
-    { nilai: 'bulanan', label: 'Bulanan' },
-    { nilai: 'tahunan', label: 'Tahunan' },
+type Kolom = 'rt' | 's' | 'd' | 'ds' | 'n' | 'nd' | 't' | 'o' | 'b' | 'bgm';
+
+/** Kolom SKDN: kode di baris pertama kepala tabel, artinya di baris kedua. */
+const KOLOM: { kunci: Kolom; kode: string; arti: string }[] = [
+    { kunci: 'rt', kode: 'RT', arti: 'Wilayah' },
+    { kunci: 's', kode: 'S', arti: 'Sasaran' },
+    { kunci: 'd', kode: 'D', arti: 'Ditimbang' },
+    { kunci: 'ds', kode: 'D/S', arti: 'Cakupan' },
+    { kunci: 'n', kode: 'N', arti: 'Berat naik' },
+    { kunci: 'nd', kode: 'N/D', arti: '% naik' },
+    { kunci: 't', kode: 'T', arti: 'Tidak naik' },
+    { kunci: 'o', kode: 'O', arti: 'Tidak ditimbang bulan lalu' },
+    { kunci: 'b', kode: 'B', arti: 'Pertama kali ditimbang' },
+    { kunci: 'bgm', kode: 'BGM', arti: 'Bawah garis merah' },
 ];
 
+function nilaiKolom(r: BarisRekapRt, kunci: Kolom): number {
+    switch (kunci) {
+        case 'rt':
+            return Number(r.rt);
+
+        case 'ds':
+            return persenSaja(r.d, r.s);
+
+        case 'nd':
+            return persenSaja(r.n, r.d);
+
+        default:
+            return r[kunci];
+    }
+}
+
 /**
- * Rentang waktu yang sedang ditampilkan, apa adanya.
- *
- * `Tahunan` dulu berbunyi "Tahun 2026" padahal arsip demo hanya memuat enam
- * bulan — angkanya terbaca sebagai setahun penuh, dan kalau dipakai melapor ke
- * Puskesmas itu salah lapor.
+ * Rentang waktu yang sedang ditampilkan, apa adanya. Arsip demo hanya memuat
+ * enam bulan; menyebutnya "tahun 2026" berarti salah lapor ke Puskesmas.
  */
 function judulRentang(tab: TabPeriode, periode: Periode): string {
-    if (tab === 'tahunan') {
-        return 'Januari–Juni 2026';
-    }
-
-    return periode.label;
+    return tab === 'tahunan' ? 'Januari–Juni 2026' : periode.label;
 }
 
 type Props = {
@@ -79,8 +93,6 @@ type Props = {
     kelurahan: string;
     periodeTerisi: Periode | null;
     onPindahPeriode?: (id: string) => void;
-    trenRt: BarisTrenRt[];
-    semuaPeriode: { periodeId: string; label: string }[];
 };
 
 export default function Laporan({
@@ -94,429 +106,204 @@ export default function Laporan({
     kelurahan,
     periodeTerisi,
     onPindahPeriode,
-    trenRt,
-    semuaPeriode,
 }: Props) {
     const [rt, setRt] = useState('');
-    const [tampilan, setTampilan] = useState<'skdn' | 'tren'>('skdn');
-    const tampil =
-        rt === '' ? rekapPerRt : rekapPerRt.filter((r) => r.rt === rt);
+    const [urut, setUrut] = useState<{ kolom: Kolom; naik: boolean }>({
+        kolom: 'rt',
+        naik: true,
+    });
+
+    const tampil = (
+        rt === '' ? rekapPerRt : rekapPerRt.filter((r) => r.rt === rt)
+    )
+        .slice()
+        .sort(
+            (a, b) =>
+                (urut.naik ? 1 : -1) *
+                    (nilaiKolom(a, urut.kolom) - nilaiKolom(b, urut.kolom)) ||
+                Number(a.rt) - Number(b.rt),
+        );
+
+    const keteranganUrut =
+        urut.kolom === 'rt'
+            ? `urut nomor RT${urut.naik ? '' : ', terbesar dulu'}`
+            : `urut ${KOLOM.find((k) => k.kunci === urut.kolom)?.kode} ${urut.naik ? 'naik' : 'turun'}`;
+
+    const angka = (r: BarisRekapRt) => [
+        r.s,
+        r.d,
+        `${persenSaja(r.d, r.s)}%`,
+        r.n,
+        `${persenSaja(r.n, r.d)}%`,
+        r.t,
+        r.o,
+        r.b,
+        r.bgm,
+    ];
 
     return (
         <Halaman
             ikon={FileText}
             penuh="lg"
             judul="Laporan"
-            subjudul={`${judulRentang(tab, periode)}. RW ${rw} Kelurahan ${kelurahan}. Data contoh.`}
-        >
-            <div className="flex shrink-0 flex-wrap items-end gap-3">
-                {/* Grup tab dulu tidak berlabel sementara pemilih RT di
-                    sebelahnya punya, sehingga pada `items-end` kata "RT"
-                    menggantung sendirian di atas garis tab. Labelnya juga
-                    menutup `role="tablist"` yang selama ini tanpa nama. */}
-                <div className="flex flex-col gap-1">
-                    <span
-                        id="label-rentang"
-                        className="text-sm font-semibold text-muted-foreground"
-                    >
-                        Rentang waktu
-                    </span>
-                    <div
-                        className="flex flex-wrap gap-2"
-                        role="tablist"
-                        aria-labelledby="label-rentang"
-                    >
-                        {TAB.map((t) => (
-                            <button
-                                key={t.nilai}
-                                type="button"
-                                role="tab"
-                                aria-selected={tab === t.nilai}
-                                onClick={() => onGantiTab(t.nilai)}
-                                className={`min-h-13 rounded-lg px-4.5 text-base font-semibold ${
-                                    tab === t.nilai
-                                        ? 'bg-primary font-bold text-primary-foreground'
-                                        : 'border border-border-strong bg-card'
-                                }`}
-                            >
-                                {t.label}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Saring RT berdiri di samping tab, bukan sendirian di dalam
-                    kartu setinggi 80 px yang isinya satu kotak pilih. */}
-                <label
-                    htmlFor="rekap-rt"
-                    className="flex flex-col gap-1 text-sm font-semibold text-muted-foreground"
+            subjudul={`Rekap penimbangan per RT · RW ${rw} Kelurahan ${kelurahan}. Data contoh.`}
+            aksi={
+                <div
+                    role="group"
+                    aria-label="Rentang laporan"
+                    className="flex rounded-[16px] border border-border-strong bg-surface p-1"
                 >
-                    RT
-                    <select
-                        id="rekap-rt"
-                        value={rt}
-                        onChange={(e) => setRt(e.target.value)}
-                        className="isian font-semibold text-foreground"
-                    >
-                        <option value="">Semua RT</option>
-                        {wilayahRt.map((w) => (
-                            <option key={w} value={w}>
-                                RT {w.padStart(2, '0')}
-                            </option>
-                        ))}
-                    </select>
-                </label>
-            </div>
-
+                    {(['bulanan', 'tahunan'] as const).map((t) => (
+                        <button
+                            key={t}
+                            type="button"
+                            aria-pressed={tab === t}
+                            onClick={() => onGantiTab(t)}
+                            className={`min-h-13 rounded-[12px] px-4.5 text-base ${
+                                tab === t
+                                    ? 'bg-card font-extrabold text-primary shadow-[0_1px_4px_rgba(22,33,28,0.16)]'
+                                    : 'font-semibold'
+                            }`}
+                        >
+                            {t === 'bulanan'
+                                ? periode.label
+                                : '6 bulan terakhir'}
+                        </button>
+                    ))}
+                </div>
+            }
+        >
             {total.s === 0 ? (
-                <div className="mt-6">
-                    <EmptyState
-                        sebab={`Belum ada pengukuran pada ${periode.label}.`}
-                    >
-                        {periodeTerisi !== null && (
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    onPindahPeriode?.(periodeTerisi.id)
-                                }
-                                className="tombol-utama"
-                            >
-                                Lihat {periodeTerisi.label}
-                            </button>
-                        )}
-                    </EmptyState>
-                </div>
+                <EmptyState
+                    sebab={`Belum ada penimbangan di ${periode.label}.`}
+                >
+                    {periodeTerisi !== null && (
+                        <button
+                            type="button"
+                            onClick={() => onPindahPeriode?.(periodeTerisi.id)}
+                            className="tombol-utama"
+                        >
+                            Lihat {periodeTerisi.label}
+                        </button>
+                    )}
+                </EmptyState>
             ) : (
-                <div className="flex flex-col lg:min-h-0 lg:flex-1">
-                    {/* Pita rambut artboard: angka besar dan labelnya berdiri
-                        sebaris pada garis dasar yang sama, bukan lima kartu
-                        identik berjejer. */}
-                    <div className="kartu mt-4 grid shrink-0 grid-cols-1 gap-px overflow-hidden bg-border sm:grid-cols-2 lg:grid-cols-5">
-                        {/* Pada tab Tahunan, S dan D adalah jumlah enam bulan,
-                            bukan cacah balita — 633 di RW yang berisi 123 anak.
-                            Aritmetikanya benar (D/S kumulatif memang begitu
-                            dihitung); yang menyesatkan adalah angka telanjang
-                            tanpa keterangan. */}
-                        <Angka
-                            nilai={total.s}
-                            label="Sasaran (S)"
-                            bawah={
-                                tab === 'tahunan'
-                                    ? 'jumlah 6 bulan, bukan jumlah balita'
-                                    : undefined
-                            }
-                        />
-                        <Angka
-                            nilai={total.d}
-                            label="Ditimbang (D)"
-                            warna="text-tone-green"
-                            bawah={
-                                tab === 'tahunan'
-                                    ? 'jumlah penimbangan 6 bulan'
-                                    : undefined
-                            }
-                        />
-                        <Angka
-                            nilai={`${persenSaja(total.d, total.s)}%`}
-                            label="Cakupan (D/S)"
-                            warna="text-tone-green"
-                            bawah={`${pecahan(total.d, total.s)} sasaran`}
-                        />
-                        <Angka
-                            nilai={`${persenSaja(total.n, total.d)}%`}
-                            label="Naik (N/D)"
-                            bawah={`${pecahan(total.n, total.d)} ditimbang`}
-                        />
-                        <Angka
-                            nilai={total.bgm}
-                            label="BGM"
-                            warna={total.bgm > 0 ? 'text-tone-red' : undefined}
-                            bawah="di bawah garis merah"
-                        />
-                    </div>
-
-                    <div className="kartu mt-4 flex flex-col overflow-hidden lg:min-h-0 lg:flex-1">
-                        <div className="strip-kepala shrink-0">
-                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                                <h2 className="text-xl font-extrabold">
-                                    {tampilan === 'skdn'
-                                        ? 'Rekap per RT'
-                                        : 'Cakupan per RT, enam bulan'}
-                                </h2>
-
-                                {/* Pengalih isi, bukan kartu kedua: pada 1280 px
-                                    kartu ini hanya menyisakan 89 px kosong di
-                                    bawah tabelnya, jadi tabel kedua tidak muat.
-                                    Mengganti isi tidak menambah tinggi sama
-                                    sekali. */}
-                                <div
-                                    className="ml-auto flex flex-wrap gap-2"
-                                    role="tablist"
-                                    aria-label="Tampilan rekap"
-                                >
-                                    {(['skdn', 'tren'] as const).map((t) => (
-                                        <button
-                                            key={t}
-                                            type="button"
-                                            role="tab"
-                                            aria-selected={tampilan === t}
-                                            onClick={() => setTampilan(t)}
-                                            className={`min-h-13 rounded-lg px-4 text-sm font-semibold ${
-                                                tampilan === t
-                                                    ? 'bg-primary font-bold text-primary-foreground'
-                                                    : 'border border-border-strong bg-card'
-                                            }`}
-                                        >
-                                            {t === 'skdn'
-                                                ? 'SKDN'
-                                                : 'Enam bulan'}
-                                        </button>
-                                    ))}
-                                </div>
+                <section className="kartu flex flex-col overflow-hidden lg:min-h-0">
+                    <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4.5 gap-y-3 border-b border-border px-5.5 py-3.5">
+                        <h2 className="text-xl leading-tight font-extrabold">
+                            Rekap SKDN per RT, {judulRentang(tab, periode)}
+                        </h2>
+                        {/* Kader hanya punya satu RT; saringannya tidak perlu. */}
+                        {wilayahRt.length > 1 && (
+                            <div
+                                role="group"
+                                aria-label="Pilih RT"
+                                className="flex flex-wrap gap-1.5"
+                            >
+                                {['', ...wilayahRt].map((w) => (
+                                    <button
+                                        key={w}
+                                        type="button"
+                                        aria-pressed={rt === w}
+                                        onClick={() => setRt(w)}
+                                        className={`min-h-13 rounded-lg px-3.5 text-base ${
+                                            rt === w
+                                                ? 'border-2 border-primary bg-accent font-extrabold text-primary'
+                                                : 'border border-border-strong bg-card font-semibold'
+                                        }`}
+                                    >
+                                        {w === ''
+                                            ? 'Semua RT'
+                                            : `RT ${w.padStart(2, '0')}`}
+                                    </button>
+                                ))}
                             </div>
-
-                            {/* Tampilan enam bulan selalu memakai keenam periode
-                                dan tidak mengikuti Rentang waktu di atas;
-                                dikatakan, bukan dibiarkan ditebak. */}
-                            {tampilan === 'tren' && (
-                                <p className="mt-1 text-sm text-muted-foreground">
-                                    Januari–Juni 2026, tidak mengikuti Rentang
-                                    waktu di atas.
-                                </p>
-                            )}
-                            {/* Petunjuk geser dipertahankan: ia instruksi
-                                pemakaian, bukan keterangan data, dan hanya
-                                muncul di layar yang memang lebih sempit
-                                daripada tabelnya. Kolom yang disebut mengikuti
-                                tabel yang sedang tampil. */}
-                            <p className="mt-1 text-sm text-muted-foreground md:hidden">
-                                Tabel ini lebih lebar daripada layar. Geser ke
-                                samping untuk melihat kolom{' '}
-                                {tampilan === 'skdn'
-                                    ? 'N, T, O, B, dan BGM'
-                                    : 'bulan berikutnya dan Rerata'}
-                                .
-                            </p>
-                        </div>
-
-                        {tampilan === 'tren' && (
-                            <TabelTrenRt
-                                baris={
-                                    rt === ''
-                                        ? trenRt
-                                        : trenRt.filter((r) => r.rt === rt)
-                                }
-                                periode={semuaPeriode}
-                            />
-                        )}
-
-                        {tampilan === 'skdn' && (
-                            <Table containerClassName="lg:min-h-0 lg:flex-1">
-                                <TableHeader>
-                                    {/* Legenda SKDN dicabut atas permintaan pemilik
-                                    produk (docs/13 bagian 1), meninggalkan
-                                    sembilan kolom berjudul satu huruf tanpa satu
-                                    pun keterangan. `title` adalah jalan keluar
-                                    yang disebut dokumen itu sendiri: arti kolom
-                                    kembali terjangkau, tanpa memakan satu piksel
-                                    pun dari layar yang memang harus muat sekali
-                                    tampil. */}
-                                    <TableRow>
-                                        <TableHead scope="col">RT</TableHead>
-                                        <TableHead
-                                            scope="col"
-                                            title="Sasaran: balita 0 sampai 59 bulan di wilayah"
-                                        >
-                                            S
-                                        </TableHead>
-                                        <TableHead
-                                            scope="col"
-                                            title="Ditimbang bulan ini"
-                                        >
-                                            D
-                                        </TableHead>
-                                        <TableHead
-                                            scope="col"
-                                            title="Cakupan penimbangan: D dibagi S"
-                                        >
-                                            D/S
-                                        </TableHead>
-                                        <TableHead
-                                            scope="col"
-                                            title="Naik: berat naik sesuai garis pertumbuhan"
-                                        >
-                                            N
-                                        </TableHead>
-                                        <TableHead
-                                            scope="col"
-                                            title="Tidak naik"
-                                        >
-                                            T
-                                        </TableHead>
-                                        <TableHead
-                                            scope="col"
-                                            title="Tidak ditimbang bulan lalu"
-                                        >
-                                            O
-                                        </TableHead>
-                                        <TableHead
-                                            scope="col"
-                                            title="Baru pertama kali ditimbang"
-                                        >
-                                            B
-                                        </TableHead>
-                                        <TableHead
-                                            scope="col"
-                                            title="Di bawah garis merah pada KMS, dihitung dari BB/U"
-                                        >
-                                            BGM
-                                        </TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {tampil.map((r) => (
-                                        <TableRow key={r.rt}>
-                                            <TableCell className="font-semibold">
-                                                RT {r.rt.padStart(2, '0')}
-                                            </TableCell>
-                                            <TableCell>{r.s}</TableCell>
-                                            <TableCell>{r.d}</TableCell>
-                                            <TableCell>
-                                                {persenSaja(r.d, r.s)}%
-                                            </TableCell>
-                                            <TableCell>{r.n}</TableCell>
-                                            <TableCell>{r.t}</TableCell>
-                                            <TableCell>{r.o}</TableCell>
-                                            <TableCell>{r.b}</TableCell>
-                                            <TableCell>{r.bgm}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                                <TableFooter>
-                                    <TableRow>
-                                        <TableCell>Total</TableCell>
-                                        <TableCell>{total.s}</TableCell>
-                                        <TableCell>{total.d}</TableCell>
-                                        <TableCell>
-                                            {persenSaja(total.d, total.s)}%
-                                        </TableCell>
-                                        <TableCell>{total.n}</TableCell>
-                                        <TableCell>{total.t}</TableCell>
-                                        <TableCell>{total.o}</TableCell>
-                                        <TableCell>{total.b}</TableCell>
-                                        <TableCell>{total.bgm}</TableCell>
-                                    </TableRow>
-                                </TableFooter>
-                            </Table>
                         )}
                     </div>
-                </div>
+
+                    <Table
+                        aria-label={`Rekap SKDN per RT, ${judulRentang(tab, periode)}`}
+                        containerClassName="lg:min-h-0 lg:flex-1"
+                    >
+                        <TableHeader className="sticky top-0 z-10">
+                            <TableRow>
+                                {KOLOM.map((k, i) => (
+                                    <TableHeadUrut
+                                        key={k.kunci}
+                                        label={k.kode}
+                                        keterangan={k.arti}
+                                        aktif={urut.kolom === k.kunci}
+                                        naik={urut.naik}
+                                        pertama={i === 0}
+                                        terakhir={i === KOLOM.length - 1}
+                                        kanan={i > 0}
+                                        onUrut={() =>
+                                            setUrut({
+                                                kolom: k.kunci,
+                                                naik:
+                                                    urut.kolom === k.kunci
+                                                        ? !urut.naik
+                                                        : true,
+                                            })
+                                        }
+                                    />
+                                ))}
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {tampil.map((r) => (
+                                <TableRow key={r.rt}>
+                                    <TableCell className="font-bold whitespace-nowrap">
+                                        RT {r.rt.padStart(2, '0')}
+                                    </TableCell>
+                                    {angka(r).map((n, i) => (
+                                        <TableCell
+                                            key={i}
+                                            className="text-right tabular-nums"
+                                        >
+                                            {n}
+                                        </TableCell>
+                                    ))}
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                        {rt === '' && (
+                            <TableFooter>
+                                <TableRow className="border-b-0">
+                                    <TableCell>Total</TableCell>
+                                    {angka(total).map((n, i) => (
+                                        <TableCell
+                                            key={i}
+                                            className="text-right tabular-nums"
+                                        >
+                                            {n}
+                                        </TableCell>
+                                    ))}
+                                </TableRow>
+                            </TableFooter>
+                        )}
+                    </Table>
+
+                    <div className="flex shrink-0 flex-wrap justify-between gap-x-4.5 gap-y-1 border-t border-border px-5.5 py-3 text-sm text-muted-foreground">
+                        <p>
+                            Menampilkan{' '}
+                            <span className="font-bold text-foreground">
+                                {tampil.length}
+                            </span>{' '}
+                            RT · {keteranganUrut}
+                        </p>
+                        <p>
+                            {/* Pada enam bulan, S dan D adalah jumlah
+                                penimbangan, bukan cacah balita; tanpa kalimat
+                                ini 633 terbaca sebagai jumlah anak. */}
+                            {tab === 'tahunan' &&
+                                'S dan D adalah jumlah enam bulan, bukan jumlah balita. '}
+                            BGM dihitung dari BB/U, jadi bisa berbeda dari
+                            status gizi di Beranda. D = N + T + O + B.
+                        </p>
+                    </div>
+                </section>
             )}
         </Halaman>
-    );
-}
-
-/**
- * Tabel D/S tiap RT sepanjang enam bulan.
- *
- * Rekap SKDN di sebelahnya memotret satu bulan, sehingga RT yang tertinggal
- * terus-menerus tidak bisa dibedakan dari RT yang kebetulan jeblok sekali.
- * Kolom rerata di ujung kanan yang menjawab itu, dan ia dihitung dari total D
- * dibagi total S — bukan rata-rata dari enam persen, yang akan memberi bobot
- * sama pada bulan dengan 7 sasaran dan bulan dengan 44.
- */
-function TabelTrenRt({
-    baris,
-    periode,
-}: {
-    baris: BarisTrenRt[];
-    periode: { periodeId: string; label: string }[];
-}) {
-    return (
-        <Table containerClassName="lg:min-h-0 lg:flex-1">
-            <TableHeader>
-                <TableRow>
-                    <TableHead scope="col">RT</TableHead>
-                    {periode.map((p) => (
-                        <TableHead
-                            key={p.periodeId}
-                            scope="col"
-                            title={p.label}
-                        >
-                            {/* Hanya nama bulannya: enam kali "2026" pada satu
-                                baris kepala tidak menambah satu pun informasi,
-                                dan subjudul halaman sudah menyebut tahunnya. */}
-                            {p.label.replace(/\s+\d{4}$/, '')}
-                        </TableHead>
-                    ))}
-                    <TableHead
-                        scope="col"
-                        title="Rerata enam bulan: total ditimbang dibagi total sasaran"
-                    >
-                        Rerata
-                    </TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {baris.map((r) => (
-                    <TableRow key={r.rt}>
-                        <TableCell className="font-semibold">
-                            RT {r.rt.padStart(2, '0')}
-                        </TableCell>
-                        {r.ds.map((n, urutan) => (
-                            <TableCell key={urutan}>
-                                {/* Tanpa sasaran bukan nol persen. Em dash,
-                                    sama seperti sel kosong di seluruh Portal. */}
-                                {n === null ? (
-                                    <span className="text-muted-foreground">
-                                        {KOSONG}
-                                    </span>
-                                ) : (
-                                    `${n}%`
-                                )}
-                            </TableCell>
-                        ))}
-                        <TableCell className="font-bold">
-                            {r.rerata === null ? (
-                                <span className="text-muted-foreground">
-                                    {KOSONG}
-                                </span>
-                            ) : (
-                                `${r.rerata}%`
-                            )}
-                        </TableCell>
-                    </TableRow>
-                ))}
-            </TableBody>
-        </Table>
-    );
-}
-
-/** Satu sel pita ringkasan. Latarnya kartu; garis pemisahnya celah 1px grid. */
-function Angka({
-    nilai,
-    label,
-    bawah,
-    warna,
-}: {
-    nilai: number | string;
-    label: string;
-    bawah?: string;
-    warna?: string;
-}) {
-    return (
-        <div className="bg-card px-5 py-4.5">
-            {/* Angka dan labelnya sebaris pada garis dasar yang sama — bentuk
-                pita pada artboard Laporan. */}
-            <p className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-                <span className={`text-2xl font-extrabold ${warna ?? ''}`}>
-                    {nilai}
-                </span>
-                <span className="text-sm text-muted-foreground">{label}</span>
-            </p>
-            {bawah !== undefined && (
-                <p className="mt-1 text-sm text-muted-foreground">{bawah}</p>
-            )}
-        </div>
     );
 }

@@ -1,21 +1,29 @@
 /**
- * Data Balita — docs/rujukan/layar-demo.md bagian 6.4, tampilan Prototipe v2.
+ * Data Balita — docs/riwayat/layar-demo.md bagian 6.4, tampilan Prototipe v2.
  *
  * Membuktikan bahwa mencari seorang anak butuh beberapa detik, bukan membuka
  * dua belas berkas Excel — dan sejak v2, bahwa memperbaiki satu angka salah
  * tidak perlu meninggalkan daftarnya.
  */
 
-import { Baby, ChevronRight, Filter, Plus, Search } from 'lucide-react';
+import {
+    Baby,
+    ChevronDown,
+    ChevronRight,
+    Pencil,
+    Search,
+    TriangleAlert,
+    UserPlus,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
-import EmptyState from '@/components/empty-state';
 import Halaman from '@/components/halaman';
-import StatusGiziBadge from '@/components/status-gizi-badge';
+import StatusGiziBadge, { nadaKategori } from '@/components/status-gizi-badge';
 import {
     Table,
     TableBody,
     TableCell,
     TableHead,
+    TableHeadUrut,
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
@@ -63,14 +71,25 @@ export type BarisAnak = {
     tinggiCm: number | null;
 };
 
-/** Perubahan identitas dan pengukuran dari satu baris yang dibuka. */
+/**
+ * Perubahan data satu balita. Editor baris di Data Balita mengisi identitas
+ * dasar dan angka ukurnya; dialog Ubah data di Detail Balita mengisi identitas
+ * lengkap tanpa angka ukur. Kolom yang tidak diisi tidak diubah.
+ */
 export type PatchAnak = {
     nama: string;
     nik: string;
     namaOrtu: string;
     rt: string;
-    bbKg: number | null;
-    tinggiCm: number | null;
+    bbKg?: number | null;
+    tinggiCm?: number | null;
+    jk?: JenisKelamin;
+    tglLahir?: string;
+    anakKe?: number | null;
+    bbLahirKg?: number | null;
+    bukuKia?: boolean;
+    /** Nomor WhatsApp orang tua; belum ada kolomnya di arsip. */
+    noWa?: string;
 };
 
 export type AnakBaru = {
@@ -162,6 +181,43 @@ function Risiko({ baris }: { baris: BarisAnak }) {
     );
 }
 
+type KolomUrut = 'nama' | 'umur' | 'rt' | 'tanggal' | 'status';
+
+/** Status paling mendesak di atas saat kolom Status gizi diurutkan naik. */
+const PERINGKAT_NADA = { merah: 0, oranye: 1, biru: 2, hijau: 3, netral: 4 };
+
+const LABEL_URUT: Record<KolomUrut, string> = {
+    nama: 'Nama balita',
+    umur: 'Umur',
+    rt: 'RT',
+    tanggal: 'Ditimbang terakhir',
+    status: 'Status gizi',
+};
+
+function bandingkan(a: BarisAnak, b: BarisAnak, kolom: KolomUrut): number {
+    switch (kolom) {
+        case 'umur':
+            return (a.umurBulan ?? -1) - (b.umurBulan ?? -1);
+
+        case 'rt':
+            return Number(a.rt ?? 99) - Number(b.rt ?? 99);
+
+        case 'tanggal':
+            return (a.tanggalUkurTerakhir ?? '').localeCompare(
+                b.tanggalUkurTerakhir ?? '',
+            );
+
+        case 'status':
+            return (
+                PERINGKAT_NADA[nadaKategori(a.kategoriGizi)] -
+                PERINGKAT_NADA[nadaKategori(b.kategoriGizi)]
+            );
+
+        default:
+            return (a.nama ?? '').localeCompare(b.nama ?? '');
+    }
+}
+
 export default function DaftarAnak({
     anak,
     wilayahRt,
@@ -179,6 +235,10 @@ export default function DaftarAnak({
     const [hanyaRisiko, setHanyaRisiko] = useState(false);
     const [dibuka, setDibuka] = useState<number | null>(null);
     const [menambah, setMenambah] = useState(false);
+    const [urut, setUrut] = useState<{ kolom: KolomUrut; naik: boolean }>({
+        kolom: 'nama',
+        naik: true,
+    });
 
     const bolehUbah = peran !== 'kader';
     const rtAktif = rtTerkunci ?? rt;
@@ -186,6 +246,7 @@ export default function DaftarAnak({
     // subjudulnya membuat dua angka berbeda berdiri 40 px bersebelahan.
     const terlihat =
         rtTerkunci === null ? anak : anak.filter((b) => b.rt === rtTerkunci);
+    const lingkupRt = rtAktif === '' ? 'seluruh RT' : labelRt(rtAktif);
 
     // 906 baris standar hanya perlu disusun sekali, bukan tiap ketukan papan
     // tombol di dalam editor.
@@ -197,27 +258,54 @@ export default function DaftarAnak({
     const hasil = useMemo(() => {
         const kunci = cari.trim().toLowerCase();
 
-        return anak.filter((baris) => {
-            if (rtAktif !== '' && baris.rt !== rtAktif) {
-                return false;
+        return anak
+            .filter((baris) => {
+                if (rtAktif !== '' && baris.rt !== rtAktif) {
+                    return false;
+                }
+
+                if (hanyaPerhatian && !baris.perluPerhatian) {
+                    return false;
+                }
+
+                if (hanyaRisiko && baris.risikoLahir === null) {
+                    return false;
+                }
+
+                // Pencarian mencocokkan nama balita maupun nama ibu — itu
+                // cara kader mengingat.
+                const sasaran =
+                    `${baris.nama ?? ''} ${baris.namaOrtu ?? ''}`.toLowerCase();
+
+                return kunci === '' || sasaran.includes(kunci);
+            })
+            .sort(
+                (a, b) =>
+                    (urut.naik ? 1 : -1) * bandingkan(a, b, urut.kolom) ||
+                    (a.nama ?? '').localeCompare(b.nama ?? ''),
+            );
+    }, [anak, cari, rtAktif, hanyaPerhatian, hanyaRisiko, urut]);
+
+    const keteranganUrut =
+        urut.kolom === 'nama'
+            ? `urut nama ${urut.naik ? 'A–Z' : 'Z–A'}`
+            : `urut ${LABEL_URUT[urut.kolom].toLowerCase()} ${urut.naik ? 'naik' : 'turun'}`;
+
+    const kepalaUrut = (kolom: KolomUrut) => (
+        <TableHeadUrut
+            label={LABEL_URUT[kolom]}
+            aktif={urut.kolom === kolom}
+            naik={urut.naik}
+            pertama={kolom === 'nama'}
+            onUrut={() =>
+                setUrut({
+                    kolom,
+                    naik: urut.kolom === kolom ? !urut.naik : true,
+                })
             }
-
-            if (hanyaPerhatian && !baris.perluPerhatian) {
-                return false;
-            }
-
-            if (hanyaRisiko && baris.risikoLahir === null) {
-                return false;
-            }
-
-            // Pencarian mencocokkan nama balita maupun nama ibu — itu cara kader
-            // mengingat.
-            const sasaran =
-                `${baris.nama ?? ''} ${baris.namaOrtu ?? ''}`.toLowerCase();
-
-            return kunci === '' || sasaran.includes(kunci);
-        });
-    }, [anak, cari, rtAktif, hanyaPerhatian, hanyaRisiko]);
+            className={kolom === 'tanggal' ? 'hidden lg:table-cell' : ''}
+        />
+    );
 
     return (
         <Halaman
@@ -240,256 +328,269 @@ export default function DaftarAnak({
                         aria-expanded={menambah}
                         className="tombol-utama"
                     >
-                        <Plus className="size-5" strokeWidth={2.5} />
+                        <UserPlus
+                            className="size-5"
+                            strokeWidth={2.5}
+                            aria-hidden="true"
+                        />
                         Tambah balita
                     </button>
                 )
             }
         >
-            {/* Bilah saring artboard: membentang penuh tepat di bawah bilah
-                kepala, dipisah satu garis — bukan kartu melayang di atas abu.
-                Label selalu di atas kotaknya, tidak pernah jadi placeholder. */}
-            <div className="-mx-4 -mt-6 mb-6 flex flex-wrap items-end gap-3.5 border-b border-border bg-card px-4 py-4.5 sm:-mx-7 sm:-mt-7 sm:px-7">
-                <div className="max-w-100 min-w-64 flex-1">
-                    <label
-                        htmlFor="cari-anak"
-                        className="block text-sm font-semibold text-muted-foreground"
-                    >
-                        Cari nama balita atau nama ibu
-                    </label>
-                    {/* `items-stretch`, bukan `items-center`: dengan
-                        `items-center` kotak isian setinggi 45 px hanya
-                        meneruskan 15 px ke <input>, dan bantalan di atas serta
-                        di bawahnya mati terhadap sentuhan. Ini kotak pertama
-                        yang disentuh kader tiap sesi. */}
-                    <div className="isian mt-1.5 flex w-full items-stretch gap-2.5 px-3.5">
-                        <Search
-                            className="size-5 shrink-0 self-center text-muted-foreground"
-                            strokeWidth={2.5}
-                            aria-hidden="true"
-                        />
-                        <input
-                            id="cari-anak"
-                            type="search"
-                            value={cari}
-                            onChange={(e) => setCari(e.target.value)}
-                            className="min-w-0 flex-1 self-stretch bg-transparent text-base outline-none"
-                        />
-                    </div>
-                </div>
-
-                {/* Kader terkunci ke satu RT. Dulu ini <select disabled> yang
-                    tetap memuat ketujuh RT dengan opacity 0.6 - kontrol mati
-                    yang masih berbentuk kontrol, dan kontrasnya jatuh ke 4,6:1.
-                    Sekarang ia keterangan biasa. */}
-                {rtTerkunci !== null ? (
-                    <p className="flex min-h-13 items-center rounded-lg bg-surface-alt px-3.5 text-base">
-                        {labelRt(rtTerkunci)}, wilayah binaan Anda
-                    </p>
-                ) : (
-                    <div>
+            {/* Satu kartu data: saringan di bilah atas, tabel yang digulir di
+                dalam kartu, dan jumlah baris di bilah bawah. Halamannya
+                sendiri tidak digulir dari 1024 px. */}
+            <section className="kartu flex flex-col overflow-hidden lg:min-h-0 lg:flex-1">
+                <div className="flex shrink-0 flex-wrap items-end gap-x-4.5 gap-y-3.5 border-b border-border px-4.5 pt-3.5 pb-4">
+                    <div className="min-w-60 flex-1">
                         <label
-                            htmlFor="filter-rt"
+                            htmlFor="cari-anak"
                             className="block text-sm font-semibold text-muted-foreground"
                         >
-                            RT
+                            Cari nama balita atau nama ibu
                         </label>
-                        <select
-                            id="filter-rt"
-                            value={rtAktif}
-                            onChange={(e) => setRt(e.target.value)}
-                            className="isian mt-1.5 font-semibold"
-                        >
-                            <option value="">Semua RT</option>
-                            {wilayahRt.map((w) => (
-                                <option key={w} value={w}>
-                                    {labelRt(w)}
-                                </option>
-                            ))}
-                        </select>
+                        {/* `items-stretch`: seluruh tinggi kotak meneruskan
+                            sentuhan ke <input>. Ini kotak pertama yang disentuh
+                            kader tiap sesi. */}
+                        <div className="isian mt-1.5 flex w-full items-stretch gap-2.5 bg-card px-3.5">
+                            <Search
+                                className="size-5 shrink-0 self-center text-muted-foreground"
+                                strokeWidth={2.5}
+                                aria-hidden="true"
+                            />
+                            <input
+                                id="cari-anak"
+                                type="search"
+                                value={cari}
+                                onChange={(e) => setCari(e.target.value)}
+                                className="min-w-0 flex-1 self-stretch bg-transparent text-base outline-none"
+                            />
+                        </div>
                     </div>
-                )}
 
-                {/* Tombol saring artboard: menyala penuh saat aktif. Ditulis
-                    sebagai <button aria-pressed>, bukan span role=button milik
-                    prototipe — keadaan tertekannya harus sampai ke pembaca
-                    layar, bukan hanya ke mata. */}
-                <button
-                    type="button"
-                    aria-pressed={hanyaPerhatian}
-                    onClick={() => setHanyaPerhatian((b) => !b)}
-                    className={
-                        hanyaPerhatian
-                            ? 'tombol-utama'
-                            : 'tombol-kedua bg-surface'
-                    }
-                >
-                    <Filter className="size-5" strokeWidth={2.5} />
-                    Hanya yang perlu perhatian
-                </button>
+                    {/* Kader terkunci ke satu RT: keterangan biasa, bukan
+                        kontrol mati yang masih berbentuk kontrol. */}
+                    {rtTerkunci !== null ? (
+                        <p className="flex min-h-14 items-center rounded-lg bg-surface-alt px-3.5 text-base">
+                            {labelRt(rtTerkunci)}, wilayah binaan Anda
+                        </p>
+                    ) : (
+                        <div className="w-44">
+                            <label
+                                htmlFor="filter-rt"
+                                className="block text-sm font-semibold text-muted-foreground"
+                            >
+                                RT
+                            </label>
+                            <div className="relative mt-1.5">
+                                <select
+                                    id="filter-rt"
+                                    value={rtAktif}
+                                    onChange={(e) => setRt(e.target.value)}
+                                    className="isian w-full cursor-pointer appearance-none bg-card pr-11"
+                                >
+                                    <option value="">Semua RT</option>
+                                    {wilayahRt.map((w) => (
+                                        <option key={w} value={w}>
+                                            {labelRt(w)}
+                                        </option>
+                                    ))}
+                                </select>
+                                <ChevronDown
+                                    className="pointer-events-none absolute top-1/2 right-3.5 size-5 -translate-y-1/2 text-muted-foreground"
+                                    strokeWidth={2.5}
+                                    aria-hidden="true"
+                                />
+                            </div>
+                        </div>
+                    )}
 
-                {/* Saringan kedua, bukan gabungan: "perlu perhatian" menyaring
-                    status gizi bulan ini, ini menyaring riwayat sejak lahir.
-                    Dua pertanyaan berbeda, dan seorang anak bisa masuk salah
-                    satu tanpa masuk yang lain. */}
-                <button
-                    type="button"
-                    aria-pressed={hanyaRisiko}
-                    onClick={() => setHanyaRisiko((b) => !b)}
-                    className={
-                        hanyaRisiko ? 'tombol-utama' : 'tombol-kedua bg-surface'
-                    }
-                >
-                    <Filter className="size-5" strokeWidth={2.5} />
-                    Berisiko sejak lahir
-                </button>
-            </div>
-
-            {menambah && (
-                <FormTambah
-                    wilayahRt={wilayahRt}
-                    rtAwal={rtTerkunci ?? ''}
-                    onBatal={() => setMenambah(false)}
-                    onSimpan={(baru) => {
-                        onTambahAnak?.(baru);
-                        setMenambah(false);
-                    }}
-                />
-            )}
-
-            {/* Jumlah hasil selalu terlihat. */}
-            <p className="text-base" aria-live="polite">
-                {hasil.length} dari {terlihat.length} balita
-            </p>
-
-            {hasil.length === 0 ? (
-                <div className="mt-4">
-                    <EmptyState
-                        sebab={
-                            cari.trim() === ''
-                                ? `Tidak ada balita yang cocok dengan filter di ${rtAktif === '' ? 'seluruh RT' : labelRt(rtAktif)}.`
-                                : `Tidak ada anak bernama "${cari.trim()}" di ${rtAktif === '' ? 'seluruh RT' : labelRt(rtAktif)}.`
-                        }
+                    {/* <button aria-pressed>: keadaan tertekannya sampai ke
+                        pembaca layar, bukan hanya ke mata. Dua saringan
+                        terpisah: "perlu perhatian" membaca status gizi bulan
+                        ini, yang kedua riwayat sejak lahir. */}
+                    <div
+                        role="group"
+                        aria-label="Tampilkan hanya"
+                        className="flex flex-wrap gap-3.5"
                     >
                         <button
                             type="button"
-                            onClick={() => {
-                                setCari('');
-                                setRt(rtTerkunci ?? '');
-                                setHanyaPerhatian(false);
-                            }}
-                            className="tombol-kedua"
+                            aria-pressed={hanyaPerhatian}
+                            onClick={() => setHanyaPerhatian((b) => !b)}
+                            className={
+                                hanyaPerhatian
+                                    ? 'tombol-utama min-h-14'
+                                    : 'tombol-kedua min-h-14 bg-surface'
+                            }
                         >
-                            Kosongkan filter
+                            <TriangleAlert
+                                className="size-5"
+                                strokeWidth={2.5}
+                                aria-hidden="true"
+                            />
+                            Hanya yang perlu perhatian
                         </button>
-                    </EmptyState>
+                        <button
+                            type="button"
+                            aria-pressed={hanyaRisiko}
+                            onClick={() => setHanyaRisiko((b) => !b)}
+                            className={
+                                hanyaRisiko
+                                    ? 'tombol-utama min-h-14'
+                                    : 'tombol-kedua min-h-14 bg-surface'
+                            }
+                        >
+                            <Baby
+                                className="size-5"
+                                strokeWidth={2.5}
+                                aria-hidden="true"
+                            />
+                            BBLR atau tanpa Buku KIA
+                        </button>
+                    </div>
                 </div>
-            ) : (
-                <>
-                    {/* Di bawah 768 px tabel tujuh kolom butuh geser samping
-                        2,3x dan kolom Aksi berada di luar layar. Daftar kartu
-                        menaruh tiap anak dalam satu blok yang bisa disentuh
-                        seluruhnya. */}
-                    <ul className="mt-4 flex flex-col gap-3 md:hidden">
-                        {hasil.map((baris) => (
-                            <li key={baris.anakId}>
-                                <Link
-                                    href={`/balita/${baris.anakId}`}
-                                    className="kartu flex min-h-16 items-center gap-3 px-4 py-3 hover:bg-surface-subtle"
-                                >
-                                    <span className="min-w-0 flex-1">
-                                        <span className="block text-base font-bold">
-                                            {namaTampil(baris.nama)}
-                                        </span>
-                                        <span className="mt-0.5 block text-sm text-muted-foreground">
-                                            {umurRingkas(baris.umurBulan)}
-                                            {baris.rt !== null &&
-                                                `, ${labelRt(baris.rt)}`}
-                                            {baris.namaOrtu !== null &&
-                                                `, ibu ${baris.namaOrtu}`}
-                                        </span>
-                                        <span className="mt-2 flex flex-wrap items-center gap-2">
-                                            <StatusGiziBadge
-                                                kategori={baris.kategoriGizi}
-                                            />
-                                            {!baris.nikLengkap && (
-                                                <span className="text-sm text-tone-amber">
-                                                    NIK belum lengkap
-                                                </span>
-                                            )}
-                                        </span>
-                                        <Pemicu baris={baris} />
-                                        <Risiko baris={baris} />
-                                    </span>
-                                    <ChevronRight
-                                        className="size-5 shrink-0 text-muted-foreground"
-                                        strokeWidth={2.5}
-                                        aria-hidden="true"
-                                    />
-                                </Link>
-                            </li>
-                        ))}
-                    </ul>
 
-                    {/* Tabelnya dibatasi tinggi jendela: kartunya menyerap
-                        sisa ruang dan badan tabel yang menggulir, bukan
-                        halamannya. Kepala kolom `sticky` berlabuh ke wadah
-                        gulir itu, jadi ia tetap terbaca sampai baris ke-101. */}
-                    <div className="kartu mt-4 hidden overflow-hidden md:block lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
-                        <Table containerClassName="lg:min-h-0 lg:flex-1">
-                            <TableHeader>
-                                {/* Menempel saat digulir: 101 baris tanpa ini
-                                    berarti tujuh kolom tanpa nama begitu baris
-                                    ketiga lewat. */}
-                                <TableRow className="sticky top-0 z-10">
-                                    <TableHead scope="col" className="w-[28%]">
-                                        Nama balita
-                                    </TableHead>
-                                    <TableHead scope="col">Umur</TableHead>
-                                    <TableHead scope="col">RT</TableHead>
+                {menambah && (
+                    <FormTambah
+                        wilayahRt={wilayahRt}
+                        rtAwal={rtTerkunci ?? ''}
+                        onBatal={() => setMenambah(false)}
+                        onSimpan={(baru) => {
+                            onTambahAnak?.(baru);
+                            setMenambah(false);
+                        }}
+                    />
+                )}
+
+                {hasil.length === 0 ? (
+                    <div className="px-6 py-10 text-center lg:flex-1">
+                        {cari.trim() !== '' ? (
+                            <>
+                                <p className="text-base">
+                                    Tidak ada balita bernama “{cari.trim()}” di{' '}
+                                    {lingkupRt}.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => setCari('')}
+                                    className="tombol-kedua mt-4"
+                                >
+                                    Hapus pencarian
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <p className="text-base">
+                                    Tidak ada balita yang cocok dengan saringan
+                                    di {lingkupRt}.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setRt(rtTerkunci ?? '');
+                                        setHanyaPerhatian(false);
+                                        setHanyaRisiko(false);
+                                    }}
+                                    className="tombol-kedua mt-4"
+                                >
+                                    Hapus saringan
+                                </button>
+                            </>
+                        )}
+                    </div>
+                ) : (
+                    <>
+                        {/* Di bawah 768 px tabel tujuh kolom butuh geser
+                            samping dan kolom Aksi berada di luar layar. Daftar
+                            ini menaruh tiap balita dalam satu baris yang bisa
+                            disentuh seluruhnya. */}
+                        <ul className="md:hidden">
+                            {hasil.map((baris) => (
+                                <li
+                                    key={baris.anakId}
+                                    className="border-b border-rule last:border-b-0"
+                                >
+                                    <Link
+                                        href={`/balita/${baris.anakId}`}
+                                        className="flex min-h-16 items-center gap-3 px-4.5 py-3 hover:bg-surface-subtle"
+                                    >
+                                        <span className="min-w-0 flex-1">
+                                            <span className="block text-base font-bold text-primary">
+                                                {namaTampil(baris.nama)}
+                                            </span>
+                                            <span className="mt-0.5 block text-sm text-muted-foreground">
+                                                {umurRingkas(baris.umurBulan)}
+                                                {baris.rt !== null &&
+                                                    `, ${labelRt(baris.rt)}`}
+                                                {baris.namaOrtu !== null &&
+                                                    `, ibu ${baris.namaOrtu}`}
+                                            </span>
+                                            <span className="mt-2 flex flex-wrap items-center gap-2">
+                                                <StatusGiziBadge
+                                                    kategori={
+                                                        baris.kategoriGizi
+                                                    }
+                                                    tenang
+                                                />
+                                                {!baris.nikLengkap && (
+                                                    <span className="text-sm text-tone-amber">
+                                                        NIK belum lengkap
+                                                    </span>
+                                                )}
+                                            </span>
+                                            <Pemicu baris={baris} />
+                                            <Risiko baris={baris} />
+                                        </span>
+                                        <ChevronRight
+                                            className="size-5 shrink-0 text-muted-foreground"
+                                            strokeWidth={2.5}
+                                            aria-hidden="true"
+                                        />
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+
+                        {/* Kepala kolom `sticky` berlabuh ke wadah gulir ini,
+                            jadi ia tetap terbaca sampai baris ke-101. */}
+                        <Table
+                            aria-label="Daftar balita"
+                            containerClassName="hidden md:block lg:min-h-0 lg:flex-1"
+                        >
+                            <TableHeader className="sticky top-0 z-10">
+                                <TableRow>
+                                    {kepalaUrut('nama')}
+                                    {kepalaUrut('umur')}
+                                    {kepalaUrut('rt')}
                                     {/* Nama ibu tetap dapat dicari, tapi ia
-                                        bantuan ingatan - bukan kolom yang
-                                        dipindai. Di tablet ia mengalah supaya
-                                        tabelnya tidak perlu digeser. */}
+                                        bantuan ingatan, bukan kolom yang
+                                        dipindai. Di tablet tegak ia mengalah
+                                        supaya tabelnya tidak perlu digeser. */}
                                     <TableHead
                                         scope="col"
                                         className="hidden lg:table-cell"
                                     >
-                                        Ibu
+                                        Nama ibu
                                     </TableHead>
-                                    {/* Sama seperti kolom Ibu: di bawah 1024 px
-                                        tabel ini hanya menyisakan nama, umur,
-                                        RT, status, dan aksi. Kolom rinci kembali
-                                        di layar lebar - keduanya juga ada di
-                                        halaman anaknya sendiri. */}
-                                    <TableHead
-                                        scope="col"
-                                        className="hidden lg:table-cell"
-                                    >
-                                        Ditimbang terakhir
-                                    </TableHead>
-                                    {/* Menyebut indeksnya sekarang: kolom ini
-                                        hanya membaca BB/TB, sementara penanda
-                                        perhatian membaca ketiganya. Tanpa nama
-                                        indeks di kepala kolom, `Gizi baik` pada
-                                        baris bertanda terbaca sebagai bantahan,
-                                        bukan sebagai jawaban atas indeks lain. */}
-                                    <TableHead scope="col">
-                                        Status gizi (BB/TB)
-                                    </TableHead>
-                                    <TableHead
-                                        scope="col"
-                                        className="text-right"
-                                    >
-                                        Aksi
-                                    </TableHead>
+                                    {kepalaUrut('tanggal')}
+                                    {kepalaUrut('status')}
+                                    {bolehUbah && (
+                                        <TableHead
+                                            scope="col"
+                                            className="text-right"
+                                        >
+                                            Aksi
+                                        </TableHead>
+                                    )}
                                 </TableRow>
                             </TableHeader>
-                            {/* Di-key menurut filter supaya barisnya benar-benar
-                                dipasang ulang, dan jeda bertahapnya terlihat
-                                setiap kali hasil pencarian berganti (bagian 8.4). */}
+                            {/* Di-key menurut saringan supaya barisnya dipasang
+                                ulang, dan jeda bertahapnya terlihat setiap kali
+                                hasil berganti (bagian 8.4). */}
                             <TableBody
-                                key={`${cari}|${rtAktif}|${hanyaPerhatian}`}
+                                key={`${cari}|${rtAktif}|${hanyaPerhatian}|${hanyaRisiko}`}
                             >
                                 {hasil.map((baris, urutan) => {
                                     const terbuka = dibuka === baris.anakId;
@@ -499,18 +600,28 @@ export default function DaftarAnak({
                                             key={baris.anakId}
                                             className={`baris-masuk ${terbuka ? 'bg-accent' : ''}`}
                                             style={{
-                                                // Dibatasi delapan baris pertama: lebih
-                                                // dari itu jedanya terasa seperti lambat,
-                                                // bukan seperti berganti isi.
+                                                // Dibatasi delapan baris pertama:
+                                                // lebih dari itu jedanya terasa
+                                                // lambat.
                                                 animationDelay: `${Math.min(urutan, 8) * 20}ms`,
                                             }}
                                         >
-                                            {/* Nama panjang membungkus ke baris kedua,
-                                                tidak dipotong elipsis. */}
-                                            <TableCell className="font-semibold">
-                                                {namaTampil(baris.nama)}
+                                            {/* Nama adalah jalan ke Detail. Nama
+                                                panjang membungkus, tidak dipotong. */}
+                                            <TableCell className="py-1">
+                                                <Link
+                                                    href={`/balita/${baris.anakId}`}
+                                                    className="inline-flex min-h-13 items-center gap-1 font-bold text-primary"
+                                                >
+                                                    {namaTampil(baris.nama)}
+                                                    <ChevronRight
+                                                        className="size-4.5 shrink-0"
+                                                        strokeWidth={2.5}
+                                                        aria-hidden="true"
+                                                    />
+                                                </Link>
                                                 {!baris.nikLengkap && (
-                                                    <span className="block text-sm font-normal text-tone-amber">
+                                                    <span className="-mt-2 block pb-1 text-sm text-tone-amber">
                                                         NIK belum lengkap
                                                     </span>
                                                 )}
@@ -523,10 +634,10 @@ export default function DaftarAnak({
                                                     ? KOSONG
                                                     : labelRt(baris.rt)}
                                             </TableCell>
-                                            <TableCell className="hidden max-w-56 lg:table-cell">
+                                            <TableCell className="hidden lg:table-cell">
                                                 {baris.namaOrtu ?? KOSONG}
                                             </TableCell>
-                                            <TableCell className="hidden lg:table-cell">
+                                            <TableCell className="hidden whitespace-nowrap lg:table-cell">
                                                 {tanggalRingkas(
                                                     baris.tanggalUkurTerakhir,
                                                 )}
@@ -536,49 +647,50 @@ export default function DaftarAnak({
                                                     kategori={
                                                         baris.kategoriGizi
                                                     }
+                                                    tenang
                                                 />
                                                 <Pemicu baris={baris} />
                                                 <Risiko baris={baris} />
                                             </TableCell>
-                                            {/* Dulu dua tautan teks setinggi 26 px.
-                                                Sekarang keduanya kotak sentuh penuh. */}
-                                            <TableCell className="py-1">
-                                                <span className="flex items-center justify-end gap-1">
-                                                    <Link
-                                                        href={`/balita/${baris.anakId}`}
-                                                        className="inline-flex min-h-13 items-center rounded-lg px-3 font-semibold text-primary underline"
+                                            {bolehUbah && (
+                                                <TableCell className="py-1 text-right">
+                                                    <button
+                                                        type="button"
+                                                        aria-expanded={terbuka}
+                                                        aria-label={
+                                                            terbuka
+                                                                ? `Tutup ubah data ${namaTampil(baris.nama)}`
+                                                                : `Ubah data ${namaTampil(baris.nama)}`
+                                                        }
+                                                        onClick={() => {
+                                                            setDibuka(
+                                                                terbuka
+                                                                    ? null
+                                                                    : baris.anakId,
+                                                            );
+                                                            setMenambah(false);
+                                                        }}
+                                                        className={`tombol-ubah ${
+                                                            terbuka
+                                                                ? 'bg-primary text-primary-foreground hover:bg-primary'
+                                                                : ''
+                                                        }`}
                                                     >
-                                                        Detail
-                                                    </Link>
-                                                    {bolehUbah && (
-                                                        <button
-                                                            type="button"
-                                                            aria-expanded={
-                                                                terbuka
-                                                            }
-                                                            onClick={() => {
-                                                                setDibuka(
-                                                                    terbuka
-                                                                        ? null
-                                                                        : baris.anakId,
-                                                                );
-                                                                setMenambah(
-                                                                    false,
-                                                                );
-                                                            }}
-                                                            className={`inline-flex min-h-13 items-center rounded-lg px-3.5 font-bold ${
-                                                                terbuka
-                                                                    ? 'bg-primary text-primary-foreground'
-                                                                    : 'text-primary underline'
-                                                            }`}
-                                                        >
-                                                            {terbuka
-                                                                ? 'Tutup'
-                                                                : 'Ubah'}
-                                                        </button>
-                                                    )}
-                                                </span>
-                                            </TableCell>
+                                                        {!terbuka && (
+                                                            <Pencil
+                                                                className="size-4.5"
+                                                                strokeWidth={
+                                                                    2.5
+                                                                }
+                                                                aria-hidden="true"
+                                                            />
+                                                        )}
+                                                        {terbuka
+                                                            ? 'Tutup'
+                                                            : 'Ubah'}
+                                                    </button>
+                                                </TableCell>
+                                            )}
                                         </TableRow>,
 
                                         terbuka && (
@@ -588,7 +700,7 @@ export default function DaftarAnak({
                                             >
                                                 <TableCell
                                                     colSpan={7}
-                                                    className="p-0"
+                                                    className="p-0 first:pl-0 last:pr-0"
                                                 >
                                                     <EditorBaris
                                                         baris={baris}
@@ -613,9 +725,20 @@ export default function DaftarAnak({
                                 })}
                             </TableBody>
                         </Table>
-                    </div>
-                </>
-            )}
+                    </>
+                )}
+
+                <p
+                    aria-live="polite"
+                    className="shrink-0 border-t border-border px-5.5 py-3 text-sm text-muted-foreground"
+                >
+                    Menampilkan{' '}
+                    <span className="font-bold text-foreground">
+                        {hasil.length}
+                    </span>{' '}
+                    dari {terlihat.length} balita · {keteranganUrut}
+                </p>
+            </section>
         </Halaman>
     );
 }
@@ -940,7 +1063,7 @@ function FormTambah({
     const lengkap = nama.trim() !== '' && tglLahir !== '';
 
     return (
-        <section className="-mx-4 mb-6 bg-accent px-4 py-6 sm:-mx-7 sm:px-7">
+        <section className="shrink-0 border-b border-border bg-accent px-4.5 py-5">
             <div className="kartu p-5 sm:p-6">
                 <h2 className="text-xl font-extrabold">Tambah balita baru</h2>
 

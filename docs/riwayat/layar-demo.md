@@ -2,13 +2,13 @@
 
 | | |
 |---|---|
-| **Jenis** | Kontrak — tingkat 2 (layar) |
-| **Status** | beku sebagian — rancangan layar masih mengikat, pemetaan ke backend tidak |
-| **Perubahan berarti terakhir** | 21 September 2026 |
+| **Jenis** | Sejarah — rancangan layar tahap demo |
+| **Status** | beku |
+| **Perubahan berarti terakhir** | 29 September 2026 — dipindah dari `rujukan/` ke `riwayat/` |
 
 | | |
 |---|---|
-| **Produk** | Portal Posyandu Tulip — demo frontend untuk ditunjukkan ke client |
+| **Produk** | Portal Posyandu Tulip (kini SIMPATIK Posyandu) — demo frontend untuk ditunjukkan ke client |
 | **Versi dokumen** | 1.0 |
 | **Status** | **Selesai.** Fase demo rampung; dokumen ini catatan sejarahnya |
 | **Berlaku untuk** | Fase demo saja, bukan produk akhir |
@@ -16,9 +16,19 @@
 
 ---
 
-> **Dibaca sebagai catatan, bukan sebagai rencana.** Dokumen ini ditulis saat repo masih Laravel + Inertia, dan seluruh rujukan `resources/js/`, `php artisan`, serta `composer` di dalamnya menggambarkan keadaan waktu itu — bukan keadaan sekarang. Sejak [ADR-0006](../adr/0006-pindah-ke-express-react-postgres.md), kode frontend tinggal di `client/` dan backend di `server/`.
+> **Dibaca sebagai catatan, bukan acuan.** Dokumen ini ditulis saat repo masih Laravel + Inertia, sehingga rujukan `resources/js/`, `php artisan`, dan `composer` di dalamnya menggambarkan keadaan waktu itu. Rancangan layarnya (bagian 6) sudah digantikan mockup yang disetujui 26 September 2026 dan kode di `client/src/pages/`. Peta layar yang berlaku ada di [Mulai di sini](../mulai-di-sini.md).
 >
-> Yang **masih berlaku** dan tetap mengikat: rancangan keenam layar (bagian 6), token desain (bagian 8), aturan angka (bagian 8.2), dan gerbang mutu (bagian 14.9). Yang **tidak lagi berlaku**: bagian 10 dan 14, yang memetakan jalur ke backend Laravel.
+> Bagian yang masih mengikat sudah dipindah ke dokumen aktif:
+>
+> | Bagian di sini | Sekarang di |
+> |---|---|
+> | 4.1 Hash routing, tanpa pustaka router | [Arsitektur — Konvensi](../arsitektur.md#konvensi) |
+> | 5 Data demo | [Data contoh](../rujukan/data-contoh.md) |
+> | 8.2 Aturan angka | [UI/UX bagian 9](../rujukan/ui-ux.md#9-aturan-penulisan-antarmuka) |
+> | 8.3 Komponen | [UI/UX bagian 4](../rujukan/ui-ux.md#4-inventory-komponen) |
+> | 10 Kontrak props · 14.4 TypeScript · 14.9 Selesai berarti | [Arsitektur — Konvensi](../arsitektur.md#konvensi) |
+>
+> Nomor bagian tidak diubah, supaya rujukan lama di riwayat git tetap mendarat.
 
 ---
 
@@ -194,13 +204,13 @@ Isu ini terdaftar sebagai OI-12 di [`pertanyaan-terbuka.md`](../pertanyaan-terbu
 
 ### 5.3 Perhitungan z-score
 
-Dilakukan di **skrip ekstraksi**, bukan di browser, memakai `database/data/who-lms.json` dan rumus pada [`rujukan/antropometri.md`](antropometri.md).
+Dilakukan di **skrip ekstraksi**, bukan di browser, memakai `database/data/who-lms.json` dan rumus pada [`rujukan/antropometri.md`](../rujukan/antropometri.md).
 
 Alasannya: mesin antropometri versi JavaScript akan menjadi implementasi kedua dari rumus yang sama, dan dua implementasi berarti dua peluang berbeda hasilnya. Kode Python-nya sudah diverifikasi cocok dengan master Juni 2026 — 0 selisih pada BB/U, TB/U, dan LIKA/U.
 
 ### 5.4 Normalisasi
 
-Mengikuti [`rujukan/migrasi-data.md`](migrasi-data.md) bagian 5, seluruhnya:
+Mengikuti [`rujukan/migrasi-data.md`](../rujukan/migrasi-data.md) bagian 5, seluruhnya:
 
 - NIK dibaca sebagai teks
 - Seluruh nilai teks di-*trim* (kolom `NTOB` berisi `" N"` dengan spasi)
@@ -236,9 +246,9 @@ Tujuh layar. Lima diambil dari artboard `Portal Posyandu - Layar Desktop v2` dan
 
 Setiap layar memakai kerangka yang sama: **tujuan · isi · data · interaksi · state kosong dan loading · aturan tampilan · yang belum nyata**.
 
-> **Bagian ini dan [`rujukan/ui-ux.md`](ui-ux.md) bagian 5 bukan salinan satu sama lain.** Keduanya menjelaskan layar yang sama dari dua sudut, dan pembagiannya: **`05` bagian 5 menetapkan Portal yang dituju** — termasuk hal yang belum dibangun, seperti tren stunting per RT di Beranda. **Bagian ini menetapkan yang benar-benar dibangun untuk demo**, sampai ke bunyi kalimat di layar. Bila keduanya berbeda, itu bukan salah ketik melainkan jarak antara rencana dan keadaan. Token dan komponennya sendiri hanya ada di `05` (bagian 2, 3, dan 4); bagian 8 di sini menunjuk ke sana.
+> **Bagian ini dan [`rujukan/ui-ux.md`](../rujukan/ui-ux.md) bagian 5 bukan salinan satu sama lain.** Keduanya menjelaskan layar yang sama dari dua sudut, dan pembagiannya: **`05` bagian 5 menetapkan Portal yang dituju** — termasuk hal yang belum dibangun, seperti tren stunting per RT di Beranda. **Bagian ini menetapkan yang benar-benar dibangun untuk demo**, sampai ke bunyi kalimat di layar. Bila keduanya berbeda, itu bukan salah ketik melainkan jarak antara rencana dan keadaan. Token dan komponennya sendiri hanya ada di `05` (bagian 2, 3, dan 4); bagian 8 di sini menunjuk ke sana.
 
-> ⚠️ **Angka piksel di bawah memakai skala sebelum 11 September 2026** — paling padat di 6.1, sedikit di 6.5 dan 6.8: teks `17/15 px`, radius `10 px`, tinggi kotak `44`, border `#A8B0A9`. Skala itu **sudah direvisi** menjadi 18/16 px, radius 20/14/10, target 52 px ([`05`](ui-ux.md) bagian 2.4 dan 2.5), dan `05` yang berlaku. Angkanya sengaja **tidak** ditulis ulang di sini pada 22 September 2026: menaikkannya satu per satu berarti mereka-reka ulang keputusan desain per elemen, dan itu pekerjaan desainer, bukan perapihan dokumen. Baca tata letak dan susunannya dari sini; baca ukurannya dari `05`.
+> ⚠️ **Angka piksel di bawah memakai skala sebelum 11 September 2026** — paling padat di 6.1, sedikit di 6.5 dan 6.8: teks `17/15 px`, radius `10 px`, tinggi kotak `44`, border `#A8B0A9`. Skala itu **sudah direvisi** menjadi 18/16 px, radius 20/14/10, target 52 px ([`05`](../rujukan/ui-ux.md) bagian 2.4 dan 2.5), dan `05` yang berlaku. Angkanya sengaja **tidak** ditulis ulang di sini pada 22 September 2026: menaikkannya satu per satu berarti mereka-reka ulang keputusan desain per elemen, dan itu pekerjaan desainer, bukan perapihan dokumen. Baca tata letak dan susunannya dari sini; baca ukurannya dari `05`.
 
 > **Sumber angka.** Contoh pada desain memakai Posyandu Melati 2, RW 04, 42 balita, Agustus 2026. Demo memakai data Posyandu Tulip yang sebenarnya: RW 18, 101 balita, 7 RT, Januari–Juni 2026. Tata letaknya tetap, angkanya diganti.
 
@@ -285,7 +295,7 @@ Padding panel kiri 64 px pada ≥ 1280 px, 40 px di bawahnya. Jarak antar blok m
 | 2 | Lokasi | `RW 18 Kelurahan Citeureup` — 15/500 `#4A5750`. Jarak 32 px ke bawah |
 | 3 | Judul | `Masuk` — 32/800, `letter-spacing: -0.02em` |
 | 4 | Subjudul | `Catatan pertumbuhan balita Posyandu Tulip.` — 17/400 `#4A5750`, maks 44ch. Jarak 32 px ke bawah |
-| 5 | Field Email | Label `Email` 15/600 `#4A5750` di atas kotak. Kotak tinggi 44, border `#A8B0A9`, radius 10, padding samping 14, teks 17. Terisi `bidan@posyandutulip.id` |
+| 5 | Field Nama pengguna | Label `Nama pengguna` 15/600 `#4A5750` di atas kotak. Kotak tinggi 44, border `#A8B0A9`, radius 10, padding samping 14, teks 17. Terisi `bidan` |
 | 6 | Field Kata sandi | Label `Kata sandi`. Kotak sama. Terisi enam titik. Ikon mata `ph-bold ph-eye` 20 px `#4A5750` di kanan dalam kotak, target sentuh 44 × 44 |
 | 7 | Pemilih peran | Lihat di bawah. Jarak 24 px dari field terakhir |
 | 8 | Tombol | `Masuk` — lebar penuh, tinggi 48, radius 10, `#0F6E44`, teks putih 17/700. Jarak 24 px |
@@ -316,7 +326,7 @@ Bentuknya tiga kartu bertumpuk vertikal, bukan segmented control seperti di side
 
 | Bagian | Spesifikasi |
 |---|---|
-| Wadah | Border `border-strong`, radius kartu, pemisah antar kartu `border` 1 px — nilainya di [`05`](ui-ux.md) bagian 2.2 dan 2.5 |
+| Wadah | Border `border-strong`, radius kartu, pemisah antar kartu `border` 1 px — nilainya di [`05`](../rujukan/ui-ux.md) bagian 2.2 dan 2.5 |
 | Kartu | Tinggi minimal 64, padding 12 / 16, dapat diklik seluruhnya |
 | Radio | 20 × 20, border 2 px `border-strong`; saat terpilih border dan titik warna merek |
 | Nama peran | 17/700 |
@@ -332,9 +342,9 @@ Bawaan: **Bidan** — peran yang paling banyak kemampuannya, jadi demo dimulai d
 | State | Tampilan |
 |---|---|
 | Normal | Seperti di atas |
-| Fokus keyboard | `outline: 2px solid #0F6E44; outline-offset: 1px` pada elemen yang difokus. Urutan: Email → Kata sandi → tombol mata → tiga kartu peran → `Masuk` |
+| Fokus keyboard | `outline: 2px solid #0F6E44; outline-offset: 1px` pada elemen yang difokus. Urutan: Nama pengguna → Kata sandi → tombol mata → tiga kartu peran → `Masuk` |
 | Sedang memuat | Tombol `Masuk` menampilkan spinner 20 px dan teks `Masuk…`, seluruh field dinonaktifkan. Berlangsung sekitar 400 ms |
-| Kredensial salah | Blok di atas field: latar `#FCEDEC`, teks `#A3170F` 15/600, ikon `ph-bold ph-warning` 16 px, isi `Email atau kata sandi salah.` Kedua field berborder `#A3170F`. **Dirancang meski demo tidak memvalidasi** — supaya tidak perlu dirancang ulang saat backend masuk |
+| Kredensial salah | Blok di atas field: latar `#FCEDEC`, teks `#A3170F` 15/600, ikon `ph-bold ph-warning` 16 px, isi `Nama pengguna atau kata sandi tidak cocok. Periksa kembali, lalu ulangi.` Kedua field berborder `#A3170F`. **Dirancang meski demo tidak memvalidasi** — supaya tidak perlu dirancang ulang saat backend masuk |
 | Nonaktif | Tombol `Masuk` memakai `border` sebagai latar dengan teks `muted-foreground`, bila salah satu field kosong |
 | Berhasil | Langsung berpindah ke Beranda, tanpa layar antara |
 
@@ -378,7 +388,7 @@ Tidak ada state kosong — layar ini selalu terisi. State memuat ada di tabel di
 |---|---|
 | Nama peran | Istilah lapangan: `Kader`, `Bidan`, `Admin` — bukan `user`, `role`, atau `level 1` |
 | Tombol | `Masuk`, bukan `Login` atau `Sign in` |
-| Pesan kesalahan | Menyebut apa yang salah: `Email atau kata sandi salah.` Bukan `Terjadi kesalahan` |
+| Pesan kesalahan | Menyebut apa yang salah: `Nama pengguna atau kata sandi tidak cocok. Periksa kembali, lalu ulangi.` Bukan `Terjadi kesalahan` |
 | Label mode demo | Selalu terlihat, tidak pernah disembunyikan. Client harus tahu sejak layar pertama bahwa ini data contoh |
 
 #### Aksesibilitas
@@ -387,7 +397,7 @@ Tidak ada state kosong — layar ini selalu terisi. State memuat ada di tabel di
 - Setiap kartu `<input type="radio">` dengan `<label>` yang membungkusnya, sehingga seluruh kartu jadi target klik
 - Tombol mata `<button type="button">` dengan `aria-label="Tampilkan kata sandi"` yang berubah menjadi `Sembunyikan kata sandi`
 - Blok kesalahan `role="alert"` agar dibacakan saat muncul
-- Seluruh target interaktif memenuhi target sentuh minimum [`05`](ui-ux.md) bagian 2.5
+- Seluruh target interaktif memenuhi target sentuh minimum [`05`](../rujukan/ui-ux.md) bagian 2.5
 - Panel kanan `aria-hidden="true"` — isinya hiasan bermakna, bukan informasi yang hilang bila tidak terbaca
 
 #### Yang belum nyata
@@ -691,7 +701,7 @@ Mengikuti [Otorisasi](../arsitektur.md). Di demo pembatasannya hanya di tampilan
 
 ## 8. Spesifikasi visual dan komponen
 
-**Token dan inventaris komponen tidak ditulis di sini.** Keduanya hidup di [`rujukan/ui-ux.md`](ui-ux.md) — token warna, garis, tipografi, dan bentuk di bagian 2 dan 3; daftar komponen di bagian 4.
+**Token dan inventaris komponen tidak ditulis di sini.** Keduanya hidup di [`rujukan/ui-ux.md`](../rujukan/ui-ux.md) — token warna, garis, tipografi, dan bentuk di bagian 2 dan 3; daftar komponen di bagian 4.
 
 > **Tabel ringkas token dihapus 22 September 2026.** Ia menyalin tiga belas nilai dari `05` dan sudah melenceng di **empat** tempat sekaligus — seluruhnya akibat revisi 11 September 2026 yang tidak ikut tersalin ke sini:
 >
@@ -728,7 +738,7 @@ Produk ini pada dasarnya adalah tabel angka, jadi aturan penyajian angka berlaku
 
 ### 8.3 Komponen
 
-Daftar lengkapnya di [`rujukan/ui-ux.md`](ui-ux.md) bagian 4 — termasuk `status-gizi-badge`, `z-score-cell`, `kms-chart`, dan `filter-periode` yang dirujuk beberapa komentar di kode sebagai "bagian 8.3". Nomor ini dipertahankan supaya rujukan itu tetap mendarat.
+Daftar lengkapnya di [`rujukan/ui-ux.md`](../rujukan/ui-ux.md) bagian 4 — termasuk `status-gizi-badge`, `z-score-cell`, `kms-chart`, dan `filter-periode` yang dirujuk beberapa komentar di kode sebagai "bagian 8.3". Nomor ini dipertahankan supaya rujukan itu tetap mendarat.
 
 Satu blok yang tidak berdiri sebagai berkas komponen tersendiri dan karena itu tidak masuk daftar `05`:
 
@@ -859,7 +869,7 @@ Sembilan dari dua belas butir sudah selaras atau sudah diputuskan.
 | K4 | Kolom LIKA dihapus | **Ditolak.** Premisnya *"tidak dipakai di mana pun"* tidak berlaku di Posyandu Tulip — arsip pemilik program memuat `0_REKAP JAN-DES 2026_LIKA_U.xlsx`, jadi memang ada pembacanya. LIKA tetap tampil |
 | K5 | Halaman masuk tanpa ilustrasi setengah layar | **Sebagian diambil.** Alasannya khusus tablet; Portal tetap dua panel, tetapi panel kanan diisi kalimat berguna, bukan gambar. Lihat 6.1 |
 | K6 | Ambang z-score sebagai keterangan, bukan kolom | ✅ sudah begitu sejak awal di 6.7 |
-| P1 | Nama produk | **Portal Posyandu Tulip.** Nama `Catatan Posyandu` dan `SIMPATIK Posyandu` pada artboard tidak dipakai |
+| P1 | Nama produk | **SIMPATIK Posyandu** di layar — Masuk, sidebar, judul tab, dan kartu sasaran (diputuskan 24 September 2026, menggantikan `Portal Posyandu Tulip`). Nama `Catatan Posyandu` pada artboard tidak dipakai |
 | P2 | Cakupan sasaran | Sudah diputuskan sejak awal: balita saja. Lihat [PRD utama](../prd/prd-utama.md) |
 | P3 | Imunisasi dapat dicatat dari aplikasi? | Terbuka — [OI-15](../pertanyaan-terbuka.md) |
 

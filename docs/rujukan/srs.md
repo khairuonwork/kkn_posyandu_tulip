@@ -1,10 +1,10 @@
-# Software Requirements Specification — Portal Posyandu Tulip
+# Software Requirements Specification — SIMPATIK Posyandu
 
 | | |
 |---|---|
 | **Jenis** | Rujukan |
 | **Status** | hidup |
-| **Perubahan berarti terakhir** | 22 September 2026 |
+| **Perubahan berarti terakhir** | 29 September 2026 |
 
 Dokumen ini menerjemahkan [PRD utama](../prd/prd-utama.md) menjadi kebutuhan yang dapat diuji. Setiap kebutuhan punya ID tetap, kriteria penerimaan yang dapat diverifikasi, dan jejak ke *test*.
 

@@ -6,7 +6,7 @@
 | **Status** | beku |
 | **Perubahan berarti terakhir** | 22 September 2026 |
 
-Catatan pengerjaan demo frontend, satu entri per tahap [`rujukan/layar-demo.md`](../rujukan/layar-demo.md) bagian 12.
+Catatan pengerjaan demo frontend, satu entri per tahap [`riwayat/layar-demo.md`](layar-demo.md) bagian 12.
 
 Berkas ini mencatat tiga hal: apa yang dibuat, apa yang **dibuktikan berjalan**,
 dan keputusan yang **ditahan** karena bukan wewenang pengerjaan. Isu produk yang
@@ -28,7 +28,7 @@ Belum dikerjakan, menunggu jawaban. Tidak ada satu pun yang ditebak di dalam kod
 | **Pemilik** | Bidan / pemilik program |
 | **Menghambat** | tidak menghambat T2; menghambat klaim angka saat presentasi |
 
-[`rujukan/layar-demo.md`](../rujukan/layar-demo.md) bagian 5.5 menyebut sebaran
+[`riwayat/layar-demo.md`](layar-demo.md) bagian 5.5 menyebut sebaran
 Juni 2026 sebagai sesuatu yang "sudah diperiksa langsung dari arsip". Empat dari
 enam angkanya cocok; jumlah per kategori status gizi tidak, dan tidak cocok pula
 dengan master milik pemilik program.
@@ -91,7 +91,7 @@ dan 4 tidak cocok dengan keduanya. Selisihnya kecil — sekitar 0,02 sampai 0,10
 — tetapi cukup untuk memindahkan anak yang berada tepat di ambang +1 SD antara
 `Gizi baik` dan `Berisiko gizi lebih`. Itulah sebab utama selisih pada D-01.
 
-Perlu dicatat, [`rujukan/layar-demo.md`](../rujukan/layar-demo.md) bagian 5.3
+Perlu dicatat, [`riwayat/layar-demo.md`](layar-demo.md) bagian 5.3
 memang hanya menjanjikan nol selisih pada **BB/U, TB/U, dan LIKA/U** — BB/TB
 sengaja tidak disebut. [OI-05](../pertanyaan-terbuka.md) juga sudah menandai kolom `L`
 yang konstan pada tabel BB/TB.
@@ -163,7 +163,7 @@ Saat T1, `lint:check` memberi 25 error dan `types:check` 50 error, seluruhnya `C
 |---|---|
 | **Status** | **selesai 21 September 2026** |
 
-Pertanyaannya dulu: rancangan Masuk dua panel ([`rujukan/layar-demo.md`](../rujukan/layar-demo.md) bagian 6.1) dipindahkan ke halaman Fortify, atau halaman Fortify bawaan yang dipakai?
+Pertanyaannya dulu: rancangan Masuk dua panel ([`riwayat/layar-demo.md`](layar-demo.md) bagian 6.1) dipindahkan ke halaman Fortify, atau halaman Fortify bawaan yang dipakai?
 
 **Pertanyaannya gugur bersama Fortify.** Sejak [ADR-0006](../adr/0006-pindah-ke-express-react-postgres.md), autentikasi dibangun sendiri dan tidak ada halaman bawaan yang perlu dihormati. Rancangan 6.1 menjadi satu-satunya, dan layarnya kini tinggal di `client/src/pages/auth/login.tsx` — dipakai bersama oleh aplikasi sungguhan dan demo, yang hanya berbeda pada pemilih peran.
 
@@ -200,7 +200,7 @@ python demo/data/extract-demo-data.py "E:/TUGAS KULIAH/KKN/REKAP TAHUN 2026" \
 
 Perbandingan per anak terhadap master adalah pemeriksaan terkuat yang tersedia,
 dan hasilnya persis seperti yang dijanjikan
-[`rujukan/layar-demo.md`](../rujukan/layar-demo.md) bagian 5.3: nol selisih pada
+[`riwayat/layar-demo.md`](layar-demo.md) bagian 5.3: nol selisih pada
 ketiga indeks berkunci umur. Argumen kedua bersifat opsional karena berkas master
 berada di luar repo.
 
@@ -235,7 +235,7 @@ bagian 5.4. Kolom numerik selalu kosong, tidak pernah `0`.
 ### Catatan tambahan
 
 **"Dua anak tanpa nama" ada di master, bukan di arsip.**
-[`rujukan/layar-demo.md`](../rujukan/layar-demo.md) bagian 5.5 dan 6.4 menyebut
+[`riwayat/layar-demo.md`](layar-demo.md) bagian 5.5 dan 6.4 menyebut
 dua anak tanpa nama yang harus tampil sebagai `(nama belum tercatat)`. Di keenam
 berkas `REKAP TAHUN 2026/` kolom `NAMA ANAK` **selalu terisi**; yang kosong
 adalah kolom `NAMA LENGKAP` pada master z-score, dan master itu bukan sumber
@@ -543,7 +543,7 @@ bedanya cuma tanggal.
 | **Pemilik** | tim pengembang / desainer |
 | **Menghambat** | tidak menghambat; menyangkut kesetiaan pada kontrak artboard |
 
-[`rujukan/layar-demo.md`](../rujukan/layar-demo.md) bagian 6.5 menetapkan kontrak
+[`riwayat/layar-demo.md`](layar-demo.md) bagian 6.5 menetapkan kontrak
 komponen kurva dan menyebutnya "dipakai apa adanya":
 
 ```ts

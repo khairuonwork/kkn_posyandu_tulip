@@ -1,15 +1,17 @@
-# PRD Utama — Portal Posyandu Tulip
+# PRD Utama — SIMPATIK Posyandu
 
 | | |
 |---|---|
 | **Jenis** | Kontrak — tingkat produk |
-| **Status** | hidup — disetujui untuk MVP, lingkup diperluas feedback lapangan September 2026 |
-| **Perubahan berarti terakhir** | 22 September 2026 |
+| **Status** | hidup |
+| **Perubahan berarti terakhir** | 29 September 2026 |
 | **Versi dokumen** | 2.1 |
 | **Basis** | Revisi dari `PRD_DIGITALISASI_POSYANDU_TULIP.md` v1.0 |
 | **Lokasi** | Posyandu Tulip, RW 18, Kelurahan Citeureup |
 
 Kontrak produk: apa yang dijanjikan, kepada siapa, dan kapan dianggap berhasil.
+
+Persetujuan lingkup dicatat di [bagian 13](#13-status-lingkup). Prioritas pada user story tidak menetapkan persetujuan fitur atau target rilis.
 
 > **Nomor bagian di bawah sengaja berlubang.** Dokumen ini dulu `prd/prd-utama.md` dengan dua belas bagian; pada 22 September 2026 bagian naratifnya dipindahkan ke dokumen orientasi supaya pembaca baru tidak perlu membuka kontrak untuk memahami produknya. Nomor yang tersisa **tidak digeser**, karena rujukan dari dokumen lain menyebutnya menurut nomor.
 >
@@ -18,7 +20,7 @@ Kontrak produk: apa yang dijanjikan, kepada siapa, dan kapan dianggap berhasil.
 > | 1. Ringkasan · 2. Masalah · 4. Pengguna · 5. Batas sistem | [Ringkasan](../ringkasan.md) |
 > | 6. Lingkup | [Fitur](../fitur.md) |
 
-> **Perubahan utama dari v2.0.** Pihak Posyandu memberi feedback lapangan setelah mencoba Portal. Lingkupnya bertambah pada tiga arah yang belum tersentuh MVP: komunikasi ke orang tua, pencegahan salah input di meja, dan bukti fisik cetak. Tiap fiturnya punya PRD sendiri di [`feedback/`](feedback/README.md).
+> **Perubahan utama dari v2.0.** Feedback lapangan menambahkan usulan komunikasi ke orang tua, pencegahan salah input di meja, dan bukti fisik cetak. Tiap fiturnya punya PRD di [`feedback/`](feedback/README.md). Catatan lama berbeda mengenai persetujuan perluasan ini; status yang dapat dipakai untuk perencanaan ada di [bagian 13](#13-status-lingkup).
 
 > **Perubahan utama dari v1.0.** v1.0 mengasumsikan produk ini sekaligus menjadi aplikasi pencatatan lapangan. Asumsi itu **salah**: pencatatan di hari-H ditangani Aplikasi Tablet yang terpisah. Lihat [ADR-0003](../adr/0003-batas-portal-vs-aplikasi-tablet.md).
 
@@ -47,6 +49,8 @@ Hal berikut secara sadar **tidak** dikerjakan produk ini:
 ## 7. User stories
 
 Setiap *story* punya ID yang direferensikan di [SRS](../rujukan/srs.md) dan Test Plan (Fase 5).
+
+US-15 sampai US-22 berasal dari feedback. Nilai Must/Should pada baris tersebut adalah **prioritas usulan**, bukan bukti persetujuan masuk MVP. Khusus US-16 dan US-17, persona serta konteks input menunggu [OI-20](../pertanyaan-terbuka.md#oi-20--input-lapangan-dan-hak-kader-di-portal). Kalimatnya dipertahankan agar maksud feedback tidak berubah sebelum diputuskan.
 
 ### Kader
 
@@ -132,7 +136,7 @@ Rincian dan kriteria terukurnya ada di [SRS bagian 4](../rujukan/srs.md).
 - **Bahasa antarmuka:** Indonesia sepenuhnya, termasuk pesan kesalahan validasi.
 - **Perangkat:** responsif untuk laptop dan tablet. Kader tidak selalu memakai layar besar.
 - **Kinerja:** pencarian anak terasa seketika pada skala ratusan anak dan ribuan pengukuran.
-- **Keamanan:** autentikasi wajib, otorisasi berbasis peran, dan jejak audit untuk akses data anak. NIK adalah data pribadi.
+- **Keamanan:** autentikasi wajib, otorisasi berbasis peran, dan jejak audit untuk perubahan data anak (DR-09). Akses baca tidak dicatat oleh audit B02. NIK adalah data pribadi.
 - **Ketertelusuran:** setiap angka pada laporan dapat dilacak ke pengukuran dan versi standar asalnya.
 - **Backup:** prosedur *backup* dan *restore* terdokumentasi dan pernah diuji.
 
@@ -160,3 +164,36 @@ MVP dinyatakan berhasil bila **seluruh** kriteria berikut terpenuhi:
 | Standar antropometri diperbarui pemerintah | Angka historis berubah | DR-06: setiap hasil menyimpan versi standarnya; versi baru ditambahkan, tidak menimpa. Bila yang berganti bukan sekadar versi tahun standar tapi metode hitungnya sendiri, lihat [ADR-0005](../adr/0005-migrasi-metode-zscore.md): riwayat lama disimpan dua hasil (metode lama diarsipkan, metode baru untuk tampilan). |
 | Nomor WhatsApp orang tua adalah data pribadi baru yang sebelumnya tidak disimpan sistem | Kebocoran kontak seluruh orang tua balita satu RW | Nomor **memang** berada di jalur URL `wa.me` dan hasil ukur anak di *query string*-nya — begitulah WhatsApp bekerja, dan mengirim lewat WhatsApp berarti WhatsApp membacanya. Yang dijaga: tautan hanya disusun dan dibuka di peramban kader, tidak pernah dikirim ke server mana pun termasuk server Portal sendiri, dan NIK tidak pernah ikut di dalam pesan. Rinciannya di [F03](feedback/F03-kirim-whatsapp.md) bagian 6. [OI-10](../pertanyaan-terbuka.md) harus selesai sebelum data sungguhan tersimpan di server yang terjangkau internet. |
 | Status desil dan kategori Gakin adalah data sosio-ekonomi keluarga, bukan data kesehatan anak | Salah pakai di luar pelaporan gizi | Dipakai hanya sebagai kolom breakdown pada rekap F1, tidak pernah menjadi dasar vonis apa pun terhadap anak. Aksesnya mengikuti peran, sama seperti NIK. |
+
+## 13. Status lingkup
+
+Bagian ini menjadi rujukan persetujuan dan target rilis. **Status dokumen** (`draf`, `hidup`, `selesai`, `beku`) mengikuti [panduan penulisan](../panduan-penulisan.md); status itu tidak menyatakan bahwa pemilik program sudah menyetujui sebuah fitur.
+
+| Penanda | Menjawab | Rujukan yang dipelihara |
+|---|---|---|
+| Persetujuan | Apakah fitur boleh masuk lingkup yang dijanjikan? | Tabel di bawah |
+| Target rilis | Fitur dijanjikan pada rilis mana? | Tabel di bawah |
+| Prioritas | Seberapa penting kebutuhan tersebut? | User stories bagian 7; prioritas feedback masih berupa usulan |
+| Pengerjaan | Apa yang sudah bisa digunakan? | [Fitur](../fitur.md#keadaan-hari-ini) dan [rencana kerja](../rencana-kerja.md#backlog) |
+
+Persetujuan memakai `disetujui`, `usulan`, atau `ditunda` bila keputusannya jelas. `Perlu konfirmasi` berarti catatan yang tersedia bertentangan atau belum cukup untuk menetapkan salah satu status tersebut. Penanda ini tidak membatalkan keputusan yang mungkin sudah dibuat di luar repo.
+
+| Lingkup | Persetujuan yang tercatat | Target rilis | Dasar keputusan / yang masih diperlukan |
+|---|---|---|---|
+| Kebutuhan inti M1–M8 | Disetujui sebagai dasar pada catatan PRD v2.1; nama penyetuju dan tanggal persetujuan belum tercatat | MVP; tanggal rilis belum ditetapkan | Tujuan bagian 3 dan US-01–US-14. Pengembalian tombol ekspor tetap menunggu keputusan pada rencana kerja butir 9 |
+| F01 — Kontak WhatsApp | Perlu konfirmasi | Belum ditetapkan | [OI-19](../pertanyaan-terbuka.md#oi-19--persetujuan-fitur-feedback-dan-target-rilis) |
+| F02 — Edukasi dan anjuran rujukan | Perlu konfirmasi | Belum ditetapkan | OI-19; jawaban aturan rinci OI-16 tidak otomatis menyetujui rilis fitur |
+| F03 — Kirim hasil ke WhatsApp | Perlu konfirmasi | Belum ditetapkan | OI-19 |
+| F04 — Validasi kewajaran ukur | Perlu konfirmasi | Belum ditetapkan | OI-19 dan [OI-20](../pertanyaan-terbuka.md#oi-20--input-lapangan-dan-hak-kader-di-portal) |
+| F05 — Grafik enam indeks | Perlu konfirmasi untuk perluasannya | Belum ditetapkan | OI-19; mesin hitung inti yang sudah ada tetap termasuk M3 |
+| F06 — Status N/T/O/B | Perlu konfirmasi untuk rilis fiturnya | Belum ditetapkan | OI-19; keputusan aturan data DR-11 tetap berlaku |
+| F07 — Skrining pendaftaran | Perlu konfirmasi | Belum ditetapkan | OI-19 dan OI-20 |
+| F08 — Desil dan Gakin | Perlu konfirmasi | Belum ditetapkan | OI-19 |
+| F09 — Laporan F1 | Perlu konfirmasi | Belum ditetapkan | OI-19 |
+| F10 — Lembar cetak | Perlu konfirmasi | Belum ditetapkan | OI-19 |
+| F11 — Aksesibilitas tampilan | Perlu konfirmasi | Belum ditetapkan | OI-19 |
+| F12 — Manajemen sasaran | Perlu konfirmasi untuk perluasannya | Belum ditetapkan | OI-19; status anak dan penyimpanan riwayat yang sudah ada tetap berlaku |
+| F13 — Checklist stimulasi | Perlu konfirmasi untuk lingkupnya; pengerjaan tertahan OI-18 | Belum ditetapkan | OI-19 dan [OI-18](../pertanyaan-terbuka.md#oi-18--naskah-pertanyaan-checklist-stimulasi) |
+| Scan ID Card / QR | Ditunda pada catatan feedback | Belum ditetapkan; milik Tablet | [TASK-5.3](../riwayat/backlog-feedback.md#task-53-integrasi-scan-id-card-sasaran-status-pending), pemilik program; tanggal keputusan belum tercatat |
+
+Sesudah pemilik program menjawab OI-19/OI-20, perbarui baris yang terdampak dengan nama/peran penyetuju, tanggal absolut, dan rujukan keputusan. Indeks PRD dan dokumen orientasi cukup menautkan bagian ini. Tidak ada perubahan hak akses atau perluasan produk yang ditetapkan oleh penataan dokumentasi 23 September 2026 ini.

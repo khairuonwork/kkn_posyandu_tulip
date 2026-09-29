@@ -23,8 +23,10 @@ import { buatApp } from '../src/http/server.ts';
 const adaDb = process.env.DATABASE_URL !== undefined && process.env.DATABASE_URL !== '';
 
 const SANDI = 'rahasia-uji-2026';
-const EMAIL_BIDAN = 'bidan@uji-http.invalid';
-const EMAIL_KADER = 'kader@uji-http.invalid';
+// Awalan `uji-http.` menandai akun uji di basis data pengembangan, supaya
+// pembersihan tidak pernah menyentuh akun sungguhan.
+const USERNAME_BIDAN = 'uji-http.bidan';
+const USERNAME_KADER = 'uji-http.kader';
 
 describe(
     'autentikasi HTTP',
@@ -39,10 +41,10 @@ describe(
             const pool = dapatkanPool();
 
             const { rows: pengguna } = await pool.query<{ id: number }>(
-                "SELECT id FROM pengguna WHERE lower(email) LIKE '%@uji-http.invalid'",
+                "SELECT id FROM pengguna WHERE username LIKE 'uji-http.%'",
             );
 
-            await pool.query("DELETE FROM pengguna WHERE lower(email) LIKE '%@uji-http.invalid'");
+            await pool.query("DELETE FROM pengguna WHERE username LIKE 'uji-http.%'");
             await pool.query('DELETE FROM wilayah_rt WHERE id = $1', [idRt]);
             await pool.query('DELETE FROM posyandu WHERE id = $1', [idPosyandu]);
 
@@ -80,14 +82,14 @@ describe(
             const hash = await hashKataSandi(SANDI);
 
             await pool.query(
-                `INSERT INTO pengguna (nama, email, kata_sandi_hash, peran)
+                `INSERT INTO pengguna (nama, username, kata_sandi_hash, peran)
                  VALUES ('Bidan Uji', $1, $2, 'bidan')`,
-                [EMAIL_BIDAN, hash],
+                [USERNAME_BIDAN, hash],
             );
             await pool.query(
-                `INSERT INTO pengguna (nama, email, kata_sandi_hash, peran, wilayah_rt_id)
+                `INSERT INTO pengguna (nama, username, kata_sandi_hash, peran, wilayah_rt_id)
                  VALUES ('Kader Uji', $1, $2, 'kader', $3)`,
-                [EMAIL_KADER, hash, idRt],
+                [USERNAME_KADER, hash, idRt],
             );
 
             server = buatApp(pool).listen(0);
@@ -110,11 +112,11 @@ describe(
             kosongkanBatas();
         });
 
-        const kirimMasuk = (email: string, kataSandi: string) =>
+        const kirimMasuk = (username: string, kataSandi: string) =>
             fetch(`${akar}/api/masuk`, {
                 method: 'POST',
                 headers: { 'content-type': 'application/json' },
-                body: JSON.stringify({ email, kataSandi }),
+                body: JSON.stringify({ username, kataSandi }),
             });
 
         /** Nilai cookie sesi dari header `set-cookie`, siap dikirim balik. */
@@ -126,12 +128,12 @@ describe(
         };
 
         test('masuk dengan kredensial benar memasang cookie httpOnly', async () => {
-            const res = await kirimMasuk(EMAIL_BIDAN, SANDI);
+            const res = await kirimMasuk(USERNAME_BIDAN, SANDI);
 
             assert.equal(res.status, 200);
 
-            const isi = (await res.json()) as { pengguna: { email: string; peran: string } };
-            assert.equal(isi.pengguna.email, EMAIL_BIDAN);
+            const isi = (await res.json()) as { pengguna: { username: string; peran: string } };
+            assert.equal(isi.pengguna.username, USERNAME_BIDAN);
             assert.equal(isi.pengguna.peran, 'bidan');
 
             const set = res.headers.get('set-cookie') ?? '';
@@ -141,7 +143,7 @@ describe(
         });
 
         test('token tidak pernah muncul di badan jawaban', async () => {
-            const res = await kirimMasuk(EMAIL_BIDAN, SANDI);
+            const res = await kirimMasuk(USERNAME_BIDAN, SANDI);
             const teks = await res.text();
             const token = ambilCookie(res).slice('sesi='.length);
 
@@ -150,27 +152,32 @@ describe(
         });
 
         test('sesi dikenali permintaan berikutnya', async () => {
-            const cookie = ambilCookie(await kirimMasuk(EMAIL_KADER, SANDI));
+            const cookie = ambilCookie(await kirimMasuk(USERNAME_KADER, SANDI));
             const res = await fetch(`${akar}/api/saya`, { headers: { cookie } });
 
             assert.equal(res.status, 200);
 
-            const isi = (await res.json()) as { pengguna: { peran: string; rt: string } };
+            const isi = (await res.json()) as {
+                pengguna: { peran: string; rt: string; nama: string; username: string };
+            };
             // RT binaan ikut terbawa dari wilayah_rt, bukan dari tabel pengguna.
             assert.equal(isi.pengguna.peran, 'kader');
+            // Nama untuk kartu akun di sidebar.
+            assert.equal(isi.pengguna.nama, 'Kader Uji');
+            assert.equal(isi.pengguna.username, USERNAME_KADER);
             assert.equal(isi.pengguna.rt, '07');
         });
 
         test('kata sandi salah ditolak', async () => {
-            const res = await kirimMasuk(EMAIL_BIDAN, 'sandi-yang-salah');
+            const res = await kirimMasuk(USERNAME_BIDAN, 'sandi-yang-salah');
 
             assert.equal(res.status, 401);
             assert.equal(res.headers.get('set-cookie'), null);
         });
 
-        test('email yang tidak ada ditolak dengan pesan yang sama', async () => {
-            const tidakAda = await kirimMasuk('entah@uji-http.invalid', SANDI);
-            const sandiSalah = await kirimMasuk(EMAIL_BIDAN, 'sandi-yang-salah');
+        test('nama pengguna yang tidak ada ditolak dengan pesan yang sama', async () => {
+            const tidakAda = await kirimMasuk('uji-http.entah', SANDI);
+            const sandiSalah = await kirimMasuk(USERNAME_BIDAN, 'sandi-yang-salah');
 
             assert.equal(tidakAda.status, 401);
 
@@ -199,40 +206,40 @@ describe(
             // token. Bila uji ini gagal, keputusan itu kehilangan seluruh
             // manfaatnya.
             const pool = dapatkanPool();
-            const cookie = ambilCookie(await kirimMasuk(EMAIL_KADER, SANDI));
+            const cookie = ambilCookie(await kirimMasuk(USERNAME_KADER, SANDI));
 
             assert.equal((await fetch(`${akar}/api/saya`, { headers: { cookie } })).status, 200);
 
-            await pool.query('UPDATE pengguna SET aktif = false WHERE lower(email) = $1', [
-                EMAIL_KADER,
+            await pool.query('UPDATE pengguna SET aktif = false WHERE username = $1', [
+                USERNAME_KADER,
             ]);
 
             assert.equal((await fetch(`${akar}/api/saya`, { headers: { cookie } })).status, 401);
 
-            await pool.query('UPDATE pengguna SET aktif = true WHERE lower(email) = $1', [
-                EMAIL_KADER,
+            await pool.query('UPDATE pengguna SET aktif = true WHERE username = $1', [
+                USERNAME_KADER,
             ]);
         });
 
         test('akun nonaktif tidak dapat masuk', async () => {
             const pool = dapatkanPool();
 
-            await pool.query('UPDATE pengguna SET aktif = false WHERE lower(email) = $1', [
-                EMAIL_BIDAN,
+            await pool.query('UPDATE pengguna SET aktif = false WHERE username = $1', [
+                USERNAME_BIDAN,
             ]);
 
-            const res = await kirimMasuk(EMAIL_BIDAN, SANDI);
+            const res = await kirimMasuk(USERNAME_BIDAN, SANDI);
 
             assert.equal(res.status, 401);
             assert.equal(res.headers.get('set-cookie'), null);
 
-            await pool.query('UPDATE pengguna SET aktif = true WHERE lower(email) = $1', [
-                EMAIL_BIDAN,
+            await pool.query('UPDATE pengguna SET aktif = true WHERE username = $1', [
+                USERNAME_BIDAN,
             ]);
         });
 
         test('keluar mencabut sesi dan mengosongkan cookie', async () => {
-            const cookie = ambilCookie(await kirimMasuk(EMAIL_BIDAN, SANDI));
+            const cookie = ambilCookie(await kirimMasuk(USERNAME_BIDAN, SANDI));
 
             const keluar = await fetch(`${akar}/api/keluar`, {
                 method: 'POST',
@@ -248,26 +255,26 @@ describe(
 
         test('percobaan berulang ditahan dengan 429 dan Retry-After', async () => {
             for (let ke = 0; ke < MAKS_GAGAL; ke++) {
-                const res = await kirimMasuk(EMAIL_BIDAN, 'salah-terus');
+                const res = await kirimMasuk(USERNAME_BIDAN, 'salah-terus');
 
                 assert.equal(res.status, 401, `percobaan ke-${ke + 1} seharusnya 401`);
             }
 
-            const ditahan = await kirimMasuk(EMAIL_BIDAN, 'salah-terus');
+            const ditahan = await kirimMasuk(USERNAME_BIDAN, 'salah-terus');
 
             assert.equal(ditahan.status, 429);
             assert.ok(Number(ditahan.headers.get('retry-after')) > 0);
 
             // Kredensial yang benar pun ikut ditahan — kalau tidak, penahanan
             // hanya menunda penebak, bukan menghentikannya.
-            assert.equal((await kirimMasuk(EMAIL_BIDAN, SANDI)).status, 429);
+            assert.equal((await kirimMasuk(USERNAME_BIDAN, SANDI)).status, 429);
         });
 
         test('permintaan mutasi non-JSON ditolak 415', async () => {
             const res = await fetch(`${akar}/api/masuk`, {
                 method: 'POST',
                 headers: { 'content-type': 'application/x-www-form-urlencoded' },
-                body: `email=${EMAIL_BIDAN}&kataSandi=${SANDI}`,
+                body: `username=${USERNAME_BIDAN}&kataSandi=${SANDI}`,
             });
 
             assert.equal(res.status, 415);

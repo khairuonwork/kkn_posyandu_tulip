@@ -46,33 +46,19 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Token diambil dari docs/rujukan/ui-ux.md bagian 2 dan docs/rujukan/layar-demo.md
-   bagian 8, yang keduanya bersumber langsung dari prototipe desain di docs/design/.
+/* Jendela pendek, mis. laptop FHD berpenskalaan 150% pada zoom 100% (sekitar
+   1230 × 570 px). Sidebar dirapatkan di sini, tetapi hanya bila juga
+   `pointer-fine`: di layar sentuh butir menu tetap 45,5 px, di atas ambang
+   sasaran sentuh 44 px. */
+@custom-variant pendek (@media (max-height: 680px));
+
+/* Token diambil dari docs/rujukan/ui-ux.md bagian 2, yang bersumber langsung
+   dari prototipe desain di docs/design/.
 
    Nama variabel bawaan shadcn tidak diubah, sehingga seluruh komponen di
-   components/ui/** ikut berganti warna tanpa disentuh satu baris pun.
-
-   Berkas huruf tidak dimuat di sini. app.css milik produk, sedangkan huruf demo
-   berada di demo/assets/fonts/ — @font-face-nya ada di demo/index.css supaya
-   ketergantungan tetap satu arah. */
+   components/ui/** ikut berganti warna tanpa disentuh satu baris pun. */
 
 @theme {
-    /* Ambang tata letak satu layar Detail anak. Dihitung, bukan dikira-kira:
-       kolom kurva = 0,615 x (lebar jendela - 328), dan supaya teks di dalam
-       kurva bertahan di 15 px kolomnya harus >= 560 px — terpenuhi mulai
-       1238 px pada ukuran teks kurva 40 satuan; dengan 46 satuan syaratnya
-       turun ke 1088 px, dan itulah nilai yang dipakai (68rem).
-       Ditulis sebagai breakpoint bernama supaya ikut diurutkan
-       bersama sm/md/lg/xl; varian arbitrer `min-[...]:` tidak, dan kalah
-       cascade melawan `sm:`.
-
-       Ditulis dalam rem, bukan px, dan itu wajib: Tailwind mengurutkan blok
-       media menurut nilai numeriknya tanpa menyamakan satuan lebih dulu.
-       Breakpoint bawaan semuanya rem (40/48/64/80), jadi `1240px` tidak bisa
-       dibandingkan dan terlempar ke urutan paling depan — tepat di tempat ia
-       kalah melawan `sm:`. 68rem = 1088px pada akar 16px. */
-    --breakpoint-lebar: 68rem;
-
     --font-sans:
         'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif,
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
@@ -103,6 +89,16 @@
        ukurannya ke lima puluh kader. Kalau kerapatan lama tetap dibutuhkan,
        tempatnya preferensi per pengguna, bukan token bersama. */
     --spacing: 3.5px;
+
+    /* xl diturunkan dari 80rem (1280 px) ke 75rem (1200 px).
+
+       Laptop FHD pemilik produk pada zoom 100% hanya memberi sekitar 1230 px
+       lebar halaman (diukur dari tangkapan layarnya, 28 September 2026), bukan
+       1280 px seperti hitungan penskalaan Windows 150%. Dengan batas 1280 px,
+       tata letak satu layar Detail Balita dan panel Pengaturan jatuh ke satu
+       kolom dan baru kembali pada zoom 90%. Tablet 1280 × 800 tidak
+       terpengaruh. */
+    --breakpoint-xl: 75rem;
 
     /* Skala tipografi bagian 2.4.
 
@@ -193,6 +189,7 @@
     --color-surface-subtle: var(--surface-subtle);
     --color-surface-alt: var(--surface-alt);
     --color-border-strong: var(--border-strong);
+    --color-rule: var(--rule);
 
     --color-tone-green: var(--tone-green);
     --color-tone-green-bg: var(--tone-green-bg);
@@ -239,6 +236,10 @@
     --surface-subtle: #f1f3ef;
     --surface-alt: #edefea;
     --border-strong: #8b948c;
+    /* Garis antarbaris tabel dan daftar. Lebih gelap dari --border supaya
+       baris tetap bisa diikuti mata di layar tablet yang redup; garis bawah
+       kepala kolom memakai --border-strong setebal 2 px. */
+    --rule: #a3aca1;
 
     /* Empat nada keparahan bagian 2.3. Rasio kontrasnya sudah dihitung di
        bagian 8; latar oranye tidak boleh digelapkan, marginnya tipis. */
@@ -248,6 +249,13 @@
     --tone-red-bg: #fcedec;
     --tone-amber: #9a5b00;
     --tone-amber-bg: #fbf1e3;
+
+    /* Tombol Ubah di baris tabel: kuning solid, sama dengan pita KMS
+       (#F2C300). Teksnya cokelat gelap, bukan putih seperti tombol hijau:
+       putih di atas kuning ini hanya 1,7 : 1, sedangkan cokelat ini 7,9 : 1. */
+    --kuning-tombol: #f2c300;
+    --kuning-tombol-hover: #e0b400;
+    --kuning-tombol-tinta: #3d2e00;
     --tone-blue: #1148a8;
     --tone-blue-bg: #eaf0fb;
 
@@ -326,6 +334,18 @@
         @apply inline-flex min-h-13 items-center justify-center gap-2 rounded-lg bg-primary px-4.5 text-base font-bold text-primary-foreground shadow-[0_8px_18px_rgba(15,110,68,0.18)];
     }
 
+    /* Tombol Ubah di dalam baris tabel: kuning solid, dengan huruf setebal
+       tombol utama hijau. */
+    .tombol-ubah {
+        @apply inline-flex min-h-13 items-center gap-1.5 rounded-lg px-3.5 text-base font-bold;
+        background-color: var(--kuning-tombol);
+        color: var(--kuning-tombol-tinta);
+    }
+
+    .tombol-ubah:hover {
+        background-color: var(--kuning-tombol-hover);
+    }
+
     .tombol-kedua {
         @apply inline-flex min-h-13 items-center justify-center gap-2 rounded-lg border border-border-strong bg-card px-4.5 text-base font-semibold;
     }
@@ -335,6 +355,15 @@
        bawah ambang sasaran sentuh. 49 px menyisakan 45 px. */
     .isian {
         @apply h-14 rounded-lg border-2 border-border bg-surface px-3.5 text-base text-foreground;
+    }
+
+    /* Kotak bersegmen — ikon cari, satuan kg/cm/SD — membungkus <input> yang
+       outline-nya dimatikan supaya cincinnya tidak terpotong segmen. Tanpa
+       aturan ini fokus di kotak-kotak itu sama sekali tidak terlihat; cincinnya
+       pindah ke kotak pembungkus. */
+    .isian:has(:focus-visible) {
+        outline: 2px solid var(--ring);
+        outline-offset: 1px;
     }
 
     /* Wadah yang menggulir di dalam kartu.
@@ -405,14 +434,6 @@
         opacity: 0.85;
     }
 
-    /* Selang-seling baris, mengikuti artboard v2: baris genap satu tingkat
-       di atas putih. Ditulis di @layer base supaya kelas utilitas pada baris
-       tertentu — mis. `bg-accent` pada baris yang sedang dibuka — tetap
-       menang tanpa perlu `!important`. */
-    tbody tr:nth-child(even) {
-        background-color: var(--surface);
-    }
-
     /* Pita baris tabel. Data Anak adalah 101 baris x 7 kolom selebar 1105 px;
        tanpa pita ini mata tidak punya apa pun untuk menjaga baris saat
        menyeberang dari nama anak ke tombol Detail. Ini perbaikan keterbacaan
@@ -425,6 +446,43 @@
        dalam baris — jadi Tab menelusuri tabel sejelas tetikus. */
     tbody tr:has(:focus-visible) {
         background-color: var(--accent);
+    }
+}
+
+/* Lembar cetak kartu balita (components/kartu-balita.tsx). Di layar tidak
+   tampil; saat mencetak, hanya lembar ini yang tampil — aplikasinya sendiri,
+   termasuk dialog yang sedang terbuka, disembunyikan. */
+.lembar-cetak {
+    display: none;
+}
+
+@media print {
+    @page {
+        size: A4;
+        margin: 12mm;
+    }
+
+    body > :not(.lembar-cetak) {
+        display: none !important;
+    }
+
+    .lembar-cetak {
+        display: block;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .halaman-a4 {
+        display: grid;
+        grid-template-columns: repeat(2, 85.6mm);
+        grid-auto-rows: 54mm;
+        gap: 6mm;
+        justify-content: center;
+        break-after: page;
+    }
+
+    .halaman-a4:last-child {
+        break-after: auto;
     }
 }
 

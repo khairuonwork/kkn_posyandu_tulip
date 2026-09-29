@@ -1,10 +1,10 @@
-# Ringkasan Portal Posyandu Tulip
+# Ringkasan SIMPATIK Posyandu
 
 | | |
 |---|---|
 | **Jenis** | Orientasi |
 | **Status** | hidup |
-| **Perubahan berarti terakhir** | 22 September 2026 |
+| **Perubahan berarti terakhir** | 29 September 2026 |
 
 Berkas pertama yang sebaiknya dibaca. Isinya: aplikasi ini apa, masalah apa yang dipecahkannya, siapa yang memakainya, dan di mana batasnya.
 
@@ -14,9 +14,9 @@ Apa saja yang bisa dilakukannya ada di [Fitur](fitur.md). Bagaimana ia disusun a
 
 ## Apa ini
 
-Portal Posyandu Tulip adalah aplikasi web internal untuk kader, Bidan, dan admin Posyandu Tulip. Portal menyimpan satu profil tetap per balita, satu riwayat pertumbuhan lintas bulan dan tahun, menghitung status gizi secara otomatis dari standar WHO, dan menghasilkan rekap yang selama ini disusun manual dari puluhan file Excel.
+SIMPATIK Posyandu — di dokumen disebut juga Portal Posyandu Tulip, atau cukup Portal — adalah aplikasi web internal untuk kader, Bidan, dan admin Posyandu Tulip. Portal menyimpan satu profil tetap per balita, satu riwayat pertumbuhan lintas bulan dan tahun, menghitung status gizi secara otomatis dari standar WHO, dan menghasilkan rekap yang selama ini disusun manual dari puluhan file Excel.
 
-Portal adalah *system of record* dan pusat analitik. Portal **bukan** aplikasi input lapangan.
+Portal adalah *system of record* dan pusat analitik. Pencatatan di meja penimbangan diserahkan ke Aplikasi Tablet yang terpisah ([ADR-0003](adr/0003-batas-portal-vs-aplikasi-tablet.md)). Sejak 26 September 2026 Portal juga punya layar Penimbangan, tetapi layar itu belum menyimpan apa pun; siapa yang berhak mencatat lewat Portal masih dibahas di [OI-20](pertanyaan-terbuka.md#oi-20--input-lapangan-dan-hak-kader-di-portal).
 
 ## Masalah yang dipecahkan
 
@@ -52,7 +52,7 @@ flowchart LR
     Excel["Arsip Excel 2025-2026"]
     Tablet["Aplikasi Tablet<br/>terpisah, belum dibangun"]
 
-    subgraph Portal["Portal Posyandu Tulip - produk ini"]
+    subgraph Portal["SIMPATIK Posyandu - produk ini"]
         Master["Master data<br/>anak, orang tua, RT"]
         Ukur["Riwayat pengukuran<br/>dan koreksi"]
         Gizi["Mesin z-score<br/>WHO LMS"]

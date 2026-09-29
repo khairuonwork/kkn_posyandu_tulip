@@ -1,7 +1,7 @@
 /**
  * Mengganti kata sandi akun yang sudah ada, dari baris perintah.
  *
- *     SANDI=rahasia-baru npm run pengguna:sandi -- bidan@posyandu.id
+ *     SANDI=rahasia-baru npm run pengguna:sandi -- bidan
  *
  * Kenapa ini perlu ada: tidak ada layar "lupa kata sandi", dan tidak akan ada
  * — Portal tidak mengirim surel. Tanpa perintah ini, akun yang kata sandinya
@@ -26,12 +26,12 @@ function keluarDenganPesan(pesan: string): never {
 }
 
 async function jalankan(): Promise<void> {
-    const [email] = process.argv.slice(2);
+    const [username] = process.argv.slice(2);
     const sandi = process.env.SANDI;
 
-    if (email === undefined) {
+    if (username === undefined) {
         keluarDenganPesan(
-            'Pakai: SANDI=<kata sandi baru> node --env-file=.env db/ganti-sandi.ts <email>',
+            'Pakai: SANDI=<kata sandi baru> node --env-file=.env db/ganti-sandi.ts <nama-pengguna>',
         );
     }
 
@@ -50,9 +50,9 @@ async function jalankan(): Promise<void> {
         const { rows } = await klien.query<{ id: number; nama: string }>(
             `UPDATE pengguna
                 SET kata_sandi_hash = $1
-              WHERE lower(email) = lower($2)
+              WHERE lower(username) = lower($2)
               RETURNING id, nama`,
-            [hash, email],
+            [hash, username.trim()],
         );
 
         if (rows.length === 0) {
@@ -68,8 +68,8 @@ async function jalankan(): Promise<void> {
 
     if (hasil === null) {
         keluarDenganPesan(
-            `Tidak ada pengguna dengan email ${email}.\n` +
-                `Daftar akun: SELECT email, peran FROM pengguna;`,
+            `Tidak ada pengguna dengan nama pengguna ${username}.\n` +
+                `Daftar akun: SELECT username, peran FROM pengguna;`,
         );
     }
 

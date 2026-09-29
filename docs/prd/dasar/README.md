@@ -4,7 +4,7 @@
 |---|---|
 | **Jenis** | Kontrak — indeks |
 | **Status** | hidup — dua dari sembilan PRD sudah ditulis |
-| **Perubahan berarti terakhir** | 22 September 2026 |
+| **Perubahan berarti terakhir** | 29 September 2026 |
 
 Tempat PRD untuk **kebutuhan inti** — kemampuan yang membuat Portal berfungsi sebagai sistem pencatatan Posyandu. Berbeda dari [`../feedback/`](../feedback/README.md), yang berisi usulan lapangan dan belum tentu dikerjakan.
 
@@ -27,7 +27,7 @@ Kesembilan fiturnya, alasan urutannya, dan pertanyaan yang menahannya ada di **[
 | 1 | Menyimpan hasil perhitungan gizi | [B01](B01-simpan-hasil-gizi.md) — **selesai** |
 | 2 | Pencatatan riwayat perubahan | [B02](B02-jejak-audit.md) — **selesai** |
 | 3 | Memasukkan data arsip Excel | belum ditulis |
-| 4 | Menyambungkan kelima layar ke basis data | belum ditulis |
+| 4 | Menyambungkan layar ke basis data | belum ditulis |
 | 5 | Menyimpan perubahan dari layar | belum ditulis |
 | 6 | Menangani profil ganda | belum ditulis |
 | 7 | Mengelola wilayah RT dan periode | belum ditulis |

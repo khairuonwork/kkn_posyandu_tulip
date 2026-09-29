@@ -12,6 +12,8 @@ import type { Peran } from '@/types/posyandu';
 
 export type PenggunaSesi = {
     id: number;
+    nama: string;
+    username: string;
     peran: Peran;
     rt: string | null;
     aktif: boolean;
@@ -75,12 +77,12 @@ export function useSesi() {
     }, []);
 
     const masuk = useCallback(
-        async (email: string, kataSandi: string): Promise<string | null> => {
+        async (username: string, kataSandi: string): Promise<string | null> => {
             const res = await fetch('/api/masuk', {
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: { 'content-type': 'application/json' },
-                body: JSON.stringify({ email, kataSandi }),
+                body: JSON.stringify({ username, kataSandi }),
             });
 
             if (!res.ok) {

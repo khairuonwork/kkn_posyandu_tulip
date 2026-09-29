@@ -3,19 +3,19 @@
 
 Nama dan NIK diganti; tanggal lahir, RT, jenis kelamin, dan seluruh nilai ukur
 dipertahankan apa adanya supaya z-score-nya tetap cocok dengan arsip Excel yang
-berjalan. Lihat docs/rujukan/layar-demo.md bagian 5.
+berjalan. Lihat docs/rujukan/data-contoh.md.
 
 Berkas Excel sumber berada di luar repo. Skrip ini hanya dijalankan ulang bila
 arsipnya bertambah, dan hasilnya deterministik: dua kali jalan menghasilkan
 berkas yang identik.
 
 Pakai:
-    python demo/data/extract-demo-data.py <folder arsip> [master z-score.xlsx]
+    python client/src/data/contoh/extract-demo-data.py <folder arsip> [master z-score.xlsx]
 
 Argumen kedua opsional. Bila diberikan, z-score tiap anak dibandingkan dengan
 master milik pemilik program:
 
-    python demo/data/extract-demo-data.py "E:/TUGAS KULIAH/KKN/REKAP TAHUN 2026" \
+    python client/src/data/contoh/extract-demo-data.py "E:/TUGAS KULIAH/KKN/REKAP TAHUN 2026" \
         "E:/TUGAS KULIAH/KKN/Excel ibu Sri/6_JUNI 2026_MASTER Z SCORE.xlsx"
 
 Hanya memakai pustaka standar Python — tidak perlu openpyxl/pandas.
@@ -448,7 +448,7 @@ def penilaian_gizi(tabel, jk: str, umur: int, ukur: dict) -> dict[str, dict]:
 
 
 # --------------------------------------------------------------------------
-# Anonimisasi — docs/rujukan/layar-demo.md bagian 5.2
+# Anonimisasi — docs/rujukan/data-contoh.md bagian 2
 # --------------------------------------------------------------------------
 
 DEPAN_ANAK = [
@@ -758,7 +758,7 @@ def garis_sd_bbu(tabel) -> list[dict]:
 
 
 # --------------------------------------------------------------------------
-# Pemeriksaan mandiri — docs/rujukan/layar-demo.md bagian 5.5 dan 14.8
+# Pemeriksaan mandiri — docs/rujukan/data-contoh.md bagian 5
 # --------------------------------------------------------------------------
 
 SEBARAN_JUNI = {
@@ -786,7 +786,7 @@ def periksa(anak: list[dict], pengukuran: list[dict]) -> None:
     """Sebaran Juni 2026 yang dapat diperiksa langsung dari sheet arsip.
 
     Hanya angka yang benar-benar terbaca dari arsip yang diperiksa di sini.
-    Jumlah per kategori status gizi pada docs/rujukan/layar-demo.md bagian 5.5
+    Jumlah per kategori status gizi pada docs/riwayat/layar-demo.md bagian 5.5
     sengaja tidak diperiksa: angkanya tidak dapat direproduksi dari sumber mana
     pun, dan tercatat sebagai pertanyaan terbuka di
     docs/riwayat/catatan-tahap-demo.md. Kebenaran perhitungan dibuktikan oleh
@@ -832,7 +832,7 @@ def verifikasi_master(master: Path, sumber: Path, tabel) -> None:
 
     Ini pemeriksaan terkuat yang tersedia: bukan jumlah per kategori, melainkan
     angka per anak. Hanya BB/U, TB/U, dan LIKA/U yang diperiksa — ketiganya
-    berkunci umur, dan docs/rujukan/layar-demo.md bagian 5.3 memang hanya
+    berkunci umur, dan docs/rujukan/data-contoh.md bagian 3 memang hanya
     menjanjikan nol selisih pada ketiganya.
 
     Berkas master berada di luar repo, jadi langkah ini opsional.
@@ -950,8 +950,8 @@ def main() -> int:
 
         return 1
 
-    akar = Path(__file__).resolve().parents[2]
-    tabel = muat_standar(akar / "database" / "data" / "who-lms.json")
+    akar = Path(__file__).resolve().parents[4]
+    tabel = muat_standar(akar / "server" / "db" / "data" / "who-lms.json")
 
     mentah, periode = baca_semua(sumber)
     anak, pengukuran = rakit(mentah, tabel)
@@ -973,7 +973,7 @@ def main() -> int:
                     "catatan": (
                         "Nama dan NIK diganti. Tanggal lahir, RT, jenis kelamin, dan "
                         "seluruh nilai ukur tidak diubah. Lihat "
-                        "docs/rujukan/layar-demo.md bagian 5.2."
+                        "docs/rujukan/data-contoh.md bagian 2."
                     ),
                 },
                 "periode": periode,

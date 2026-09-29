@@ -1,6 +1,5 @@
 /**
- * Aturan tampilan angka — docs/rujukan/layar-demo.md bagian 8.2 dan
- * docs/rujukan/ui-ux.md bagian 9.
+ * Aturan tampilan angka — docs/rujukan/ui-ux.md bagian 9.
  *
  * Produk ini pada dasarnya tabel angka, dan aturan di sinilah yang menentukan
  * apakah ia terlihat profesional atau amatir. Karena itu seluruhnya tinggal di
@@ -114,6 +113,14 @@ export function nik(nilai: string | null): string {
     }
 
     return nilai.replace(/(.{4})(?=.)/g, '$1 ');
+}
+
+/**
+ * Kode di kartu balita: `SPT-` dan delapan digit terakhir NIK. Balita tanpa
+ * NIK memakai id arsipnya, yang tidak berubah saat daftar diurutkan ulang.
+ */
+export function kodeKartu(nikAnak: string | null, id: number): string {
+    return `SPT-${(nikAnak ?? String(id)).slice(-8)}`;
 }
 
 /** `14 Agu 2026` — bentuk untuk tabel. */
@@ -249,7 +256,7 @@ function urai(iso: string | null): Bagian | null {
  *
  * Di bawah 24 bulan anak diukur telentang, jadi panjang badan; di atasnya
  * berdiri, jadi tinggi badan. Ini aturan Permenkes, bukan pilihan aplikasi
- * (docs/rujukan/layar-demo.md bagian 6.5 dan 9).
+ * (docs/rujukan/antropometri.md bagian 3.3).
  */
 export function labelIndeks(indeks: string, umurBulan: number | null): string {
     const berdiri = umurBulan !== null && umurBulan >= 24;

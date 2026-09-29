@@ -21,7 +21,7 @@ Dua kata yang menentukan bentuk fiturnya: **"saat itu juga"**. Bukan rekap yang 
 
 **Masuk:**
 
-- Satu tombol di Detail anak yang membuka WhatsApp dengan draf pesan sudah terisi.
+- Satu tombol di Detail Balita yang membuka WhatsApp dengan draf pesan sudah terisi.
 - Penyusun pesan: satu fungsi murni, dari `Pengukuran` menjadi teks.
 - Keadaan ketika nomor belum ada, dan ketika anak belum ditimbang.
 
@@ -34,7 +34,7 @@ Dua kata yang menentukan bentuk fiturnya: **"saat itu juga"**. Bukan rekap yang 
 
 ## 3. Perilaku yang diharapkan
 
-Tombol **Kirim hasil ke WhatsApp** berdiri di bilah aksi Detail anak, bersebelahan dengan Ubah data.
+Tombol **Kirim hasil ke WhatsApp** berdiri di bilah aksi Detail Balita, bersebelahan dengan Ubah data.
 
 | Keadaan | Yang terjadi |
 |---|---|

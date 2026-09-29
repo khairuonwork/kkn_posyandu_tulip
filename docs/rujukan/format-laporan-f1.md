@@ -4,7 +4,7 @@
 |---|---|
 | **Jenis** | Rujukan |
 | **Status** | hidup — format masih direvisi pemilik program |
-| **Perubahan berarti terakhir** | 21 September 2026 |
+| **Perubahan berarti terakhir** | 23 September 2026 |
 
 Struktur dua blangko laporan resmi yang dipakai Posyandu Tulip, dibedah langsung dari berkas milik pemilik program pada 21 September 2026.
 
@@ -52,12 +52,12 @@ Butir 1–12 tidak berupa satu angka. Tiap butir dipecah menjadi:
 | Dimensi | Nilai |
 |---|---|
 | Kelompok umur | `0–5 bln` · `6–11 bln` · `12–23 bln` · `24–35 bln` · `36–59 bln` · `JUMLAH` |
-| Status ekonomi | `G` · `NG` — pada tiap kelompok umur |
+| Kolom `G`/`NG` | `G` · `NG` — pada tiap kelompok umur; maknanya mengikuti OI-17 |
 | Jenis kelamin | `L` · `P` — satu baris masing-masing |
 
 Jadi satu butir menghasilkan 6 kelompok × 2 status × 2 jenis kelamin = 24 sel, ditambah kolom `TOTAL`.
 
-**`G` dan `NG` tidak diberi keterangan di berkas mana pun.** Pembacaan yang paling masuk akal adalah `Gakin` dan `Non-Gakin`, sejalan dengan permintaan pemilik program soal pemecahan Gakin di [F08](../prd/feedback/F08-desil-gakin.md). Pembacaan itu **belum dikonfirmasi**, dan datanya memang tidak ada di satu pun berkas sumber — lihat [OI-17](../pertanyaan-terbuka.md#oi-17--sumber-data-status-desil-dan-kategori-gakin).
+Blangko yang diperiksa memakai label `G` dan `NG` tanpa penjelasan kepanjangannya. **Status konfirmasi makna serta sumber data pengisinya hanya dipelihara di [OI-17](../pertanyaan-terbuka.md#oi-17--sumber-data-status-desil-dan-kategori-gakin).** Permintaan kategori Gakin/Non-Gakin dalam F08 tidak dengan sendirinya membuktikan pemetaan label pada blangko.
 
 ### 2.3 Butir 1–12: kegiatan penimbangan
 
@@ -141,7 +141,7 @@ Daftar ini sengaja tidak diubah menjadi rencana kerja; ia hanya mencatat jarak a
 |---|---|
 | `N` · `T` · `O` · `B` terhitung | belum — `ntob_raw` hanya menyimpan nilai mentah arsip. Aturannya kini diketahui, lihat [04 bagian 10](antropometri.md) |
 | `2T` | belum |
-| Pemecahan `G`/`NG` | belum — datanya tidak ada, [OI-17](../pertanyaan-terbuka.md#oi-17--sumber-data-status-desil-dan-kategori-gakin) |
+| Pemecahan `G`/`NG` | makna kolom dan sumber data mengikuti [OI-17](../pertanyaan-terbuka.md#oi-17--sumber-data-status-desil-dan-kategori-gakin) |
 | Pemecahan lima kelompok umur | belum — rekap Portal dipecah per RT, bukan per kelompok umur |
 | Gizi buruk/kurang menurut `BB/U` | perhitungannya ada, penyajiannya belum |
 | `S36` dan BB ≥ 11,5 kg | belum |

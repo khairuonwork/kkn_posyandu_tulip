@@ -1,5 +1,5 @@
 /**
- * Layar Masuk — docs/rujukan/layar-demo.md bagian 6.1.
+ * Layar Masuk — docs/riwayat/layar-demo.md bagian 6.1.
  *
  * Dipakai bersama aplikasi sungguhan dan demo. Yang membedakan keduanya hanya
  * `onMasuk`: aplikasi memanggil `POST /api/masuk` dan peran datang dari akun,
@@ -16,34 +16,40 @@ import { Head } from '@/lib/nav';
 
 type Props = {
     /** Mengembalikan pesan galat, atau null bila berhasil. */
-    onMasuk: (email: string, kataSandi: string) => Promise<string | null>;
+    onMasuk: (username: string, kataSandi: string) => Promise<string | null>;
     /** Kartu pemilih peran — hanya demo yang mengisinya. */
     pemilihPeran?: ReactNode;
     /** Keterangan di bawah tombol, mis. penanda mode demo. */
     catatan?: ReactNode;
-    awal?: { email: string; sandi: string };
+    awal?: { username: string; sandi: string };
 };
 
 export default function Login({ onMasuk, pemilihPeran, catatan, awal }: Props) {
-    const [email, setEmail] = useState(awal?.email ?? '');
+    const [username, setUsername] = useState(awal?.username ?? '');
     const [sandi, setSandi] = useState(awal?.sandi ?? '');
     const [sandiTerbaca, setSandiTerbaca] = useState(false);
     const [memuat, setMemuat] = useState(false);
     const [galat, setGalat] = useState<string | null>(null);
 
-    const kosong = email.trim() === '' || sandi === '';
+    const kosong = username.trim() === '' || sandi === '';
 
     const kirim = (peristiwa: FormEvent) => {
         peristiwa.preventDefault();
 
-        if (kosong || memuat) {
+        if (memuat) {
+            return;
+        }
+
+        if (kosong) {
+            setGalat('Isi nama pengguna dan kata sandi terlebih dahulu.');
+
             return;
         }
 
         setMemuat(true);
         setGalat(null);
 
-        onMasuk(email, sandi)
+        onMasuk(username, sandi)
             .then((pesan) => {
                 // Saat berhasil, komponen ini dilepas oleh pemanggilnya —
                 // jadi hanya kegagalan yang perlu mengembalikan keadaan.
@@ -63,9 +69,11 @@ export default function Login({ onMasuk, pemilihPeran, catatan, awal }: Props) {
             {/* Judul tab ikut kembali saat Keluar ditekan; tanpa ini ia
                 tertinggal pada layar yang barusan ditutup. */}
             <Head title="Masuk" />
+            {/* Hiasan hanya dari 640 px: di ponsel formulirnya selebar layar dan
+                garis-garis ini melintang tepat di atas nama merek. */}
             <div
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+                className="pointer-events-none absolute inset-0 -z-10 hidden overflow-hidden sm:block"
             >
                 <span className="absolute -top-8 -left-24 h-px w-80 rotate-[31deg] bg-primary/18" />
                 <span className="absolute top-7 -left-28 h-px w-80 rotate-[31deg] bg-primary/12" />
@@ -86,7 +94,7 @@ export default function Login({ onMasuk, pemilihPeran, catatan, awal }: Props) {
                 menjadi #EDEFEA, `bg-background` membuat kedua panel berwarna
                 abu dan pembagian dua panelnya lenyap. Bagian 6.1 menetapkan
                 kiri #FFFFFF, kanan #F6F7F5. */}
-                <div className="flex w-full flex-col items-center justify-center bg-transparent px-6 py-12 sm:px-12 xl:w-[54%] xl:px-20">
+                <div className="flex w-full flex-col items-center justify-center bg-transparent px-6 py-12 sm:px-12 lg:w-[54%] xl:px-20">
                     {/* Blok maks 400 px sesuai bagian 6.1. Sebelumnya 560 px, yang
                     menarik baris isian jadi selebar tabel. */}
                     <div className="w-full max-w-[480px]">
@@ -97,8 +105,8 @@ export default function Login({ onMasuk, pemilihPeran, catatan, awal }: Props) {
                         </h1>
 
                         <p className="mt-3 max-w-[44ch] text-lg leading-relaxed text-muted-foreground">
-                            Masuk untuk melanjutkan pencatatan dan pemantauan
-                            tumbuh kembang balita.
+                            Masuk untuk mencatat dan memantau tumbuh kembang
+                            balita.
                         </p>
 
                         <form onSubmit={kirim} className="mt-9">
@@ -119,21 +127,28 @@ export default function Login({ onMasuk, pemilihPeran, catatan, awal }: Props) {
                             <div className="space-y-6">
                                 <div>
                                     <label
-                                        htmlFor="email"
+                                        htmlFor="username"
                                         className="block text-base font-semibold text-muted-foreground"
                                     >
-                                        Email
+                                        Nama pengguna
                                     </label>
+                                    {/* Tanpa huruf besar otomatis dan koreksi ejaan:
+                                        papan ketik tablet mengubah "kader01"
+                                        menjadi "Kader01" atau kata lain. */}
                                     <input
-                                        id="email"
-                                        type="email"
-                                        value={email}
-                                        placeholder="nama@posyandu.id"
+                                        id="username"
+                                        type="text"
+                                        autoComplete="username"
+                                        autoCapitalize="none"
+                                        autoCorrect="off"
+                                        spellCheck={false}
+                                        value={username}
+                                        placeholder="Masukkan nama pengguna"
                                         disabled={memuat}
                                         onChange={(e) =>
-                                            setEmail(e.target.value)
+                                            setUsername(e.target.value)
                                         }
-                                        className={`isian mt-2 w-full text-lg placeholder:text-lg disabled:opacity-60 ${
+                                        className={`isian mt-1.5 w-full text-lg placeholder:text-lg disabled:opacity-60 ${
                                             galat === null
                                                 ? ''
                                                 : 'border-tone-red'
@@ -198,7 +213,7 @@ export default function Login({ onMasuk, pemilihPeran, catatan, awal }: Props) {
 
                             {pemilihPeran !== undefined && (
                                 <fieldset className="mt-7" disabled={memuat}>
-                                    <legend className="sr-only">
+                                    <legend className="mb-1.5 text-base font-semibold text-muted-foreground">
                                         Masuk sebagai
                                     </legend>
                                     {pemilihPeran}
@@ -207,7 +222,7 @@ export default function Login({ onMasuk, pemilihPeran, catatan, awal }: Props) {
 
                             <button
                                 type="submit"
-                                disabled={kosong || memuat}
+                                disabled={memuat}
                                 className="tombol-utama mt-7 w-full text-lg disabled:bg-border disabled:text-muted-foreground disabled:shadow-none"
                             >
                                 {memuat && (
@@ -243,7 +258,7 @@ export default function Login({ onMasuk, pemilihPeran, catatan, awal }: Props) {
                 seperti teks mati, bukan seperti teks pendukung.
             */}
                 <div
-                    className="relative hidden overflow-hidden bg-[#0b5334] text-primary-foreground xl:my-6 xl:mr-6 xl:flex xl:w-[46%] xl:flex-col xl:rounded-[2rem]"
+                    className="relative hidden overflow-hidden bg-[#0b5334] text-primary-foreground lg:my-6 lg:mr-6 lg:flex lg:w-[46%] lg:flex-col lg:rounded-[2rem]"
                     style={{
                         backgroundImage: `linear-gradient(rgba(7, 80, 52, 0.36), rgba(7, 80, 52, 0.68)), url(${ilustrasiPosyandu})`,
                         backgroundPosition: 'center',
@@ -252,12 +267,12 @@ export default function Login({ onMasuk, pemilihPeran, catatan, awal }: Props) {
                 >
                     <div className="relative z-10 flex flex-1 flex-col justify-end p-8 pb-12 xl:p-12 xl:pb-16">
                         <p className="max-w-[18ch] text-3xl leading-tight font-extrabold text-balance">
-                            Pencatatan balita yang lebih dekat dengan pelayanan.
+                            Satu balita, satu riwayat.
                         </p>
 
                         <p className="mt-5 max-w-[40ch] text-base leading-relaxed text-white/80">
                             Satu tempat untuk mencatat hasil ukur, memantau
-                            riwayat, dan menyiapkan tindak lanjut keluarga.
+                            riwayat, dan menyiapkan tindak lanjut.
                         </p>
                     </div>
                 </div>

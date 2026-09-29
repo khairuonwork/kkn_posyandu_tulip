@@ -7,7 +7,7 @@
 | **PR** | belum dibuka |
 | **Bergantung pada** | — |
 | **Terhambat** | [OI-18](../../pertanyaan-terbuka.md) |
-| **Perubahan berarti terakhir** | 21 September 2026 |
+| **Perubahan berarti terakhir** | 29 September 2026 |
 
 PRD ini ditulis lebih dulu tanpa PR implementasi, berbeda dari F01–F12. Sebabnya: naskah pertanyaannya belum ada, sehingga tidak ada kode yang bisa menemaninya — sementara **bentuk datanya** perlu disepakati sebelum Bidan menyusun naskah itu. Yang ditetapkan di sini strukturnya; isinya menyusul.
 
@@ -102,7 +102,7 @@ Kelompok umur yang dipakai, mengikuti Kemenkes:
 
 **[OI-18](../../pertanyaan-terbuka.md) — naskah pertanyaan stimulasi.** Yang dibutuhkan dari Bidan: 3–4 pertanyaan per aspek untuk tiap kelompok umur, memakai kalimat yang biasa dipakai kader saat bertanya ke ibu. Total 9 kelompok × 4 aspek × 3–4 butir.
 
-**Sementara jawabannya belum ada:** fitur ini tidak dikerjakan. Struktur di bagian 4 bisa dibangun tanpa naskah, tetapi checklist kosong yang tidak menanyakan apa pun bukan fitur setengah jadi — ia layar yang menjanjikan sesuatu lalu menolaknya. Portal sudah punya aturan sendiri soal itu ([`rujukan/layar-demo.md`](../../rujukan/layar-demo.md) bagian 14, dan lihat komentar yang mencabut tombol `window.alert("Belum tersedia di demo")` pada `anak/show.tsx`).
+**Sementara jawabannya belum ada:** fitur ini tidak dikerjakan. Struktur di bagian 4 bisa dibangun tanpa naskah, tetapi checklist kosong yang tidak menanyakan apa pun bukan fitur setengah jadi — ia layar yang menjanjikan sesuatu lalu menolaknya. Portal sudah punya aturan sendiri soal itu: layar yang dikerjakan wajib punya keadaan kosong yang dirancang, bukan tombol atau daftar yang tidak berbuat apa-apa ([Arsitektur — Selesai berarti](../../arsitektur.md#selesai-berarti)).
 
 **Belum diputuskan dan tidak menghambat:** apakah hasil stimulasi ikut ke pesan WhatsApp (F03) dan ke rekap F1 (F09). Keduanya bisa ditambahkan kemudian tanpa mengubah bentuk data.
 

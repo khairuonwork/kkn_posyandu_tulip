@@ -17,7 +17,7 @@ import * as sesiRepo from '../repositories/sesi-repository.ts';
 export type HasilMasuk = {
     token: string;
     kedaluwarsa: Date;
-    pengguna: { id: number; nama: string; email: string; peran: string; rt: string | null };
+    pengguna: { id: number; nama: string; username: string; peran: string; rt: string | null };
 };
 
 export type SebabGagal = 'kredensial' | 'nonaktif';
@@ -26,7 +26,7 @@ export class GalatMasuk extends Error {
     readonly sebab: SebabGagal;
 
     constructor(sebab: SebabGagal) {
-        super(sebab === 'nonaktif' ? 'Akun dinonaktifkan' : 'Email atau kata sandi salah');
+        super(sebab === 'nonaktif' ? 'Akun dinonaktifkan' : 'Nama pengguna atau kata sandi tidak cocok. Periksa kembali, lalu ulangi.');
         this.name = 'GalatMasuk';
         this.sebab = sebab;
     }
@@ -35,12 +35,12 @@ export class GalatMasuk extends Error {
 /**
  * Kata sandi diverifikasi lebih dulu, bahkan untuk akun yang tidak ada.
  *
- * Bila email tidak ditemukan, verifikasi tetap dijalankan terhadap hash umpan
+ * Bila nama pengguna tidak ditemukan, verifikasi tetap dijalankan terhadap hash umpan
  * supaya waktu jawabannya serupa. Tanpa itu, penebak dapat memetakan siapa
  * saja yang punya akun hanya dari selisih waktu balasan.
  */
-export async function masuk(pool: Pool, email: string, kataSandi: string): Promise<HasilMasuk> {
-    const pengguna = await penggunaRepo.cariUntukMasuk(pool, email);
+export async function masuk(pool: Pool, username: string, kataSandi: string): Promise<HasilMasuk> {
+    const pengguna = await penggunaRepo.cariUntukMasuk(pool, username);
 
     if (pengguna === null) {
         await verifikasiKataSandi(kataSandi, HASH_UMPAN);
@@ -73,7 +73,7 @@ export async function masuk(pool: Pool, email: string, kataSandi: string): Promi
         pengguna: {
             id: pengguna.id,
             nama: pengguna.nama,
-            email: pengguna.email,
+            username: pengguna.username,
             peran: pengguna.peran,
             rt: pengguna.rt,
         },

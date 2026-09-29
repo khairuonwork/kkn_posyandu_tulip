@@ -6,8 +6,10 @@
 | **Status** | draf |
 | **PR** | `feat/f04-validasi-ukur` |
 | **Bergantung pada** | — |
-| **Terhambat** | — |
-| **Perubahan berarti terakhir** | 21 September 2026 |
+| **Terhambat** | [OI-20](../../pertanyaan-terbuka.md#oi-20--input-lapangan-dan-hak-kader-di-portal) — persona dan tempat input |
+| **Perubahan berarti terakhir** | 23 September 2026 |
+
+Persetujuan dan target rilis mengikuti [PRD utama bagian 13](../prd-utama.md#13-status-lingkup). Kalimat kader mengetik pada draf ini merekam kebutuhan feedback; hak tulisnya belum ditetapkan oleh PRD ini.
 
 ## 1. Latar
 
@@ -102,7 +104,7 @@ export function periksaKewajaran(
 | `client/test/kewajaran.test.ts` | **Baru.** Kasus 15→13 kg, tinggi menyusut, jeda dua bulan, tanpa pembanding. |
 | `client/src/pages/anak/index.tsx` | Peringatan di `EditorBaris`; dua isian baru dari [F05](F05-grafik-enam-indeks.md) ikut diperiksa. |
 | `client/src/pages/anak/show.tsx` | `janggal()` dihapus, memanggil `periksaKewajaran()`. |
-| `client/demo/DemoApp.tsx` | `ambang` diteruskan ke `DaftarAnak` — selama ini hanya sampai ke Detail anak. |
+| `client/demo/DemoApp.tsx` | `ambang` diteruskan ke `DaftarAnak` — selama ini hanya sampai ke Detail Balita. |
 
 ## 6. Keputusan terbuka
 
@@ -113,7 +115,7 @@ export function periksaKewajaran(
 
 Perlu diputuskan Bidan/pemilik program sebelum diimplementasikan — kriteria terima bagian 7 belum mencakup kasus dua titik ini.
 
-Selain itu, tidak ada keputusan terbuka lain. Ambang bawaannya sudah berdiri di `PENGATURAN_BAWAAN` dan sudah bisa diubah Bidan dari layar Pengaturan, sehingga angka yang ternyata terlalu ketat atau terlalu longgar tidak menuntut perubahan kode.
+Persona dan tempat input juga menunggu [OI-20](../../pertanyaan-terbuka.md#oi-20--input-lapangan-dan-hak-kader-di-portal); persetujuan rilis mengikuti PRD utama bagian 13. Ambang bawaannya sudah berdiri di `PENGATURAN_BAWAAN` dan sudah bisa diubah Bidan pada demo layar Pengaturan. Perubahan pada demo belum membuktikan penyimpanan ke database.
 
 ## 7. Kriteria terima
 

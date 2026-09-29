@@ -1,35 +1,85 @@
-import { CreditCard, Download, Printer, ShieldCheck } from 'lucide-react';
+/**
+ * Kartu Balita — pilih balita, periksa tampilan kartunya, lalu cetak per
+ * lembar A4 (mockup yang disetujui 26 September 2026).
+ *
+ * Kiri daftar balita yang digulir di dalam kartunya; kanan tampilan satu kartu
+ * dengan desain yang sama persis dengan dialog Cetak kartu di Detail Balita.
+ * Kartu yang ditampilkan dipilih lewat <select>, karena pilihannya bisa
+ * puluhan.
+ */
+
+import { Check, ChevronDown, CreditCard, Printer, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Halaman from '@/components/halaman';
-import { KOSONG } from '@/lib/format';
+import KartuBalita, { LembarCetak } from '@/components/kartu-balita';
+import { namaTampil, umurRingkas } from '@/lib/format';
 
-export type SasaranKartu = {
+export type BalitaKartu = {
+    anakId: number;
     nama: string | null;
-    nik: string | null;
-    namaOrtu: string | null;
     tglLahir: string | null;
     rt: string | null;
+    namaIbu: string | null;
+    nik: string | null;
+    kode: string;
+    umurBulan: number | null;
+    /** Belum pindah dan belum berumur 5 tahun. */
+    aktif: boolean;
 };
 
-type Props = { sasaran: SasaranKartu[]; terpilihAwal?: number };
+type Props = {
+    balita: BalitaKartu[];
+    wilayahRt: string[];
+    /** Id balita yang langsung terpilih, dari tombol di Detail Balita. */
+    terpilihAwal?: number;
+    /** Nama Posyandu di kepala kartu. */
+    lembaga: string;
+};
 
-export default function KartuSasaran({ sasaran, terpilihAwal }: Props) {
+const KARTU_PER_LEMBAR = 8;
+
+export default function KartuSasaran({
+    balita,
+    wilayahRt,
+    terpilihAwal,
+    lembaga,
+}: Props) {
     const [cari, setCari] = useState('');
+    const [rt, setRt] = useState('');
+    const [hanyaAktif, setHanyaAktif] = useState(true);
     const [pilihan, setPilihan] = useState<Set<number>>(
         () => new Set(terpilihAwal === undefined ? [] : [terpilihAwal]),
     );
-    const [pratinjau, setPratinjau] = useState(false);
-    const tampil = useMemo(() => {
+    const [tampil, setTampil] = useState(0);
+
+    const terlihat = useMemo(() => {
         const kata = cari.trim().toLowerCase();
 
-        return kata === ''
-            ? sasaran
-            : sasaran.filter((a) =>
-                  `${a.nama ?? ''} ${a.nik ?? ''}`.toLowerCase().includes(kata),
-              );
-    }, [cari, sasaran]);
+        return balita.filter(
+            (b) =>
+                (!hanyaAktif || b.aktif) &&
+                (rt === '' || b.rt === rt) &&
+                (kata === '' ||
+                    `${b.nama ?? ''} ${b.namaIbu ?? ''} ${b.kode}`
+                        .toLowerCase()
+                        .includes(kata)),
+        );
+    }, [balita, cari, rt, hanyaAktif]);
 
-    const halaman = Math.max(1, Math.ceil(pilihan.size / 8));
+    // Urutan kartu mengikuti urutan daftar, bukan urutan klik.
+    const dipilih = balita.filter((b) => pilihan.has(b.anakId));
+    const kartu = dipilih.map((b) => ({
+        nama: b.nama,
+        tglLahir: b.tglLahir,
+        rt: b.rt,
+        namaIbu: b.namaIbu,
+        nik: b.nik,
+        kode: b.kode,
+    }));
+    const aktif = Math.min(tampil, Math.max(0, kartu.length - 1));
+    const lembar = Math.ceil(kartu.length / KARTU_PER_LEMBAR);
+    const kosong = lembar * KARTU_PER_LEMBAR - kartu.length;
+
     const ubah = (id: number) =>
         setPilihan((lama) => {
             const baru = new Set(lama);
@@ -42,268 +92,290 @@ export default function KartuSasaran({ sasaran, terpilihAwal }: Props) {
 
             return baru;
         });
-    const pilihSemua = () =>
-        setPilihan(new Set(tampil.map((anak) => sasaran.indexOf(anak))));
 
     return (
         <Halaman
             ikon={CreditCard}
-            judul="Kartu sasaran"
-            subjudul="Pilih satu atau beberapa anak, lalu cetak kartu berukuran 85,6 × 54 mm. Satu lembar A4 memuat maksimal 8 kartu."
-            aksi={
-                <>
-                    <button
-                        type="button"
-                        className="tombol-kedua"
-                        onClick={() => window.print()}
-                    >
-                        <Download className="size-5" strokeWidth={2.5} /> Simpan
-                        / ekspor PDF
-                    </button>
-                    <button
-                        type="button"
-                        className="tombol-utama"
-                        onClick={() => setPratinjau(true)}
-                    >
-                        <Printer className="size-5" strokeWidth={2.5} /> Cetak{' '}
-                        {pilihan.size || 0} kartu · {halaman} lembar A4
-                    </button>
-                </>
-            }
+            penuh="lg"
+            judul="Kartu Balita"
+            subjudul="Pilih balita, lalu cetak kartunya. Satu lembar A4 memuat 8 kartu. Data contoh."
         >
-            <div className="max-w-6xl">
-                <div className="mb-7 flex flex-wrap items-end gap-3">
-                    <label className="min-w-70 flex-1">
-                        <span className="text-sm font-semibold text-muted-foreground">
-                            Cari anak atau NIK
-                        </span>
-                        <input
-                            value={cari}
-                            onChange={(e) => setCari(e.target.value)}
-                            placeholder="Ketik nama anak…"
-                            className="isian mt-1.5 w-full"
-                        />
-                    </label>
-                    <button
-                        type="button"
-                        className="tombol-kedua"
-                        onClick={pilihSemua}
-                    >
-                        Pilih semua hasil ({tampil.length})
-                    </button>
-                    <button
-                        type="button"
-                        className="tombol-kedua"
-                        onClick={() => setPilihan(new Set())}
-                    >
-                        Kosongkan pilihan
-                    </button>
-                </div>
-                <p className="mb-5 text-sm text-muted-foreground">
-                    {pilihan.size} kartu dipilih · otomatis {halaman} lembar A4
-                    · susunan cetak 2 kolom × 4 baris.
-                </p>
-                {pratinjau && (
-                    <section className="fixed inset-0 z-50 flex flex-col items-center overflow-auto bg-black/55 p-6 sm:p-10">
-                        <div className="mx-auto min-h-[297mm] w-[210mm] bg-[#f5f6f2] p-[16mm] shadow-[0_12px_32px_rgba(22,33,28,0.18)]">
-                            <p className="mb-3 text-center text-[10px] font-bold tracking-[0.12em] text-muted-foreground">
-                                PRATINJAU CETAK A4 · 2 KOLOM × 4 BARIS
-                            </p>
-                            <div className="grid grid-cols-[85.6mm_85.6mm] gap-x-[6mm] gap-y-[4mm]">
-                                {Array.from({ length: 8 }, (_, i) => {
-                                    const anak = sasaran.filter((_, id) =>
-                                        pilihan.has(id),
-                                    )[i];
-
-                                    return (
-                                        <div
-                                            key={i}
-                                            className="h-[53.98mm] w-[85.6mm] rounded-[3mm] border border-dashed border-[#9bbba2] bg-[#eef1ec] p-[3mm]"
-                                        >
-                                            {anak && (
-                                                <div className="grid h-full grid-cols-[1fr_24mm] gap-[3mm]">
-                                                    <div className="flex min-w-0 flex-col justify-between">
-                                                        <div>
-                                                            <span className="inline-flex rounded-full bg-primary px-[2mm] py-[0.7mm] text-[6px] font-extrabold tracking-[0.1em] text-white">
-                                                                KARTU SASARAN
-                                                            </span>
-                                                            <p className="mt-[1.4mm] text-[7px] font-bold text-primary">
-                                                                SIMPATIK
-                                                                POSYANDU
-                                                            </p>
-                                                            <p className="mt-[2mm] truncate text-[10px] font-extrabold">
-                                                                {anak.nama ??
-                                                                    KOSONG}
-                                                            </p>
-                                                            <p className="mt-[1mm] text-[7px] text-muted-foreground">
-                                                                NIK:{' '}
-                                                                {anak.nik ??
-                                                                    '—'}
-                                                            </p>
-                                                            <p className="text-[7px] text-muted-foreground">
-                                                                Wali:{' '}
-                                                                {anak.namaOrtu ??
-                                                                    '—'}
-                                                            </p>
-                                                            <p className="text-[7px] text-muted-foreground">
-                                                                {anak.tglLahir ??
-                                                                    KOSONG}{' '}
-                                                                ·{' '}
-                                                                {anak.rt
-                                                                    ? `RT ${anak.rt}`
-                                                                    : 'RT —'}
-                                                            </p>
-                                                        </div>
-                                                        <p className="border-t border-[#b9cbbb] pt-[1mm] text-[7px] font-bold text-primary">
-                                                            SPT-
-                                                            {(
-                                                                anak.nik ??
-                                                                String(i)
-                                                            ).slice(-8)}
-                                                        </p>
-                                                    </div>
-                                                    <QrContoh
-                                                        kode={`SPT-${(anak.nik ?? String(i)).slice(-8)}`}
-                                                        ukuran="w-[24mm]"
-                                                        tinggi="h-[24mm]"
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
+            <div className="grid gap-4.5 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_420px]">
+                <section className="kartu flex min-w-0 flex-col overflow-hidden lg:min-h-0">
+                    <div className="flex shrink-0 flex-wrap items-end gap-x-4.5 gap-y-3.5 border-b border-border px-4.5 pt-3.5 pb-4">
+                        <div className="min-w-56 flex-1">
+                            <label
+                                htmlFor="cari-kartu"
+                                className="block text-sm font-semibold text-muted-foreground"
+                            >
+                                Cari nama balita, ibu, atau kode
+                            </label>
+                            <div className="isian mt-1.5 flex w-full items-stretch gap-2.5 px-3.5">
+                                <Search
+                                    className="size-5 shrink-0 self-center text-muted-foreground"
+                                    strokeWidth={2.5}
+                                    aria-hidden="true"
+                                />
+                                <input
+                                    id="cari-kartu"
+                                    type="search"
+                                    value={cari}
+                                    onChange={(e) => setCari(e.target.value)}
+                                    className="min-w-0 flex-1 bg-transparent outline-none"
+                                />
                             </div>
                         </div>
-                        <div className="mt-6 flex gap-3">
+                        <div className="w-40">
+                            <label
+                                htmlFor="rt-kartu"
+                                className="block text-sm font-semibold text-muted-foreground"
+                            >
+                                RT
+                            </label>
+                            <div className="relative mt-1.5">
+                                <select
+                                    id="rt-kartu"
+                                    value={rt}
+                                    onChange={(e) => setRt(e.target.value)}
+                                    className="isian w-full cursor-pointer appearance-none pr-11"
+                                >
+                                    <option value="">Semua RT</option>
+                                    {wilayahRt.map((w) => (
+                                        <option key={w} value={w}>
+                                            RT {w.padStart(2, '0')}
+                                        </option>
+                                    ))}
+                                </select>
+                                <ChevronDown
+                                    className="pointer-events-none absolute top-1/2 right-3.5 size-5 -translate-y-1/2 text-muted-foreground"
+                                    strokeWidth={2.5}
+                                    aria-hidden="true"
+                                />
+                            </div>
+                        </div>
+                        <label
+                            className={`inline-flex min-h-13 cursor-pointer items-center gap-2.5 rounded-lg border-2 px-4 text-base font-bold ${
+                                hanyaAktif
+                                    ? 'border-primary bg-accent text-primary'
+                                    : 'border-border bg-surface'
+                            }`}
+                        >
+                            <input
+                                type="checkbox"
+                                checked={hanyaAktif}
+                                onChange={(e) =>
+                                    setHanyaAktif(e.target.checked)
+                                }
+                                aria-describedby="keterangan-aktif"
+                                className="size-5 accent-primary"
+                            />
+                            Hanya balita aktif
+                        </label>
+                        <p
+                            id="keterangan-aktif"
+                            className="-mt-1 basis-full text-right text-sm text-muted-foreground"
+                        >
+                            Tidak termasuk balita yang sudah pindah atau berumur
+                            5 tahun.
+                        </p>
+                    </div>
+
+                    <div className="flex shrink-0 flex-wrap items-center justify-between gap-3.5 border-b-2 border-border-strong bg-surface px-4.5 py-2">
+                        <p className="font-bold" aria-live="polite">
+                            {terlihat.length} balita ·{' '}
+                            <span className="text-primary">
+                                {pilihan.size} dipilih
+                            </span>
+                        </p>
+                        <div className="flex gap-2">
                             <button
                                 type="button"
-                                className="tombol-kedua bg-white"
-                                onClick={() => setPratinjau(false)}
+                                onClick={() =>
+                                    setPilihan(
+                                        (lama) =>
+                                            new Set([
+                                                ...lama,
+                                                ...terlihat.map(
+                                                    (b) => b.anakId,
+                                                ),
+                                            ]),
+                                    )
+                                }
+                                className="tombol-kedua px-3.5"
                             >
-                                Kembali
+                                Pilih semua
                             </button>
                             <button
                                 type="button"
-                                className="tombol-utama"
-                                onClick={() => window.print()}
+                                onClick={() => setPilihan(new Set())}
+                                className="tombol-kedua px-3.5"
                             >
-                                <Printer className="size-5" /> Lanjutkan cetak
+                                Kosongkan pilihan
                             </button>
                         </div>
-                    </section>
-                )}
-                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                    {tampil.map((anak, i) => {
-                        const id = sasaran.indexOf(anak);
+                    </div>
 
-                        const kode = `SPT-${(anak.nik ?? String(id + 1)).slice(-8)}`;
-                        const aktif = pilihan.has(id);
+                    {terlihat.length === 0 ? (
+                        <p className="px-6 py-10 text-center text-base">
+                            Tidak ada balita yang cocok dengan pencarian ini.
+                        </p>
+                    ) : (
+                        <ul className="gulir-dalam max-h-[60vh] overflow-y-auto lg:max-h-none lg:min-h-0 lg:flex-1">
+                            {terlihat.map((b) => {
+                                const terpilih = pilihan.has(b.anakId);
 
-                        return (
-                            <button
-                                key={`${kode}-${i}`}
-                                type="button"
-                                onClick={() => ubah(id)}
-                                className={`overflow-hidden rounded-xl border-2 text-left transition ${aktif ? 'border-primary shadow-[0_12px_24px_rgba(15,110,68,0.18)]' : 'border-[#c7cec5] hover:border-primary'}`}
-                            >
-                                <div className="flex aspect-[85.6/53.98] bg-[#f1f3ef]">
-                                    <div className="flex min-w-0 flex-1 flex-col justify-between p-4">
-                                        <div>
-                                            <div className="flex items-center gap-2 text-primary">
-                                                <ShieldCheck className="size-4" />
-                                                <span className="text-xs font-extrabold">
-                                                    SIMPATIK POSYANDU
+                                return (
+                                    <li key={b.anakId}>
+                                        <label
+                                            className={`flex min-h-16 cursor-pointer items-center gap-3.5 border-b border-rule px-4.5 py-2 ${
+                                                terpilih
+                                                    ? 'bg-accent'
+                                                    : 'hover:bg-surface-subtle'
+                                            }`}
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={terpilih}
+                                                onChange={() => ubah(b.anakId)}
+                                                className="size-6 shrink-0 accent-primary"
+                                            />
+                                            <span className="flex min-w-0 flex-1 flex-col">
+                                                <span className="font-bold">
+                                                    {namaTampil(b.nama)}
                                                 </span>
-                                            </div>
-                                            <h2 className="mt-3 truncate text-lg font-extrabold">
-                                                {anak.nama ?? KOSONG}
-                                            </h2>
-                                            <p className="mt-1 text-xs text-muted-foreground">
-                                                {anak.namaOrtu ??
-                                                    'Wali belum tercatat'}{' '}
-                                                ·{' '}
-                                                {anak.rt
-                                                    ? `RT ${anak.rt.padStart(2, '0')}`
-                                                    : 'RT —'}
-                                            </p>
-                                        </div>
-                                        <p className="text-xs font-bold text-primary">
-                                            {kode}
-                                        </p>
-                                    </div>
-                                    <div className="flex w-[36%] flex-col items-center justify-center border-l border-[#c7cec5] bg-[#e6eee8] p-5">
-                                        <QrContoh kode={kode} ukuran="w-24" />
-                                        <span className="mt-2 text-center text-[10px] font-bold text-primary">
-                                            PINDAI
-                                        </span>
-                                    </div>
+                                                <span className="text-sm text-muted-foreground">
+                                                    {[
+                                                        umurRingkas(
+                                                            b.umurBulan,
+                                                        ),
+                                                        b.rt === null
+                                                            ? null
+                                                            : `RT ${b.rt.padStart(2, '0')}`,
+                                                        b.namaIbu === null
+                                                            ? null
+                                                            : `Ibu ${b.namaIbu}`,
+                                                    ]
+                                                        .filter(
+                                                            (x) => x !== null,
+                                                        )
+                                                        .join(' · ')}
+                                                </span>
+                                            </span>
+                                            <span className="text-sm font-bold whitespace-nowrap text-muted-foreground">
+                                                {b.kode}
+                                            </span>
+                                            {terpilih && (
+                                                <span className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1 text-sm font-bold whitespace-nowrap text-primary-foreground">
+                                                    <Check
+                                                        className="size-4"
+                                                        strokeWidth={2.5}
+                                                        aria-hidden="true"
+                                                    />
+                                                    Dipilih
+                                                </span>
+                                            )}
+                                        </label>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    )}
+                </section>
+
+                <section
+                    aria-labelledby="judul-tampilan"
+                    className="kartu flex min-w-0 flex-col px-4.5 pt-4 pb-4.5 lg:min-h-0"
+                >
+                    <div className="flex items-baseline justify-between gap-2">
+                        <h2
+                            id="judul-tampilan"
+                            className="text-lg leading-tight font-extrabold"
+                        >
+                            Tampilan kartu
+                        </h2>
+                        {kartu.length > 0 && (
+                            <span className="text-sm font-semibold text-muted-foreground">
+                                Kartu {aktif + 1} dari {kartu.length}
+                            </span>
+                        )}
+                    </div>
+
+                    {kartu.length === 0 ? (
+                        <p className="mt-3 rounded-lg bg-surface-alt px-4 py-10 text-center text-base">
+                            Pilih minimal satu balita.
+                        </p>
+                    ) : (
+                        <>
+                            <div className="mt-3 flex justify-center overflow-hidden rounded-lg bg-surface-alt p-3.5">
+                                <KartuBalita
+                                    kartu={kartu[aktif]}
+                                    lembaga={lembaga}
+                                    skala={0.85}
+                                />
+                            </div>
+                            <div className="mt-3.5">
+                                <label
+                                    htmlFor="pilih-kartu"
+                                    className="block text-sm font-semibold text-muted-foreground"
+                                >
+                                    Kartu yang ditampilkan
+                                </label>
+                                <div className="relative mt-1.5">
+                                    <select
+                                        id="pilih-kartu"
+                                        value={aktif}
+                                        onChange={(e) =>
+                                            setTampil(Number(e.target.value))
+                                        }
+                                        className="isian w-full cursor-pointer appearance-none bg-card pr-11 font-semibold"
+                                    >
+                                        {dipilih.map((b, i) => (
+                                            <option key={b.anakId} value={i}>
+                                                {i + 1}. {namaTampil(b.nama)}
+                                                {b.rt !== null &&
+                                                    ` · RT ${b.rt.padStart(2, '0')}`}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown
+                                        className="pointer-events-none absolute top-1/2 right-3.5 size-5 -translate-y-1/2 text-muted-foreground"
+                                        strokeWidth={2.5}
+                                        aria-hidden="true"
+                                    />
                                 </div>
-                            </button>
-                        );
-                    })}
-                </div>
+                            </div>
+                            <p className="mt-3 text-sm text-muted-foreground">
+                                <span className="font-bold text-foreground">
+                                    {kartu.length} kartu · {lembar} lembar A4
+                                </span>
+                                {kosong > 0 && ` · ${kosong} tempat kosong`}
+                            </p>
+                        </>
+                    )}
+
+                    <div className="mt-auto pt-3.5">
+                        <button
+                            type="button"
+                            disabled={kartu.length === 0}
+                            onClick={() => window.print()}
+                            className="tombol-utama w-full disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+                        >
+                            <Printer
+                                className="size-5"
+                                strokeWidth={2.5}
+                                aria-hidden="true"
+                            />
+                            {kartu.length === 0
+                                ? 'Cetak kartu'
+                                : `Cetak ${kartu.length} kartu`}
+                        </button>
+                    </div>
+                </section>
             </div>
+
+            {kartu.length > 0 && (
+                <LembarCetak kartu={kartu} lembaga={lembaga} />
+            )}
         </Halaman>
-    );
-}
-
-function QrContoh({
-    kode,
-    ukuran = 'w-40',
-    tinggi,
-}: {
-    kode: string;
-    ukuran?: string;
-    tinggi?: string;
-}) {
-    const n = 21;
-    const isi = Array.from(
-        { length: n * n },
-        (_, i) =>
-            (i * 17 +
-                kode.charCodeAt(i % kode.length) * 7 +
-                Math.floor(i / n) * 13) %
-                9 <
-            4,
-    );
-    const hitam = (r: number, c: number) => {
-        for (const [y, x] of [
-            [0, 0],
-            [0, n - 7],
-            [n - 7, 0],
-        ]) {
-            if (r >= y && r < y + 7 && c >= x && c < x + 7) {
-                const a = r - y;
-                const b = c - x;
-
-                return (
-                    a === 0 ||
-                    a === 6 ||
-                    b === 0 ||
-                    b === 6 ||
-                    (a >= 2 && a <= 4 && b >= 2 && b <= 4)
-                );
-            }
-        }
-
-        return isi[r * n + c];
-    };
-
-    return (
-        <div
-            aria-label={`QR contoh untuk ${kode}`}
-            className={`grid ${ukuran} ${tinggi ?? 'aspect-square'} shrink-0 grid-cols-[repeat(21,minmax(0,1fr))] gap-px self-start bg-white p-2`}
-        >
-            {Array.from({ length: n * n }, (_, i) => (
-                <span
-                    key={i}
-                    className={
-                        hitam(Math.floor(i / n), i % n)
-                            ? 'aspect-square bg-foreground'
-                            : 'aspect-square bg-white'
-                    }
-                />
-            ))}
-        </div>
     );
 }

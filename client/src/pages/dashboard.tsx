@@ -1,14 +1,12 @@
 /**
- * Beranda — tata letak Prototipe v2 (docs/design/Portal Posyandu - Prototipe v2.dc.html).
+ * Beranda — satu layar, mengikuti mockup yang disetujui 26 September 2026.
  *
- * Susunannya mengikuti artboard Beranda apa adanya: pita kabar tertahan, empat
- * kartu KPI ber-ikon, sepasang kartu Status gizi dan Cakupan enam bulan, lalu
- * tabel Perlu perhatian. Props di sini menjadi kontrak bagi `DashboardController`
- * nanti (bagian 10).
+ * Empat KPI ramping berikon dalam satu baris. Di bawahnya dua kolom: kiri
+ * Status gizi di atas grafik Cakupan dan Tren, kanan daftar Perlu perhatian
+ * yang digulir di dalam kartunya sendiri. Dari 1024 px halaman tidak digulir;
+ * di bawahnya kolom-kolom itu bertumpuk dan halamannya yang menggulir.
  *
- * Dua hal yang tidak ikut prototipe, karena datanya menuntut demikian:
- * kategori gizi ditampilkan berempat (artboard hanya punya tiga dan tidak
- * memuat sisi lebih), dan angka nol diredupkan alih-alih dicetak merah.
+ * Props di sini menjadi kontrak bagi `DashboardController` nanti (bagian 10).
  */
 
 import {
@@ -16,15 +14,21 @@ import {
     ChevronRight,
     CloudOff,
     House,
+    Minus,
     RotateCw,
     Scale,
+    TrendingDown,
     TrendingUp,
     Users,
 } from 'lucide-react';
-import type { ComponentType } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 import EmptyState from '@/components/empty-state';
 import Halaman from '@/components/halaman';
-import StatusGiziBadge from '@/components/status-gizi-badge';
+import StatusGiziBadge, {
+    IKON,
+    KELAS,
+    nadaKategori,
+} from '@/components/status-gizi-badge';
 import {
     inisial,
     KOSONG,
@@ -37,22 +41,6 @@ import {
 import { Link } from '@/lib/nav';
 import type { Periode } from '@/types/posyandu';
 
-/** Tinggi jalur bar cakupan. Dipendekkan dari 43 satuan artboard supaya
- *  daftar Perlu perhatian di bawahnya kebagian ruang pada layar setinggi
- *  jendela. */
-const TINGGI_BAR = 'h-24';
-
-/**
- * Dasar sumbu batang cakupan.
- *
- * Artboard menggambar batang dari nol. Dengan data nyata — keenam bulan di
- * 95-100% — keenam batang terukur 163 sampai 172 px dari jalur 172 px, jadi
- * tidak satu pun bisa dibandingkan dengan mata. Bentuk batangnya tetap milik
- * artboard; hanya dasarnya yang dinaikkan, dan pemotongan itu ditulis di layar
- * tepat di bawah grafiknya supaya tidak menipu.
- */
-const DASAR_SUMBU = 80;
-
 export type RingkasanBeranda = {
     sasaran: number;
     ditimbang: number;
@@ -64,12 +52,12 @@ export type SebaranStatusGizi = {
     giziBaik: number;
     giziKurang: number;
     giziBuruk: number;
+    berisikoLebih: number;
     giziLebih: number;
+    obesitas: number;
     /** Ditimbang tapi BB/TB tidak dapat dihitung. */
     belumDinilai: number;
     ditimbang: number;
-    /** Sasaran yang tidak hadir. Ini `S - D`, bukan bagian dari D. */
-    belumDiukur: number;
 };
 
 export type CakupanPeriode = {
@@ -86,6 +74,7 @@ export type TitikTren = {
     ditimbang: number;
     pendek: number;
     giziKurang: number;
+    /** Gizi lebih dan obesitas, tanpa yang baru berisiko. */
     giziLebih: number;
 };
 
@@ -140,49 +129,25 @@ export default function Dashboard({
     memuat = false,
 }: Props) {
     const cakupan = persenSaja(ringkasan.ditimbang, ringkasan.sasaran);
+    const absen = ringkasan.sasaran - ringkasan.ditimbang;
+    const rentang = rentangBulan(cakupanEnamBulan.map((c) => c.label));
     // Puncak bersama ketiga deret pada kartu Tren, supaya tinggi batang di
     // baris berbeda menyatakan angka yang sebanding.
     const puncakTren = Math.max(
         1,
         ...trenGizi.flatMap((t) => [t.pendek, t.giziKurang, t.giziLebih]),
     );
+    const bulanTren = trenGizi.map((t) => namaBulan(t.label));
 
-    /*
-        Empat kategori, bukan tiga. PMK 2/2020 punya enam kategori BB/TB dan
-        artboard hanya menampilkan sisi kurangnya — sehingga menulis "0 gizi
-        kurang, 0 gizi buruk" tepat di atas daftar berisi tiga anak obesitas.
-        Angka-angka ini berjumlah D.
-    */
-    const sel = [
-        {
-            label: 'Gizi baik',
-            nilai: statusGizi.giziBaik,
-            warna: 'text-foreground',
-        },
-        {
-            label: 'Gizi kurang',
-            nilai: statusGizi.giziKurang,
-            warna: 'text-tone-amber',
-        },
-        {
-            label: 'Gizi buruk',
-            nilai: statusGizi.giziBuruk,
-            warna: 'text-tone-red',
-        },
-        {
-            label: 'Gizi lebih dan obesitas',
-            nilai: statusGizi.giziLebih,
-            warna: 'text-tone-amber',
-        },
-        ...(statusGizi.belumDinilai > 0
-            ? [
-                  {
-                      label: 'Belum dapat dinilai',
-                      nilai: statusGizi.belumDinilai,
-                      warna: 'text-muted-foreground',
-                  },
-              ]
-            : []),
+    /* Keenam kategori BB/TB PMK 2/2020, urut dari z terendah ke tertinggi.
+       Angka-angka ini berjumlah D. */
+    const petak: { label: string; nilai: number }[] = [
+        { label: 'Gizi buruk', nilai: statusGizi.giziBuruk },
+        { label: 'Gizi kurang', nilai: statusGizi.giziKurang },
+        { label: 'Gizi baik', nilai: statusGizi.giziBaik },
+        { label: 'Berisiko gizi lebih', nilai: statusGizi.berisikoLebih },
+        { label: 'Gizi lebih', nilai: statusGizi.giziLebih },
+        { label: 'Obesitas', nilai: statusGizi.obesitas },
     ];
 
     return (
@@ -192,55 +157,24 @@ export default function Dashboard({
             judul="Beranda"
             /* Caveat periode ditulis satu tempat saja, tidak diulang tiap kartu. */
             subjudul={`${periode.label}, data per ${tanggalTanpaTahun(ringkasan.tanggalUkur)}. Data contoh.`}
+            /* Kabar bahwa data tertahan duduk di bilah kepala, sebelum angka
+               apa pun: sebagian angka di bawahnya belum lengkap selama
+               antrean ini ada. */
+            pita={
+                belumTerkirim !== undefined && belumTerkirim.jumlah > 0 ? (
+                    <PitaTertahan
+                        antrean={belumTerkirim}
+                        onKirim={onCobaKirim}
+                    />
+                ) : undefined
+            }
         >
-            {/* Kabar bahwa data tertahan datang sebelum angka apa pun: sebagian
-                angka di bawahnya belum lengkap selama antrean ini ada. */}
-            {belumTerkirim !== undefined && belumTerkirim.jumlah > 0 && (
-                <div className="mb-4 flex shrink-0 flex-wrap items-center gap-x-5 gap-y-3 rounded-xl border border-tone-amber bg-tone-amber-bg px-4 py-2.5 shadow-[var(--shadow-card)] sm:px-5">
-                    <span
-                        aria-hidden="true"
-                        className="flex size-14 shrink-0 items-center justify-center rounded-lg bg-card"
-                    >
-                        <CloudOff
-                            className="size-7 text-tone-amber"
-                            strokeWidth={2.5}
-                        />
-                    </span>
-
-                    {/* `min-w-64`, bukan `min-w-0`: dengan `flex-1 min-w-0`
-                        kolom teks boleh menyusut sampai lebih sempit daripada
-                        satu katanya, dan tombol di sebelahnya tidak pernah
-                        turun baris. Pada 375 px kalimat ini jatuh jadi satu
-                        kata per baris setinggi tujuh baris. Lebar minimum
-                        memaksa tombolnya yang mengalah, bukan kalimatnya. */}
-                    <span className="min-w-64 flex-1">
-                        <span className="block text-base font-bold text-tone-amber">
-                            {belumTerkirim.jumlah} hasil penimbangan belum
-                            terkirim
-                        </span>
-                        {/* Kalimat kedua yang penting: kader perlu tahu ini
-                            bukan kehilangan data, hanya tertunda. */}
-                        <span className="mt-0.5 block text-base text-pretty">
-                            Tersimpan di perangkat sejak {belumTerkirim.sejak}.
-                            Tidak ada data yang hilang.
-                        </span>
-                    </span>
-
-                    <button
-                        type="button"
-                        onClick={onCobaKirim}
-                        className="tombol-kedua shrink-0 text-tone-amber"
-                    >
-                        <RotateCw className="size-5" strokeWidth={2.5} />
-                        Coba kirim lagi
-                    </button>
-                </div>
-            )}
-
             {memuat && <Skeleton />}
 
             {!memuat && ringkasan.sasaran === 0 && (
-                <EmptyState sebab="Belum ada pengukuran pada periode ini.">
+                <EmptyState
+                    sebab={`Belum ada hasil ukur untuk ${periode.label}.`}
+                >
                     {periodeTerisi !== null && (
                         <button
                             type="button"
@@ -254,474 +188,647 @@ export default function Dashboard({
             )}
 
             {!memuat && ringkasan.sasaran > 0 && (
-                <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1">
-                    {/* Empat KPI artboard, apa adanya. Petak ikonnya berwarna
-                        hanya pada dua angka yang menyatakan keberhasilan —
-                        Ditimbang dan Naik — supaya barisnya punya arah baca,
-                        bukan empat kotak hijau setara. */}
-                    <div className="grid shrink-0 grid-cols-2 gap-3 lg:grid-cols-4">
+                <div className="flex flex-col gap-3.5 lg:min-h-0 lg:flex-1">
+                    {/* KPI ramping: petak ikon, label, angka, dan satu
+                        keterangan pendek di sebelah angkanya. */}
+                    <div className="grid shrink-0 grid-cols-2 gap-3.5 md:grid-cols-4">
                         <Kpi
                             ikon={Users}
+                            netral
                             label="Sasaran (S)"
                             nilai={ringkasan.sasaran}
-                            bawah="balita 0 sampai 59 bulan"
+                            keterangan="0–59 bulan"
                         />
                         <Kpi
                             ikon={Scale}
-                            sorot
                             label="Ditimbang (D)"
                             nilai={ringkasan.ditimbang}
-                            bawah={`dari ${ringkasan.sasaran} sasaran`}
+                            keterangan={
+                                absen > 0
+                                    ? `${absen} belum datang`
+                                    : 'semua datang'
+                            }
                         />
                         <Kpi
                             ikon={ChartPie}
-                            label="Cakupan penimbangan (D/S)"
+                            label="Cakupan (D/S)"
                             nilai={`${cakupan}%`}
-                            bawah={`${pecahan(ringkasan.ditimbang, ringkasan.sasaran)} sasaran`}
+                            keterangan={
+                                bandingBulanLalu(
+                                    cakupanEnamBulan,
+                                    periode.id,
+                                    cakupan,
+                                ) ??
+                                pecahan(ringkasan.ditimbang, ringkasan.sasaran)
+                            }
                         />
                         <Kpi
                             ikon={TrendingUp}
-                            sorot
-                            label="Naik (N)"
+                            label="Berat naik (N)"
                             nilai={ringkasan.naik}
-                            bawah={`dari ${ringkasan.ditimbang} yang ditimbang`}
+                            keterangan={`${persenSaja(ringkasan.naik, ringkasan.ditimbang)}% dari D`}
                         />
                     </div>
 
-                    <div className="grid shrink-0 gap-3 lg:grid-cols-[1fr_1.2fr_1.1fr]">
-                        <section className="kartu flex flex-col gap-3 p-4">
-                            <h2 className="text-xl leading-snug font-extrabold">
-                                Status gizi menurut BB/TB
-                            </h2>
+                    <div className="grid gap-4.5 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+                        <div className="flex min-w-0 flex-col gap-3.5 lg:min-h-0">
+                            <section className="kartu shrink-0 px-4.5 py-3.5">
+                                <KepalaKartu
+                                    judul="Status gizi (BB/PB atau BB/TB)"
+                                    sub={`${periode.label} · ${statusGizi.ditimbang} ditimbang`}
+                                />
 
-                            {/*
-                                Petak rambut 1 px milik artboard: sel putih di
-                                atas latar garis, bukan empat kartu bersarang.
+                                <ul className="mt-2 grid grid-cols-3 gap-1.5 sm:grid-cols-6">
+                                    {petak.map((p) => (
+                                        <PetakGizi
+                                            key={p.label}
+                                            label={p.label}
+                                            nilai={p.nilai}
+                                        />
+                                    ))}
+                                    {/* Ditimbang, tetapi BB/TB-nya tidak dapat
+                                        dihitung. Bukan nol, bukan sehat. */}
+                                    {statusGizi.belumDinilai > 0 && (
+                                        <li className="col-span-full rounded-lg bg-surface px-2.5 py-1.5 text-sm font-semibold text-muted-foreground">
+                                            {statusGizi.belumDinilai} belum
+                                            dapat dinilai
+                                        </li>
+                                    )}
+                                </ul>
+                            </section>
 
-                                Empat kategori, bukan tiga. PMK 2/2020 punya enam
-                                kategori BB/TB dan artboard hanya menampilkan sisi
-                                kurangnya — sehingga menulis "0 gizi kurang,
-                                0 gizi buruk" tepat di atas daftar berisi tiga
-                                anak obesitas. Angka-angka ini berjumlah D.
-                            */}
-                            {/* Latar petak ini adalah warna garis, dan sel
-                                putih yang menutupinya — jadi baris terakhir
-                                yang tidak penuh akan menyisakan lubang abu.
-                                Dua kolom dengan sel terakhir melebar saat
-                                jumlahnya ganjil membuatnya selalu penuh. */}
-                            <div className="grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2">
-                                {sel.map((s, urutan) => (
-                                    <SelGizi
-                                        key={s.label}
-                                        label={s.label}
-                                        nilai={s.nilai}
-                                        warna={s.warna}
-                                        lebar={
-                                            sel.length % 2 === 1 &&
-                                            urutan === sel.length - 1
-                                        }
+                            <div className="grid gap-3.5 sm:grid-cols-2 lg:min-h-0 lg:flex-1">
+                                <section className="kartu flex min-w-0 flex-col px-4 py-3.5">
+                                    <KepalaKartu
+                                        judul="Cakupan penimbangan (D/S)"
+                                        sub={rentang}
                                     />
-                                ))}
-                            </div>
 
-                            <p className="mt-auto max-w-[75ch] border-t border-border pt-3 text-sm text-pretty text-muted-foreground">
-                                Angka di atas berjumlah {statusGizi.ditimbang}{' '}
-                                balita yang ditimbang.{' '}
-                                {statusGizi.belumDiukur > 0 &&
-                                    `${statusGizi.belumDiukur} sasaran lain tidak hadir bulan ini dan tidak masuk hitungan. `}
-                                Indeks mengikuti umur balita: BB/PB di bawah 24
-                                bulan, BB/TB untuk 24 bulan ke atas.
-                            </p>
-                        </section>
+                                    <div
+                                        role="img"
+                                        aria-label={`Cakupan penimbangan: ${cakupanEnamBulan
+                                            .map(
+                                                (c) =>
+                                                    `${namaBulan(c.label)} ${persenSaja(c.ditimbang, c.sasaran)}%`,
+                                            )
+                                            .join(', ')}`}
+                                        className="mt-2 grid h-[128px] grid-cols-6 items-end gap-2 border-b-2 border-border-strong px-0.5 sm:h-auto sm:min-h-[128px] sm:flex-1"
+                                    >
+                                        {/* Batang bertanda mengikuti periode
+                                            yang dipilih, bukan selalu yang
+                                            terakhir: judul halaman, KPI, dan
+                                            grafik ini harus menunjuk bulan yang
+                                            sama. */}
+                                        {cakupanEnamBulan.map((c) => (
+                                            <BatangCakupan
+                                                key={c.periodeId}
+                                                cakupan={c}
+                                                kini={
+                                                    c.periodeId === periode.id
+                                                }
+                                            />
+                                        ))}
+                                    </div>
+                                    <div
+                                        aria-hidden="true"
+                                        className="mt-1 grid grid-cols-6 gap-2 px-0.5 text-center text-sm"
+                                    >
+                                        {cakupanEnamBulan.map((c) => (
+                                            <span
+                                                key={c.periodeId}
+                                                className={
+                                                    c.periodeId === periode.id
+                                                        ? 'font-extrabold'
+                                                        : 'text-muted-foreground'
+                                                }
+                                            >
+                                                {c.label.slice(0, 3)}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </section>
 
-                        <section className="kartu flex flex-col gap-3 p-4">
-                            <h2 className="text-xl leading-snug font-extrabold">
-                                Cakupan penimbangan (D/S) enam bulan terakhir
-                            </h2>
-
-                            {/* Batang tegak artboard; bulan berjalan diberi
-                                warna, sisanya abu. */}
-                            <div className="flex items-end gap-3 sm:gap-5">
-                                {/* Batang bertanda mengikuti periode yang
-                                    dipilih, bukan selalu yang terakhir. Dulu
-                                    membuka Februari 2026 tetap menyorot Juni:
-                                    judul halaman, keempat KPI, dan grafik ini
-                                    menunjuk tiga bulan yang berbeda sekaligus. */}
-                                {cakupanEnamBulan.map((c) => (
-                                    <Batang
-                                        key={c.periodeId}
-                                        cakupan={c}
-                                        kini={c.periodeId === periode.id}
+                                {/* Seluruh angka status gizi lain adalah potret
+                                    satu bulan; kartu ini yang menjawab
+                                    pertanyaan pembina: membaik atau memburuk. */}
+                                <section className="kartu flex min-w-0 flex-col px-4 py-3.5">
+                                    <KepalaKartu
+                                        judul="Tren status gizi"
+                                        sub={rentang}
                                     />
-                                ))}
+
+                                    {/* Di layar lebar ketiga baris berbagi sisa
+                                        tinggi kartu, dan batangnya ikut
+                                        memanjang; tanpa ini separuh kartu
+                                        kosong. */}
+                                    <div className="mt-2 flex flex-col gap-1.5 lg:flex-1">
+                                        <BarisTren
+                                            label="Pendek"
+                                            nilai={trenGizi.map(
+                                                (t) => t.pendek,
+                                            )}
+                                            bulan={bulanTren}
+                                            puncak={puncakTren}
+                                            warna={WARNA_TREN.amber}
+                                        />
+                                        <BarisTren
+                                            label="Gizi kurang"
+                                            nilai={trenGizi.map(
+                                                (t) => t.giziKurang,
+                                            )}
+                                            bulan={bulanTren}
+                                            puncak={puncakTren}
+                                            warna={WARNA_TREN.merah}
+                                        />
+                                        <BarisTren
+                                            label="Gizi lebih dan obesitas"
+                                            nilai={trenGizi.map(
+                                                (t) => t.giziLebih,
+                                            )}
+                                            bulan={bulanTren}
+                                            puncak={puncakTren}
+                                            warna={WARNA_TREN.amber}
+                                        />
+
+                                        {/* Hanya ujung sumbu: enam label di
+                                            lajur 88 px saling berimpit. */}
+                                        {bulanTren.length > 0 && (
+                                            <div
+                                                aria-hidden="true"
+                                                className="grid grid-cols-[minmax(0,1fr)_88px] gap-2.5 text-sm 2xl:grid-cols-[minmax(0,1fr)_160px]"
+                                            >
+                                                <span />
+                                                <span className="flex justify-between">
+                                                    <span className="text-muted-foreground">
+                                                        {bulanTren[0].slice(
+                                                            0,
+                                                            3,
+                                                        )}
+                                                    </span>
+                                                    <span className="font-extrabold">
+                                                        {bulanTren[
+                                                            bulanTren.length - 1
+                                                        ].slice(0, 3)}
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </section>
                             </div>
-
-                            <p className="border-t border-border pt-3 text-sm text-pretty text-muted-foreground">
-                                Jumlah balita yang ditimbang dibagi sasaran
-                                bulan itu. Batang dimulai dari {DASAR_SUMBU}%,
-                                bukan 0, supaya selisih tiap bulan terlihat.
-                            </p>
-                        </section>
-
-                        {/* Kartu ketiga, bukan baris baru: baris ini tingginya
-                            tetap dan daftar Perlu perhatian di bawahnya yang
-                            menyerap sisa layar, jadi kolom ketiga tidak
-                            menambah tinggi halaman sama sekali.
-
-                            Sebelum ini hanya D/S yang punya tren. Seluruh angka
-                            status gizi di Portal adalah potret satu bulan, dan
-                            tidak ada satu layar pun yang bisa menjawab
-                            pertanyaan yang paling sering ditanyakan pembina:
-                            membaik atau memburuk. */}
-                        <section className="kartu flex flex-col gap-3 p-4">
-                            <h2 className="text-xl leading-snug font-extrabold">
-                                Tren status gizi, enam bulan
-                            </h2>
-
-                            {/* Satu skala untuk ketiga baris. */}
-                            <div className="flex flex-col gap-2.5">
-                                <BarisTren
-                                    puncak={puncakTren}
-                                    label="Pendek"
-                                    warna="text-tone-amber"
-                                    warnaBatang="bg-tone-amber"
-                                    nilai={trenGizi.map((t) => t.pendek)}
-                                />
-                                <BarisTren
-                                    puncak={puncakTren}
-                                    label="Gizi kurang"
-                                    warna="text-tone-red"
-                                    warnaBatang="bg-tone-red"
-                                    nilai={trenGizi.map((t) => t.giziKurang)}
-                                />
-                                <BarisTren
-                                    puncak={puncakTren}
-                                    label="Gizi lebih"
-                                    warna="text-tone-amber"
-                                    warnaBatang="bg-tone-amber"
-                                    nilai={trenGizi.map((t) => t.giziLebih)}
-                                />
-                            </div>
-
-                            <p className="mt-auto border-t border-border pt-3 text-sm text-pretty text-muted-foreground">
-                                Jumlah anak, bukan persen. Penyebutnya yang
-                                ditimbang tiap bulan, bukan sasaran: anak yang
-                                tidak hadir tidak punya status gizi. Batang
-                                terakhir bulan berjalan.
-                            </p>
-                        </section>
-                    </div>
-
-                    <section className="kartu flex flex-col overflow-hidden lg:min-h-0 lg:flex-1">
-                        {/* Jumlah anak berada di header tabel, bukan sebagai
-                            kartu KPI tersendiri. */}
-                        <div className="strip-kepala flex shrink-0 flex-wrap items-center gap-x-3.5 gap-y-2">
-                            <h2 className="text-xl font-extrabold">
-                                Perlu perhatian
-                            </h2>
-                            {/* Nol tidak memakai pil. Latar netral di atas
-                                strip kepala hanya berbeda 1,08:1 - pil yang
-                                tidak terlihat sebagai pil - dan kabar baik
-                                memang tidak perlu dibingkai sekeras kabar
-                                buruk. */}
-                            {perluPerhatian.length === 0 ? (
-                                <span className="text-sm font-semibold text-muted-foreground">
-                                    tidak ada
-                                </span>
-                            ) : (
-                                <span className="rounded-md bg-tone-red-bg px-3 py-1.5 text-sm font-bold text-tone-red">
-                                    {perluPerhatian.length} balita
-                                </span>
-                            )}
-                            {perluPerhatian.length > 1 && (
-                                <span className="ml-auto text-sm text-muted-foreground">
-                                    Paling mendesak di atas
-                                </span>
-                            )}
                         </div>
 
-                        {perluPerhatian.length === 0 ? (
-                            <p className="px-5 py-6 text-base text-muted-foreground sm:px-6">
-                                Tidak ada balita berkategori perlu tindak lanjut
-                                pada {periode.label}.
-                            </p>
-                        ) : (
-                            /* Daftarnya yang menggulir, bukan halamannya.
-                               `tabIndex` wajib: wadah bergulir yang tidak bisa
-                               digeser panah papan tombol melanggar WCAG 2.1.1,
-                               dan tujuh dari sepuluh anak ada di bawah lipatan
-                               kartu ini. */
-                            <ul
-                                tabIndex={0}
-                                aria-label={`Daftar ${perluPerhatian.length} balita yang perlu perhatian, dapat digulir`}
-                                className="gulir-dalam divide-y-2 divide-border lg:min-h-0 lg:flex-1 lg:overflow-y-auto"
-                            >
-                                {perluPerhatian.map((anak) => (
-                                    <li key={anak.anakId}>
-                                        <Link
-                                            href={`/balita/${anak.anakId}`}
-                                            className="flex min-h-16 flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5 hover:bg-surface-subtle sm:px-5"
-                                        >
-                                            {/* Petak inisial artboard. Ia
-                                                penanda tempat, bukan foto:
-                                                tidak ada anak yang punya
-                                                potret di arsip. */}
-                                            <span
-                                                aria-hidden="true"
-                                                className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-surface-alt text-sm font-bold text-muted-foreground"
-                                            >
-                                                {inisial(anak.nama)}
-                                            </span>
-
-                                            {/* Sama seperti spanduk di atas:
-                                                dua `flex-1 min-w-0` bersebelahan
-                                                saling memeras sampai 54 px. */}
-                                            <span className="min-w-40 flex-1 sm:w-72 sm:flex-none">
-                                                <span className="block text-base leading-snug font-bold">
-                                                    {namaTampil(anak.nama)}
-                                                </span>
-                                                <span className="block text-sm text-muted-foreground">
-                                                    {umurRingkas(
-                                                        anak.umurBulan,
-                                                    )}
-                                                    {/* Dipadkan dua digit seperti
-                                                        di Data Balita, Laporan,
-                                                        dan Detail. Beranda satu-
-                                                        satunya yang menulis
-                                                        "RT 6", dan anak yang sama
-                                                        jadi "RT 06" satu klik
-                                                        kemudian. */}
-                                                    , RT{' '}
-                                                    {anak.rt === null
-                                                        ? KOSONG
-                                                        : anak.rt.padStart(
-                                                              2,
-                                                              '0',
-                                                          )}
-                                                </span>
-                                            </span>
-
-                                            <StatusGiziBadge
-                                                kategori={anak.kategori}
-                                            />
-
-                                            {/* Baris alasan wajib ada: angka
-                                                tanpa sebab tidak bisa
-                                                ditindaklanjuti. */}
-                                            <span className="min-w-56 flex-1 text-base text-muted-foreground">
-                                                {anak.alasan}
-                                            </span>
-
-                                            <ChevronRight
-                                                className="size-5 shrink-0 text-muted-foreground"
-                                                strokeWidth={2.5}
-                                                aria-hidden="true"
-                                            />
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </section>
+                        <DaftarPerhatian anak={perluPerhatian} />
+                    </div>
                 </div>
             )}
         </Halaman>
     );
 }
 
-/** Satu kartu KPI: petak ikon 52 px, label, angka 36 px, keterangan. */
-function Kpi({
-    ikon: Ikon,
-    label,
-    nilai,
-    bawah,
-    sorot = false,
+/** Pita "belum terkirim" di bilah kepala. */
+function PitaTertahan({
+    antrean,
+    onKirim,
 }: {
-    ikon: ComponentType<{ className?: string; strokeWidth?: number }>;
-    label: string;
-    nilai: number | string;
-    bawah: string;
-    sorot?: boolean;
+    antrean: AntreanKirim;
+    onKirim?: () => void;
 }) {
     return (
-        <div className="kartu flex flex-col gap-1.5 p-3">
-            <span
+        <div
+            role="status"
+            className="flex items-center gap-3.5 rounded-lg border border-tone-amber bg-tone-amber-bg py-1.5 pr-1.5 pl-4"
+        >
+            <CloudOff
+                className="size-6 shrink-0 text-tone-amber"
+                strokeWidth={2.5}
                 aria-hidden="true"
-                className={`flex size-13 items-center justify-center rounded-lg ${
-                    sorot ? 'bg-accent' : 'bg-surface'
-                }`}
-            >
-                <Ikon
-                    className={`size-7 ${sorot ? 'text-primary' : 'text-muted-foreground'}`}
-                    strokeWidth={2.5}
-                />
+            />
+            {/* Kalimat kedua yang penting: kader perlu tahu ini bukan
+                kehilangan data, hanya tertunda. */}
+            <span className="flex min-w-0 grow flex-col text-sm text-pretty">
+                <span className="font-bold text-tone-amber">
+                    {antrean.jumlah} hasil ukur belum terkirim
+                </span>
+                <span>
+                    Tersimpan di perangkat ini sejak {antrean.sejak}. Tidak ada
+                    yang hilang.
+                </span>
             </span>
-            <p className="flex-1 text-sm font-bold text-muted-foreground">
-                {label}
-            </p>
-            <p className="text-3xl leading-none font-extrabold">{nilai}</p>
-            <p className="text-sm text-muted-foreground">{bawah}</p>
-        </div>
-    );
-}
-
-/** Satu sel pada petak rambut Status gizi. */
-function SelGizi({
-    label,
-    nilai,
-    warna,
-    lebar,
-}: {
-    label: string;
-    nilai: number;
-    warna: string;
-    /** Melebar ke dua kolom supaya baris terakhir tidak menyisakan lubang. */
-    lebar: boolean;
-}) {
-    return (
-        <div className={`bg-card px-3 py-2 ${lebar ? 'sm:col-span-2' : ''}`}>
-            {/* Nol direndahkan. Nol yang dicetak merah setebal angka sungguhan
-                membuat kabar baik terbaca sekeras kabar buruk. */}
-            <p
-                className={`text-3xl leading-none font-extrabold ${
-                    nilai === 0 ? 'text-muted-foreground' : warna
-                }`}
+            <button
+                type="button"
+                onClick={onKirim}
+                className="tombol-kedua shrink-0 border-tone-amber px-4 font-bold text-tone-amber"
             >
-                {nilai}
-            </p>
-            {/* Kategori selalu berupa teks; warna hanya pendukung. */}
-            <p className="mt-1 text-sm text-pretty text-muted-foreground">
-                {label}
-            </p>
+                <RotateCw
+                    className="size-5"
+                    strokeWidth={2.5}
+                    aria-hidden="true"
+                />
+                Kirim ulang
+            </button>
         </div>
     );
 }
 
 /**
- * Satu baris tren: nama masalah, angka bulan ini, dan enam batang kecil.
- *
- * Angka, bukan persen. Kartu di sebelahnya juga menghitung anak, dan seorang
- * kader menindaklanjuti lima anak — bukan lima persen. Persennya tetap bisa
- * dibaca dari kartu Cakupan di sebelah kanan.
+ * Cakupan bulan ini dibanding bulan sebelumnya pada deret enam bulan, sebagai
+ * keterangan pendek. Undefined bila periode ini yang pertama atau bulan lalu
+ * tanpa sasaran.
  */
-function BarisTren({
+function bandingBulanLalu(
+    deret: CakupanPeriode[],
+    periodeId: string,
+    cakupan: number,
+): string | undefined {
+    const i = deret.findIndex((c) => c.periodeId === periodeId);
+    const lalu = i > 0 ? deret[i - 1] : undefined;
+
+    if (lalu === undefined || lalu.sasaran === 0) {
+        return undefined;
+    }
+
+    const persenLalu = persenSaja(lalu.ditimbang, lalu.sasaran);
+
+    if (cakupan === persenLalu) {
+        return `sama dengan ${namaBulan(lalu.label)}`;
+    }
+
+    return `${cakupan > persenLalu ? 'naik' : 'turun'} dari ${persenLalu}%`;
+}
+
+/** Satu KPI ramping: petak ikon, label, angka, dan keterangan pendek. */
+function Kpi({
+    ikon: Ikon,
     label,
-    warna,
-    warnaBatang,
     nilai,
-    puncak,
+    keterangan,
+    netral = false,
 }: {
+    ikon: ComponentType<{ className?: string; strokeWidth?: number }>;
     label: string;
-    warna: string;
-    warnaBatang: string;
-    /** Enam bulan, terlama di kiri. Bulan berjalan yang terakhir. */
-    nilai: number[];
-    /**
-     * Puncak BERSAMA ketiga baris, bukan puncak baris ini sendiri.
-     *
-     * Diskalakan per baris, batang setinggi sama berarti angka yang berbeda di
-     * tiap baris — enam anak pendek dan tiga anak gizi kurang sama-sama
-     * menyentuh langit-langit. Satu skala membuat ketiganya bisa dibandingkan
-     * dengan mata.
-     */
-    puncak: number;
+    nilai: number | string;
+    keterangan: string;
+    /** Petak ikon abu untuk Sasaran; angka hasil kegiatan berpetak hijau. */
+    netral?: boolean;
 }) {
-    const kini = nilai[nilai.length - 1];
-
     return (
-        <div className="flex items-center gap-3">
-            <span className="w-24 shrink-0 text-sm text-pretty">{label}</span>
-
-            {/* Nol diredupkan, sama seperti petak Status gizi di sebelah:
-                kabar baik tidak perlu dicetak sekeras kabar buruk. */}
+        <section className="kartu flex min-w-0 items-center gap-3.5 px-4 py-3">
             <span
-                className={`w-7 shrink-0 text-right text-2xl leading-none font-extrabold ${
-                    kini === 0 ? 'text-muted-foreground' : warna
+                aria-hidden="true"
+                className={`flex size-11.5 shrink-0 items-center justify-center rounded-[12px] ${
+                    netral
+                        ? 'bg-surface-alt text-muted-foreground'
+                        : 'bg-accent text-primary'
                 }`}
             >
-                {kini}
+                <Ikon className="size-6" strokeWidth={2.5} />
             </span>
+            <div className="min-w-0">
+                <h2 className="truncate text-sm leading-snug font-bold text-muted-foreground">
+                    {label}
+                </h2>
+                {/* Membungkus di kartu sempit (tablet tegak): keterangannya
+                    turun ke bawah angka, bukan meluber keluar kartu. */}
+                <p className="flex flex-wrap items-baseline gap-x-1.5">
+                    <span className="text-3xl leading-[1.1] font-extrabold tracking-tight tabular-nums">
+                        {nilai}
+                    </span>
+                    <span className="text-sm text-muted-foreground">
+                        {keterangan}
+                    </span>
+                </p>
+            </div>
+        </section>
+    );
+}
 
-            <span className="flex h-11 flex-1 items-end gap-1">
-                {nilai.map((n, urutan) => {
-                    const terakhir = urutan === nilai.length - 1;
+/** Judul kartu dengan keterangan redup di kanannya. */
+function KepalaKartu({ judul, sub }: { judul: string; sub: ReactNode }) {
+    return (
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3.5 gap-y-0.5">
+            <h2 className="text-lg font-extrabold">{judul}</h2>
+            <span className="text-sm text-muted-foreground">{sub}</span>
+        </div>
+    );
+}
 
-                    return (
-                        <span
-                            key={urutan}
-                            /* Nol digambar sebagai garis dasar 2 px, bukan
-                               batang pendek: batang pendek terbaca "sedikit",
-                               padahal artinya tidak ada. */
-                            className={`flex-1 rounded-t-sm ${
-                                n === 0
-                                    ? 'bg-border'
-                                    : terakhir
-                                      ? warnaBatang
-                                      : 'bg-border-strong'
-                            }`}
-                            style={{
-                                height:
-                                    n === 0 ? '2px' : `${(n / puncak) * 100}%`,
-                            }}
-                        />
-                    );
-                })}
+/** "Juni 2026" menjadi "Juni". */
+function namaBulan(label: string): string {
+    return label.split(' ')[0];
+}
+
+/**
+ * "Januari – Juni 2026", atau lengkap kedua ujungnya bila tahunnya berbeda.
+ * Label periode berbentuk "<bulan> <tahun>".
+ */
+function rentangBulan(label: string[]): string {
+    if (label.length === 0) {
+        return '';
+    }
+
+    const awal = label[0];
+    const akhir = label[label.length - 1];
+    const [bulanAwal, tahunAwal] = awal.split(' ');
+
+    return tahunAwal === akhir.split(' ')[1]
+        ? `${bulanAwal} – ${akhir}`
+        : `${awal} – ${akhir}`;
+}
+
+/**
+ * Satu petak Status gizi. Nada dan ikonnya dari lencana kategori, supaya
+ * petak dan lencana di daftar sebelahnya tidak pernah berbeda warna. Nol pada
+ * kategori masalah adalah kabar baik: abu, tanpa warna peringatan.
+ */
+function PetakGizi({ label, nilai }: { label: string; nilai: number }) {
+    const nada = nadaKategori(label);
+    const Ikon = IKON[nada];
+    const kelas =
+        nilai === 0 && nada !== 'hijau'
+            ? 'bg-surface text-muted-foreground'
+            : KELAS[nada];
+
+    return (
+        <li
+            className={`flex flex-col gap-0.5 rounded-lg px-2.5 py-1.5 ${kelas}`}
+        >
+            <span className="flex items-center gap-1.5 text-2xl leading-tight font-extrabold tabular-nums">
+                <Ikon
+                    className="size-5 shrink-0"
+                    strokeWidth={2.5}
+                    aria-hidden="true"
+                />
+                {nilai}
+            </span>
+            {/* Kategori selalu berupa teks; warna dan ikon hanya pendukung. */}
+            <span className="text-sm leading-tight font-semibold">{label}</span>
+        </li>
+    );
+}
+
+/** Batang cakupan bulanan: persen di atas, batang di bawahnya. */
+function BatangCakupan({
+    cakupan,
+    kini,
+}: {
+    cakupan: CakupanPeriode;
+    kini: boolean;
+}) {
+    const nilai = persenSaja(cakupan.ditimbang, cakupan.sasaran);
+
+    // Tinggi dalam persen ruang grafik, bukan px, supaya batang ikut
+    // memanjang bersama kartunya. Dari 0%, bukan dari sumbu yang dinaikkan:
+    // panjang batang sebanding dengan angkanya, jadi grafik ini tidak butuh
+    // catatan peringatan, dan bulan dengan cakupan rendah tetap punya batang.
+    // `pt-6` menyisakan tempat untuk angka di atas batang 100%.
+    return (
+        <div className="flex h-full flex-col items-center justify-end pt-6">
+            {/* Judul bawaan peramban memberi pembilang dan penyebutnya saat
+                disentuh tetikus; angkanya sendiri sudah tercetak di atas. */}
+            <span
+                title={pecahan(cakupan.ditimbang, cakupan.sasaran)}
+                className={`relative w-full max-w-[40px] rounded-t-[8px] ${kini ? 'bg-primary' : 'bg-input'}`}
+                style={{ height: `${Math.min(nilai, 100)}%` }}
+            >
+                <span
+                    className={`absolute bottom-full left-1/2 mb-1 -translate-x-1/2 text-sm whitespace-nowrap tabular-nums ${
+                        kini
+                            ? 'font-extrabold text-primary'
+                            : 'font-bold text-muted-foreground'
+                    }`}
+                >
+                    {nilai}%
+                </span>
             </span>
         </div>
     );
 }
 
-/** Satu batang cakupan bulanan: persen di atas, jalur 172 px, bulan di bawah. */
-function Batang({ cakupan, kini }: { cakupan: CakupanPeriode; kini: boolean }) {
-    const nilai = persenSaja(cakupan.ditimbang, cakupan.sasaran);
-    const tinggi = Math.max(
-        0,
-        ((nilai - DASAR_SUMBU) / (100 - DASAR_SUMBU)) * 100,
-    );
-    const nada = kini
-        ? 'font-bold text-primary'
-        : 'font-normal text-muted-foreground';
+/** Warna angka dan batang bulan berjalan pada kartu Tren. */
+const WARNA_TREN = {
+    amber: { teks: 'text-tone-amber', batang: 'bg-[#c77f0a]' },
+    merah: { teks: 'text-tone-red', batang: 'bg-tone-red' },
+};
+
+/**
+ * Satu baris tren: nama masalah dengan selisih dari bulan lalu, lalu enam
+ * batang kecil. Angka bulan berjalan dicetak lebih besar dan berwarna.
+ *
+ * Angka, bukan persen: seorang kader menindaklanjuti lima anak, bukan lima
+ * persen.
+ */
+function BarisTren({
+    label,
+    nilai,
+    bulan,
+    puncak,
+    warna,
+}: {
+    label: string;
+    /** Enam bulan, terlama di kiri. Bulan berjalan yang terakhir. */
+    nilai: number[];
+    /** Nama bulan tiap nilai, untuk teks alternatif grafiknya. */
+    bulan: string[];
+    /**
+     * Puncak BERSAMA ketiga baris, bukan puncak baris ini sendiri: batang
+     * setinggi sama harus berarti angka yang sama di baris mana pun.
+     */
+    puncak: number;
+    warna: { teks: string; batang: string };
+}) {
+    const kini = nilai[nilai.length - 1];
+    const selisih = nilai.length > 1 ? kini - nilai[nilai.length - 2] : null;
+    const bulanLalu = bulan[bulan.length - 2] ?? '';
+
+    // Untuk masalah gizi, bertambah berarti memburuk: merah saat naik.
+    const [kelasSelisih, IkonSelisih, teksSelisih] =
+        selisih === null
+            ? [null, null, null]
+            : selisih > 0
+              ? [
+                    'bg-tone-red-bg text-tone-red',
+                    TrendingUp,
+                    `+${selisih} dari ${bulanLalu}`,
+                ]
+              : selisih < 0
+                ? [
+                      'bg-tone-green-bg text-tone-green',
+                      TrendingDown,
+                      `−${-selisih} dari ${bulanLalu}`,
+                  ]
+                : [
+                      'bg-surface-alt text-muted-foreground',
+                      Minus,
+                      `Sama dengan ${bulanLalu}`,
+                  ];
 
     return (
-        <div className="flex min-w-0 flex-1 flex-col items-center gap-2">
-            <span className={`text-sm ${nada}`}>{nilai}%</span>
-            <span
-                className={`flex w-full ${TINGGI_BAR} items-end justify-center`}
+        <div className="grid grid-cols-[minmax(0,1fr)_88px] items-end gap-2.5 border-b border-rule pb-1.5 lg:flex-1 2xl:grid-cols-[minmax(0,1fr)_160px]">
+            <div className="min-w-0">
+                <p className="text-base leading-tight font-bold">{label}</p>
+                {IkonSelisih !== null && (
+                    <span
+                        className={`mt-0.5 inline-flex items-center gap-1 rounded-md px-2 text-sm font-bold whitespace-nowrap ${kelasSelisih}`}
+                    >
+                        <IkonSelisih
+                            className="size-3.5"
+                            strokeWidth={2.5}
+                            aria-hidden="true"
+                        />
+                        {teksSelisih}
+                    </span>
+                )}
+            </div>
+
+            <div
+                role="img"
+                aria-label={`${label}: ${nilai.map((n, i) => `${bulan[i]} ${n}`).join(', ')}`}
+                className="grid h-[56px] grid-cols-6 items-end gap-[5px] lg:h-full lg:min-h-[56px]"
             >
-                {/* Judul bawaan peramban memberi pembilang dan penyebutnya saat
-                    disentuh tetikus; angkanya sendiri sudah tercetak di atas. */}
-                <span
-                    title={pecahan(cakupan.ditimbang, cakupan.sasaran)}
-                    className={`w-2/5 rounded-t-sm ${kini ? 'bg-primary' : 'bg-border'}`}
-                    style={{ height: `${tinggi}%` }}
-                />
-            </span>
-            {/* Tanpa `whitespace-nowrap`: pada 375 px "Februari 2026"
-                meluber 3 px keluar kolomnya — satu-satunya luapan tak
-                disengaja yang terukur di seluruh Portal. Dibiarkan
-                membungkus dua baris, tidak ada informasi yang hilang. */}
-            <span className={`text-center text-sm ${nada}`}>
-                {cakupan.label}
-            </span>
+                {nilai.map((n, urutan) => {
+                    const terakhir = urutan === nilai.length - 1;
+
+                    return (
+                        <div
+                            key={urutan}
+                            className="flex h-full flex-col items-center justify-end pt-7"
+                        >
+                            {/* Nol digambar sebagai garis dasar 2 px, bukan
+                                batang pendek: batang pendek terbaca
+                                "sedikit", padahal artinya tidak ada. Tinggi
+                                lainnya dalam persen ruang batang; `pt-7`
+                                menyisakan tempat untuk angka di atasnya. */}
+                            <span
+                                className={`relative w-full max-w-[24px] rounded-t-[3px] ${
+                                    terakhir ? warna.batang : 'bg-input'
+                                }`}
+                                style={{
+                                    height:
+                                        n === 0
+                                            ? '2px'
+                                            : `${(n / puncak) * 100}%`,
+                                }}
+                            >
+                                <span
+                                    className={`absolute bottom-full left-1/2 mb-px -translate-x-1/2 leading-tight tabular-nums ${
+                                        terakhir
+                                            ? `text-lg font-extrabold ${n === 0 ? 'text-muted-foreground' : warna.teks}`
+                                            : 'text-sm font-semibold text-muted-foreground'
+                                    }`}
+                                >
+                                    {n}
+                                </span>
+                            </span>
+                        </div>
+                    );
+                })}
+            </div>
         </div>
+    );
+}
+
+/** Daftar Perlu perhatian: kepala tetap, isinya digulir di dalam kartu. */
+function DaftarPerhatian({ anak }: { anak: AnakPerluPerhatian[] }) {
+    return (
+        <section
+            aria-labelledby="judul-perlu"
+            className="kartu flex min-w-0 flex-col overflow-hidden lg:min-h-0"
+        >
+            <div className="flex shrink-0 flex-wrap items-baseline justify-between gap-x-3.5 gap-y-1 border-b-2 border-border-strong bg-surface px-5.5 py-3.5">
+                <h2 id="judul-perlu" className="text-xl font-extrabold">
+                    Perlu perhatian
+                </h2>
+                {anak.length > 0 && (
+                    <span className="text-sm text-muted-foreground">
+                        {anak.length} balita
+                        {anak.length > 1 && ' · paling mendesak di atas'}
+                    </span>
+                )}
+            </div>
+
+            {anak.length === 0 ? (
+                <p className="px-5.5 py-6 text-base text-muted-foreground">
+                    Tidak ada balita yang perlu perhatian bulan ini.
+                </p>
+            ) : (
+                /* `tabIndex` wajib: wadah bergulir yang tidak bisa digeser
+                   panah papan tombol melanggar WCAG 2.1.1. */
+                <ul
+                    tabIndex={0}
+                    aria-label={`Daftar ${anak.length} balita yang perlu perhatian, gulir untuk melihat semua`}
+                    className="gulir-dalam lg:min-h-0 lg:flex-1 lg:overflow-y-auto"
+                >
+                    {anak.map((a) => (
+                        <li key={a.anakId} className="border-b border-rule">
+                            <Link
+                                href={`/balita/${a.anakId}`}
+                                className="flex min-h-[64px] items-center gap-3.5 py-2.5 pr-4.5 pl-5.5 hover:bg-surface-subtle"
+                            >
+                                {/* Penanda tempat, bukan foto: tidak ada anak
+                                    yang punya potret di arsip. */}
+                                <span
+                                    aria-hidden="true"
+                                    className="flex size-11.5 shrink-0 items-center justify-center rounded-full bg-surface-alt text-sm font-bold text-muted-foreground"
+                                >
+                                    {inisial(a.nama)}
+                                </span>
+
+                                <span className="flex min-w-0 grow flex-col gap-1">
+                                    <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                                        <span className="text-base font-bold">
+                                            {namaTampil(a.nama)}
+                                        </span>
+                                        <StatusGiziBadge
+                                            kategori={a.kategori}
+                                        />
+                                    </span>
+                                    {/* Baris alasan wajib ada: angka tanpa
+                                        sebab tidak bisa ditindaklanjuti. RT
+                                        dua digit, sama dengan layar lain. */}
+                                    <span className="text-sm">
+                                        <span className="text-muted-foreground">
+                                            {umurRingkas(a.umurBulan)}, RT{' '}
+                                            {a.rt === null
+                                                ? KOSONG
+                                                : a.rt.padStart(2, '0')}{' '}
+                                            ·
+                                        </span>{' '}
+                                        {a.alasan}
+                                    </span>
+                                </span>
+
+                                <ChevronRight
+                                    className="size-5 shrink-0 text-muted-foreground"
+                                    strokeWidth={2.5}
+                                    aria-hidden="true"
+                                />
+                            </Link>
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </section>
     );
 }
 
 /** Skeleton berbentuk kartu dan baris, bukan spinner (bagian 6.3). */
 function Skeleton() {
     return (
-        <div className="flex animate-pulse flex-col gap-7" aria-hidden="true">
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                <div className="kartu h-44" />
-                <div className="kartu h-44" />
-                <div className="kartu h-44" />
-                <div className="kartu h-44" />
+        <div className="flex animate-pulse flex-col gap-3.5" aria-hidden="true">
+            <div className="grid grid-cols-2 gap-3.5 md:grid-cols-4">
+                <div className="kartu h-19" />
+                <div className="kartu h-19" />
+                <div className="kartu h-19" />
+                <div className="kartu h-19" />
             </div>
-            <div className="grid shrink-0 gap-3 lg:grid-cols-[1fr_1.35fr]">
-                <div className="kartu h-72" />
-                <div className="kartu h-72" />
+            <div className="grid gap-4.5 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+                <div className="flex flex-col gap-3.5">
+                    <div className="kartu h-36" />
+                    <div className="kartu h-64" />
+                </div>
+                <div className="kartu h-100" />
             </div>
-            <div className="kartu h-56" />
         </div>
     );
 }

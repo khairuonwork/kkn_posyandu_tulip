@@ -11,11 +11,12 @@
  * menyalakan Docker, basis data, dan server.
  */
 
-import { LogOut } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import { bacaRute, boleh, Cangkang } from '@/app-shell';
+import { bacaRute, boleh, Cangkang, KartuAkun } from '@/app-shell';
 import {
+    daftarRt,
     PENGATURAN_BAWAAN,
     PENGGUNA_CONTOH,
     periodeTerbaru,
@@ -39,7 +40,7 @@ import type { Pengguna, Peran } from '@/types/posyandu';
  * Portal hanya melaporkannya. Di demo angkanya tetap, supaya keadaan ini
  * terlihat tanpa harus mematikan jaringan.
  */
-const ANTREAN_CONTOH = { jumlah: 3, sejak: '13 Juni, 09.12' };
+const ANTREAN_CONTOH = { jumlah: 3, sejak: '13 Juni, pukul 09.12' };
 
 const NAMA_PERAN: Record<Peran, string> = {
     kader: 'Kader',
@@ -48,7 +49,7 @@ const NAMA_PERAN: Record<Peran, string> = {
 };
 
 const KETERANGAN_PERAN: Record<Peran, string> = {
-    kader: 'Melihat data balita di RT binaannya',
+    kader: 'Mencatat penimbangan di RT binaannya',
     bidan: 'Melihat semua RT, mengoreksi data',
     admin: 'Mengubah batas dan mengelola pengguna',
 };
@@ -67,7 +68,7 @@ export default function DemoApp() {
     if (peran === null) {
         return (
             <Login
-                awal={{ email: 'bidan@posyandutulip.id', sandi: 'rahasia' }}
+                awal={{ username: 'bidan', sandi: 'rahasia' }}
                 catatan="Mode demo — data contoh, tidak tersimpan."
                 pemilihPeran={
                     <KartuPeran
@@ -134,22 +135,18 @@ function PortalDemo({
         }
     }, [peran, rute]);
 
-    const pemilih = (ruang: string) => (
-        <PemilihPeran
-            nama={`peran-${ruang}`}
-            peran={peran}
-            onGanti={onGantiPeran}
-            onKeluar={onKeluar}
-        />
-    );
-
     return (
         <Cangkang
             peran={peran}
             periodeId={periodeId}
             onPindahPeriode={setPeriodeId}
-            kakiSidebar={pemilih('sisi')}
-            kakiHalaman={pemilih('kaki')}
+            kakiSidebar={
+                <PemilihPeran
+                    peran={peran}
+                    onGanti={onGantiPeran}
+                    onKeluar={onKeluar}
+                />
+            }
         >
             <Layar
                 rute={rute}
@@ -167,27 +164,47 @@ function PortalDemo({
                 antrean={periodeId === periodeTerbaru ? antrean : undefined}
                 onCobaKirim={() => setAntrean(undefined)}
                 onSimpanAnak={(anakId, patch) =>
-                    setKoreksi((k) => ({ ...k, [anakId]: patch }))
+                    setKoreksi((k) => ({
+                        ...k,
+                        // Dialog Ubah data dan editor baris mengisi kolom
+                        // yang berbeda; keduanya ditumpuk, bukan saling ganti.
+                        [anakId]: { ...k[anakId], ...patch },
+                    }))
                 }
                 onTambahAnak={(baru) => setTambahan((t) => [...t, baru])}
                 ambang={ambang}
                 onSimpanAmbang={setAmbang}
                 standarisasi={standarisasi}
                 onSimpanStandarisasi={setStandarisasi}
-                pengguna={pengguna}
-                onSimpanPengguna={setPengguna}
+                pengguna={{ status: 'siap', pengguna, wilayahRt: daftarRt() }}
+                /* Demo tidak punya server: aturan akun cukup diperiksa dialog,
+                   dan kata sandinya tidak disimpan ke mana pun. */
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars -- sengaja dibuang
+                onSimpanPengguna={async (id, { kataSandi, ...isi }) => {
+                    setPengguna((d) =>
+                        id === null
+                            ? [
+                                  ...d,
+                                  {
+                                      ...isi,
+                                      id:
+                                          Math.max(0, ...d.map((p) => p.id)) +
+                                          1,
+                                  },
+                              ]
+                            : d.map((p) =>
+                                  p.id === id ? { ...p, ...isi } : p,
+                              ),
+                    );
+
+                    return null;
+                }}
             />
         </Cangkang>
     );
 }
 
-/**
- * Kartu radio peran, dipakai layar Masuk maupun sidebar.
- *
- * `nama` dibedakan tiap tempat: pemilih ini dirender dua kali sekaligus di
- * sidebar dan di kaki halaman, dan dua grup radio bernama sama akan saling
- * membatalkan pilihan.
- */
+/** Kartu radio peran di layar Masuk, lengkap dengan keterangan tiap peran. */
 function KartuPeran({
     nama,
     peran,
@@ -237,45 +254,59 @@ function KartuPeran({
 }
 
 /**
- * Perkakas demo di cangkang: mengganti peran tanpa keluar-masuk.
+ * Perkakas demo di kaki sidebar: mengganti peran tanpa keluar-masuk.
  *
- * Menetap di sidebar pada desktop dan di kaki halaman pada ponsel, bukan
- * tersembunyi di menu profil: saat demo, pemirsa harus melihat sendiri peran
- * yang sedang aktif.
+ * Bentuknya kaki sidebar aplikasi sungguhan — "Masuk sebagai" dan tombol
+ * Keluar — dengan nama peran yang bisa dipilih. Dirender di sidebar dan di
+ * laci menu sekaligus, jadi labelnya membungkus <select> alih-alih memakai `id`.
  */
 function PemilihPeran({
-    nama,
     peran,
     onGanti,
     onKeluar,
 }: {
-    nama: string;
     peran: Peran;
     onGanti: (peran: Peran) => void;
     onKeluar: () => void;
 }) {
+    // Nama akun contoh untuk peran ini, supaya kartu akun demo sama dengan
+    // aplikasi sungguhan.
+    const nama =
+        PENGGUNA_CONTOH.find((p) => p.peran === peran && p.aktif)?.nama ??
+        NAMA_PERAN[peran];
+
     return (
-        <div className="border-t border-border px-4 py-3 lg:border-t-0 lg:px-5 lg:py-4">
-            <p className="text-sm font-semibold text-muted-foreground">
-                Masuk sebagai
+        <div>
+            <KartuAkun
+                nama={nama}
+                onKeluar={onKeluar}
+                peran={
+                    /* Di demo, peran di bawah nama sekaligus pemilih peran. */
+                    <span className="relative inline-flex items-center">
+                        <select
+                            aria-label="Ganti peran demo"
+                            value={peran}
+                            onChange={(e) => onGanti(e.target.value as Peran)}
+                            className="h-6.5 cursor-pointer appearance-none bg-transparent pr-5 text-sm text-[#2f6b4d]"
+                        >
+                            {URUTAN_PERAN.map((p) => (
+                                <option key={p} value={p}>
+                                    {NAMA_PERAN[p]}
+                                </option>
+                            ))}
+                        </select>
+                        <ChevronDown
+                            className="pointer-events-none absolute right-0 size-4 text-[#2f6b4d]"
+                            strokeWidth={2.5}
+                            aria-hidden="true"
+                        />
+                    </span>
+                }
+            />
+
+            <p className="mt-1.5 text-xs text-muted-foreground">
+                Perkakas demo. Di aplikasi sungguhan, peran mengikuti akun.
             </p>
-
-            <div className="mt-2">
-                <KartuPeran nama={nama} peran={peran} onGanti={onGanti} />
-            </div>
-
-            <p className="mt-2 text-sm text-muted-foreground">
-                Perkakas demo — di aplikasi sungguhan peran datang dari akun.
-            </p>
-
-            <button
-                type="button"
-                onClick={onKeluar}
-                className="tombol-kedua mt-3 w-full"
-            >
-                <LogOut className="size-5" strokeWidth={2.5} />
-                Keluar
-            </button>
         </div>
     );
 }

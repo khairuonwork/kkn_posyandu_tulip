@@ -8,7 +8,7 @@
  * sampai sesinya kedaluwarsa dua belas jam kemudian.
  */
 
-import type { Pool } from 'pg';
+import type { Pool, PoolClient } from 'pg';
 
 import type { Peran, PenggunaAktif } from '../auth/peran.ts';
 
@@ -60,6 +60,24 @@ export async function hapus(pool: Pool, ringkasan: string): Promise<void> {
 /** Dipakai saat kata sandi diganti atau akun dinonaktifkan. */
 export async function hapusMilikPengguna(pool: Pool, penggunaId: number): Promise<void> {
     await pool.query('DELETE FROM sesi WHERE pengguna_id = $1', [penggunaId]);
+}
+
+/**
+ * Seperti `hapusMilikPengguna`, tetapi satu sesi boleh dipertahankan: sesi
+ * admin yang sedang mengganti kata sandinya sendiri. Tanpa pengecualian itu ia
+ * terlempar keluar di tengah pekerjaan. Dijalankan di dalam transaksi yang sama
+ * dengan perubahannya, supaya tidak ada jeda ketika sandi sudah berganti
+ * sementara sesi lamanya masih hidup.
+ */
+export async function hapusMilikPenggunaKecuali(
+    db: PoolClient,
+    penggunaId: number,
+    pertahankan: string | null,
+): Promise<void> {
+    await db.query('DELETE FROM sesi WHERE pengguna_id = $1 AND ringkasan IS DISTINCT FROM $2', [
+        penggunaId,
+        pertahankan,
+    ]);
 }
 
 /**

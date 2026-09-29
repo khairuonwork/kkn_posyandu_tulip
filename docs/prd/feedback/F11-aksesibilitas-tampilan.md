@@ -7,7 +7,7 @@
 | **PR** | `feat/f11-aksesibilitas` |
 | **Bergantung pada** | — |
 | **Terhambat** | — |
-| **Perubahan berarti terakhir** | 21 September 2026 |
+| **Perubahan berarti terakhir** | 29 September 2026 |
 
 ## 1. Latar
 
@@ -50,7 +50,7 @@ Tiga pilihan di Pengaturan, di kartu tersendiri. Menggantinya berlaku **seketika
 | **Normal** | 3,5 px | 14 px | Bawaan, nilai sekarang |
 | Besar | 4,5 px | 18 px | Layar besar, kader yang butuh teks besar |
 
-**Satu tuas, bukan puluhan.** Seluruh utilitas jarak Tailwind — `p-5`, `gap-7`, `h-13`, `size-13` — diturunkan dari `--spacing`, dan seluruh ukuran teks dari token `--text-*`. Keduanya berdiri di satu blok `@theme` di `app.css`. Mode besar **mendeklarasikan ulang token itu** di bawah `[data-ukuran='besar']`; tidak satu pun berkas `.tsx` disentuh, dan keenam layar ikut membesar bersama.
+**Satu tuas, bukan puluhan.** Seluruh utilitas jarak Tailwind — `p-5`, `gap-7`, `h-13`, `size-13` — diturunkan dari `--spacing`, dan seluruh ukuran teks dari token `--text-*`. Keduanya berdiri di satu blok `@theme` di `app.css`. Mode besar **mendeklarasikan ulang token itu** di bawah `[data-ukuran='besar']`; tidak satu pun berkas `.tsx` disentuh, dan seluruh layar ikut membesar bersama.
 
 Jarak ikut membesar bersama teks, bukan hanya teksnya. Catatan di `kms-chart.tsx` sudah membuktikan apa yang terjadi bila tidak: *"tiga kali berturut-turut angka ini dinaikkan tanpa pinggirannya ikut ditinjau, dan tiga kali pula teksnya bertabrakan."*
 
@@ -80,7 +80,7 @@ export type Ukuran = 'ringkas' | 'normal' | 'besar';
 
 Polanya: nilai disimpan di `localStorage`, dipasang sebagai atribut pada elemen akar, dan dibaca sebelum cat pertama supaya tidak ada kedipan ukuran saat halaman dibuka.
 
-> **Catatan 21 September 2026.** PRD ini semula merujuk `use-appearance.tsx` bawaan starter kit sebagai contoh. Berkas itu **ikut terhapus** bersama Laravel ([ADR-0006](../../adr/0006-pindah-ke-express-react-postgres.md)) dan tidak punya pengganti — polanya perlu ditulis dari nol. Isinya masih dapat dibaca dari riwayat git bila diperlukan.
+Kode untuk pola ini belum ada di repo; ditulis saat fitur ini dikerjakan.
 
 ## 5. Berkas yang disentuh
 
@@ -103,7 +103,7 @@ Nilai pada tabel bagian 3 adalah titik awal, bukan hasil pengukuran. Nilai akhir
 
 Diuji dengan `npm run demo` dari `client/`:
 
-- [ ] Memilih **Besar** membesarkan keenam layar **seketika**, tanpa muat ulang.
+- [ ] Memilih **Besar** membesarkan seluruh layar **seketika**, tanpa muat ulang.
 - [ ] Pilihannya bertahan setelah muat ulang.
 - [ ] Tidak ada kedipan ukuran saat halaman pertama kali dibuka.
 - [ ] Pada mode Besar di lebar **375 px**: tidak ada teks terpotong dan **tidak ada gulir mendatar** pada badan halaman.

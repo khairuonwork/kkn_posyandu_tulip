@@ -1,163 +1,132 @@
-		
+# SIMPATIK Posyandu
 
-# Portal Posyandu Tulip
+| | |
+|---|---|
+| **Jenis** | Panduan — pengembangan lokal |
+| **Status** | hidup |
+| **Perubahan berarti terakhir** | 29 September 2026 |
 
-Sistem pencatatan, pemantauan, dan pelaporan status gizi balita Posyandu Tulip RW 18, Kelurahan Citeureup.
+Sistem pencatatan, pemantauan, dan pelaporan status gizi balita Posyandu Tulip RW 18, Kelurahan Citeureup. Baru bergabung? Mulai dari [docs/mulai-di-sini.md](docs/mulai-di-sini.md): aplikasi ini apa, peta layarnya, dan apa yang dibaca berikutnya. Dokumentasi lengkap ada di [docs/](docs/README.md).
 
-Dokumentasi lengkap ada di [docs/](docs/README.md).
+| Folder | Isi |
+|---|---|
+| [`server/`](server/) | API dan perhitungan gizi: Node, TypeScript, PostgreSQL |
+| [`client/`](client/) | Antarmuka: React, Tailwind |
+| [`docs/`](docs/README.md) | Dokumentasi produk dan teknis |
 
-## Susunan repo
-
-| Direktori                  | Isi                                                                   |
-| -------------------------- | --------------------------------------------------------------------- |
-| [`server/`](server/)      | REST API dan mesin perhitungan gizi — Node + TypeScript + PostgreSQL |
-| [`client/`](client/)      | Antarmuka — React + Tailwind, SPA                                    |
-| [`docs/`](docs/README.md) | Dokumentasi produk, teknis, dan keputusan arsitektur                  |
-
-Dua paket berdiri sendiri, masing-masing dengan `package.json` sendiri. Tidak ada `package.json` di akar repo, jadi perintah `npm` selalu dijalankan dari dalam `server/` atau `client/`.
-
-`npm run dev` ada di keduanya dan artinya berbeda: di `server/` menyalakan API, di `client/` menyalakan antarmuka.
-
-Pemilihan stack-nya dijelaskan di [ADR-0006](docs/adr/0006-pindah-ke-express-react-postgres.md).
+`server/` dan `client/` masing-masing punya `package.json` sendiri; di akar repo tidak ada.
 
 ## Prasyarat
 
-- **Node.js 24+** — kode TypeScript dijalankan langsung tanpa langkah build, memakai pembuangan anotasi tipe bawaan Node 24. Versi 22 tidak cukup.
-- **Docker**, dan harus sedang berjalan — hanya untuk PostgreSQL lokal. Kalau sudah punya PostgreSQL sendiri, Docker tidak diperlukan; lihat [Memakai PostgreSQL sendiri](#memakai-postgresql-sendiri-tanpa-docker).
-
-Tidak perlu PHP, Composer, maupun pemasangan global.
-
-## Menjalankan demo
-
-Demo statis memakai data contoh dari berkas JSON dan tidak memanggil backend. Cara tercepat melihat layar-layarnya tanpa menyiapkan basis data.
-
-```bash
-cd client && npm install && npm run demo
-```
-
-Buka `http://localhost:5173`. Untuk membangun versi statisnya:
-
-```bash
-cd client && npm run demo:build
-```
-
-Hasilnya di `client/dist-demo/`, dapat dibuka dari static host mana pun.
+- Node.js 24 atau lebih baru.
+- Docker yang sedang berjalan, untuk PostgreSQL lokal. Bila memakai PostgreSQL sendiri, cukup isi `DATABASE_URL` di `server/.env`.
 
 ## Pemasangan
 
-### Sekali saja
-
-**1. Ambil repo dan pasang dependensi.**
+Cukup sekali. Perintah berikut berlaku di Bash maupun PowerShell:
 
 ```bash
 git clone https://github.com/khairuonwork/kkn_posyandu_tulip.git
 cd kkn_posyandu_tulip
-(cd server && npm install)
-(cd client && npm install)
-```
-
-Tanda kurung menjaga posisimu tetap di akar repo.
-
-**2. Siapkan basis data.** Docker harus sudah berjalan. Dari akar repo:
-
-```bash
+npm --prefix server ci
+npm --prefix client ci
 cd server
 cp .env.example .env
-npm run db:up
+docker compose up -d --wait
 npm run migrate
 npm run seed
 ```
 
-`migrate` membuat tabelnya, `seed` mengisi 906 baris standar antropometri WHO. Keduanya aman diulang. Lewati `cp` bila `server/.env` sudah ada dan sudah disesuaikan.
+`migrate` membuat tabel, `seed` mengisi tabel standar WHO. Keduanya aman diulang.
 
-**3. Buat akun pertama.** Masih dari `server/`. Akun dibuat lewat baris perintah karena layar Kelola pengguna hanya terbuka untuk Admin:
+Lalu isi wilayah (Posyandu Tulip, RT 01–07) dan akun contoh. Pilih sendiri kata sandinya, minimal 8 karakter, dan jalankan dari `server/`:
 
 ```bash
-SANDI="ganti-kata-sandi-ini" npm run pengguna:buat -- "Bidan Posyandu Tulip" bidan@posyandutulip.id bidan
+# Bash, termasuk Git Bash
+SANDI='kata-sandi-anda' npm run seed:contoh
 ```
 
-### Menjalankan
+```powershell
+# PowerShell
+$env:SANDI = 'kata-sandi-anda'; npm run seed:contoh; Remove-Item Env:SANDI
+```
 
-Dua terminal, keduanya dibuka dari akar repo. Docker harus sudah berjalan.
+Semua akun berikut memakai kata sandi tadi:
 
-Terminal pertama — API:
+| Nama pengguna | Peran |
+|---|---|
+| `admin` | Admin |
+| `bidan` | Bidan |
+| `kader01` … `kader07` | Kader RT 01–07 |
+| `kader02.lama` | Kader nonaktif, untuk mencoba penolakan masuk |
+
+Perintah ini hanya mau berjalan pada database lokal. Akun yang sudah ada dilewati, dan kata sandinya tidak diubah.
+
+## Menjalankan
+
+Dua terminal, keduanya dari akar repo:
 
 ```bash
+# Terminal 1 — API
 cd server
 npm run db:up
 npm run dev
 ```
 
-Terminal kedua — antarmuka:
-
 ```bash
+# Terminal 2 — antarmuka
 cd client
 npm run dev
 ```
 
-Buka `http://localhost:5173` dan masuk dengan akun tadi. Aplikasinya butuh kedua terminal tetap menyala.
+Buka http://localhost:5173 dan masuk, misalnya sebagai `admin`.
 
-`npm run db:up` aman diulang; bila kontainernya sudah menyala ia tidak melakukan apa-apa. Untuk menghentikannya, `npm run db:down` dari `server/`. Data tetap tersimpan di volume Docker.
+Setelah `git pull`, jalankan `npm ci` di folder yang dependensinya berubah, lalu `npm run migrate` dari `server/`.
 
-> Kelima layar masih membaca data contoh yang terbundel. Yang sudah berjalan lewat HTTP baru autentikasi (`/api/masuk`, `/api/keluar`, `/api/saya`); menyambungkan layar ke basis data adalah pekerjaan berikutnya — lihat [rencana kerja](docs/rencana-kerja.md).
+> Yang sudah tersambung ke database baru masuk/keluar dan daftar akun. Layar lain masih menampilkan data contoh; lihat [rencana kerja](docs/rencana-kerja.md).
 
-### Porta
-
-|            | Porta | Ganti lewat                                 |
-| ---------- | ----- | ------------------------------------------- |
-| Antarmuka  | 5173  | —                                          |
-| API        | 4321  | `PORT` di `server/.env`                 |
-| PostgreSQL | 5433  | `docker-compose.yml` dan `DATABASE_URL` |
-
-Keduanya sengaja bukan porta bawaan (3000 dan 5432), yang sering sudah dipakai proses lain. Alasan lengkapnya di [ADR-0006](docs/adr/0006-pindah-ke-express-react-postgres.md).
-
-### Mengelola akun
-
-Untuk kader, sebutkan RT binaannya sebagai argumen keempat. Kader wajib punya RT; bidan dan admin tidak boleh punya.
+### Demo tanpa database
 
 ```bash
-cd server && SANDI="ganti-kata-sandi-ini" npm run pengguna:buat -- "Kader RT 01" kader01@posyandutulip.id kader 01
+npm --prefix client ci
+npm --prefix client run demo
 ```
 
-Portal tidak mengirim surel, jadi tidak ada layar "lupa kata sandi". Setel ulang dari baris perintah — seluruh sesi akun itu ikut dicabut:
+Demo memakai data contoh, tanpa API maupun database. Peran dipilih di layar Masuk dan kata sandi tidak diperiksa.
+
+## Mengelola akun
+
+Admin mengelola akun dari **Pengaturan › Pengguna dan peran**: menambah akun, mengubah peran dan RT, mengganti kata sandi, dan menonaktifkan akun.
+
+Lewat terminal dari `server/`, untuk admin pertama di server baru atau bila tidak ada admin yang bisa masuk (contoh Bash; di PowerShell, setel `$env:SANDI` seperti di atas):
 
 ```bash
-cd server && SANDI="kata-sandi-baru" npm run pengguna:sandi -- bidan@posyandutulip.id
+SANDI='kata-sandi' npm run pengguna:buat -- "Nama Lengkap" namapengguna admin
+SANDI='kata-sandi-baru' npm run pengguna:sandi -- namapengguna
 ```
 
-Melihat daftar akun:
-
-```bash
-cd server && docker exec server-db-1 psql -U posyandu -d posyandu_tulip -c "SELECT id, nama, email, peran, aktif FROM pengguna ORDER BY id;"
-```
-
-### Memakai PostgreSQL sendiri, tanpa Docker
-
-Ganti `DATABASE_URL` di `server/.env` dengan sambunganmu, lalu jalankan `npm run migrate && npm run seed`. Perintah `db:up` dan `docker-compose.yml` boleh diabaikan.
+Untuk kader, tambahkan RT binaannya di akhir: `npm run pengguna:buat -- "Kader RT 01" kader01 kader 01`.
 
 ## Pemeriksaan
 
 ```bash
-(cd server && npm test)
-(cd client && npm test)
+npm --prefix server test
+npm --prefix server run types:check
+npm --prefix client test
+npm --prefix client run types:check
+npm --prefix client run lint:check
+npm --prefix client run format:check
 ```
 
-191 pengujian: 142 di `server/`, 49 di `client/`. Di antaranya 2.076 kasus acuan yang membandingkan mesin gizi dengan implementasi sebelumnya — rinciannya di [docs/rujukan/antropometri.md](docs/rujukan/antropometri.md).
+Tes server yang butuh database memakai `DATABASE_URL` dari `server/.env`, jadi database itu harus sudah dimigrasi. Jangan arahkan ke database produksi. CI menjalankan pemeriksaan yang sama pada setiap pull request.
 
-Pengujian yang butuh basis data berjalan bila `server/.env` ada, dan dilewati bila tidak, sehingga perintah di atas tetap bekerja tanpa PostgreSQL. CI selalu menyediakannya.
+## Kendala umum
 
-```bash
-cd client && npm run types:check && npm run lint:check && npm run format:check
-```
-
-Semuanya juga berjalan di CI pada setiap push dan pull request.
-
-## Memperbarui tabel standar WHO
-
-Tabel LMS ada di `server/db/data/who-lms.json` dan ikut di-commit; berkas Excel asalnya di luar repo. Bila standarnya berubah:
-
-```bash
-python server/db/data/extract-who-lms.py "<path berkas Excel>"
-```
-
-Lalu `npm run seed` lagi dari `server/`. Perlakuan riwayat gizi saat metode perhitungan berganti diatur [ADR-0005](docs/adr/0005-migrasi-metode-zscore.md).
+| Gejala | Yang perlu dilakukan |
+|---|---|
+| Docker tidak bisa dihubungi | Nyalakan Docker Desktop, lalu ulangi `docker compose up -d --wait` dari `server/` |
+| Galat `column … does not exist` atau `relation … does not exist` | Jalankan `npm run migrate` dari `server/`, lalu nyalakan ulang API |
+| Login gagal padahal kata sandi benar | Pastikan terminal API (`npm run dev` di `server/`) masih menyala |
+| `bash: :SANDI: command not found` | Perintah PowerShell dijalankan di Bash; pakai versi Bash |
+| Porta 4321 sudah dipakai | Isi `PORT=4322` di `server/.env`, lalu jalankan antarmuka dengan variabel lingkungan `API=http://127.0.0.1:4322` |
+| Lupa kata sandi | Minta admin menggantinya di Pengaturan, atau pakai `pengguna:sandi` seperti di atas |

@@ -30,7 +30,7 @@ F01 menutup alasan itu: tempat menyimpannya dibuat lebih dulu, kotaknya menyusul
 
 - Satu nomor WhatsApp per anak, melekat pada orang tuanya.
 - Normalisasi saat disimpan, penyajian yang mudah dibaca saat ditampilkan.
-- Muncul di tiga tempat: editor baris Data Balita, form Tambah balita, dan blok Identitas Detail anak.
+- Muncul di tiga tempat: editor baris Data Balita, form Tambah balita, dan blok Identitas Detail Balita.
 - Keadaan **belum tercatat** yang eksplisit — bukan string kosong yang menyamar sebagai nomor.
 
 **Sengaja tidak masuk:**

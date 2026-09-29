@@ -7,7 +7,7 @@
  *
  * Alamat berbentuk hash (`#/balita/12`) supaya hasil build dapat dibuka
  * langsung dari `file://` maupun static host mana pun tanpa aturan rewrite
- * (docs/rujukan/layar-demo.md bagian 4.1).
+ * (docs/arsitektur.md — Konvensi).
  */
 
 import { useEffect, useState } from 'react';
@@ -60,7 +60,7 @@ type HeadProps = { title?: string; children?: ReactNode };
 export function Head({ title }: HeadProps) {
     useEffect(() => {
         if (title !== undefined) {
-            document.title = `${title} — Portal Posyandu Tulip`;
+            document.title = `${title} — SIMPATIK Posyandu`;
         }
     }, [title]);
 

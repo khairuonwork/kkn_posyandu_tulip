@@ -1,20 +1,22 @@
-# Dokumentasi Portal Posyandu Tulip
+# Dokumentasi SIMPATIK Posyandu
 
 | | |
 |---|---|
 | **Jenis** | Orientasi — peta dokumentasi |
 | **Status** | hidup |
-| **Perubahan berarti terakhir** | 22 September 2026 |
+| **Perubahan berarti terakhir** | 29 September 2026 |
 
-**Portal Posyandu Tulip** — sistem pencatatan, pemantauan, dan pelaporan status gizi balita Posyandu Tulip RW 18, Kelurahan Citeureup.
+**SIMPATIK Posyandu** — sistem pencatatan, pemantauan, dan pelaporan status gizi balita Posyandu Tulip RW 18, Kelurahan Citeureup. Dokumen yang lebih lama menyebutnya Portal Posyandu Tulip, atau cukup Portal.
 
 Halaman ini memberi tahu **mana yang perlu dibaca dan mana yang tidak**.
 
 ---
 
-## Baru pertama kali? Baca empat ini
+## Baru pertama kali?
 
-Empat berkas, sekitar dua puluh menit, dan cukup untuk memahami produknya tanpa bertanya.
+Buka **[Mulai di sini](mulai-di-sini.md)** lebih dulu: aplikasi ini apa, peta sembilan layar beserta tangkapan layarnya, siapa penggunanya, dan apa yang dibaca berikutnya.
+
+Setelah itu empat berkas ini. Sekitar dua puluh menit, dan cukup untuk memahami produknya tanpa bertanya.
 
 | Urutan | Berkas | Menjawab |
 |---|---|---|
@@ -36,6 +38,7 @@ Cara menjalankan aplikasinya ada di [`README.md`](../README.md) di akar repo.
 | **[Rencana kerja](rencana-kerja.md)** | Apa yang dikerjakan berikutnya, urutannya, dan apa yang menahannya |
 | **[Pertanyaan terbuka](pertanyaan-terbuka.md)** | Hal yang belum diputuskan pemilik program. **Jangan ditebak diam-diam di dalam kode** |
 | **[PRD](prd/README.md)** | Apa yang akan dibangun: kontrak produk, fitur dasar, fitur dari feedback |
+| **[Status lingkup](prd/prd-utama.md#13-status-lingkup)** | Persetujuan dan target rilis; dibaca terpisah dari prioritas dan status pengerjaan |
 | **[Panduan penulisan](panduan-penulisan.md)** | Cara menulis dokumen di repo ini. Baca sebelum menambah atau menyunting apa pun di sini |
 
 ---
@@ -48,7 +51,7 @@ Isi [`rujukan/`](rujukan) tidak untuk dibaca berurutan. Dibuka saat ada pertanya
 |---|---|
 | [Antropometri & Z-Score](rujukan/antropometri.md) | Rumus LMS, ambang PMK 2/2020, koreksi ekstrem WHO |
 | [UI/UX](rujukan/ui-ux.md) | Token warna, tipografi, komponen, aksesibilitas |
-| [Layar demo](rujukan/layar-demo.md) | Rancangan ketujuh layar sampai bunyi kalimatnya — enam di antaranya sudah dibangun |
+| [Data contoh](rujukan/data-contoh.md) | Asal data yang tampil di layar dan cara anonimisasinya |
 | [Migrasi data](rujukan/migrasi-data.md) | Aturan impor arsip Excel: normalisasi, pencocokan, konflik |
 | [Format laporan F1](rujukan/format-laporan-f1.md) | 22 butir blangko F1 Gizi dan struktur Buku 7 |
 | [SRS](rujukan/srs.md) | Kebutuhan fungsional FR-nn dan non-fungsional NFR-nn |
@@ -77,6 +80,10 @@ Berkas di [`riwayat/`](riwayat) bertanda status `beku`: isinya sudah tidak diper
 
 - [Catatan tahap demo](riwayat/catatan-tahap-demo.md) — catatan pengerjaan demo frontend, beserta keputusan yang waktu itu ditunda
 - [Teks yang dicabut dari layar](riwayat/teks-dicabut-dari-layar.md) — kalimat, tombol, dan kartu yang dihapus atas permintaan pemilik produk, beserta risiko yang ditinggalkannya
+- [PRD demo frontend](riwayat/layar-demo.md) — rancangan layar tahap demo, sebelum mockup 26 September 2026. Bagian yang masih berlaku sudah dipindah ke dokumen aktif
+- [Rencana struktur halaman](riwayat/rencana-struktur-halaman.md) — susunan menu dan halaman yang direncanakan sebelum kesembilan layar dibangun
+- [Pertanyaan yang sudah terjawab](riwayat/pertanyaan-terjawab.md) — isu dari Pertanyaan terbuka yang sudah selesai
+- [Backlog feedback](riwayat/backlog-feedback.md) — daftar tugas awal dari feedback lapangan, sebelum dipecah menjadi PRD F01–F13
 
 Folder [`design/`](design/README.md) berisi salinan artboard prototipe. Nilai token warna dan tipografi yang berlaku ada di [UI/UX](rujukan/ui-ux.md), bukan di berkas-berkas itu.
 
@@ -86,6 +93,7 @@ Folder [`design/`](design/README.md) berisi salinan artboard prototipe. Nilai to
 
 ```text
 docs/
+  mulai-di-sini                                            ← halaman pertama
   ringkasan · fitur · arsitektur · database · glosarium    ← baca ini dulu
   rencana-kerja · pertanyaan-terbuka · panduan-penulisan   ← saat mengerjakan
   prd/        format-prd · prd-utama · dasar/ · feedback/  ← apa yang akan dibangun
@@ -93,6 +101,5 @@ docs/
   riwayat/    beku
   adr/        keputusan yang mahal dibalik
   design/     salinan artboard
+  gambar/     tangkapan layar untuk Mulai di sini
 ```
-
-Disusun ulang 22 September 2026. Sebelumnya seluruh berkas duduk di satu tingkat dengan nomor 00–99 yang tidak menyiratkan urutan baca.

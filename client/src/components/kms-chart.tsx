@@ -1,99 +1,46 @@
 /**
- * Kurva pertumbuhan KMS — docs/rujukan/layar-demo.md bagian 6.5.
+ * Kurva pertumbuhan KMS — mengikuti mockup Detail Balita yang disetujui
+ * 26 September 2026.
  *
- * SVG langsung, tanpa pustaka grafik: yang dibutuhkan hanya beberapa `path`
- * garis SD dan sederet titik, sedangkan membuat pustaka chart menggambar
- * overlay SD menuntut kustomisasi yang lebih panjang daripada SVG-nya sendiri
- * (docs/rujukan/ui-ux.md bagian 4.3).
+ * SVG langsung, tanpa pustaka grafik: yang dibutuhkan hanya beberapa pita dan
+ * garis SD serta sederet titik (docs/rujukan/ui-ux.md bagian 4).
  *
- * **Indeksnya hanya satu: berat badan menurut umur.** KMS pada Buku KIA memang
- * kartu berat-menurut-umur, dan menyamakannya membuat grafik di layar dapat
- * dibandingkan langsung dengan buku yang dipegang ibu.
+ * **Indeksnya hanya satu: berat badan menurut umur**, sama dengan KMS di Buku
+ * KIA yang dipegang ibu. Warna pita **dikecualikan dari palet aplikasi**
+ * karena tujuannya menyamai buku cetak, bukan menyamai aplikasi.
  *
- * Warna pita **dikecualikan dari palet aplikasi**. Ini satu-satunya tempat
- * warna di luar token bagian 8 dibolehkan, karena tujuannya justru menyamai
- * buku cetak, bukan menyamai aplikasi.
+ * Di dekat tiap titik hanya angka berat tanpa satuan. Rinciannya — tanggal,
+ * umur, panjang, naik atau tidak, dan status BB/PB — muncul saat titik
+ * disorot tetikus, difokus papan tombol, atau diketuk di tablet.
  */
 
+import {
+    ChevronLeft,
+    ChevronRight,
+    CircleCheck,
+    TriangleAlert,
+} from 'lucide-react';
 import { useState } from 'react';
-import { satuan, tanggalRingkas, zScore } from '@/lib/format';
+import type { CSSProperties } from 'react';
+import { IKON, KELAS, nadaKategori } from '@/components/status-gizi-badge';
+import {
+    angka,
+    labelIndeks,
+    tanggalPanjang,
+    tanggalRingkas,
+    zScore,
+} from '@/lib/format';
 import type { GarisSd, JenisKelamin } from '@/types/posyandu';
 
-/* Ukuran teks di dalam SVG memakai satuan viewBox, bukan piksel: pada lebar
-   tayang 992 px terhadap viewBox 1500, tiap satuan menyusut 1,5x. Nilai lama
-   16-17 satuan jatuh ke 10,6 px di layar — di bawah badan teks halamannya
-   sendiri, pada grafik yang justru harus dibaca kader. 23-24 satuan mendarat
-   di sekitar 15 px. */
-/**
- * Geometri kartu, dua ragam.
- *
- * Seluruh angka di dalam SVG memakai satuan viewBox, dan ukuran tayangnya
- * `px = satuan x lebarTayang / g.LEBAR`. Karena itu ragam kompak bukan sekadar
- * "teks lebih besar": pinggirannya ikut melebar untuk menampung teks yang lebih
- * besar itu, dan kartunya dibuat lebih jangkung supaya garis kilogram tidak
- * berdempetan. Menaikkan ukuran teks tanpa menaikkan pinggirannya persis yang
- * membuat angka kg saling menimpa dan judul sumbu terpotong.
- */
-/**
- * Ukuran teks ragam kompak, dan seluruh pinggiran diturunkan darinya.
- *
- * Diturunkan, bukan ditulis satu-satu: tiga kali berturut-turut angka ini
- * dinaikkan tanpa pinggirannya ikut ditinjau, dan tiga kali pula teksnya
- * bertabrakan — angka kg saling menimpa, judul sumbu menimpa angka, angka
- * bulan menimpa judulnya. Sekarang semuanya bergerak bersama.
- *
- * 48 dihitung dari kasus tersempit yang terukur. Pada jendela 1088-1180 x 645
- * SVG-nya dibatasi tinggi, bukan lebar: kotaknya berhenti di ~203 px, jadi
- * skalanya 203/620 dan bukan lebar/1500. Lantai 15 px pada docs/rujukan/ui-ux.md
- * §8 menuntut 15 x 620 / 203 = 45,8 -- tetapi angka 46 mendarat di 14,9 px
- * karena tinggi sebenarnya 201 px. 48 memberi 15,6 px dengan sisa aman.
- */
-const KOMPAK_TIK = 48;
-
-const GEOMETRI = {
-    /** Kurva selebar halaman. */
-    lebar: {
-        LEBAR: 1500,
-        TINGGI: 540,
-        KIRI: 64,
-        KANAN: 64,
-        ATAS: 12,
-        BAWAH: 96,
-        tik: 23,
-        judulSumbu: 24,
-        tikBawah: 26,
-        labelTitik: true,
-    },
-    /** Kurva di kolom sempit. Pinggirannya ikut ukuran teks, lihat di atas. */
-    kompak: {
-        LEBAR: 1500,
-        TINGGI: 620,
-        /* Menampung angka kg dua digit dan judul sumbu tegak berdampingan. */
-        KIRI: Math.round(KOMPAK_TIK * 3.3),
-        KANAN: Math.round(KOMPAK_TIK * 1.7),
-        ATAS: 16,
-        /* Garis sumbu, angka bulan, lalu judul "Umur, bulan" — tiga hal
-           berurutan, masing-masing setinggi ~1,28 kali ukuran teksnya. */
-        BAWAH: Math.round(KOMPAK_TIK * 3.3),
-        tik: KOMPAK_TIK,
-        judulSumbu: KOMPAK_TIK,
-        /* Cukup jauh supaya angka bulan lepas dari angka kg di pojok, dan
-           masih menyisakan ruang untuk judul sumbu di bawahnya. */
-        tikBawah: Math.round(KOMPAK_TIK * 1.45),
-        labelTitik: false,
-    },
-};
-
-/* Label z-score di atas tiap titik, dan jarak angkatnya.
-   Diikat menjadi satu kelompok dengan sengaja: ukuran teksnya pernah dinaikkan
-   15 -> 21 satuan tanpa jarak angkatnya ikut ditinjau, dan labelnya jadi
-   menempel ke penanda titik. Yang di bawah ini bergerak bersama. */
-const LABEL_UKURAN = 21;
-const TITIK_JARI = 7;
-const TITIK_GARIS = 3.5;
-/* Dari pusat titik ke garis alas teks: jari-jari penanda, tebal garisnya, lalu
-   sisa ruang supaya halo putih teks tidak menyentuh penandanya. */
-const LABEL_ANGKAT = TITIK_JARI + TITIK_GARIS / 2 + 7;
+/* Geometri dalam px pada lebar 600: kotak kurva dan tempat teks sumbunya.
+   Ukuran teks di dalam SVG sama dengan teks halaman (12 dan 14 px) selama
+   kurvanya tayang selebar aslinya. */
+const LEBAR = 600;
+const TINGGI = 268;
+const X0 = 56;
+const X1 = 556;
+const Y0 = 12;
+const Y1 = 220;
 
 /** Satu panel memuat jendela 12 bulan, sama seperti lembar KMS Buku KIA. */
 const PANEL_BULAN = 12;
@@ -118,540 +65,656 @@ function nilaiPadaZ(baris: GarisSd, z: number): number {
     return baris.m * (1 + baris.l * baris.s * z) ** (1 / baris.l);
 }
 
-export type TitikDetail = {
-    umurBulan: number;
+/** Kurva halus melalui titik-titiknya (Catmull-Rom menjadi Bézier kubik). */
+function halus(p: [number, number][], awal = true): string {
+    if (p.length === 0) {
+        return '';
+    }
+
+    let d = `${awal ? 'M' : 'L'}${p[0][0].toFixed(1)} ${p[0][1].toFixed(1)}`;
+
+    for (let i = 0; i < p.length - 1; i++) {
+        const a = p[Math.max(0, i - 1)];
+        const b = p[i];
+        const c = p[i + 1];
+        const e = p[Math.min(p.length - 1, i + 2)];
+        const k = [
+            b[0] + (c[0] - a[0]) / 6,
+            b[1] + (c[1] - a[1]) / 6,
+            c[0] - (e[0] - b[0]) / 6,
+            c[1] - (e[1] - b[1]) / 6,
+            c[0],
+            c[1],
+        ];
+
+        d += ` C${k.map((v) => v.toFixed(1)).join(' ')}`;
+    }
+
+    return d;
+}
+
+/** Satu titik penimbangan beserta isi rinciannya. */
+export type TitikKms = {
+    /** Umur tepat dalam bulan, pecahan, dari tanggal lahir dan tanggal ukur. */
+    umur: number;
     beratKg: number;
     tanggal: string | null;
-    z: number | null;
-    kategori: string | null;
+    /** Umur dalam bulan penuh, untuk teks. */
+    umurBulan: number | null;
+    tinggiCm: number | null;
+    /** Status arsip N/T/O/B apa adanya (OI-01). */
+    naik: string | null;
+    /** Selisih berat dari penimbangan sebelumnya. */
+    selisihKg: number | null;
+    /** Kenaikan berat minimal untuk umurnya, bila ada. */
+    kbmKg: number | null;
+    zBbTb: number | null;
+    kategoriBbTb: string | null;
 };
 
-/**
- * Kunci pencarian detail titik: umur dan berat sekaligus.
- *
- * Empat belas anak pada arsip punya dua penimbangan yang jatuh pada umur bulan
- * penuh yang sama, karena tanggal ukurnya bergeser terhadap tanggal lahir.
- * Satu anak bahkan punya dua penimbangan beruntun dengan berat yang persis
- * sama, sehingga kedua titiknya benar-benar berimpit di kartu. Karena itu kunci
- * React memakai urutan, bukan nilai — lihat pemakaiannya di bawah.
- */
-const kunciTitik = (umur: number, kg: number) => `${umur}|${kg}`;
-
 type Props = {
+    judul: string;
+    namaAnak: string;
     kelamin: JenisKelamin;
-    panelAwal: number;
-    skalaMax: number;
-    /** Pasangan [umurBulan, beratKg]. */
-    riwayat: [number, number][];
-    /**
-     * Parameter LMS BB/U. Tidak ada di kontrak artboard, tetapi pita SD tidak
-     * dapat digambar tanpanya — lihat D-06 di docs/riwayat/catatan-tahap-demo.md.
-     */
+    /** Parameter LMS BB/U untuk pita SD. */
     garisSd: GarisSd[];
-    /** Isi tooltip titik. Opsional supaya kontrak empat props tetap berlaku. */
-    detail?: TitikDetail[];
-    /** Titik yang sedang disorot dari tabel riwayat. */
-    umurDisorot?: number | null;
-    onGantiPanel?: (awal: number) => void;
-    /**
-     * Kurva berdiri di kolom sempit, bukan selebar halaman.
-     *
-     * Ukuran teks di dalam SVG berbanding lurus dengan lebar tayangnya:
-     * `px = satuan x lebarTayang / 1500`. Pada kolom ~790 px, satuan 23-24
-     * mendarat di 12 px — di bawah batas 15 px yang docs/rujukan/ui-ux.md
-     * bagian 8 sebut tidak diturunkan. Mode ini menaikkan satuannya supaya
-     * hasil akhirnya tetap di atas batas itu.
-     *
-     * Konsekuensinya label z-score per titik ditiadakan: pada satuan sebesar
-     * itu lebarnya 132 satuan sementara jarak antar bulan hanya 114, jadi
-     * pasti bertabrakan. Angkanya tetap ada di tooltip titik dan di tabel
-     * Riwayat, yang pada tata letak ini berdiri tepat di sebelahnya.
-     */
-    kompak?: boolean;
-    /**
-     * Kurva mengisi tinggi wadahnya, bukan lebarnya.
-     *
-     * Dipakai layar Detail yang dibatasi tinggi jendela. Bawaannya `w-full`
-     * dengan tinggi mengikuti rasio — bagus untuk satu kolom penuh, tapi di
-     * kolom setengah lebar ia tetap selebar `min-w` dan tingginya ikut memaksa
-     * halaman menggulir. Dengan `penuh`, tingginya yang dipatok dan lebarnya
-     * yang mengikuti; kelebihan lebar digeser mendatar di dalam wadahnya
-     * sendiri, seperti sebelumnya.
-     */
-    penuh?: boolean;
+    /** Terlama di depan. */
+    titik: TitikKms[];
+    panelAwal: number;
 };
 
 export default function KmsChart({
+    judul,
+    namaAnak,
     kelamin,
-    panelAwal,
-    skalaMax,
-    riwayat,
     garisSd,
-    detail = [],
-    umurDisorot = null,
-    onGantiPanel,
-    penuh = false,
-    kompak = false,
+    titik,
+    panelAwal,
 }: Props) {
-    const g = kompak ? GEOMETRI.kompak : GEOMETRI.lebar;
-    const plotLebar = g.LEBAR - g.KIRI - g.KANAN;
-    const plotTinggi = g.TINGGI - g.ATAS - g.BAWAH;
     const [panel, setPanel] = useState(panelAwal);
-    const gantiPanel = (awal: number) => {
-        setPanel(awal);
-        onGantiPanel?.(awal);
-    };
+    const [aktif, setAktif] = useState<number | null>(null);
 
-    const umurTerakhir = riwayat.reduce((maks, [u]) => Math.max(maks, u), 0);
-    // Hanya panel sampai umur pengukuran terakhir yang ditampilkan.
+    const umurTerakhir = titik.reduce((m, t) => Math.max(m, t.umur), 0);
+    // Hanya rentang yang sudah dicapai balita ini yang ditawarkan, dan
+    // dijelajahi dengan panah: sampai lima tombol rentang untuk balita empat
+    // tahun terlalu ramai (keputusan pemilik produk, 28 September 2026).
     const panelTampil = PANEL_AWAL.filter((awal) => awal <= umurTerakhir);
+    const urutanPanel = panelTampil.indexOf(panel);
+    const panelSebelum = urutanPanel > 0 ? panelTampil[urutanPanel - 1] : null;
+    const panelSesudah =
+        urutanPanel >= 0 && urutanPanel < panelTampil.length - 1
+            ? panelTampil[urutanPanel + 1]
+            : null;
+    const pindahPanel = (awal: number | null) => {
+        if (awal !== null) {
+            setPanel(awal);
+            setAktif(null);
+        }
+    };
+    const acuan = kelamin === 'P' ? 'perempuan' : 'laki-laki';
 
     const lms = new Map(
         garisSd.filter((g) => g.jk === kelamin).map((g) => [g.umurBulan, g]),
     );
-
     const bulanPanel = Array.from(
         { length: PANEL_BULAN + 1 },
         (_, i) => panel + i,
     );
+    const dalamPanel = titik
+        .map((t, i) => ({ ...t, i }))
+        .filter((t) => t.umur >= panel && t.umur <= panel + PANEL_BULAN);
 
-    // `skalaMax` diperlakukan sebagai batas bawah, bukan batas mati. Pada panel
-    // 48-60 bulan garis +3 SD sudah melewati 25 kg, sehingga skala tetap 18 kg
-    // akan membuang pita atas ke luar kartu dan menimpa judul sumbu. Kartu KMS
-    // cetak pun memakai rentang berat berbeda untuk tiap lembar umur.
-    const sdTertinggi = bulanPanel.reduce((maks, bulan) => {
+    /* Rentang berat mengikuti pita panel ini dan berat balitanya sendiri,
+       seperti lembar KMS cetak yang berbeda rentangnya tiap umur. */
+    const sd = (bulan: number, z: number) => {
         const baris = lms.get(bulan);
 
-        return baris === undefined
-            ? maks
-            : Math.max(maks, nilaiPadaZ(baris, 3));
-    }, 0);
-    const skala = Math.max(skalaMax, Math.ceil(sdTertinggi));
+        return baris === undefined ? null : nilaiPadaZ(baris, z);
+    };
+    const bawah = Math.min(
+        ...bulanPanel.map((b) => sd(b, -3) ?? Infinity),
+        ...dalamPanel.map((t) => t.beratKg),
+    );
+    const atas = Math.max(
+        ...bulanPanel.map((b) => sd(b, 3) ?? 0),
+        ...dalamPanel.map((t) => t.beratKg + 0.5),
+    );
+    const kgMin = Math.max(0, Math.floor(bawah) - 1);
+    const kgMax = Math.ceil(atas);
+    const langkahKg = Math.ceil(40 / ((Y1 - Y0) / (kgMax - kgMin)));
 
-    const x = (umur: number) =>
-        g.KIRI + ((umur - panel) / PANEL_BULAN) * plotLebar;
-    const y = (kg: number) =>
-        g.ATAS + (1 - (kg - 1) / (skala - 1)) * plotTinggi;
+    const x = (umur: number) => X0 + ((X1 - X0) * (umur - panel)) / PANEL_BULAN;
+    const y = (kg: number) => Y1 - ((Y1 - Y0) * (kg - kgMin)) / (kgMax - kgMin);
 
-    const kgPanel = Array.from({ length: skala }, (_, i) => i + 1);
-    /* Garis bantu tetap tiap 1 kg, tetapi angkanya diencerkan bila jaraknya
-       lebih rapat daripada tinggi hurufnya sendiri. Pada ragam kompak jarak
-       antar garis kg ~30 satuan sementara hurufnya 40 — tanpa ini angkanya
-       saling menimpa, persis yang terjadi sebelum perbaikan ini. */
-    const jarakKg = plotTinggi / Math.max(1, skala - 1);
-    /* Yang harus muat adalah **kotak** teksnya, bukan ukuran fontnya. Kotak
-       satu baris kira-kira 1,3 kali ukuran font; memakai ukuran font apa adanya
-       membuat langkahnya kurang satu, dan angka kg tetap bersinggungan. */
-    const tinggiBarisTeks = g.tik * 1.3;
-    const langkahLabelKg = Math.max(1, Math.ceil(tinggiBarisTeks / jarakKg));
-    /* Angka teratas ikut diberi label hanya bila jaraknya dari angka berlabel
-       sebelumnya memang cukup. Tanpa syarat itu, skala 18 kg berlangkah 2
-       menghasilkan "17" dan "18" berdempetan di ujung atas. */
-    const labelKg = kgPanel.filter((kg) => (kg - 1) % langkahLabelKg === 0);
-    const kgTerakhir = labelKg[labelKg.length - 1];
-
-    if (kgTerakhir !== skala && skala - kgTerakhir >= langkahLabelKg) {
-        labelKg.push(skala);
-    }
-
-    /** Titik sepanjang satu garis SD di dalam panel aktif. */
     const titikSd = (z: number) =>
         bulanPanel
-            .map((bulan) => {
-                const baris = lms.get(bulan);
+            .map((b) => {
+                const kg = sd(b, z);
 
-                return baris === undefined
-                    ? null
-                    : ([x(bulan), y(nilaiPadaZ(baris, z))] as [number, number]);
+                return kg === null ? null : ([x(b), y(kg)] as [number, number]);
             })
             .filter((t): t is [number, number] => t !== null);
 
-    const garisKe = (titik: [number, number][]) =>
-        titik.map(([px, py]) => `${px},${py}`).join(' ');
+    const pita = (zBawah: number, zAtas: number, warna: string) => {
+        const a = titikSd(zAtas);
+        const b = titikSd(zBawah).reverse();
 
-    /** Pita antara dua garis SD, digambar sebagai satu bidang tertutup. */
-    const pita = (bawah: number, atas: number, warna: string) => {
-        const a = titikSd(atas);
-        const b = titikSd(bawah);
-
-        if (a.length === 0 || b.length === 0) {
-            return null;
-        }
-
-        return (
-            <polygon
-                key={`${bawah}-${atas}`}
-                points={garisKe([...a, ...b.slice().reverse()])}
+        return a.length === 0 ? null : (
+            <path
+                key={`${zBawah}-${zAtas}`}
+                d={`${halus(a)} ${halus(b, false)} Z`}
                 fill={warna}
-                opacity={0.55}
             />
         );
     };
 
-    // Kurva dipecah setiap kali selisih umur antar pengukuran lebih dari satu
-    // bulan: garis lurus melintasi bulan tanpa penimbangan akan mengarang data.
-    const dalamPanel = riwayat
-        .filter(([u]) => u >= panel && u <= panel + PANEL_BULAN)
-        .sort((a, b) => a[0] - b[0]);
-    const segmen: [number, number][][] = [];
+    /* Garis kurva dipecah bila ada bulan yang terlewat: garis lurus melintasi
+       bulan tanpa penimbangan akan mengarang data. */
+    const segmen: (typeof dalamPanel)[] = [];
 
-    for (const titik of dalamPanel) {
-        const terakhir = segmen[segmen.length - 1];
-        const sebelum = terakhir?.[terakhir.length - 1];
+    for (const t of dalamPanel) {
+        const akhir = segmen[segmen.length - 1];
+        const sebelum = akhir?.[akhir.length - 1];
 
-        if (
-            terakhir === undefined ||
-            sebelum === undefined ||
-            titik[0] - sebelum[0] > 1
-        ) {
-            segmen.push([titik]);
+        if (sebelum === undefined || t.umur - sebelum.umur > 1.6) {
+            segmen.push([t]);
         } else {
-            terakhir.push(titik);
+            akhir.push(t);
         }
     }
 
-    const petaDetail = new Map(
-        detail.map((d) => [kunciTitik(d.umurBulan, d.beratKg), d]),
-    );
-    const acuan = kelamin === 'P' ? 'perempuan' : 'laki-laki';
+    const kgLabel: number[] = [];
 
-    /* `flex-1 min-h-0`, bukan `h-full`: di dalam kolom lentur `h-full` mengacu
-       pada tinggi yang belum pasti, sehingga `max-h-full` pada SVG di bawahnya
-       tidak punya patokan dan kartunya tetap meluber. */
+    for (let kg = kgMin; kg <= kgMax; kg += langkahKg) {
+        kgLabel.push(kg);
+    }
+
+    const terakhir = titik.length - 1;
+    const pilih = aktif === null ? null : (titik[aktif] ?? null);
+
+    /* Kotak rincian di atas titiknya, boleh menimpa kepala kartu seperti di
+       mockup. Digeser ke dalam bila titiknya dekat tepi, dan pindah ke bawah
+       hanya bila titiknya begitu tinggi sampai kotaknya keluar dari kartu. */
+    const posisi =
+        pilih === null
+            ? null
+            : {
+                  kiri: Math.min(Math.max(x(pilih.umur), 132), LEBAR - 132),
+                  atas: y(pilih.beratKg) > 75,
+                  tinggi: y(pilih.beratKg),
+              };
+
     return (
-        <div className={penuh ? 'flex min-h-0 flex-1 flex-col' : ''}>
-            {/* Dua baris slogan Buku KIA - "Timbanglah Anak Anda Setiap
-                Bulan" dan "Anak Sehat, Tambah Umur, Tambah Berat, Tambah
-                Pandai" - dicabut dari sini. Keduanya menyapa orang tua, bukan
-                petugas, dan satu-satunya Title Case di seluruh Portal, tepat di
-                bawah judul aslinya. Slogan itu memang ada di KMS fisik; di sana
-                pembacanya orang tua. */}
-            <div className="mt-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-                <div className="flex flex-wrap gap-2">
-                    {panelTampil.map((awal) => (
-                        <button
-                            key={awal}
-                            type="button"
-                            onClick={() => gantiPanel(awal)}
-                            aria-pressed={panel === awal}
-                            className={`min-h-13 rounded-lg px-3.5 text-sm font-semibold ${
-                                panel === awal
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'border border-muted-foreground text-foreground'
-                            }`}
-                        >
-                            {awal}-{awal + PANEL_BULAN} bulan
-                        </button>
-                    ))}
+        <section className="kartu px-4.5 pt-3.5 pb-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-x-3.5 gap-y-2">
+                <div className="min-w-0">
+                    <h2 className="text-lg leading-tight font-extrabold">
+                        {judul}
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                        Acuan {acuan}, WHO 2006
+                    </p>
                 </div>
-
-                <p className="text-sm font-semibold text-muted-foreground">
-                    Acuan {acuan}, WHO 2006
-                </p>
+                {panelTampil.length > 0 && (
+                    /* Satu kesatuan seperti penggeser bulan di kalender:
+                       labelnya teks biasa, bukan hijau pekat, supaya tidak
+                       disangka tombol. Panah di ujung memudar, bingkainya
+                       tetap. */
+                    <div
+                        role="group"
+                        aria-label="Rentang umur"
+                        className="flex min-h-13 items-stretch rounded-lg border border-border-strong bg-card"
+                    >
+                        <button
+                            type="button"
+                            aria-label="Rentang umur sebelumnya"
+                            disabled={panelSebelum === null}
+                            onClick={() => pindahPanel(panelSebelum)}
+                            className="flex w-13 items-center justify-center rounded-l-lg border-r border-border text-foreground hover:bg-surface disabled:cursor-not-allowed disabled:text-border-strong disabled:hover:bg-transparent"
+                        >
+                            <ChevronLeft
+                                className="size-5"
+                                strokeWidth={2.5}
+                                aria-hidden="true"
+                            />
+                        </button>
+                        {/* Dibacakan saat berganti, supaya pengguna pembaca
+                            layar tahu rentang mana yang sekarang tampil. */}
+                        <p
+                            aria-live="polite"
+                            className="flex min-w-[9.5rem] items-center justify-center gap-2 px-3.5 text-sm font-bold whitespace-nowrap text-foreground"
+                        >
+                            {panel}–{panel + PANEL_BULAN} bulan
+                            {urutanPanel >= 0 && (
+                                <span className="font-medium text-muted-foreground">
+                                    {urutanPanel + 1} dari {panelTampil.length}
+                                </span>
+                            )}
+                        </p>
+                        <button
+                            type="button"
+                            aria-label="Rentang umur berikutnya"
+                            disabled={panelSesudah === null}
+                            onClick={() => pindahPanel(panelSesudah)}
+                            className="flex w-13 items-center justify-center rounded-r-lg border-l border-border text-foreground hover:bg-surface disabled:cursor-not-allowed disabled:text-border-strong disabled:hover:bg-transparent"
+                        >
+                            <ChevronRight
+                                className="size-5"
+                                strokeWidth={2.5}
+                                aria-hidden="true"
+                            />
+                        </button>
+                    </div>
+                )}
             </div>
 
-            {/* Grafik menggulir di dalam wadahnya sendiri; badan halaman tidak
-                pernah menggulir mendatar (docs/rujukan/ui-ux.md bagian 7).
-                `tabIndex` membuat wadah yang menggulir bisa digeser dengan
-                panah papan tombol, bukan hanya dengan jari. */}
-            <div
-                className={`gulir-dalam mt-3 overflow-auto ${
-                    penuh ? 'lg:min-h-0 lg:flex-1' : ''
-                }`}
-                tabIndex={0}
-                role="region"
-                aria-label="Kurva pertumbuhan, dapat digeser mendatar"
-            >
-                <svg
-                    viewBox={`0 0 ${g.LEBAR} ${g.TINGGI}`}
-                    className={
-                        // Lebar yang menentukan, di semua ukuran. Dulu pada `lg`
-                        // ia `h-full w-auto`: lebarnya mengikuti rasio 3:1
-                        // viewBox terhadap tinggi kartu, sehingga kolom 918 px
-                        // diminta memuat gambar 2.457 px - label sumbu
-                        // "Umur, bulan" terpotong jadi "U" di tepi kanan, dengan
-                        // bilah gulir mendatar di bawahnya. Di bawah `lg` gulir
-                        // mendatar itu memang disengaja (lihat aria-label
-                        // pembungkusnya), jadi hanya `min-w` yang dilepas.
-                        // `max-h-full` menutup tegangan pokok kartu ini: tinggi
-                        // gambar sebanding dengan lebarnya, sedangkan tinggi
-                        // jendela tidak ikut tumbuh secepat itu. Pada 1366x660
-                        // kurvanya jadi 21 px lebih tinggi daripada di
-                        // 1280x645 padahal ruang tegaknya hanya bertambah 15 px,
-                        // dan halamannya menggulir lagi. Dengan batas ini
-                        // gambarnya mengecil dan memusat sendiri, tidak pernah
-                        // meluber.
-                        penuh
-                            ? 'h-auto max-h-full w-full min-w-[820px] lg:min-w-0'
-                            : 'h-auto w-full min-w-[820px]'
-                    }
-                    role="img"
-                    aria-label={`Kurva berat badan menurut umur, acuan ${acuan} WHO 2006, panel ${panel} sampai ${panel + PANEL_BULAN} bulan`}
-                >
-                    <defs>
-                        <clipPath id="kms-bidang">
-                            <rect
-                                x={g.KIRI}
-                                y={g.ATAS}
-                                width={plotLebar}
-                                height={plotTinggi}
-                            />
-                        </clipPath>
-                    </defs>
+            {/* Di ponsel kurva tidak diperkecil sampai teksnya tak terbaca;
+                wadahnya yang digeser mendatar. Dari 640 px wadahnya tidak
+                memotong apa pun, supaya kotak rincian boleh keluar dari
+                bidang kurva. */}
+            <div className="gulir-dalam mt-2 max-sm:overflow-x-auto">
+                <div className="relative w-full max-w-[600px] min-w-[520px]">
+                    <svg
+                        viewBox={`0 0 ${LEBAR} ${TINGGI}`}
+                        className="block h-auto w-full"
+                        role="img"
+                        aria-label={`Kurva berat badan ${namaAnak}, rentang umur ${panel}–${panel + PANEL_BULAN} bulan${
+                            dalamPanel.length === 0
+                                ? '.'
+                                : `: ${dalamPanel
+                                      .map(
+                                          (t) =>
+                                              `${tanggalRingkas(t.tanggal)} ${angka(t.beratKg, 2)} kg`,
+                                      )
+                                      .join('; ')}.`
+                        }`}
+                    >
+                        <defs>
+                            <clipPath id="kms-bidang">
+                                <rect
+                                    x={X0}
+                                    y={Y0}
+                                    width={X1 - X0}
+                                    height={Y1 - Y0}
+                                />
+                            </clipPath>
+                        </defs>
 
-                    <g clipPath="url(#kms-bidang)">
-                        {pita(-3, -2, PITA_KUNING)}
-                        {pita(2, 3, PITA_KUNING)}
-                        {pita(-2, -1, PITA_HIJAU_MUDA)}
-                        {pita(1, 2, PITA_HIJAU_MUDA)}
-                        {pita(-1, 1, PITA_HIJAU_TUA)}
+                        <rect
+                            x={X0}
+                            y={Y0}
+                            width={X1 - X0}
+                            height={Y1 - Y0}
+                            fill="#FFFFFF"
+                        />
+                        <g clipPath="url(#kms-bidang)">
+                            {pita(-3, -2, PITA_KUNING)}
+                            {pita(-2, -1, PITA_HIJAU_MUDA)}
+                            {pita(-1, 1, PITA_HIJAU_TUA)}
+                            {pita(1, 2, PITA_HIJAU_MUDA)}
+                            {pita(2, 3, PITA_KUNING)}
 
-                        {/* Garis bantu minggu: tiga per bulan. */}
-                        {bulanPanel
-                            .slice(0, -1)
-                            .flatMap((bulan) =>
-                                [0.25, 0.5, 0.75].map((pecahan) => (
-                                    <line
-                                        key={`m${bulan}-${pecahan}`}
-                                        x1={x(bulan + pecahan)}
-                                        x2={x(bulan + pecahan)}
-                                        y1={g.ATAS}
-                                        y2={g.ATAS + plotTinggi}
-                                        stroke={TINTA}
-                                        strokeWidth={0.6}
-                                        opacity={0.35}
-                                    />
-                                )),
-                            )}
-
-                        {kgPanel.map((kg) => (
-                            <line
-                                key={`kg${kg}`}
-                                x1={g.KIRI}
-                                x2={g.KIRI + plotLebar}
-                                y1={y(kg)}
-                                y2={y(kg)}
+                            <path
+                                d={Array.from(
+                                    { length: kgMax - kgMin + 1 },
+                                    (_, i) =>
+                                        `M${X0} ${y(kgMin + i).toFixed(1)} H${X1}`,
+                                ).join(' ')}
+                                fill="none"
                                 stroke={TINTA}
                                 strokeWidth={0.6}
-                                opacity={0.3}
+                                strokeOpacity={0.3}
                             />
-                        ))}
-
-                        {bulanPanel.map((bulan) => (
-                            <line
-                                key={`b${bulan}`}
-                                x1={x(bulan)}
-                                x2={x(bulan)}
-                                y1={g.ATAS}
-                                y2={g.ATAS + plotTinggi}
-                                stroke={TINTA}
-                                strokeWidth={1.6}
-                            />
-                        ))}
-
-                        {[-3, -2, -1, 0, 1, 2, 3].map((z) => (
-                            <polyline
-                                key={`sd${z}`}
-                                points={garisKe(titikSd(z))}
+                            <path
+                                d={bulanPanel
+                                    .map(
+                                        (b) =>
+                                            `M${x(b).toFixed(1)} ${Y0} V${Y1}`,
+                                    )
+                                    .join(' ')}
                                 fill="none"
-                                stroke={z === -3 ? GARIS_MERAH : TINTA}
-                                strokeWidth={
-                                    z === -3 ? 2.4 : z === 0 ? 1.6 : 1.2
-                                }
+                                stroke={TINTA}
+                                strokeOpacity={0.55}
                             />
-                        ))}
-                    </g>
-
-                    {/* Label kg di kiri dan kanan sekaligus, supaya mata tidak
-                        perlu menyeberangi seluruh lebar kartu. */}
-                    {labelKg.map((kg) => (
-                        <g key={`lkg${kg}`}>
-                            <text
-                                x={g.KIRI - 10}
-                                y={y(kg) + 5}
-                                textAnchor="end"
-                                fontSize={g.tik}
-                                fontWeight={600}
-                                fill={TEKS_SEKUNDER}
-                            >
-                                {kg}
-                            </text>
-                            <text
-                                x={g.KIRI + plotLebar + 10}
-                                y={y(kg) + 5}
-                                fontSize={g.tik}
-                                fontWeight={600}
-                                fill={TEKS_SEKUNDER}
-                            >
-                                {kg}
-                            </text>
-                        </g>
-                    ))}
-
-                    {bulanPanel.map((bulan) => (
-                        <text
-                            key={`lb${bulan}`}
-                            x={x(bulan)}
-                            y={g.ATAS + plotTinggi + g.tikBawah}
-                            textAnchor="middle"
-                            fontSize={g.judulSumbu}
-                            fontWeight={600}
-                            fill={TEKS_SEKUNDER}
-                        >
-                            {bulan}
-                        </text>
-                    ))}
-
-                    <text
-                        x={g.KIRI + plotLebar / 2}
-                        y={g.TINGGI - 18}
-                        textAnchor="middle"
-                        fontSize={g.judulSumbu}
-                        fontWeight={700}
-                        fill={TINTA}
-                    >
-                        Umur, bulan
-                    </text>
-                    <text
-                        x={-(g.ATAS + plotTinggi / 2)}
-                        y={22}
-                        transform="rotate(-90)"
-                        textAnchor="middle"
-                        fontSize={g.judulSumbu}
-                        fontWeight={700}
-                        fill={TINTA}
-                    >
-                        Berat badan, kg
-                    </text>
-
-                    <g clipPath="url(#kms-bidang)">
-                        {segmen.map((bagian, i) => (
-                            <g key={`seg${i}`}>
-                                {/* Halo putih supaya kurva tetap terbaca di atas
-                                pita berwarna. */}
-                                <polyline
-                                    points={garisKe(
-                                        bagian.map(([u, kg]) => [x(u), y(kg)]),
-                                    )}
-                                    fill="none"
-                                    stroke="#FFFFFF"
-                                    strokeWidth={8}
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                />
-                                <polyline
-                                    points={garisKe(
-                                        bagian.map(([u, kg]) => [x(u), y(kg)]),
-                                    )}
+                            {[-2, -1, 0, 1, 2, 3].map((z) => (
+                                <path
+                                    key={`sd${z}`}
+                                    d={halus(titikSd(z))}
                                     fill="none"
                                     stroke={TINTA}
-                                    strokeWidth={3.5}
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
+                                    strokeWidth={z === 0 ? 1.6 : 1.2}
                                 />
+                            ))}
+                            <path
+                                d={halus(titikSd(-3))}
+                                fill="none"
+                                stroke={GARIS_MERAH}
+                                strokeWidth={2.4}
+                            />
+                        </g>
+                        <rect
+                            x={X0}
+                            y={Y0}
+                            width={X1 - X0}
+                            height={Y1 - Y0}
+                            fill="none"
+                            stroke={TINTA}
+                            strokeWidth={1.2}
+                        />
+
+                        <g clipPath="url(#kms-bidang)">
+                            {segmen.map((bagian, i) => {
+                                const d = `M${bagian
+                                    .map(
+                                        (t) =>
+                                            `${x(t.umur).toFixed(1)} ${y(t.beratKg).toFixed(1)}`,
+                                    )
+                                    .join(' L')}`;
+
+                                return (
+                                    <g key={`seg${i}`}>
+                                        {/* Halo putih supaya kurva terbaca di
+                                            atas pita berwarna. */}
+                                        <path
+                                            d={d}
+                                            fill="none"
+                                            stroke="#FFFFFF"
+                                            strokeWidth={8}
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        />
+                                        <path
+                                            d={d}
+                                            fill="none"
+                                            stroke={TINTA}
+                                            strokeWidth={3.5}
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        />
+                                    </g>
+                                );
+                            })}
+
+                            {pilih !== null &&
+                                dalamPanel.some((t) => t.i === aktif) && (
+                                    <circle
+                                        cx={x(pilih.umur)}
+                                        cy={y(pilih.beratKg)}
+                                        r={13}
+                                        fill="#FFFFFF"
+                                        fillOpacity={0.6}
+                                        stroke="#0F6E44"
+                                        strokeWidth={3}
+                                    />
+                                )}
+
+                            {dalamPanel.map((t) => (
+                                <circle
+                                    key={`t${t.i}`}
+                                    cx={x(t.umur)}
+                                    cy={y(t.beratKg)}
+                                    r={6}
+                                    fill={t.i === terakhir ? TINTA : '#FFFFFF'}
+                                    stroke={
+                                        t.i === terakhir ? '#FFFFFF' : TINTA
+                                    }
+                                    strokeWidth={t.i === terakhir ? 2 : 3}
+                                />
+                            ))}
+
+                            {/* Berat tanpa satuan, bergantian di bawah dan di
+                                atas titik supaya angka yang berdekatan tidak
+                                bertumpuk. */}
+                            {dalamPanel.map((t, urutan) => (
+                                <text
+                                    key={`l${t.i}`}
+                                    x={x(t.umur)}
+                                    y={Math.min(
+                                        Math.max(
+                                            urutan % 2 === 0
+                                                ? y(t.beratKg) + 24
+                                                : y(t.beratKg) - 14,
+                                            Y0 + 14,
+                                        ),
+                                        Y1 - 6,
+                                    )}
+                                    textAnchor="middle"
+                                    fontSize={12}
+                                    fontWeight={800}
+                                    fill={TINTA}
+                                    stroke="#FFFFFF"
+                                    strokeWidth={4}
+                                    strokeLinejoin="round"
+                                    paintOrder="stroke"
+                                >
+                                    {angka(t.beratKg, 2)}
+                                </text>
+                            ))}
+                        </g>
+
+                        {bulanPanel.map((b) => (
+                            <text
+                                key={`b${b}`}
+                                x={x(b)}
+                                y={Y1 + 20}
+                                textAnchor="middle"
+                                fontSize={14}
+                                fontWeight={600}
+                                fill={TEKS_SEKUNDER}
+                            >
+                                {b}
+                            </text>
+                        ))}
+                        <text
+                            x={(X0 + X1) / 2}
+                            y={Y1 + 44}
+                            textAnchor="middle"
+                            fontSize={14}
+                            fontWeight={700}
+                            fill={TINTA}
+                        >
+                            Umur, bulan
+                        </text>
+                        {/* Angka kg di kiri dan kanan sekaligus, supaya mata
+                            tidak perlu menyeberangi seluruh lebar kurva. */}
+                        {kgLabel.map((kg) => (
+                            <g key={`kg${kg}`}>
+                                <text
+                                    x={X0 - 8}
+                                    y={y(kg) + 5}
+                                    textAnchor="end"
+                                    fontSize={14}
+                                    fontWeight={600}
+                                    fill={TEKS_SEKUNDER}
+                                >
+                                    {kg}
+                                </text>
+                                <text
+                                    x={X1 + 8}
+                                    y={y(kg) + 5}
+                                    fontSize={14}
+                                    fontWeight={600}
+                                    fill={TEKS_SEKUNDER}
+                                >
+                                    {kg}
+                                </text>
                             </g>
                         ))}
+                        <text
+                            transform={`translate(14 ${(Y0 + Y1) / 2}) rotate(-90)`}
+                            textAnchor="middle"
+                            fontSize={14}
+                            fontWeight={700}
+                            fill={TINTA}
+                        >
+                            Berat badan, kg
+                        </text>
 
-                        {dalamPanel.map(([umur, kg], urutan) => {
-                            const d = petaDetail.get(kunciTitik(umur, kg));
-                            /* Jarak angkat tetap, tidak lagi berselang-seling
-                               menurut ganjil-genap urutan.
-                               Selang-seling itu dipasang untuk menghindari
-                               tabrakan yang ternyata tidak pernah ada: label
-                               selebar 92 satuan berdiri pada jarak bulan 114
-                               satuan, jadi masih sisa 22. Yang dihasilkannya
-                               justru salah baca — pada anak ini +1,31 dan +1,30
-                               hampir sama nilainya tetapi labelnya terpaut 26
-                               satuan, sehingga tinggi label membaca parity
-                               indeks, bukan angkanya. Di kartu pertumbuhan itu
-                               bukan sekadar tidak rapi. */
-                            const labelY = Math.max(
-                                g.ATAS + LABEL_UKURAN,
-                                y(kg) - LABEL_ANGKAT,
-                            );
-                            const nilaiTitik =
-                                d?.z === null || d?.z === undefined
-                                    ? null
-                                    : `${zScore(d.z)} SD`;
-                            const labelTampil = g.labelTitik
-                                ? nilaiTitik
-                                : null;
+                        {/* Sasaran sentuh selebar jari di atas tiap titik. */}
+                        {dalamPanel.map((t) => (
+                            <circle
+                                key={`s${t.i}`}
+                                cx={x(t.umur)}
+                                cy={y(t.beratKg)}
+                                r={24}
+                                fill="#FFFFFF"
+                                fillOpacity={0}
+                                role="button"
+                                tabIndex={0}
+                                aria-label={`${tanggalPanjang(t.tanggal)}, ${angka(t.beratKg, 2)} kg`}
+                                onMouseEnter={() => setAktif(t.i)}
+                                onMouseLeave={() => setAktif(null)}
+                                onFocus={() => setAktif(t.i)}
+                                onBlur={() => setAktif(null)}
+                                onClick={() => setAktif(t.i)}
+                                className="cursor-pointer outline-none focus-visible:stroke-primary focus-visible:stroke-2"
+                            />
+                        ))}
+                    </svg>
 
-                            return (
-                                <g key={`${kunciTitik(umur, kg)}|${urutan}`}>
-                                    {labelTampil !== null && (
-                                        <text
-                                            x={x(umur)}
-                                            y={labelY}
-                                            textAnchor="middle"
-                                            fontSize={LABEL_UKURAN}
-                                            fontWeight={700}
-                                            fill={TINTA}
-                                            stroke="#FFFFFF"
-                                            strokeWidth={4}
-                                            paintOrder="stroke"
-                                        >
-                                            {labelTampil}
-                                        </text>
-                                    )}
-                                    <circle
-                                        cx={x(umur)}
-                                        cy={y(kg)}
-                                        r={
-                                            umur === umurDisorot
-                                                ? TITIK_JARI + 3
-                                                : TITIK_JARI
-                                        }
-                                        fill="#FFFFFF"
-                                        stroke={TINTA}
-                                        strokeWidth={TITIK_GARIS}
-                                    >
-                                        {/* <title> memberi tooltip asli
-                                            peramban tanpa JS, dan ikut terbaca
-                                            pembaca layar. */}
-                                        <title>
-                                            {[
-                                                tanggalRingkas(
-                                                    d?.tanggal ?? null,
-                                                ),
-                                                satuan(kg, 'kg', 2),
-                                                nilaiTitik,
-                                                `${umur} bulan`,
-                                                d?.kategori ?? null,
-                                            ]
-                                                .filter((b) => b !== null)
-                                                .join(' · ')}
-                                        </title>
-                                    </circle>
-                                </g>
-                            );
-                        })}
-                    </g>
-                </svg>
+                    {pilih !== null && posisi !== null && (
+                        <Rincian
+                            titik={pilih}
+                            style={{
+                                left: `${(posisi.kiri / LEBAR) * 100}%`,
+                                top: `${((posisi.atas ? posisi.tinggi - 20 : posisi.tinggi + 20) / TINGGI) * 100}%`,
+                                transform: `translate(-50%, ${posisi.atas ? '-100%' : '0'})`,
+                            }}
+                        />
+                    )}
+                </div>
             </div>
 
-            <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-sm">
+            <p className="mt-1.5 text-sm font-semibold">
+                {titik.length === 1
+                    ? 'Baru satu kali ditimbang. Garis muncul setelah penimbangan berikutnya.'
+                    : 'Angka di titik adalah berat badan dalam kg. Pilih titik untuk melihat rinciannya.'}
+            </p>
+            <ul className="mt-1 flex flex-wrap gap-x-4.5 gap-y-1 text-sm text-muted-foreground">
                 <Legenda warna={PITA_HIJAU_TUA} teks="−1 sampai +1 SD" />
-                <Legenda
-                    warna={PITA_HIJAU_MUDA}
-                    teks="−2 sampai −1 dan +1 sampai +2 SD"
-                />
-                <Legenda
-                    warna={PITA_KUNING}
-                    teks="−3 sampai −2 dan +2 sampai +3 SD"
-                />
-                <Legenda warna={GARIS_MERAH} teks="Garis merah, −3 SD" />
+                <Legenda warna={PITA_HIJAU_MUDA} teks="±1 sampai ±2 SD" />
+                <Legenda warna={PITA_KUNING} teks="±2 sampai ±3 SD" />
+                <Legenda warna={GARIS_MERAH} teks="Garis merah −3 SD" garis />
             </ul>
+        </section>
+    );
+}
+
+/** Kotak rincian satu titik. */
+function Rincian({
+    titik: t,
+    style,
+}: {
+    titik: TitikKms;
+    style: CSSProperties;
+}) {
+    const berdiri = t.umurBulan !== null && t.umurBulan >= 24;
+    const nada = nadaKategori(t.kategoriBbTb);
+    const IkonKategori = IKON[nada];
+    const selisih =
+        t.selisihKg === null
+            ? null
+            : `${t.selisihKg >= 0 ? '+' : '−'}${angka(Math.abs(t.selisihKg), 2)} kg dari bulan lalu`;
+
+    return (
+        <div
+            role="status"
+            style={style}
+            className="pointer-events-none absolute z-10 w-[264px] rounded-lg border-2 border-foreground bg-card px-3.5 py-2.5 leading-snug shadow-[0_8px_20px_rgba(22,33,28,0.18)]"
+        >
+            <p className="text-sm font-semibold text-muted-foreground">
+                {tanggalPanjang(t.tanggal)}
+                {t.umurBulan !== null && ` · umur ${t.umurBulan} bulan`}
+            </p>
+            <p className="mt-0.5 flex flex-wrap items-baseline gap-x-2">
+                <span className="text-xl font-extrabold">
+                    {angka(t.beratKg, 2)} kg
+                </span>
+                {t.tinggiCm !== null && (
+                    <span className="text-sm text-muted-foreground">
+                        {berdiri ? 'tinggi' : 'panjang'} {angka(t.tinggiCm, 1)}{' '}
+                        cm
+                    </span>
+                )}
+            </p>
+            {t.naik === 'N' || t.naik === 'T' ? (
+                <p
+                    className={`mt-1 flex flex-wrap items-center gap-x-1.5 text-sm font-bold ${
+                        t.naik === 'N' ? 'text-tone-green' : 'text-tone-amber'
+                    }`}
+                >
+                    {t.naik === 'N' ? (
+                        <CircleCheck
+                            className="size-4"
+                            strokeWidth={2.5}
+                            aria-hidden="true"
+                        />
+                    ) : (
+                        <TriangleAlert
+                            className="size-4"
+                            strokeWidth={2.5}
+                            aria-hidden="true"
+                        />
+                    )}
+                    {t.naik === 'N' ? 'Naik' : 'Tidak naik'}
+                    {selisih !== null && (
+                        <span className="font-medium text-muted-foreground">
+                            {selisih}
+                            {t.naik === 'T' && t.kbmKg !== null && (
+                                <>
+                                    ,{' '}
+                                    <span className="whitespace-nowrap">
+                                        kurang dari {angka(t.kbmKg, 2)} kg
+                                    </span>
+                                </>
+                            )}
+                        </span>
+                    )}
+                </p>
+            ) : (
+                t.naik !== null && (
+                    <p className="mt-1 text-sm font-semibold text-muted-foreground">
+                        {t.naik === 'B'
+                            ? 'Pertama kali ditimbang'
+                            : 'Tidak ditimbang bulan lalu'}
+                    </p>
+                )
+            )}
+            {t.zBbTb !== null && (
+                <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+                    {labelIndeks('BB_TB', t.umurBulan)} {zScore(t.zBbTb)} SD
+                    {t.kategoriBbTb !== null && (
+                        <span
+                            className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 font-bold whitespace-nowrap ${KELAS[nada]}`}
+                        >
+                            <IkonKategori
+                                className="size-4"
+                                strokeWidth={2.5}
+                                aria-hidden="true"
+                            />
+                            {t.kategoriBbTb}
+                        </span>
+                    )}
+                </p>
+            )}
         </div>
     );
 }
 
-function Legenda({ warna, teks }: { warna: string; teks: string }) {
+function Legenda({
+    warna,
+    teks,
+    garis = false,
+}: {
+    warna: string;
+    teks: string;
+    garis?: boolean;
+}) {
     return (
-        <li className="flex items-center gap-2">
+        <li className="flex items-center gap-1.5">
             <span
                 aria-hidden="true"
-                className="inline-block size-4 rounded-xs"
+                className={garis ? 'h-[3px] w-4' : 'h-3 w-4 rounded-[4px]'}
                 style={{ backgroundColor: warna }}
             />
             {teks}

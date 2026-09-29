@@ -6,8 +6,8 @@
 | **Status** | draf |
 | **PR** | `feat/f08-desil-gakin` |
 | **Bergantung pada** | — |
-| **Terhambat** | [OI-17](../../pertanyaan-terbuka.md) — sumber datanya |
-| **Perubahan berarti terakhir** | 21 September 2026 |
+| **Terhambat** | [OI-17](../../pertanyaan-terbuka.md#oi-17--sumber-data-status-desil-dan-kategori-gakin) — penetapan sumber dan pihak pengisi data |
+| **Perubahan berarti terakhir** | 23 September 2026 |
 | **Membuka jalan bagi** | [F09](F09-laporan-f1.md) |
 
 ## 1. Latar
@@ -31,7 +31,7 @@ F08 hanya menyediakan kolomnya. Yang memakainya untuk melapor adalah [F09](F09-l
 
 - **Impor massal dari berkas Puskesmas.** Bentuk berkasnya belum diketahui ([OI-17](../../pertanyaan-terbuka.md)). Membangun pembaca untuk berkas yang belum pernah dilihat menghasilkan pekerjaan yang dibuang.
 - **Menurunkan Gakin dari desil secara otomatis.** Keduanya terdengar seperti satu hal — desil rendah artinya miskin — tetapi ambangnya kebijakan pemerintah, bisa berubah, dan bukan wewenang Posyandu. Dua kolom terpisah, diisi apa adanya.
-- **Menampilkannya di Beranda atau Detail anak.** Ini atribut pelaporan, bukan informasi yang membantu kader merawat anak. Tempatnya di daftar dan di rekap.
+- **Menampilkannya di Beranda atau Detail Balita.** Ini atribut pelaporan, bukan informasi yang membantu kader merawat anak. Tempatnya di daftar dan di rekap.
 
 ## 3. Perilaku yang diharapkan
 
@@ -78,9 +78,9 @@ Tipe `number | null` dipilih ketimbang `1 | 2 | … | 10`: nilai di luar 1–10 
 
 ## 6. Keputusan terbuka
 
-**[OI-17](../../pertanyaan-terbuka.md) — dari mana angkanya datang.** Tiga kemungkinan, dan rancangannya berbeda untuk masing-masing: ikut berkas Puskesmas (kolom hanya dibaca), diisi kader (kolom dapat diubah), atau campuran (butuh penanda asal per baris).
+**[OI-17](../../pertanyaan-terbuka.md#oi-17--sumber-data-status-desil-dan-kategori-gakin)** menjadi catatan utama untuk sumber data dan pihak yang mengisinya. Pilihan, status konfirmasi, dan dampaknya dipelihara di sana. Pertanyaan arti `G`/`NG` menyangkut pemetaan keluaran F08 ke blangko F09, bukan arti label Gakin yang memang diminta dalam feedback.
 
-**Asumsi kerja:** kemungkinan ketiga — kolom dapat diubah dan menyimpan "belum tercatat" secara eksplisit. Asumsi ini paling longgar: bila ternyata datanya datang dari Puskesmas, isiannya tinggal dikunci. Sebaliknya tidak berlaku — kolom yang terlanjur dirancang hanya-baca tidak bisa dibuka murah.
+Isian yang dapat diubah pada draf ini masih merupakan asumsi rancangan. Bentuk finalnya mengikuti keputusan OI-17 dan otorisasi Portal; draf ini tidak menetapkan kader sebagai pihak pengisi. Keadaan "belum tercatat" tetap dipertahankan.
 
 **Catatan privasi.** Desil dan status kemiskinan adalah data sosio-ekonomi **keluarga**, bukan data kesehatan anak, dan tidak pernah menjadi dasar vonis apa pun terhadap anaknya. [OI-10](../../pertanyaan-terbuka.md) berlaku padanya sama seperti pada NIK. Baris risikonya sudah tercatat di [PRD utama bagian 12](../prd-utama.md).
 

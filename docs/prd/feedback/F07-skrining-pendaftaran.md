@@ -6,8 +6,10 @@
 | **Status** | draf |
 | **PR** | `feat/f07-skrining-daftar` |
 | **Bergantung pada** | [F01](F01-kontak-whatsapp-ortu.md) — nomor WhatsApp jadi salah satu butir |
-| **Terhambat** | [OI-15](../../pertanyaan-terbuka.md) — imunisasi, sebagian |
-| **Perubahan berarti terakhir** | 21 September 2026 |
+| **Terhambat** | [OI-15](../../pertanyaan-terbuka.md) — imunisasi, sebagian; [OI-20](../../pertanyaan-terbuka.md#oi-20--input-lapangan-dan-hak-kader-di-portal) — alur pendaftaran dan persona |
+| **Perubahan berarti terakhir** | 23 September 2026 |
+
+Persetujuan dan target rilis mengikuti [PRD utama bagian 13](../prd-utama.md#13-status-lingkup). Konteks pendaftaran saat kegiatan dalam draf ini masih memerlukan keputusan batas Portal dan Tablet.
 
 ## 1. Latar
 
@@ -88,6 +90,8 @@ Keduanya memang beririsan pada Buku KIA, dan itu disengaja: ketiadaan Buku KIA s
 | `client/demo/DemoApp.tsx` | `terapkanKoreksi()` meneruskan dua field baru. |
 
 ## 6. Keputusan terbuka
+
+**[OI-20](../../pertanyaan-terbuka.md#oi-20--input-lapangan-dan-hak-kader-di-portal) — konteks pendaftaran dan hak kader.** Keputusan ini menentukan apakah alur berlangsung di Portal atau Tablet, serta siapa yang boleh melengkapi identitas. Persetujuan rilis mengikuti PRD utama bagian 13.
 
 **[OI-15](../../pertanyaan-terbuka.md) — imunisasi dicatat aplikasi atau tetap di buku.**
 

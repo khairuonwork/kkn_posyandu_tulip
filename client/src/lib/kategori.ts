@@ -110,3 +110,21 @@ export function kategoriDariZ(indeks: Indeks, z: number): string | null {
             return null;
     }
 }
+
+/**
+ * KBM — kenaikan berat badan minimal — untuk umur dalam bulan penuh, dalam kg.
+ * Tabel docs/rujukan/antropometri.md bagian 10.2; umur 0 tidak punya KBM.
+ *
+ * Dipakai hanya sebagai keterangan "kurang dari … kg" di samping status
+ * `T` dari arsip. Status N/T sendiri tetap nilai arsip apa adanya sampai
+ * OI-01 dijawab (docs/pertanyaan-terbuka.md).
+ */
+export function kbmKg(umurBulan: number | null): number | null {
+    if (umurBulan === null || umurBulan < 1 || umurBulan > 60) {
+        return null;
+    }
+
+    const tabel = [0.8, 0.9, 0.6, 0.6, 0.5, 0.4];
+
+    return umurBulan <= 6 ? tabel[umurBulan - 1] : umurBulan <= 10 ? 0.3 : 0.2;
+}

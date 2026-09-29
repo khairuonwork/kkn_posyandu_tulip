@@ -4,11 +4,11 @@
 |---|---|
 | **Jenis** | Kontrak — rancangan impor |
 | **Status** | selesai |
-| **Perubahan berarti terakhir** | 21 September 2026 |
+| **Perubahan berarti terakhir** | 29 September 2026 |
 
 Spesifikasi perintah impor arsip 2025–2026 ke basis data Portal.
 
-> **Belum dibangun.** Perintah ini dirancang untuk Laravel dan tidak ikut diport ([ADR-0006](../adr/0006-pindah-ke-express-react-postgres.md)). Aturan normalisasi, pencocokan identitas, dan penanganan konflik di bawah tetap berlaku apa adanya; yang berubah hanya bentuk perintahnya — nanti sebuah skrip di `server/db/`, sekelas dengan `migrate.ts` dan `seed-standar-lms.ts`.
+> **Belum dibangun.** Perintahnya nanti sebuah skrip di `server/db/`, sekelas dengan `migrate.ts` dan `seed-standar-lms.ts` (butir 3 [Rencana kerja](../rencana-kerja.md)). Aturan normalisasi, pencocokan identitas, dan penanganan konflik di bawah berlaku apa adanya.
 
 Selama Aplikasi Tablet belum ada, perintah ini adalah **satu-satunya jalur masuk data pengukuran** ([ADR-0003](../adr/0003-batas-portal-vs-aplikasi-tablet.md)). Karena itu ia diperlakukan sebagai jalur kritis, bukan sekadar utilitas.
 
@@ -247,8 +247,6 @@ Pada mode `--dry-run`, seluruh alur berjalan di dalam transaksi yang di-*rollbac
 ---
 
 ## 8. Dependensi
-
-> **Direvisi 22 September 2026.** Bagian ini semula menetapkan paket PHP (`openspout/openspout`, dibandingkan dengan PhpSpreadsheet, `ZipArchive`, `fputcsv`). Seluruhnya tidak berlaku sejak [ADR-0006](../adr/0006-pindah-ke-express-react-postgres.md); yang tersisa adalah syarat yang harus dipenuhi pustaka penggantinya, apa pun pilihannya.
 
 Membaca `.xlsx` menuntut satu paket baru. Pilihannya belum ditetapkan — diputuskan saat perintah impornya dibangun. Syaratnya:
 

@@ -6,16 +6,18 @@
  * mengembalikan semuanya seperti semula.
  *
  * Berkas ini perancah demo. Saat backend siap, controller yang memasok props
- * yang sama dan berkas ini dibuang (docs/rujukan/layar-demo.md bagian 10).
+ * yang sama dan berkas ini dibuang (docs/arsitektur.md — Konvensi).
  */
 
 import {
     nadaKategori,
     PERLU_TINDAK_LANJUT,
 } from '@/components/status-gizi-badge';
-import { labelIndeks, zScore } from '@/lib/format';
+import { kodeKartu, labelIndeks, umurBulanPada, zScore } from '@/lib/format';
 import type { BarisLms } from '@/lib/z-score';
 import type { BarisAnak } from '@/pages/anak/index';
+import type { BalitaKartu } from '@/pages/kartu-sasaran/index';
+import type { BalitaTimbang } from '@/pages/layanan/index';
 import type {
     Anak,
     GarisSd,
@@ -68,12 +70,92 @@ export function cariPeriode(id: string): Periode | null {
     return data.periode.find((p) => p.id === id) ?? null;
 }
 
+/**
+ * Daftar layar Kartu Balita, urut nama. Balita aktif berarti belum pindah dan
+ * belum berumur 5 tahun pada tanggal kegiatan periode yang dibuka.
+ */
+export function balitaKartu(periodeId: string): BalitaKartu[] {
+    const tanggal = cariPeriode(periodeId)?.tanggalKegiatan ?? null;
+    const pindah = new Set(
+        data.pengukuran
+            .filter((p) => p.statusKehadiran === 'pindah')
+            .map((p) => p.anakId),
+    );
+
+    return data.anak
+        .map((anak) => {
+            const umur = umurBulanPada(anak.tglLahir, tanggal);
+
+            return {
+                anakId: anak.id,
+                nama: anak.nama,
+                tglLahir: anak.tglLahir,
+                rt: anak.rt,
+                namaIbu: anak.namaOrtu,
+                nik: anak.nik,
+                kode: kodeKartu(anak.nik, anak.id),
+                umurBulan: umur,
+                aktif: !pindah.has(anak.id) && (umur === null || umur < 60),
+            };
+        })
+        .sort((a, b) => (a.nama ?? '').localeCompare(b.nama ?? ''));
+}
+
+/**
+ * Daftar pencarian layar Penimbangan: seluruh balita beserta hasil timbang
+ * terakhirnya, dari periode mana pun. Umur dihitung pada tanggal kegiatan
+ * periode yang sedang dibuka.
+ */
+export function balitaPenimbangan(periodeId: string): BalitaTimbang[] {
+    const tanggal = cariPeriode(periodeId)?.tanggalKegiatan ?? null;
+    const urutan = new Map(data.periode.map((p, i) => [p.id, i]));
+    const terakhir = new Map<number, Pengukuran>();
+
+    for (const ukur of data.pengukuran) {
+        const lama = terakhir.get(ukur.anakId);
+
+        if (
+            ukur.statusKehadiran === 'hadir' &&
+            (lama === undefined ||
+                (urutan.get(ukur.periodeId) ?? -1) >
+                    (urutan.get(lama.periodeId) ?? -1))
+        ) {
+            terakhir.set(ukur.anakId, ukur);
+        }
+    }
+
+    return data.anak.map((anak) => {
+        const ukur = terakhir.get(anak.id);
+
+        return {
+            anakId: anak.id,
+            nama: anak.nama,
+            jk: anak.jk,
+            umurBulan: umurBulanPada(anak.tglLahir, tanggal),
+            rt: anak.rt,
+            namaIbu: anak.namaOrtu,
+            kodeKartu: kodeKartu(anak.nik, anak.id),
+            nik: anak.nik,
+            bukuKia: anak.bukuKia,
+            terakhir:
+                ukur === undefined
+                    ? null
+                    : {
+                          tanggal: ukur.tanggalUkur,
+                          bbKg: ukur.bbKg,
+                          tinggiCm: ukur.tinggiCm,
+                          kategori: ukur.penilaian.BB_TB?.kategori ?? null,
+                      },
+        };
+    });
+}
+
 export function cariAnak(id: number): Anak | null {
     return data.anak.find((a) => a.id === id) ?? null;
 }
 
 // ---------------------------------------------------------------------------
-// Selektor Beranda — docs/rujukan/layar-demo.md bagian 6.3
+// Selektor Beranda — docs/riwayat/layar-demo.md bagian 6.3
 // ---------------------------------------------------------------------------
 
 export type Ringkasan = {
@@ -90,10 +172,10 @@ export type StatusGizi = {
     giziBaik: number;
     giziKurang: number;
     giziBuruk: number;
+    berisikoLebih: number;
     giziLebih: number;
+    obesitas: number;
     belumDinilai: number;
-    /** Berapa anak yang belum punya angka bulan ini, yaitu S dikurangi D. */
-    belumDiukur: number;
     ditimbang: number;
 };
 
@@ -168,25 +250,27 @@ export function statusGizi(
     const baik = hitung('Gizi baik');
     const kurang = hitung('Gizi kurang');
     const buruk = hitung('Gizi buruk');
-    // PMK 2/2020 punya enam kategori BB/TB, bukan tiga. Sisi lebihnya
-    // digabung jadi satu angka: tanpa itu panel ini pernah menulis
-    // `0 gizi kurang, 0 gizi buruk` tepat di atas daftar berisi tiga anak
-    // obesitas, dan keempat angkanya tidak pernah berjumlah D.
-    const lebih =
-        hitung('Berisiko gizi lebih') +
-        hitung('Gizi lebih') +
-        hitung('Obesitas');
+    // Keenam kategori BB/TB PMK 2/2020, terpisah. Dulu sisi lebihnya
+    // digabung jadi satu angka 14 berlabel "gizi lebih dan obesitas",
+    // padahal sepuluh di antaranya baru berisiko, dan kartu Tren di
+    // sebelahnya menghitung 4 untuk hal yang tampak sama.
+    const berisiko = hitung('Berisiko gizi lebih');
+    const lebih = hitung('Gizi lebih');
+    const obesitas = hitung('Obesitas');
 
     return {
         giziBaik: baik,
         giziKurang: kurang,
         giziBuruk: buruk,
+        berisikoLebih: berisiko,
         giziLebih: lebih,
+        obesitas,
         // Ditimbang tapi BB/TB tidak dapat dihitung — bukan nol, bukan sehat.
-        belumDinilai: Math.max(0, d - baik - kurang - buruk - lebih),
+        belumDinilai: Math.max(
+            0,
+            d - baik - kurang - buruk - berisiko - lebih - obesitas,
+        ),
         ditimbang: d,
-        // Sasaran yang tidak hadir. Ini `S - D`, bukan bagian dari D.
-        belumDiukur: baris.length - d,
     };
 }
 
@@ -210,7 +294,7 @@ const URUTAN_NADA: Record<string, number> = { merah: 0, oranye: 1 };
  * Anak yang perlu ditindaklanjuti, paling mendesak di atas.
  *
  * Disusun dari kategori status gizi saja, bukan dari 1T/2T/3T
- * (docs/rujukan/ui-ux.md bagian 5.2, OI-01).
+ * (docs/rujukan/ui-ux.md bagian 5, OI-01).
  */
 export function perluPerhatian(
     periodeId: string,
@@ -326,24 +410,15 @@ function susunAlasan(
         return `${sekarang}, tidak ada angka bulan lalu`;
     }
 
-    // Arah ANAKNYA, bukan arah z-score. `naik` dan `turun` sudah punya satu
-    // arti pasti di posyandu - N = naik = berat bertambah = kabar baik - dan
-    // baris ini duduk 40 px di bawah KPI `Naik (N)` di Beranda. Memakai kata
-    // yang sama untuk "z bergerak ke atas" membuat anak obesitas yang memburuk
-    // terbaca membaik, dan anak pendek yang membaik terbaca memburuk.
-    //
-    // Jarak dari nol yang menentukan, bukan tandanya: |z| membesar berarti
-    // makin jauh dari normal, untuk sisi kurang maupun sisi lebih.
-    const jauhKini = Math.abs(nilai.z);
-    const jauhLalu = Math.abs(lalu.z);
-
-    if (jauhKini === jauhLalu) {
+    // Angka bulan lalu ditulis apa adanya, tanpa kata arah. `naik` dan
+    // `turun` sudah punya arti pasti di posyandu - N = naik = berat
+    // bertambah - dan "memburuk" untuk z yang menjauh dari nol lebih lambat
+    // dibaca daripada dua angka yang berdampingan.
+    if (nilai.z === lalu.z) {
         return `${sekarang}, sama seperti bulan lalu`;
     }
 
-    const arah = jauhKini > jauhLalu ? 'memburuk' : 'membaik';
-
-    return `${sekarang}, ${arah} dari ${zScore(lalu.z)} SD`;
+    return `${sekarang}, bulan lalu ${zScore(lalu.z)} SD`;
 }
 
 /** Periode terakhir yang benar-benar berisi pengukuran, untuk state kosong. */
@@ -774,52 +849,6 @@ export function trenStatusGizi(rt: string | null = null): TitikTren[] {
     });
 }
 
-export type BarisTrenRt = {
-    rt: string;
-    /** Satu nilai D/S per periode, urut sesuai `data.periode`. */
-    ds: (number | null)[];
-    /** Rerata D/S enam bulan, dihitung dari total D dibagi total S. */
-    rerata: number | null;
-};
-
-/**
- * D/S tiap RT sepanjang enam bulan.
- *
- * Rekap per RT yang ada hanya memotret satu bulan, sehingga RT yang tertinggal
- * terus-menerus tidak bisa dibedakan dari RT yang kebetulan jeblok sekali.
- * `null` berarti RT itu tidak punya sasaran pada bulan tersebut — bukan nol
- * persen.
- */
-export function trenDsPerRt(rt: string | null = null): BarisTrenRt[] {
-    const wilayah = rt === null ? daftarRt() : [rt];
-
-    return wilayah.map((w) => {
-        let totalS = 0;
-        let totalD = 0;
-
-        const ds = data.periode.map((p) => {
-            const baris = saringRt(pengukuranPeriode(p.id), w);
-
-            if (baris.length === 0) {
-                return null;
-            }
-
-            const d = baris.filter((u) => u.statusKehadiran === 'hadir').length;
-
-            totalS += baris.length;
-            totalD += d;
-
-            return Math.round((d / baris.length) * 100);
-        });
-
-        return {
-            rt: w,
-            ds,
-            rerata: totalS === 0 ? null : Math.round((totalD / totalS) * 100),
-        };
-    });
-}
-
 /**
  * Akun contoh untuk kartu Kelola pengguna.
  *
@@ -834,7 +863,7 @@ export function trenDsPerRt(rt: string | null = null): BarisTrenRt[] {
  * disangka orang sungguhan, dan pemirsa demo langsung tahu siapa yang sedang
  * dibicarakan tiap baris.
  *
- * `bidan@posyandutulip.id` sengaja sama dengan isian bawaan layar Masuk, dan
+ * `bidan` sengaja sama dengan isian bawaan layar Masuk di demo, dan
  * `Bidan Posyandu Tulip` sama dengan nama pada baris "Terakhir diubah" di
  * Pengaturan: keduanya menunjuk akun yang benar-benar ada di daftar ini.
  */
@@ -842,7 +871,7 @@ export const PENGGUNA_CONTOH: Pengguna[] = [
     {
         id: 1,
         nama: 'Bidan Posyandu Tulip',
-        email: 'bidan@posyandutulip.id',
+        username: 'bidan',
         peran: 'bidan',
         rt: null,
         aktif: true,
@@ -850,7 +879,7 @@ export const PENGGUNA_CONTOH: Pengguna[] = [
     {
         id: 2,
         nama: 'Admin Sistem',
-        email: 'admin@posyandutulip.id',
+        username: 'admin',
         peran: 'admin',
         rt: null,
         aktif: true,
@@ -858,7 +887,7 @@ export const PENGGUNA_CONTOH: Pengguna[] = [
     {
         id: 3,
         nama: 'Kader RT 01',
-        email: 'kader01@posyandutulip.id',
+        username: 'kader01',
         peran: 'kader',
         rt: '1',
         aktif: true,
@@ -866,7 +895,7 @@ export const PENGGUNA_CONTOH: Pengguna[] = [
     {
         id: 4,
         nama: 'Kader RT 02',
-        email: 'kader02@posyandutulip.id',
+        username: 'kader02',
         peran: 'kader',
         rt: '2',
         aktif: true,
@@ -874,7 +903,7 @@ export const PENGGUNA_CONTOH: Pengguna[] = [
     {
         id: 5,
         nama: 'Kader RT 03',
-        email: 'kader03@posyandutulip.id',
+        username: 'kader03',
         peran: 'kader',
         rt: '3',
         aktif: true,
@@ -882,7 +911,7 @@ export const PENGGUNA_CONTOH: Pengguna[] = [
     {
         id: 6,
         nama: 'Kader RT 04',
-        email: 'kader04@posyandutulip.id',
+        username: 'kader04',
         peran: 'kader',
         rt: '4',
         aktif: true,
@@ -890,7 +919,7 @@ export const PENGGUNA_CONTOH: Pengguna[] = [
     {
         id: 7,
         nama: 'Kader RT 05',
-        email: 'kader05@posyandutulip.id',
+        username: 'kader05',
         peran: 'kader',
         rt: '5',
         aktif: true,
@@ -898,7 +927,7 @@ export const PENGGUNA_CONTOH: Pengguna[] = [
     {
         id: 8,
         nama: 'Kader RT 06',
-        email: 'kader06@posyandutulip.id',
+        username: 'kader06',
         peran: 'kader',
         rt: '6',
         aktif: true,
@@ -906,7 +935,7 @@ export const PENGGUNA_CONTOH: Pengguna[] = [
     {
         id: 9,
         nama: 'Kader RT 07',
-        email: 'kader07@posyandutulip.id',
+        username: 'kader07',
         peran: 'kader',
         rt: '7',
         aktif: true,
@@ -914,7 +943,7 @@ export const PENGGUNA_CONTOH: Pengguna[] = [
     {
         id: 10,
         nama: 'Kader RT 02 Lama',
-        email: 'kader02.lama@posyandutulip.id',
+        username: 'kader02.lama',
         peran: 'kader',
         rt: '2',
         aktif: false,
@@ -925,3 +954,46 @@ export const PENGATURAN_TERAKHIR_DIUBAH = {
     tanggal: '2026-06-13',
     oleh: 'Bidan Posyandu Tulip',
 };
+
+/**
+ * Contoh isi bagian Riwayat perubahan di Pengaturan, terbaru di atas. Di
+ * aplikasi sungguhan baris-baris ini datang dari tabel audit (ADR-0007).
+ */
+export const RIWAYAT_PENGATURAN_CONTOH = [
+    {
+        waktu: '13 Jun 2026, 10.24',
+        oleh: 'Bidan Posyandu Tulip',
+        bagian: 'Batas angka ukur',
+        perubahan: 'Berat turun maksimal diubah dari 1,0 menjadi 1,5 kg.',
+    },
+    {
+        waktu: '2 Jun 2026, 08.15',
+        oleh: 'Admin Sistem',
+        bagian: 'Pengguna dan peran',
+        perubahan: 'Akun Kader RT 02 Lama dinonaktifkan.',
+    },
+    {
+        waktu: '2 Jun 2026, 08.12',
+        oleh: 'Admin Sistem',
+        bagian: 'Pengguna dan peran',
+        perubahan: 'Akun baru Kader RT 02 ditambahkan.',
+    },
+    {
+        waktu: '20 Mei 2026, 14.03',
+        oleh: 'Bidan Posyandu Tulip',
+        bagian: 'Ambang rujukan',
+        perubahan: 'Zona waspada ditetapkan −1,00 SD.',
+    },
+    {
+        waktu: '20 Mei 2026, 14.01',
+        oleh: 'Bidan Posyandu Tulip',
+        bagian: 'Ambang rujukan',
+        perubahan: 'Anjuran hubungi faskes ditetapkan −1,96 SD.',
+    },
+    {
+        waktu: '6 Jan 2026, 09.30',
+        oleh: 'Admin Sistem',
+        bagian: 'Standar perhitungan',
+        perubahan: 'Standar Permenkes RI No. 2/2020 + WHO LMS 2006 dipilih.',
+    },
+];

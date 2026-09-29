@@ -23,17 +23,17 @@ type Catatan = {
 const catatan = new Map<string, Catatan>();
 
 /**
- * Dihitung per pasangan email dan alamat, bukan per alamat saja: satu jaringan
+ * Dihitung per pasangan nama pengguna dan alamat, bukan per alamat saja: satu jaringan
  * Posyandu dipakai bersama, dan satu kader yang salah ketik tidak boleh
  * mengunci kader lain di ruangan yang sama.
  */
-function kunci(email: string, ip: string): string {
-    return `${email.trim().toLowerCase()}|${ip}`;
+function kunci(username: string, ip: string): string {
+    return `${username.trim().toLowerCase()}|${ip}`;
 }
 
 /** Sisa detik sebelum boleh mencoba lagi; 0 bila tidak sedang ditahan. */
-export function sisaTahanan(email: string, ip: string, sekarang = Date.now()): number {
-    const c = catatan.get(kunci(email, ip));
+export function sisaTahanan(username: string, ip: string, sekarang = Date.now()): number {
+    const c = catatan.get(kunci(username, ip));
 
     if (c === undefined || c.kedaluwarsa <= sekarang || c.gagal < MAKS_GAGAL) {
         return 0;
@@ -42,8 +42,8 @@ export function sisaTahanan(email: string, ip: string, sekarang = Date.now()): n
     return Math.ceil((c.kedaluwarsa - sekarang) / 1000);
 }
 
-export function catatGagal(email: string, ip: string, sekarang = Date.now()): void {
-    const k = kunci(email, ip);
+export function catatGagal(username: string, ip: string, sekarang = Date.now()): void {
+    const k = kunci(username, ip);
     const c = catatan.get(k);
 
     // Jendela baru: kegagalan pertama, atau jendela lama sudah lewat.
@@ -70,8 +70,8 @@ export function catatGagal(email: string, ip: string, sekarang = Date.now()): vo
     }
 }
 
-export function catatBerhasil(email: string, ip: string): void {
-    catatan.delete(kunci(email, ip));
+export function catatBerhasil(username: string, ip: string): void {
+    catatan.delete(kunci(username, ip));
 }
 
 /** Hanya untuk pengujian. */

@@ -4,43 +4,45 @@
 |---|---|
 | **Jenis** | Kontrak — indeks PRD fitur |
 | **Status** | hidup — fiturnya belum tentu jadi dikerjakan |
-| **Perubahan berarti terakhir** | 22 September 2026 |
+| **Perubahan berarti terakhir** | 29 September 2026 |
 
-Dokumentasi produk Portal Posyandu Tulip berdiri di **tiga tingkat**. Folder ini yang paling bawah.
+Dokumentasi produk SIMPATIK Posyandu berdiri di **tiga tingkat**. Folder ini yang paling bawah.
 
 | Tingkat | Dokumen | Menjawab |
 |---|---|---|
 | 1 | [`prd-utama.md`](../prd-utama.md) | Produk ini apa, untuk siapa, dan batasnya di mana |
-| 2 | [`rujukan/layar-demo.md`](../../rujukan/layar-demo.md) | Layar apa saja, dan bentuk tiap layar seperti apa |
+| 2 | [Peta layar](../../mulai-di-sini.md#peta-layar) dan [UI/UX](../../rujukan/ui-ux.md) | Layar apa saja, dan aturan tampilannya. Rancangan rinci tiap layar adalah mockup yang disetujui pemilik produk pada 26 September 2026 beserta kodenya |
 | **3** | **`prd_feedback/Fnn-*.md`** (folder ini) | **Satu fitur: perilakunya, datanya, dan kapan dianggap selesai** |
 
 Tingkat 1 dan 2 menjawab *"sistemnya seperti apa"*. Tingkat 3 menjawab *"perubahan ini selesainya kapan"* — dan ditulis satu berkas per fitur supaya bisa dikerjakan **fokus satu per satu**, tanpa membuka dokumen 64 KB untuk mencari tiga paragraf yang relevan.
 
 ## Daftar fitur
 
-Seluruhnya berasal dari feedback lapangan pihak Posyandu. Lingkup dan alasannya ada di [Fitur](../../fitur.md); peta layarnya di [`rujukan/layar-demo.md` bagian 15](../../rujukan/layar-demo.md).
+Seluruhnya berasal dari feedback lapangan pihak Posyandu. Lingkup dan alasannya ada di [Fitur](../../fitur.md); peta layar yang berlaku di [Mulai di sini](../../mulai-di-sini.md#peta-layar). Pemetaan awal fitur ke layar tahap demo ada di [`riwayat/layar-demo.md` bagian 15](../../riwayat/layar-demo.md).
+
+Persetujuan dan target rilis hanya dicatat di [PRD utama bagian 13](../prd-utama.md#13-status-lingkup). Kolom ketergantungan di bawah menjelaskan kesiapan teknis, bukan izin memulai implementasi. Status PRD `draf` mengikuti panduan penulisan.
 
 Urutannya menurut **dampak lapangan dibagi ongkos**, bukan menurut nomor butir feedback. Satu baris = satu PRD = satu *pull request*.
 
 | Kode | Fitur | Cabang | Bergantung | Terhambat |
 |---|---|---|---|---|
 | [F01](F01-kontak-whatsapp-ortu.md) | Kontak WhatsApp orang tua | `feat/f01-kontak-wa` | — | — |
-| [F02](F02-edukasi-rujukan-kms.md) | Edukasi & anjuran rujukan di KMS | `feat/f02-edukasi-kms` | — | [OI-16](../../pertanyaan-terbuka.md) |
+| [F02](F02-edukasi-rujukan-kms.md) | Edukasi & anjuran rujukan di KMS | `feat/f02-edukasi-kms` | — | —; lihat keputusan [OI-16](../../riwayat/pertanyaan-terjawab.md#oi-16--ambang-rujukan-ke-faskes-arti-196) |
 | [F03](F03-kirim-whatsapp.md) | Kirim hasil ke WhatsApp | `feat/f03-kirim-wa` | F01, F02 | — |
-| [F04](F04-validasi-kewajaran-ukur.md) | Validasi kewajaran input pengukuran | `feat/f04-validasi-ukur` | — | — |
+| [F04](F04-validasi-kewajaran-ukur.md) | Validasi kewajaran input pengukuran | `feat/f04-validasi-ukur` | — | [OI-20](../../pertanyaan-terbuka.md#oi-20--input-lapangan-dan-hak-kader-di-portal) |
 | [F05](F05-grafik-enam-indeks.md) | Pengukuran & grafik indeks WHO | `feat/f05-grafik-6-indeks` | — | [OI-04](../../pertanyaan-terbuka.md) sebagian |
 | [F06](F06-status-ntob.md) | Status pertumbuhan N/T/O/B terhitung | `feat/f06-ntob` | — | [OI-01](../../pertanyaan-terbuka.md) sebagian |
-| [F07](F07-skrining-pendaftaran.md) | Skrining awal pendaftaran | `feat/f07-skrining-daftar` | F01 | [OI-15](../../pertanyaan-terbuka.md) sebagian |
-| [F08](F08-desil-gakin.md) | Atribut sosio-ekonomi: desil & Gakin | `feat/f08-desil-gakin` | — | [OI-17](../../pertanyaan-terbuka.md) |
-| [F09](F09-laporan-f1.md) | Rekap F1 & ekspor laporan | `feat/f09-laporan-f1` | F06, F08 | [OI-07](../../pertanyaan-terbuka.md) |
+| [F07](F07-skrining-pendaftaran.md) | Skrining awal pendaftaran | `feat/f07-skrining-daftar` | F01 | OI-15 sebagian dan [OI-20](../../pertanyaan-terbuka.md#oi-20--input-lapangan-dan-hak-kader-di-portal) |
+| [F08](F08-desil-gakin.md) | Atribut sosio-ekonomi: desil & Gakin | `feat/f08-desil-gakin` | — | [OI-17](../../pertanyaan-terbuka.md#oi-17--sumber-data-status-desil-dan-kategori-gakin) — sumber/pengisi data |
+| [F09](F09-laporan-f1.md) | Rekap F1 & ekspor laporan | `feat/f09-laporan-f1` | F06, F08 | [OI-07](../../pertanyaan-terbuka.md), [OI-17](../../pertanyaan-terbuka.md#oi-17--sumber-data-status-desil-dan-kategori-gakin) — pemetaan kolom dan sumber data |
 | [F10](F10-lembar-cetak.md) | Lembar bukti fisik siap cetak | `feat/f10-lembar-cetak` | F09 | — |
 | [F11](F11-aksesibilitas-tampilan.md) | Mode teks besar & mikro-interaksi | `feat/f11-aksesibilitas` | — | — |
 | [F12](F12-manajemen-sasaran.md) | Manajemen sasaran dinamis | `feat/f12-manajemen-sasaran` | — | — |
 | [F13](F13-stimulasi-perkembangan.md) | Checklist stimulasi perkembangan | *belum dibuka* | — | [OI-18](../../pertanyaan-terbuka.md) — **menahan seluruhnya** |
 
-**Empat fitur tidak bergantung pada apa pun dan tidak terhambat apa pun** — F01, F04, F11, F12. Salah satunya bisa dimulai kapan saja.
+Ketergantungan teknis yang kosong tidak menutup pertanyaan persetujuan lingkup pada OI-19.
 
-**F13 satu-satunya yang ditahan.** Naskah pertanyaannya belum ada, jadi tidak ada yang bisa dibangun. PRD-nya tetap ditulis karena bentuk datanya perlu disepakati sebelum Bidan menyusun naskahnya.
+F13 tertahan naskah pertanyaan pada OI-18. F04 dan F07 juga memerlukan keputusan batas input pada OI-20 sebelum persona dan hak aksesnya ditetapkan.
 
 ### Di luar putaran ini
 
@@ -53,7 +55,7 @@ Urutannya menurut **dampak lapangan dibagi ongkos**, bukan menurut nomor butir f
 
 ### Urutan pengerjaan
 
-Satu berkas di folder ini dikerjakan sampai selesai sebelum yang berikutnya dibuka. Kolom **Bergantung** menentukan urutan yang mungkin; selebihnya bebas.
+Setelah lingkup disetujui, satu berkas dikerjakan sampai selesai sebelum yang berikutnya dibuka. Kolom **Bergantung** menentukan urutan yang mungkin; urutan kerja tetap merujuk [rencana kerja](../../rencana-kerja.md).
 
 Aturan penulisannya — satu PRD satu *pull request*, status di kepala berkas, dan larangan menggeser nomor bagian dokumen lama — ada di [`../`panduan-penulisan.md`](../../panduan-penulisan.md).
 
@@ -63,9 +65,9 @@ Ditulis sekali di sini, tidak diulang di tiap PRD:
 
 | Aturan | Isi |
 |---|---|
-| **Kontrak props tetap** | Bentuk props tiap halaman adalah kontrak untuk endpoint REST nanti ([`rujukan/layar-demo.md`](../../rujukan/layar-demo.md) bagian 10). Field baru masuk ke `client/src/types/posyandu.ts` — tidak diketik ulang di tiap halaman. |
+| **Kontrak props tetap** | Bentuk props tiap halaman adalah kontrak untuk endpoint REST nanti ([Arsitektur — Konvensi](../../arsitektur.md#konvensi)). Field baru masuk ke `client/src/types/posyandu.ts` — tidak diketik ulang di tiap halaman. |
 | **Kosong bukan nol** | DR-04. Anak tanpa data LiKA menampilkan kurva kosong berkalimat, bukan garis di angka nol. Berlaku untuk seluruh nilai ukur, z-score, dan agregat. |
-| **Kader tidak diblokir** | Peringatan, bukan penolakan. Nilai janggal yang tersimpan masih bisa diperbaiki bulan depan; nilai yang gagal disimpan hilang bersama orang tuanya yang sudah pulang. |
+| **Peringatan kewajaran** | Usulan peringatan tidak memberikan hak input baru. Setelah pelaku dan tempat input ditetapkan lewat OI-20, bedakan peringatan kewajaran dari validasi wajib server; otorisasi tetap berlaku. |
 | **Asumsi tidak ditebak diam-diam** | Setiap asumsi yang belum dikonfirmasi pemilik program masuk ke [`pertanyaan-terbuka.md`](../../pertanyaan-terbuka.md) dan ditautkan dari bagian *Keputusan terbuka* PRD-nya. |
 | **Logika non-sepele meninggalkan pemeriksaan** | Satu berkas uji bergaya `assert` memakai `node:test` bawaan Node, mengikuti pola [`client/test/z-score.test.ts`](../../../client/test/z-score.test.ts) atau [`server/test/`](../../../server/test). Bukan kerangka uji baru. Fitur yang isinya tampilan saja tidak perlu — F10 dan F11 tidak punya. |
 

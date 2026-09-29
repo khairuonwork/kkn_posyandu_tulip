@@ -211,14 +211,11 @@ describe(
         });
 
         describe('penjaga tabel pengguna', () => {
-            // `lower()`, bukan `LIKE` polos: salah satu baris uji sengaja
-            // memakai huruf besar untuk menguji keunikan email, dan pembersihan
-            // yang peka huruf akan melewatkannya — membuat jalan kedua gagal
-            // karena sisa jalan pertama.
+            // Awalan `uji-db` menandai baris uji di basis data pengembangan,
+            // supaya pembersihan tidak pernah menyentuh akun sungguhan. `lower()`
+            // ikut menyapu nama tak sah yang lolos bila penjaganya rusak.
             const buang = async () => {
-                await dapatkanPool().query(
-                    "DELETE FROM pengguna WHERE lower(email) LIKE '%@uji.invalid'",
-                );
+                await dapatkanPool().query("DELETE FROM pengguna WHERE lower(username) LIKE 'uji-db%'");
             };
 
             after(buang);
@@ -228,8 +225,8 @@ describe(
                 // karena `rt` kosong mudah salah dibaca sebagai "seluruh RW".
                 await assert.rejects(
                     dapatkanPool().query(
-                        `INSERT INTO pengguna (nama, email, kata_sandi_hash, peran, wilayah_rt_id)
-                         VALUES ('Kader', 'kader@uji.invalid', 'x', 'kader', NULL)`,
+                        `INSERT INTO pengguna (nama, username, kata_sandi_hash, peran, wilayah_rt_id)
+                         VALUES ('Kader', 'uji-db.kader', 'x', 'kader', NULL)`,
                     ),
                     /pengguna_rt_sesuai_peran/,
                 );
@@ -249,8 +246,8 @@ describe(
 
                 await assert.rejects(
                     pool.query(
-                        `INSERT INTO pengguna (nama, email, kata_sandi_hash, peran, wilayah_rt_id)
-                         VALUES ('Bidan', 'bidan@uji.invalid', 'x', 'bidan', $1)`,
+                        `INSERT INTO pengguna (nama, username, kata_sandi_hash, peran, wilayah_rt_id)
+                         VALUES ('Bidan', 'uji-db.bidan', 'x', 'bidan', $1)`,
                         [rt[0].id],
                     ),
                     /pengguna_rt_sesuai_peran/,
@@ -260,21 +257,41 @@ describe(
                 await pool.query('DELETE FROM posyandu WHERE id = $1', [rows[0].id]);
             });
 
-            test('email unik tanpa peduli huruf besar-kecil', async () => {
+            test('nama pengguna unik', async () => {
                 const pool = dapatkanPool();
 
                 await pool.query(
-                    `INSERT INTO pengguna (nama, email, kata_sandi_hash, peran)
-                     VALUES ('Admin', 'Admin@Uji.Invalid', 'x', 'admin')`,
+                    `INSERT INTO pengguna (nama, username, kata_sandi_hash, peran)
+                     VALUES ('Admin', 'uji-db.admin', 'x', 'admin')`,
                 );
 
                 await assert.rejects(
                     pool.query(
-                        `INSERT INTO pengguna (nama, email, kata_sandi_hash, peran)
-                         VALUES ('Admin Kedua', 'admin@uji.invalid', 'x', 'admin')`,
+                        `INSERT INTO pengguna (nama, username, kata_sandi_hash, peran)
+                         VALUES ('Admin Kedua', 'uji-db.admin', 'x', 'admin')`,
                     ),
-                    /pengguna_email_unik/,
+                    /pengguna_username_unik/,
                 );
+
+                await buang();
+            });
+
+            test('nama pengguna berhuruf kecil, tanpa spasi dan tanpa @', async () => {
+                // Satu nama tidak boleh punya dua ejaan: "Uji-DB.Admin" dan
+                // "uji-db.admin" akan terbaca sebagai dua akun berbeda.
+                const terlaluPanjang = `uji-db.${'x'.repeat(26)}`;
+
+                for (const username of ['Uji-DB.Admin', 'uji-db admin', 'uji-db@posyandu.id', terlaluPanjang]) {
+                    await assert.rejects(
+                        dapatkanPool().query(
+                            `INSERT INTO pengguna (nama, username, kata_sandi_hash, peran)
+                             VALUES ('Admin', $1, 'x', 'admin')`,
+                            [username],
+                        ),
+                        /pengguna_username_sah/,
+                        username,
+                    );
+                }
 
                 await buang();
             });

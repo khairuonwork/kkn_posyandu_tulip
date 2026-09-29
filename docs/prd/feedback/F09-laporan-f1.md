@@ -6,8 +6,8 @@
 | **Status** | draf |
 | **PR** | `feat/f09-laporan-f1` |
 | **Bergantung pada** | [F06](F06-status-ntob.md) huruf N/T/O/B, [F08](F08-desil-gakin.md) desil & Gakin |
-| **Terhambat** | [OI-07](../../pertanyaan-terbuka.md) — blangko F1 resmi |
-| **Perubahan berarti terakhir** | 21 September 2026 |
+| **Terhambat** | [OI-07](../../pertanyaan-terbuka.md) — format F1; [OI-17](../../pertanyaan-terbuka.md#oi-17--sumber-data-status-desil-dan-kategori-gakin) — pemetaan G/NG dan sumber data |
+| **Perubahan berarti terakhir** | 23 September 2026 |
 | **Membuka jalan bagi** | [F10](F10-lembar-cetak.md) |
 
 ## 1. Latar
@@ -106,7 +106,7 @@ export function csvRekapF1(periodeIds: string[], rt: string | null): string;
 
 **[OI-07](../../pertanyaan-terbuka.md) — struktur blangko F1 resmi.** Bentuk di bagian 3 disusun dari breakdown yang disebut pemilik program, bukan disalin dari blangko. Bila blangkonya datang, yang perlu berubah hanya susunan kolom di `csvRekapF1()` — angkanya sudah benar, dan `store.test.ts` yang menjaga agar tetap begitu setelah kolomnya digeser.
 
-**Bergantung pada [OI-17](../../pertanyaan-terbuka.md).** Selama desil dan Gakin belum diketahui sumbernya, sebagian besar baris akan jatuh ke "belum tercatat". Itu **bukan kegagalan fitur** — justru itu gunanya: angka yang besar di baris itu adalah ukuran seberapa jauh data sasaran masih harus dikejar.
+**Bergantung pada [OI-17](../../pertanyaan-terbuka.md#oi-17--sumber-data-status-desil-dan-kategori-gakin).** Catatan itu memisahkan makna kolom `G`/`NG` dari sumber nilai keluarga. Breakdown Gakin/Non-Gakin pada draf ini tidak menetapkan pemetaan final ke kolom blangko. Nilai yang belum tersedia ditampilkan sebagai "belum tercatat"; kategori tersebut tidak boleh dilebur ke Non-Gakin atau dianggap menyelesaikan pertanyaan arti kolom.
 
 **Terikat DR-08 lewat [F06](F06-status-ntob.md).** Kolom N dan T pada rekap F1 memuat nilai arsip, bukan hitungan. Kolom O dan B terhitung. Beda asal ini disebutkan di layar, tidak dibiarkan ditebak.
 

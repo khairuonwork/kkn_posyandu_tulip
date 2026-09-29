@@ -21,7 +21,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, test } from 'node:test';
 
-import { kategoriDariZ } from '../src/lib/kategori.ts';
+import { kodeKartu } from '../src/lib/format.ts';
+import { kategoriDariZ, kbmKg } from '../src/lib/kategori.ts';
 import type { BarisLms } from '../src/lib/z-score.ts';
 import {
     cariLms,
@@ -294,4 +295,32 @@ describe('label dikenali status-gizi-badge', () => {
             assert.ok(dikenal.has(label));
         });
     }
+});
+
+/**
+ * Tabel KBM docs/rujukan/antropometri.md bagian 10.2 — dipakai sebagai
+ * keterangan "kurang dari … kg" di samping status T.
+ */
+describe('KBM per umur', () => {
+    test('batas tiap kelompok umur', () => {
+        assert.equal(kbmKg(0), null);
+        assert.equal(kbmKg(1), 0.8);
+        assert.equal(kbmKg(2), 0.9);
+        assert.equal(kbmKg(3), 0.6);
+        assert.equal(kbmKg(5), 0.5);
+        assert.equal(kbmKg(6), 0.4);
+        assert.equal(kbmKg(7), 0.3);
+        assert.equal(kbmKg(10), 0.3);
+        assert.equal(kbmKg(11), 0.2);
+        assert.equal(kbmKg(60), 0.2);
+        assert.equal(kbmKg(61), null);
+        assert.equal(kbmKg(null), null);
+    });
+});
+
+describe('kode kartu balita', () => {
+    test('delapan digit terakhir NIK, atau id arsip bila NIK kosong', () => {
+        assert.equal(kodeKartu('3277514921534050', 110), 'SPT-21534050');
+        assert.equal(kodeKartu(null, 7), 'SPT-7');
+    });
 });

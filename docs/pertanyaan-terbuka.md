@@ -1,14 +1,14 @@
-# Open Issues
+# Pertanyaan terbuka
 
 | | |
 |---|---|
 | **Jenis** | Rujukan — isu terbuka |
 | **Status** | hidup |
-| **Perubahan berarti terakhir** | 21 September 2026 |
+| **Perubahan berarti terakhir** | 29 September 2026 |
 
-Daftar hal yang **belum diputuskan** dan sengaja tidak ditebak di dalam kode. Setiap isu punya pemilik, dampak bila tidak selesai, dan apa yang dilakukan sistem sementara ini.
+Daftar hal yang **belum diputuskan** dan sengaja tidak ditebak di dalam kode. Setiap isu punya pemilik, dampak bila tidak selesai, dan apa yang dilakukan sistem sementara ini. Nomor isu disebut `OI-nn` (*open issue*).
 
-Status: `terbuka` · `menunggu konfirmasi` · `selesai`
+Status: `terbuka` · `menunggu konfirmasi` · `sebagian selesai`. Isu yang sudah terjawab dipindah ke [Pertanyaan yang sudah terjawab](riwayat/pertanyaan-terjawab.md); nomornya tidak dipakai ulang.
 
 ---
 
@@ -16,9 +16,9 @@ Status: `terbuka` · `menunggu konfirmasi` · `selesai`
 
 | | |
 |---|---|
-| **Status** | **sebagian selesai** — 21 September 2026; tersisa satu angka |
+| **Status** | **sebagian selesai** — 21 September 2026; tersisa satu angka dan tiga pertanyaan tindak lanjut (26 September 2026) |
 | **Pemilik** | Bidan / pemilik program |
-| **Menghambat** | FR-26 (daftar tindak lanjut otomatis) |
+| **Menghambat** | FR-26 (daftar tindak lanjut otomatis) dan kalimat vonis kartu Status di Detail Balita |
 
 Kolom `NTOB` muncul di seluruh berkas arsip dengan nilai seperti `N`, `T`, dan `" N"` (berspasi). Dugaan yang wajar: **N**aik, **T**idak naik, **O** tidak ditimbang bulan lalu, **B**aru pertama kali. `1T/2T/3T` diduga berarti berat tidak naik satu, dua, atau tiga kali berturut-turut.
 
@@ -47,6 +47,14 @@ Petunjuk soal `O` yang tidak pernah muncul di arsip: pada sheet `DATA ANAK`, ana
 **Yang masih dibutuhkan — satu angka.** KBM bulan ke-3 tertulis **600 g** di berkas, sedangkan tabel Kemenkes yang lazim beredar menyebut **800 g** (pola 800 · 900 · 800 · 600 · 500 · 400). Angka ini menentukan vonis `N`/`T` setiap bayi berumur tiga bulan. Perlu konfirmasi apakah 600 disengaja atau salah ketik.
 
 **Dua hal kecil yang menyertainya.** Cabang "mengikuti garis pertumbuhan" pada definisi `N` menuntut pembacaan bentuk kurva dan tidak akan diterjemahkan menjadi kode — implementasi memakai cabang KBM saja, dan perbedaannya dicatat di [04 bagian 10.4](rujukan/antropometri.md). Buku 7 juga memakai istilah **"Atas Garis Oranye"** berdampingan dengan BGM sebagai lawan `Naik (N)`; istilah itu tidak ada di PMK 2/2020 maupun di kode, dan ambangnya belum ditanyakan.
+
+**Pembaruan 26 September 2026 — tiga pertanyaan baru dari peninjauan teks mockup.** Muncul saat meninjau teks antarmuka mockup Portal di Claude Design. Pada data contoh, satu balita tercatat `T` di arsip pada penimbangan Mei dan Juni 2026 — jadi `2T` menurut aturan di atas — sementara status gizinya `Gizi baik`. Kartu Status di mockup Detail Balita berbunyi *"Tidak perlu tindak lanjut bulan ini"*, karena vonisnya disusun dari status gizi saja. Pengguna memutuskan pada tanggal yang sama: kalimat vonis dan isi Beranda **tidak diubah** sampai Bidan menjawab.
+
+| Pertanyaan | Mengapa perlu dijawab | Usulan |
+|---|---|---|
+| Apa tindak lanjut untuk balita `2T` yang status gizinya baik? | Menentukan kalimat vonis kartu Status di Detail Balita. Kalimat sekarang menyatakan tidak perlu tindak lanjut. | *"Berat tidak naik 2 kali berturut-turut. Perlu diperiksa bidan."* dengan kotak kuning, atau *"Rujuk ke Puskesmas."* bila itu aturannya. Terkait [OI-14](#oi-14--rujukan-ke-puskesmas-belum-ada-di-mana-pun). |
+| Apakah balita `2T` masuk daftar `Perlu perhatian` di Beranda? | Daftar itu kini disusun dari kategori status gizi saja, padahal rancangan Beranda tahap demo ([`riwayat/layar-demo.md`](riwayat/layar-demo.md) bagian 6.3) sudah mencontohkan alasan serupa: *"Berat sama dua bulan berturut"*. | Ditambahkan dengan alasan *"Berat tidak naik 2 kali berturut-turut"*. |
+| Bila arsip menandai `N` padahal kenaikannya di bawah KBM, layar mengikuti arsip atau tabel KBM? | Pada balita yang sama, penimbangan April 2026 tertulis `N` dengan kenaikan 0,27 kg pada umur 6 bulan — di bawah KBM umur itu ([04 bagian 10.2](rujukan/antropometri.md)). Kemungkinan kader membaca bentuk kurva, cabang yang sengaja tidak diterjemahkan ke kode ([04 bagian 10.4](rujukan/antropometri.md)). | Layar tetap menampilkan nilai arsip apa adanya sampai dijawab. |
 
 ---
 
@@ -240,7 +248,7 @@ Perbedaan ini tidak mempengaruhi deteksi *stunting* — label `Pendek` pada berk
 
 **Sementara ini:** aplikasi memakai ambang PMK 2/2020 sebagaimana ditetapkan [ADR-0002](adr/0002-metode-z-score-who-lms.md). Label aplikasi karena itu **akan berbeda** dari master Excel untuk keempat anak tersebut.
 
-**Yang dibutuhkan:** konfirmasi bahwa ambang PMK yang dipakai, dan keputusan apakah penulisan label aplikasi perlu disesuaikan dengan kebiasaan Puskesmas (mis. `BB Kurang` alih-alih `Berat badan kurang`). Penyesuaian penulisan cukup mengubah `App\Support\Antropometri\Kategori` — satu berkas, tanpa migrasi data.
+**Yang dibutuhkan:** konfirmasi bahwa ambang PMK yang dipakai, dan keputusan apakah penulisan label aplikasi perlu disesuaikan dengan kebiasaan Puskesmas (mis. `BB Kurang` alih-alih `Berat badan kurang`). Penyesuaian penulisan cukup mengubah `server/src/antropometri/kategori.ts` — satu berkas, tanpa migrasi data.
 
 ---
 
@@ -258,11 +266,11 @@ Untuk demo di laptop di hadapan pemilik data, ini tidak bermasalah. Untuk link y
 
 **Sementara ini:** demo hanya dijalankan lokal — diputuskan 9 September 2026. Selama demo berjalan dari laptop di hadapan pemilik data, isu ini tidak mengikat. Yang mengikat baru muncul saat link dibagikan.
 
-Build statis tetap dihasilkan pada tahap T7 agar siap kapan pun, tetapi tidak diunggah ke mana pun.
+Build statis tetap bisa dihasilkan kapan pun (`npm run demo:build` di `client/`), tetapi tidak diunggah ke mana pun.
 
 **Yang dibutuhkan:** pilih salah satu — link berkata sandi (dianjurkan, gratis di Netlify/Vercel), deploy terbuka dengan izin pemilik program, atau dataset kedua yang digeser khusus untuk publik.
 
-Rinciannya di [`rujukan/layar-demo.md`](rujukan/layar-demo.md) bagian 5.2.
+Rinciannya di [Data contoh](rujukan/data-contoh.md#2-anonimisasi).
 
 ---
 
@@ -274,7 +282,7 @@ Rinciannya di [`rujukan/layar-demo.md`](rujukan/layar-demo.md) bagian 5.2.
 | **Pemilik** | tim pengembang |
 | **Menghambat** | kebenaran status gizi pada prototipe desain, bukan pada backend |
 
-Ditemukan saat membaca `docs/design/portal-prototipe.html`. Keduanya ada di prototipe desain, bukan di mesin PHP.
+Ditemukan saat membaca `docs/design/portal-prototipe.html`. Keduanya ada di prototipe desain, bukan di mesin hitung server.
 
 **1. `wflClass()` tidak punya cabang Obesitas.** Fungsinya berhenti di `Gizi lebih` untuk seluruh `z > +2`:
 
@@ -287,7 +295,7 @@ Sistem desainnya sendiri mencantumkan `Obesitas` untuk di atas +3 SD dengan nada
 
 **2. Nada warna prototipe desain tidak cocok dengan sistem desainnya.** `wazClass()` memakai oranye untuk `Risiko berat badan lebih` dan `wflClass()` memakai oranye untuk `Berisiko gizi lebih`, sedangkan sistem desain menetapkan biru untuk keduanya. Akibatnya kategori yang sekadar perlu dicatat terbaca sebagai perlu perhatian.
 
-**Keputusan:** implementasi mengikuti tabel pada [`rujukan/ui-ux.md`](rujukan/ui-ux.md) bagian 3 — yaitu sistem desain dan PMK 2/2020 — bukan kode prototipe desain. Mesin PHP `App\Support\Antropometri\Kategori` sudah benar sejak awal.
+**Keputusan:** implementasi mengikuti tabel pada [`rujukan/ui-ux.md`](rujukan/ui-ux.md) bagian 3 — yaitu sistem desain dan PMK 2/2020 — bukan kode prototipe desain. Mesin hitung server (`server/src/antropometri/kategori.ts`) sudah benar.
 
 **Yang dibutuhkan:** konfirmasi bahwa perbedaan ini memang kekeliruan prototipe desain, lalu perbaiki di Claude Design agar prototipe desain dan implementasi tidak berselisih.
 
@@ -323,7 +331,7 @@ Isinya: tombol rujuk di detail anak dan di form ukur, penanda sudah dirujuk atau
 | **Pemilik** | Bidan |
 | **Menghambat** | lingkup produk, bukan demo |
 
-Butir P3 pada daftar temuan desainer. Saat ini imunisasi hanya **ditampilkan** di Detail anak sebagai status ringkas — `Imunisasi dasar: Lengkap`, `Imunisasi lanjutan: Belum lengkap` — dengan keterangan bahwa detail per vaksin ada di Buku KIA fisik.
+Butir P3 pada daftar temuan desainer. Saat ini imunisasi hanya **disebut** di layar: Detail Balita menulis `Imunisasi: belum diperiksa`, dan Penimbangan mengingatkan `Imunisasi: periksa Buku KIA`. Rincian per vaksin tetap di Buku KIA fisik.
 
 Pertanyaannya: apakah aplikasi perlu bisa mencatatnya, atau cukup menampilkan dan biarkan bidan memegangnya di buku sendiri.
 
@@ -354,6 +362,15 @@ Yang mendesakkan keputusan ini: **Buku 7 menuntut angka imunisasi**, dan keteran
 
 Feedback lapangan meminta rekap F1 dipecah menurut **status desil**, **jenis kelamin**, dan **kategori Gakin / Non-Gakin**.
 
+**Konfirmasi pengguna, 23 September 2026, dalam percakapan peninjauan dokumentasi:** arti `G`/`NG` belum dikonfirmasi oleh Bidan/Puskesmas; sumber data desil dan status Gakin setiap keluarga belum diputuskan. Jawaban ini menetapkan keadaan pertanyaannya, bukan mengesahkan pemetaan kolom atau memilih sumber data.
+
+| Pertanyaan | Status | Dampak |
+|---|---|---|
+| Apakah `G` = Gakin dan `NG` = Non-Gakin pada blangko F1? | Belum dikonfirmasi | Pemetaan kategori F08 ke kolom resmi F1 pada F09 belum dapat ditetapkan |
+| Dari mana nilai desil dan Gakin setiap keluarga diperoleh, serta siapa yang mengisinya? | Belum diputuskan | Jalur pengisian/impor dan pihak yang berwenang memelihara data F08 belum dapat ditetapkan; sumber kedua atribut boleh berbeda |
+
+Kedua pertanyaan diputuskan secara terpisah. Mengetahui arti kolom tidak menyediakan data untuk mengisinya. Ketika salah satunya terjawab, perbarui baris terkait beserta sumber dan tanggal keputusan; OI-17 tetap terbuka sampai keduanya selesai.
+
 Jenis kelamin sudah ada di data sejak impor. Dua yang lain **tidak ada sama sekali** — tidak di berkas arsip mana pun, tidak di master Juni 2026.
 
 **Pembaruan 21 September 2026 — permintaannya bukan sekadar permintaan pemilik program, melainkan tuntutan blangko.** Blangko F1 memecah butir 1–12 menurut kolom `G` dan `NG` pada tiap kelompok umur ([15 bagian 2.2](rujukan/format-laporan-f1.md)). Kedua huruf itu **tidak diberi keterangan** di berkas mana pun; pembacaan `Gakin` / `Non-Gakin` masuk akal tetapi tetap dugaan.
@@ -370,11 +387,11 @@ Pertanyaannya bukan teknis melainkan alur kerja: **siapa yang tahu angkanya.**
 | Diisi kader saat pendaftaran | Kolom dapat diubah, butuh isian di editor baris, dan butuh keadaan "belum tercatat" yang berbeda dari "Non-Gakin". |
 | Campuran | Perlu penanda asal per baris, supaya isian kader tidak tertimpa impor berikutnya. |
 
-**Sementara ini:** F08 dirancang dengan asumsi ketiga — kolom dapat diubah dan menyimpan keadaan "belum tercatat" secara eksplisit. Asumsi itu paling longgar: bila ternyata datanya datang dari Puskesmas, isiannya tinggal dikunci. Sebaliknya tidak berlaku.
+**Sementara ini:** pilihan campuran dalam draf F08 tetap merupakan asumsi rancangan, bukan keputusan sumber data atau izin input. Nilai yang belum tersedia tetap "belum tercatat", bukan Non-Gakin. Pemetaan ke kolom `G`/`NG` tidak boleh dinyatakan final, dan data contoh tidak boleh dianggap sebagai nilai keluarga yang sudah diverifikasi.
 
 Catatan yang menyertai: desil dan status kemiskinan adalah data sosio-ekonomi keluarga, bukan data kesehatan anak. [OI-10](#oi-10--kebijakan-retensi-dan-privasi-data) berlaku padanya.
 
-**Yang dibutuhkan:** dari mana angkanya datang, dan — bila dari Puskesmas — satu berkas contoh beserta nama kolomnya.
+**Yang dibutuhkan:** konfirmasi makna `G`/`NG` dari Bidan/Puskesmas; keputusan sumber desil dan Gakin beserta pihak yang mengisi atau memperbaruinya. Bila sumbernya Puskesmas, minta contoh struktur berkas dan nama kolom. Catat pemberi keputusan serta tanggalnya ketika tersedia. Rencana kerja, F08, F09, dan rujukan blangko menautkan catatan ini sebagai sumber status keputusan.
 
 ---
 
@@ -408,18 +425,32 @@ Ini juga mempertajam catatan lingkup di bawah: karena KPSP resmi sudah dipakai d
 
 ---
 
-## Sudah dijawab
+## OI-19 — Persetujuan fitur feedback dan target rilis
 
-Isu yang pertanyaannya sudah terjawab. Diringkas ke sini supaya daftar di atas hanya berisi yang benar-benar terbuka; uraian lengkapnya ada di riwayat git.
+| | |
+|---|---|
+| **Status** | terbuka |
+| **Pemilik** | pemilik program |
+| **Menghambat** | penetapan fitur feedback yang dijanjikan pada MVP |
 
-### OI-08 — Akses prototipe desain Portal
+Pada pemeriksaan 23 September 2026, PRD utama menyatakan lingkup diperluas dan memberi prioritas Must pada sejumlah feedback. Indeks PRD menyatakan lingkup feedback belum diputuskan. Daftar tugas awal di [`riwayat/backlog-feedback.md`](riwayat/backlog-feedback.md) memuat permintaan dan rekomendasi prioritas, tetapi tidak menyelesaikan pertentangan persetujuan tersebut.
 
-**Selesai 9 September 2026.** Artboard tidak dapat dibaca lewat MCP, lalu disalin manual ke [`docs/design/`](design/README.md). Token warna dan tipografi ditarik dari sana ke [`rujukan/ui-ux.md`](rujukan/ui-ux.md) bagian 2 dan 3.
+**Yang dibutuhkan:** untuk F01–F13, tentukan disetujui, usulan, atau ditunda; sebutkan target rilis serta nama/peran penyetuju dan tanggal keputusannya. Konfirmasi juga catatan persetujuan kebutuhan inti yang belum menyebut penyetuju dan tanggal.
 
-Satu hal yang perlu diingat dari isu ini: `portal-sistem-desain.html` adalah sistem desain **aplikasi tablet** — dasar 18 px, radius 12 px, target sentuh 56 px — dan nilainya tidak berlaku untuk Portal.
+**Sementara ini:** status yang dapat ditelusuri dicatat di [PRD utama bagian 13](prd/prd-utama.md#13-status-lingkup). Nilai Must/Should pada feedback tetap dibaca sebagai prioritas usulan. Keputusan aturan rinci yang sudah tercatat tidak dibatalkan, tetapi tidak dianggap sebagai persetujuan seluruh fitur masuk MVP.
 
-### OI-16 — Ambang rujukan ke faskes: arti "−1,96"
+## OI-20 — Input lapangan dan hak kader di Portal
 
-**Selesai 17 September 2026.** Feedback berbunyi "kalau sudah di atas −1,96 = silahkan hubungi faskes". Dibaca harfiah, "di atas −1,96" justru menunjuk anak yang normal.
+| | |
+|---|---|
+| **Status** | terbuka |
+| **Pemilik** | pemilik program / Bidan |
+| **Menghambat** | persona, alur input, dan hak akses F04 serta F07 |
 
-Dikonfirmasi bahwa yang dimaksud adalah pembacaan klinis, bukan literal: anjuran berlaku bagi anak yang z-nya **di bawah** −1,96 — praktis berimpit dengan ambang −2 SD pada PMK 2/2020. Dipakai [F02](prd/feedback/F02-edukasi-rujukan-kms.md).
+[ADR-0003](adr/0003-batas-portal-vs-aplikasi-tablet.md) menempatkan pencatatan saat kegiatan pada aplikasi Tablet. Sebaliknya, US-16 dan US-17 menggambarkan kader mengetik angka atau melengkapi pendaftaran di lokasi. Matriks otorisasi Portal membatasi perubahan profil dan pengukuran pada Bidan/Admin.
+
+**Yang dibutuhkan:** tentukan apakah kebutuhan input tersebut milik Tablet, koreksi oleh Bidan di Portal, atau perluasan Portal untuk input kader saat kegiatan. Jika Portal diperluas, sebutkan tindakan kader yang diizinkan dan pihak yang memeriksa koreksinya.
+
+**Keadaan sejak 26 September 2026:** Portal punya layar **Penimbangan** (cari balita, catat berat dan tinggi) dari mockup yang disetujui pemilik produk, dan menunya tampil bagi ketiga peran. Hasil ukurnya belum dikirim ke server, jadi layar itu belum memberi hak tulis apa pun; isu ini yang menentukan apakah nanti boleh.
+
+**Sementara ini:** batas yang tercatat di ADR-0003 dan [otorisasi yang sudah diterapkan](arsitektur.md#otorisasi) tetap berlaku. User story feedback dipertahankan sebagai usulan; kalimatnya tidak memberikan hak tulis baru. Setelah keputusan tersedia, selaraskan persona, PRD fitur, dan matriks izin sebelum implementasi.

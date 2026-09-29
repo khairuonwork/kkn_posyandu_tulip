@@ -12,6 +12,7 @@
         "mulai": "node --env-file-if-exists=.env src/http/server.ts",
         "migrate": "node --env-file=.env db/migrate.ts",
         "seed": "node --env-file=.env db/seed-standar-lms.ts",
+        "seed:contoh": "node --env-file=.env db/seed-contoh.ts",
         "pengguna:buat": "node --env-file=.env db/buat-pengguna.ts",
         "pengguna:sandi": "node --env-file=.env db/ganti-sandi.ts",
         "db:up": "docker compose up -d",

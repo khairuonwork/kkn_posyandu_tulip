@@ -7,7 +7,7 @@
 | **PR** | `feat/f02-edukasi-kms` |
 | **Bergantung pada** | — |
 | **Terhambat** | — |
-| **Perubahan berarti terakhir** | 21 September 2026 |
+| **Perubahan berarti terakhir** | 23 September 2026 |
 | **Membuka jalan bagi** | [F03](F03-kirim-whatsapp.md) |
 
 ## 1. Latar
@@ -26,7 +26,7 @@ F02 bukan sistem rujukan penuh — OI-14 tetap terbuka. Yang ditutupnya lebih ke
 
 **Masuk:**
 
-- Satu kartu di bawah kurva KMS pada Detail anak, isinya menyesuaikan hasil ukur anak itu.
+- Satu kartu di bawah kurva KMS pada Detail Balita, isinya menyesuaikan hasil ukur anak itu.
 - Tiga nada: **rujuk** (merah), **waspada** (oranye), **baik** (hijau).
 - Satu fungsi murni yang bisa dipakai ulang oleh [F03](F03-kirim-whatsapp.md), sehingga kalimat di layar dan kalimat di WhatsApp tidak pernah berbeda.
 
@@ -97,9 +97,9 @@ Yang dipakai ulang, bukan ditulis ulang:
 
 ## 6. Keputusan yang sudah diambil
 
-**[OI-16](../../pertanyaan-terbuka.md) — arah ambang "−1,96", dikonfirmasi 17 September 2026.** Kalimat aslinya berbunyi *"di atas −1,96"*, yang dibaca harfiah justru mencakup anak normal dan gemuk. Dikonfirmasi bahwa maksudnya klinis: anak yang melewati ambang itu **ke bawah** (dan sisi gizi lebih/obesitas ikut berlaku, lihat tabel di bawah).
+Keputusan arah ambang beserta tanggal konfirmasinya dipelihara di **[OI-16](../../riwayat/pertanyaan-terjawab.md#oi-16--ambang-rujukan-ke-faskes-arti-196)**. Pertanyaan tersebut tidak lagi menghambat F02. Persetujuan rilis fitur tetap mengikuti [PRD utama bagian 13](../prd-utama.md#13-status-lingkup).
 
-**Dikonfirmasi 17 September 2026**, dan inilah yang menentukan nada rujuk:
+Rincian perilaku per indeks pada kontrak F02:
 
 | Indeks | Ambang rujuk |
 |---|---|

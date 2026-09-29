@@ -4,13 +4,14 @@
  * Inilah cara akun pertama lahir: layar Kelola pengguna hanya dapat dipakai
  * Admin, dan Admin pertama tidak punya siapa-siapa untuk membuatnya.
  *
- *     SANDI=rahasia npm run pengguna:buat -- "Bidan Posyandu Tulip" bidan@posyandu.id bidan
- *     SANDI=rahasia npm run pengguna:buat -- "Kader RT 01" kader01@posyandu.id kader 01
+ *     SANDI=rahasia npm run pengguna:buat -- "Bidan Posyandu Tulip" bidan bidan
+ *     SANDI=rahasia npm run pengguna:buat -- "Kader RT 01" kader01 kader 01
  *
  * Kata sandi lewat lingkungan, bukan argumen: argumen terlihat di daftar
  * proses seluruh mesin.
  */
 
+import { ATURAN_USERNAME, POLA_USERNAME } from '../src/auth/akun.ts';
 import { hashKataSandi } from '../src/auth/kata-sandi.ts';
 import type { Peran } from '../src/auth/peran.ts';
 import { SEMUA_PERAN } from '../src/auth/peran.ts';
@@ -23,13 +24,19 @@ function keluarDenganPesan(pesan: string): never {
 }
 
 async function jalankan(): Promise<void> {
-    const [nama, email, peranMentah, rt] = process.argv.slice(2);
+    const [nama, usernameMentah, peranMentah, rt] = process.argv.slice(2);
     const sandi = process.env.SANDI;
 
-    if (nama === undefined || email === undefined || peranMentah === undefined) {
+    if (nama === undefined || usernameMentah === undefined || peranMentah === undefined) {
         keluarDenganPesan(
-            'Pakai: SANDI=<kata sandi> node --env-file=.env db/buat-pengguna.ts <nama> <email> <peran> [rt]',
+            'Pakai: SANDI=<kata sandi> node --env-file=.env db/buat-pengguna.ts <nama> <nama-pengguna> <peran> [rt]',
         );
+    }
+
+    const username = usernameMentah.trim().toLowerCase();
+
+    if (!POLA_USERNAME.test(username)) {
+        keluarDenganPesan(ATURAN_USERNAME);
     }
 
     if (!SEMUA_PERAN.includes(peranMentah as Peran)) {
@@ -68,19 +75,19 @@ async function jalankan(): Promise<void> {
         wilayahRtId = rows[0].id;
     }
 
-    // Email yang sudah dipakai melanggar unique index dan, tanpa penanganan
+    // Nama pengguna yang sudah dipakai melanggar unique index dan, tanpa penanganan
     // ini, memuntahkan stack trace driver — pesan yang menyebut `_bt_check_unique`
     // dan tidak memberi tahu apa pun tentang apa yang harus dilakukan.
     const { rows: sudahAda } = await pool.query<{ id: number }>(
-        'SELECT id FROM pengguna WHERE lower(email) = lower($1)',
-        [email],
+        'SELECT id FROM pengguna WHERE lower(username) = lower($1)',
+        [username],
     );
 
     if (sudahAda.length > 0) {
         keluarDenganPesan(
-            `Email ${email} sudah dipakai pengguna #${sudahAda[0].id}.\n` +
+            `Nama pengguna ${username} sudah dipakai pengguna #${sudahAda[0].id}.\n` +
                 `Untuk mengganti kata sandinya:\n` +
-                `  SANDI=<kata sandi baru> npm run pengguna:sandi -- ${email}`,
+                `  SANDI=<kata sandi baru> npm run pengguna:sandi -- ${username}`,
         );
     }
 
@@ -88,16 +95,16 @@ async function jalankan(): Promise<void> {
     // ada pengguna yang masuk di baris perintah, jadi pelakunya tanpa nama.
     const id = await dalamTransaksi(pool, { pengguna: null, sumber: 'cli' }, async (klien) => {
         const { rows } = await klien.query<{ id: number }>(
-            `INSERT INTO pengguna (nama, email, kata_sandi_hash, peran, wilayah_rt_id)
+            `INSERT INTO pengguna (nama, username, kata_sandi_hash, peran, wilayah_rt_id)
              VALUES ($1, $2, $3, $4, $5)
              RETURNING id`,
-            [nama, email, await hashKataSandi(sandi), peran, wilayahRtId],
+            [nama, username, await hashKataSandi(sandi), peran, wilayahRtId],
         );
 
         return rows[0].id;
     });
 
-    console.log(`Pengguna #${id} dibuat: ${nama} <${email}> sebagai ${peran}.`);
+    console.log(`Pengguna #${id} dibuat: ${nama} (${username}) sebagai ${peran}.`);
 }
 
 try {

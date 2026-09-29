@@ -12,7 +12,7 @@ import { defineConfig } from 'vite';
  * produknya, jadi demo dan aplikasi memakai navigasi yang sama persis.
  *
  * Alamat relatif supaya hasil build dapat dibuka dari static host mana pun
- * tanpa aturan rewrite (docs/rujukan/layar-demo.md bagian 4.1).
+ * tanpa aturan rewrite (docs/arsitektur.md — Konvensi).
  */
 export default defineConfig({
     root: 'demo',

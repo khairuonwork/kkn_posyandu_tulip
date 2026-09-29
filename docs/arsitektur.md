@@ -4,19 +4,19 @@
 |---|---|
 | **Jenis** | Rujukan |
 | **Status** | hidup — daftar endpoint menyusul saat dibangun |
-| **Perubahan berarti terakhir** | 22 September 2026 |
+| **Perubahan berarti terakhir** | 29 September 2026 |
 
-Bagaimana Portal Posyandu Tulip disusun: teknologinya apa, permintaan mengalir ke mana, berkas ditaruh di mana, dan siapa boleh melakukan apa.
+Bagaimana SIMPATIK Posyandu disusun: teknologinya apa, permintaan mengalir ke mana, berkas ditaruh di mana, dan siapa boleh melakukan apa.
 
 Bentuk tabel dan relasinya ada di [Basis Data](database.md). Alasan di balik keputusan besar ada di [`adr/`](adr).
 
-Dokumen ini dulu `03-sdd.md`, dipecah 22 September 2026. Judul bagiannya deskriptif, bukan bernomor — komentar di kode menyebut namanya (`docs/arsitektur.md — Otorisasi`), sehingga urutannya boleh berubah tanpa memutus rujukan.
+Judul bagiannya deskriptif, bukan bernomor. Komentar di kode menyebut namanya (`docs/arsitektur.md — Otorisasi`), sehingga urutannya boleh berubah tanpa memutus rujukan.
 
 ---
 
 ## Tumpukan teknologi
 
-Ditetapkan [ADR-0006](adr/0006-pindah-ke-express-react-postgres.md). Sebelumnya PHP 8.3 + Laravel 13 + Inertia; seluruh kode PHP sudah dihapus dan riwayatnya tinggal di git.
+Ditetapkan [ADR-0006](adr/0006-pindah-ke-express-react-postgres.md).
 
 | Lapisan | Teknologi |
 |---|---|
@@ -30,12 +30,12 @@ Ditetapkan [ADR-0006](adr/0006-pindah-ke-express-react-postgres.md). Sebelumnya 
 | UI | React 19 + TypeScript 5.9 |
 | Build UI | Vite 8 |
 | Styling | Tailwind CSS v4 |
-| Komponen | shadcn/ui di atas Radix UI |
+| Komponen | Ditulis sendiri di `client/src/components/`; hanya tabel yang diambil dari shadcn/ui. Dialog memakai `<dialog>` bawaan peramban, tanpa Radix |
 | Ikon | Lucide React |
 | Uji | `node:test` bawaan Node, di `server/` dan `client/` |
 | Lint & format | ESLint 9, Prettier |
 
-Dua dependensi runtime di seluruh server: `express` dan `pg`.
+Dua dependensi runtime di seluruh server: `express` dan `pg`. Di client lima: `react`, `react-dom`, `lucide-react`, `clsx`, dan `tailwind-merge`.
 
 ## Prinsip
 
@@ -60,7 +60,7 @@ sequenceDiagram
     participant R as Repository
     participant D as PostgreSQL
 
-    B->>M: POST /api/masuk {email, kataSandi}
+    B->>M: POST /api/masuk {username, kataSandi}
     M->>C: wajibJson
     C->>S: masuk()
     S->>R: cariUntukMasuk()
@@ -85,17 +85,20 @@ Pemeriksaan `p.aktif` dilakukan di SQL pada setiap permintaan, tanpa cache. Deng
 server/
   src/antropometri/   indeks, tabel-standar, z-score, kategori,
                       penilaian-gizi, sumber-standar
-  src/auth/           peran (matriks izin), kata-sandi (scrypt), sesi
+  src/auth/           peran (matriks izin), kata-sandi (scrypt), sesi,
+                      akun (aturan isian akun)
   src/http/           server, middleware, auth-controller,
-                      cookie, batas-masuk, tipe.d.ts
-  src/repositories/   standar-lms, pengguna, sesi, penilaian-gizi, audit
-  src/services/       auth-service, gizi-service
+                      pengguna-controller, cookie, batas-masuk, tipe.d.ts
+  src/repositories/   standar-lms, pengguna, sesi, penilaian-gizi
+  src/services/       auth-service, gizi-service, pengguna-service
   src/db/pool.ts, src/db/transaksi.ts
   db/migrations/      001_skema_awal.sql, 002_pengguna_dan_sesi.sql,
-                      004_audit.sql,
-                      003_updated_at_dan_nik_terhapus.sql
+                      003_updated_at_dan_nik_terhapus.sql, 004_audit.sql,
+                      005_audit_tanpa_hash_sandi.sql, 006_username.sql
   db/data/who-lms.json        seed standar, di-commit
   db/migrate.ts, db/seed-standar-lms.ts,
+                      db/seed-contoh.ts (wilayah dan akun contoh,
+                      khusus basis data lokal),
                       db/buat-pengguna.ts, db/ganti-sandi.ts
   test/               acuan-php.json + berkas *.test.ts
   docker-compose.yml
@@ -104,10 +107,13 @@ client/
   src/main.tsx, src/app.tsx   entri dan cangkang aplikasi
   src/app-shell.tsx           router, penjaga rute, sidebar
   src/layar.tsx               pemasok props — titik ganti saat endpoint datang
-  src/pages/                  dashboard, anak/{index,show}, laporan,
-                              pengaturan, auth/login
-  src/components/             kms-chart, status-gizi-badge, halaman, ui/table, …
-  src/lib/                    nav, sesi, format, z-score, kategori, utils
+  src/pages/                  dashboard, layanan, anak/{index,show,riwayat},
+                              kartu-sasaran, laporan, sasaran, pengaturan,
+                              auth/login
+  src/components/             kms-chart, status-gizi-badge, kartu-balita,
+                              dialog, halaman, filter-periode, empty-state,
+                              ui/table
+  src/lib/                    nav, sesi, pengguna, format, z-score, kategori, utils
   src/data/contoh/            data contoh — sementara, sampai endpoint ada
   src/assets/fonts/
   test/
@@ -160,7 +166,7 @@ Skema ikut menegakkannya lewat `CHECK ((peran = 'kader') = (wilayah_rt_id IS NOT
 
 ## Endpoint
 
-> **Menunggu endpoint data.** Tabel route lama memetakan `*Controller@aksi` Laravel beserta middleware-nya. Seluruhnya hilang bersama Laravel, dan penggantinya belum ada kecuali autentikasi. Bagian ini diisi saat endpoint kelima layar dibangun — mengarangnya sekarang berarti menulis dua kali.
+> **Baru autentikasi dan akun.** Endpoint untuk data balita, pengukuran, dan laporan belum ada; tabel ini bertambah saat endpoint itu dibangun ([rencana kerja](rencana-kerja.md)).
 
 Yang sudah ada:
 
@@ -169,8 +175,13 @@ Yang sudah ada:
 | POST | `/api/masuk` | masuk, memasang cookie sesi | — (terbuka) |
 | POST | `/api/keluar` | mencabut sesi | — (terbuka) |
 | GET | `/api/saya` | identitas pengguna yang sedang masuk | sudah masuk |
+| GET | `/api/pengguna` | daftar akun tanpa hash kata sandi, beserta pilihan RT binaan | admin (`kelola-akun`) |
+| POST | `/api/pengguna` | akun baru dengan kata sandi awal | admin (`kelola-akun`) |
+| PATCH | `/api/pengguna/:id` | ubah akun; kata sandi kosong berarti tidak diganti | admin (`kelola-akun`) |
 
 Seluruh rute berada di bawah `sesiMiddleware`, yang mengenali sesi tanpa menolak. Penolakan adalah tugas `wajibMasuk` dan `wajibBoleh(aksi)`, dipasang per rute. Permintaan yang mengubah data wajib berbadan `application/json` (`wajibJson`, 415 bila bukan) — berpasangan dengan `SameSite=Lax` untuk menutup CSRF tanpa token tersendiri.
+
+Aturan kelola akun ditegakkan di server (`src/auth/akun.ts` dan `src/services/pengguna-service.ts`); layar hanya memeriksanya lebih awal. Tidak ada `DELETE`: akun dinonaktifkan, bukan dihapus. Setiap perubahan berjalan dalam satu transaksi yang menyebut admin pelakunya, sehingga audit mencatatnya dengan sumber `aplikasi`. Mengganti kata sandi, mengubah peran, atau menonaktifkan akun mencabut seluruh sesinya di transaksi yang sama; admin yang hanya mengganti kata sandinya sendiri tetap masuk di sesi yang sedang dipakai. Admin aktif terakhir tidak bisa diturunkan atau dinonaktifkan. Seluruh admin aktif dikunci `FOR UPDATE` lebih dulu, supaya dua admin yang saling menurunkan pada saat bersamaan tidak sama-sama lolos.
 
 ---
 
@@ -178,34 +189,68 @@ Seluruh rute berada di bawah `sesiMiddleware`, yang mengenali sesi tanpa menolak
 
 ### Halaman
 
-| Route | Komponen | Isi |
-|---|---|---|
-| `/dashboard` | `pages/dashboard.tsx` | Kartu ringkasan D/S, sebaran status gizi, tren stunting, daftar tindak lanjut |
-| `/anak` | `pages/anak/index.tsx` | Tabel anak, pencarian, filter RT & status |
-| `/anak/{id}` | `pages/anak/show.tsx` | Identitas, kurva KMS, tabel riwayat + z-score, layanan |
-| `/laporan` | `pages/laporan/index.tsx` | Rekap SKDN per RT, tab rentang waktu, tren enam bulan |
-| `/pengaturan` | `pages/pengaturan/index.tsx` | Ambang kewajaran, tabel standar, kelola pengguna |
-| — | `pages/auth/login.tsx` | Layar Masuk |
+Alamatnya memakai hash (`#/balita/12`), bukan path. Router dan penjaga rutenya ada di `client/src/app-shell.tsx`; props tiap halaman dipasok `client/src/layar.tsx`. Tangkapan layar tiap halaman ada di [Mulai di sini](mulai-di-sini.md#peta-layar).
 
-Tiga halaman yang pernah dirancang **belum ada**: form profil anak tersendiri (`anak/create`, `anak/edit`) — penggantinya editor baris di dalam Data Balita — dan halaman Periode. Alamatnya memakai hash (`#/balita/12`), bukan path.
+| Alamat | Berkas di `client/src/pages/` | Peran | Isi |
+|---|---|---|---|
+| `#/beranda` | `dashboard.tsx` | semua | Angka S, D, D/S, dan N bulan berjalan; sebaran status gizi; cakupan dan tren enam bulan; daftar Perlu perhatian |
+| `#/layanan` | `layanan/index.tsx` | semua | Penimbangan: cari balita, catat berat dan tinggi. Belum menyimpan |
+| `#/balita` | `anak/index.tsx` | semua | Data Balita: tabel, pencarian, saringan, tambah dan ubah |
+| `#/balita/{id}` | `anak/show.tsx` | semua | Detail Balita: identitas, kurva KMS, status gizi, riwayat singkat, dialog Ubah data dan Cetak kartu |
+| `#/balita/{id}/riwayat` | `anak/riwayat.tsx` | semua | Seluruh hasil ukur satu balita beserta z-score |
+| `#/kartu-sasaran`, `#/kartu-sasaran/{id}` | `kartu-sasaran/index.tsx` | bidan, admin | Kartu Balita: pilih balita, pratinjau, cetak |
+| `#/laporan` | `laporan/index.tsx` | semua | Rekap SKDN per RT, bulanan atau enam bulan |
+| `#/sasaran` | `sasaran/index.tsx` | admin | Sasaran & Impor: rancangan alur impor data Puskesmas, belum membaca berkas |
+| `#/pengaturan` | `pengaturan/index.tsx` | bidan, admin | Batas angka ukur, ambang rujukan, pengguna dan peran (admin, tersambung ke `/api/pengguna`), standar perhitungan, riwayat perubahan |
+| — | `auth/login.tsx` | — | Layar Masuk |
 
-### Komponen baru
+Alamat lain jatuh ke Beranda, dan alamat yang tidak boleh dibuka suatu peran dikembalikan ke Beranda. Itu kenyamanan; penolakan yang mengikat tetap di server.
 
-| Komponen | Alasan |
+Yang pernah dirancang tetapi tidak dibangun: halaman Periode dan form profil anak tersendiri. Penggantinya pemilih periode di sidebar dan dialog Ubah data.
+
+### Komponen
+
+Daftar lengkapnya di [UI/UX bagian 4](rujukan/ui-ux.md#4-inventory-komponen). Dua yang paling sering disentuh:
+
+| Komponen | Keterangan |
 |---|---|
-| `components/kms-chart.tsx` | Kurva pertumbuhan: garis SD sebagai latar, titik pengukuran anak di atasnya. **SVG langsung, tanpa library chart** — bentuk yang dibutuhkan hanya beberapa *path* dan titik, sementara membuat library chart menggambar overlay SD menuntut kustomisasi yang lebih panjang daripada SVG-nya sendiri. |
-| `components/status-gizi-badge.tsx` | Label kategori berwarna konsisten di seluruh halaman. |
-| `components/ui/table.tsx` | Komponen tabel shadcn. Sudah ada. |
-
-Primitif shadcn lain diambil dari hulunya saat dibutuhkan; hanya `ui/table.tsx` yang ikut pindah dari repo lama. Ia dipakai **empat** layar bertabel — Data Balita, Detail anak, Laporan, Pengaturan. Daftar komponen selengkapnya di [UI/UX](rujukan/ui-ux.md) bagian 4.
+| `components/kms-chart.tsx` | Kurva KMS: pita SD sebagai latar, titik penimbangan di atasnya, panah untuk berpindah rentang umur. **SVG langsung, tanpa pustaka grafik.** |
+| `components/ui/table.tsx` | Tabel dari shadcn/ui, satu-satunya komponen yang diambil dari sana. Dipakai lima layar bertabel. |
 
 ### Konvensi
 
 - Navigasi memakai `Link`, `navigate`, dan `useAlamat` dari `client/src/lib/nav.tsx` — router berbasis alamat hash, tanpa pustaka. Alamat hash dipilih supaya hasil build dapat disajikan static host mana pun tanpa aturan *rewrite*.
 - Form adalah form React biasa. Pesan kesalahan datang dari server sebagai JSON `{ galat }`, dalam bahasa Indonesia.
 - Sesi dibaca lewat `useSesi()` di `client/src/lib/sesi.ts`; token sesinya cookie `httpOnly` dan tidak pernah terjangkau JavaScript.
+- Daftar akun dimuat dan disimpan lewat `usePenggunaServer()` di `client/src/lib/pengguna.ts`. Jawaban 401 dari server mengembalikan aplikasi ke layar Masuk; demo memakai daftar contoh di memori dengan bentuk props yang sama.
 - Tipe data dari server dideklarasikan di `client/src/types/posyandu.ts`.
-- Props tiap halaman dipasok satu tempat, `client/src/layar.tsx` — itulah yang berubah saat endpoint data datang.
+- Props tiap halaman dipasok satu tempat, `client/src/layar.tsx` — itulah yang berubah saat endpoint data datang. Bentuk props tiap halaman adalah kontrak untuk endpoint REST-nya nanti: field baru masuk `client/src/types/posyandu.ts`, tidak diketik ulang per halaman.
+- Tanpa pustaka router, chart, atau state manager. Grafik memakai SVG langsung dan state memakai `useState` serta `useMemo`. Setiap dependensi yang ditambahkan adalah dependensi yang harus dipelihara.
+- Aset lokal saja: huruf `.woff2` di `client/src/assets/fonts/`, ikon dari paket `lucide-react`. Tidak ada rujukan ke CDN, supaya demo tetap utuh tanpa Wi-Fi.
+
+### TypeScript
+
+`strict: true` di `client/` dan `server/`. Alias `@/*` menunjuk `client/src/*`.
+
+| Aturan | Ketentuan |
+|---|---|
+| Alias impor | Selalu `@/components/…`, tidak pernah `../../components/…` |
+| `any` | ESLint mengizinkannya, tetapi **tipe data domain wajib dideklarasikan**. `any` hanya boleh di batas pustaka pihak ketiga yang memang tidak bertipe |
+| Tipe domain | Satu tempat: `client/src/types/posyandu.ts` |
+| Props halaman | Dideklarasikan sebagai `type Props = { … }` di berkas halaman itu sendiri |
+| Nilai kosong | `null` untuk "tidak ada nilai", bukan `undefined` dan bukan `0`. Ini menurun dari DR-04 dan DR-07 pada [PRD utama](prd/prd-utama.md) |
+
+Node 24 menjalankan TypeScript server lewat *type stripping*. Karena itu `server/` juga memakai `erasableSyntaxOnly` dan `verbatimModuleSyntax`: `enum`, `namespace`, dan *constructor parameter property* dilarang di sana. Rinciannya di [ADR-0006](adr/0006-pindah-ke-express-react-postgres.md).
+
+### Selesai berarti
+
+Sebuah perubahan dinyatakan selesai bila seluruhnya terpenuhi:
+
+1. Pemeriksaan di [README](../README.md#pemeriksaan) lulus: uji, `types:check`, `lint:check`, dan `format:check`.
+2. Nol pesan kesalahan dan peringatan di konsol peramban.
+3. Layar yang dikerjakan punya keadaan kosong dan keadaan memuat yang dirancang, bukan kebetulan.
+4. Nilai kosong tampil sebagai `—`, tidak pernah `0`.
+5. Tidak ada `TODO` tanpa isu di [Pertanyaan terbuka](pertanyaan-terbuka.md) yang menaunginya.
 
 ---
 
@@ -219,3 +264,17 @@ Primitif shadcn lain diambil dari hulunya saat dibutuhkan; hanya `ui/table.tsx` 
 | *Export* | Seluruh periode sekaligus | Kursor `pg` yang dialirkan baris demi baris ke respons, bukan menyusun seluruh larik di memori. |
 
 Angka yang dihadapi (ratusan anak, ribuan pengukuran) tidak menuntut *cache* lintas-permintaan, *queue*, atau denormalisasi. Tidak ada satu pun dari itu yang dibangun sekarang.
+
+## Transaksi dan audit
+
+`server/src/db/transaksi.ts` menyediakan `dalamTransaksi(pool, pelaku, callback)`. Callback wajib memakai `PoolClient` yang diberikan untuk seluruh query dalam transaksi. Memakai `pool.query()` di dalamnya dapat menjalankan query pada koneksi lain tanpa konteks pelaku.
+
+```ts
+await dalamTransaksi(pool, { pengguna: pengguna.id, sumber: 'aplikasi' }, async (klien) => {
+    await klien.query('UPDATE anak SET nama = $1 WHERE id = $2', [nama, anakId]);
+});
+```
+
+`pengguna.id` harus berasal dari sesi yang sudah diverifikasi dan mutasi harus melewati otorisasi. CLI memakai `{ pengguna: null, sumber: 'cli' }`; login dan pembaruan hash memakai ID akun terverifikasi dengan sumber `autentikasi`. Penyimpanan gizi memakai sumber bawaan `hitung-gizi`, dengan pelaku opsional dari pemanggil.
+
+Helper membuka transaksi, menyetel `app.pengguna_id` dan `app.sumber` secara lokal transaksi, commit bila berhasil, rollback bila gagal, dan selalu melepas koneksi. Koneksi dibuang bila rollback gagal. Trigger merekam perubahan pada koneksi yang sama; rincian cakupan dan pengecualian ada di [Basis Data — audit](database.md#audit). Endpoint mutasi domain belum tersedia; endpoint tersebut nantinya harus menggunakan pola ini setelah memeriksa izin.

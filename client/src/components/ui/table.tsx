@@ -1,3 +1,4 @@
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import * as React from 'react';
 
 import { cn } from '@/lib/utils';
@@ -42,7 +43,9 @@ function TableHeader({ className, ...props }: React.ComponentProps<'thead'>) {
     return (
         <thead
             data-slot="table-header"
-            className={cn('[&_tr]:border-b-2', className)}
+            // Garis bawah kepala kolom digambar tiap sel (lihat TableHead),
+            // bukan oleh barisnya: garis milik <tr> hilang saat kepala menempel.
+            className={cn('[&_tr]:border-b-0', className)}
             {...props}
         />
     );
@@ -63,7 +66,7 @@ function TableFooter({ className, ...props }: React.ComponentProps<'tfoot'>) {
         <tfoot
             data-slot="table-footer"
             className={cn(
-                'border-t-2 bg-surface font-extrabold [&>tr]:last:border-b-0',
+                'border-t-2 border-border-strong bg-surface font-extrabold [&>tr]:last:border-b-0',
                 className,
             )}
             {...props}
@@ -75,9 +78,9 @@ function TableRow({ className, ...props }: React.ComponentProps<'tr'>) {
     return (
         <tr
             data-slot="table-row"
-            // Garis baris 2px, bukan 1px: ukuran artboard v2. Pada tabel
-            // 101 baris garis rambut 1px hilang di antara teks 18px.
-            className={cn('border-b-2 transition-colors', className)}
+            // Garis antarbaris 1 px berwarna --rule (#A3ACA1): cukup gelap
+            // untuk diikuti mata di 101 baris, tanpa menebalkan tabel.
+            className={cn('border-b border-rule transition-colors', className)}
             {...props}
         />
     );
@@ -88,10 +91,11 @@ function TableHead({ className, ...props }: React.ComponentProps<'th'>) {
         <th
             data-slot="table-head"
             className={cn(
-                // Kepala kolom artboard: latar kartu, tebal 700, dipisah
-                // garis 2px — bukan pita abu. Latar tetap wajib opak karena
-                // kepala tabel Data Anak menempel saat digulir.
-                'h-12 bg-card px-4 text-left align-middle text-sm font-bold text-muted-foreground whitespace-nowrap',
+                // Kepala kolom abu sangat muda dengan garis bawah 2 px. Garisnya
+                // bayangan ke dalam, bukan border: kepala tabel Data Balita
+                // menempel saat digulir, dan border sel `sticky` tertinggal di
+                // belakang. Latarnya wajib opak untuk alasan yang sama.
+                'h-13 bg-surface px-3.5 text-left align-middle text-sm font-bold whitespace-nowrap text-muted-foreground shadow-[inset_0_-2px_0_var(--border-strong)] first:pl-5.5 last:pr-5.5',
                 className,
             )}
             {...props}
@@ -99,11 +103,114 @@ function TableHead({ className, ...props }: React.ComponentProps<'th'>) {
     );
 }
 
+/**
+ * Kepala kolom yang bisa diurutkan: satu tombol selebar sel, dua panah kecil
+ * yang menandai arahnya, dan `aria-sort` untuk pembaca layar.
+ */
+function TableHeadUrut({
+    label,
+    keterangan,
+    aktif,
+    naik,
+    onUrut,
+    pertama = false,
+    terakhir = false,
+    kanan = false,
+    className,
+}: {
+    label: string;
+    /**
+     * Baris kedua di bawah label, untuk kolom berkode seperti SKDN: "S" di
+     * atas, "Sasaran" di bawahnya.
+     */
+    keterangan?: string;
+    aktif: boolean;
+    naik: boolean;
+    onUrut: () => void;
+    /** Kolom paling kiri berbantalan 20 px, sama dengan sel di bawahnya. */
+    pertama?: boolean;
+    /** Kolom paling kanan, juga berbantalan 20 px. */
+    terakhir?: boolean;
+    /** Kolom angka: judulnya rata kanan seperti angkanya. */
+    kanan?: boolean;
+    className?: string;
+}) {
+    const panah = (
+        <span aria-hidden="true" className="flex flex-col">
+            <ChevronUp
+                className={cn(
+                    '-mb-1 size-3',
+                    aktif && naik ? 'text-primary' : 'text-input',
+                )}
+                strokeWidth={3}
+            />
+            <ChevronDown
+                className={cn(
+                    'size-3',
+                    aktif && !naik ? 'text-primary' : 'text-input',
+                )}
+                strokeWidth={3}
+            />
+        </span>
+    );
+
+    return (
+        <TableHead
+            scope="col"
+            aria-sort={aktif ? (naik ? 'ascending' : 'descending') : 'none'}
+            className={cn(
+                'p-0 first:pl-0 last:pr-0',
+                keterangan !== undefined && 'align-bottom',
+                className,
+            )}
+        >
+            <button
+                type="button"
+                onClick={onUrut}
+                className={cn(
+                    'w-full hover:bg-surface-alt',
+                    pertama ? 'pl-5.5' : 'pl-3.5',
+                    terakhir ? 'pr-5.5' : 'pr-3.5',
+                    keterangan === undefined
+                        ? 'flex min-h-13 items-center gap-1.5 font-bold whitespace-nowrap'
+                        : 'block py-2',
+                    kanan && (keterangan === undefined ? 'justify-end' : 'text-right'),
+                )}
+            >
+                {keterangan === undefined ? (
+                    <>
+                        {label}
+                        {panah}
+                    </>
+                ) : (
+                    <>
+                        <span
+                            className={cn(
+                                'flex items-center gap-1 text-base font-extrabold text-foreground',
+                                kanan && 'justify-end',
+                            )}
+                        >
+                            {label}
+                            {panah}
+                        </span>
+                        <span className="block text-sm font-semibold whitespace-normal">
+                            {keterangan}
+                        </span>
+                    </>
+                )}
+            </button>
+        </TableHead>
+    );
+}
+
 function TableCell({ className, ...props }: React.ComponentProps<'td'>) {
     return (
         <td
             data-slot="table-cell"
-            className={cn('px-4 py-3 align-middle', className)}
+            className={cn(
+                'px-3.5 py-2.5 align-middle first:pl-5.5 last:pr-5.5',
+                className,
+            )}
             {...props}
         />
     );
@@ -129,6 +236,7 @@ export {
     TableCell,
     TableFooter,
     TableHead,
+    TableHeadUrut,
     TableHeader,
     TableRow,
 };

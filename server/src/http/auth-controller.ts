@@ -8,6 +8,7 @@
 import { Router } from 'express';
 import type { Pool } from 'pg';
 
+import * as penggunaRepo from '../repositories/pengguna-repository.ts';
 import { GalatMasuk, keluar, masuk } from '../services/auth-service.ts';
 import { catatBerhasil, catatGagal, sisaTahanan } from './batas-masuk.ts';
 import { bacaCookie, hapusCookieSesi, NAMA_COOKIE_SESI, pasangCookieSesi } from './cookie.ts';
@@ -21,17 +22,18 @@ export function ruteAuth(pool: Pool): Router {
     const rute = Router();
 
     rute.post('/masuk', (req, res, next) => {
-        const email = typeof req.body?.email === 'string' ? req.body.email : '';
+        // Dirapikan di sini: papan ketik tablet kerap menambah spasi di ujung.
+        const username = typeof req.body?.username === 'string' ? req.body.username.trim() : '';
         const kataSandi = typeof req.body?.kataSandi === 'string' ? req.body.kataSandi : '';
 
-        if (email === '' || kataSandi === '') {
-            res.status(400).json({ galat: 'Email dan kata sandi wajib diisi' });
+        if (username === '' || kataSandi === '') {
+            res.status(400).json({ galat: 'Nama pengguna dan kata sandi wajib diisi' });
 
             return;
         }
 
         const ip = alamat(req.ip);
-        const tahan = sisaTahanan(email, ip);
+        const tahan = sisaTahanan(username, ip);
 
         if (tahan > 0) {
             res.set('Retry-After', String(tahan))
@@ -41,9 +43,9 @@ export function ruteAuth(pool: Pool): Router {
             return;
         }
 
-        masuk(pool, email, kataSandi)
+        masuk(pool, username, kataSandi)
             .then((hasil) => {
-                catatBerhasil(email, ip);
+                catatBerhasil(username, ip);
                 pasangCookieSesi(res, hasil.token);
 
                 res.json({ pengguna: hasil.pengguna });
@@ -57,7 +59,7 @@ export function ruteAuth(pool: Pool): Router {
 
                 // Akun nonaktif ikut dihitung sebagai kegagalan: tanpa itu,
                 // akun yang dinonaktifkan menjadi sasaran tebakan tanpa batas.
-                catatGagal(email, ip);
+                catatGagal(username, ip);
 
                 res.status(401).json({ galat: galat.message });
             });
@@ -81,8 +83,18 @@ export function ruteAuth(pool: Pool): Router {
             .catch(next);
     });
 
-    rute.get('/saya', wajibMasuk, (req, res) => {
-        res.json({ pengguna: req.pengguna });
+    // Nama dan nama pengguna untuk kartu akun di sidebar. Dibaca di sini, bukan
+    // di middleware sesi: setiap permintaan lain cukup tahu peran dan RT-nya.
+    rute.get('/saya', wajibMasuk, async (req, res) => {
+        const akun = req.pengguna && (await penggunaRepo.ambil(pool, req.pengguna.id));
+
+        if (!akun) {
+            res.status(401).json({ galat: 'Sesi tidak berlaku' });
+
+            return;
+        }
+
+        res.json({ pengguna: { ...req.pengguna, nama: akun.nama, username: akun.username } });
     });
 
     return rute;

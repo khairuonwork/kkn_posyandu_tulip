@@ -176,6 +176,8 @@ Sampai pemilik program mengonfirmasi, sistem **menghitung dan menampilkan z-scor
 
 Nilainya diekstrak sekali ke `server/db/data/who-lms.json`, yang **di-*commit* ke repo** dan menjadi sumber *seed* tabel `standar_lms`.
 
+Bila standarnya berubah, ekstrak ulang dengan `python server/db/data/extract-who-lms.py "<path berkas Excel>"`, lalu jalankan `npm run seed` dari `server/`. Perlakuan riwayat gizi saat metode berganti diatur [ADR-0005](../adr/0005-migrasi-metode-zscore.md).
+
 ### 5.2 Tabel LMS di berkas sumber
 
 Dua belas tabel bernama (*Excel named table*), sudah diverifikasi isinya:

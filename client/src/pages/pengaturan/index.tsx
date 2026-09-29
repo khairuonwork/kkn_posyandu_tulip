@@ -1,22 +1,31 @@
 /**
- * Pengaturan — docs/10-prd-demo-frontend.md bagian 6.7, tampilan Prototipe v2.
+ * Pengaturan — panel bertab, mengikuti mockup yang disetujui 26 September 2026.
  *
- * Menunjukkan sisi tata kelola: ambang ditetapkan bersama, perubahannya
- * tercatat, dan kader tidak pernah diblokir oleh sistem.
+ * Satu kartu: menu lima bagian di kiri, isi bagian di kanan, dan bilah Simpan
+ * di kakinya. Perubahan angka dan standar ditahan sampai disimpan dan tetap
+ * tertahan saat berpindah bagian; meninggalkan Pengaturan sebelum menyimpan
+ * ditanyakan dulu. Kader tidak pernah diblokir oleh batas-batas ini — angka
+ * di luar batas hanya ditanyakan ulang saat mencatat.
  */
 
 import {
-    Check,
-    CheckCircle2,
-    Info,
-    KeyRound,
+    Calculator,
+    CircleCheck,
+    CircleMinus,
+    Flag,
+    History,
     Lock,
+    Pencil,
     Plus,
+    Ruler,
+    Save,
     Settings,
-    UserRound,
+    TriangleAlert,
+    Users,
 } from 'lucide-react';
-import { useState } from 'react';
-import BarisDefinisi from '@/components/baris-definisi';
+import { useEffect, useState } from 'react';
+import type { ComponentType, ReactNode } from 'react';
+import Dialog, { KakiDialog } from '@/components/dialog';
 import Halaman from '@/components/halaman';
 import {
     Table,
@@ -26,7 +35,8 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { angka, tanggalPanjang } from '@/lib/format';
+import { angka, tanggalPanjang, zScore } from '@/lib/format';
+import { navigate } from '@/lib/nav';
 import type { Pengguna, Peran } from '@/types/posyandu';
 
 export type Ambang = {
@@ -51,6 +61,25 @@ export type StandarisasiAntropometri = {
     koreksiPosisiOtomatis: boolean;
 };
 
+export type BarisRiwayatPengaturan = {
+    waktu: string;
+    oleh: string;
+    bagian: string;
+    perubahan: string;
+};
+
+/**
+ * Daftar akun beserta pilihan RT binaan. Aplikasi memuatnya dari server;
+ * demo selalu `siap` dengan data contoh.
+ */
+export type DaftarPengguna =
+    | { status: 'memuat' }
+    | { status: 'gagal'; ulangi: () => void }
+    | { status: 'siap'; pengguna: Pengguna[]; wilayahRt: string[] };
+
+/** Isian dialog akun. Kata sandi kosong pada perubahan berarti tidak diganti. */
+export type IsianPengguna = Omit<Pengguna, 'id'> & { kataSandi: string };
+
 type Props = {
     ambang: Ambang;
     standarVersi: string;
@@ -60,38 +89,100 @@ type Props = {
     /** Tanpa ini tombol simpan dirender nonaktif beserta alasannya. */
     onSimpan?: (nilai: Ambang) => void;
     onSimpanStandarisasi?: (nilai: StandarisasiAntropometri) => void;
-    /** Menentukan apakah kartu Kelola pengguna dirender sama sekali. */
+    /** Bagian Pengguna dan peran hanya terbuka untuk admin. */
     peran: Peran;
-    pengguna: Pengguna[];
-    wilayahRt: string[];
-    onSimpanPengguna: (daftar: Pengguna[]) => void;
+    pengguna: DaftarPengguna;
+    /** Id null berarti akun baru. Hasilnya null bila tersimpan, atau alasan penolakannya. */
+    onSimpanPengguna: (
+        id: number | null,
+        isian: IsianPengguna,
+    ) => Promise<string | null>;
+    riwayat: BarisRiwayatPengaturan[];
 };
 
-const IZIN_PERAN = [
-    { peran: 'Bidan', izin: 'Boleh mengubah', boleh: true },
-    { peran: 'Admin', izin: 'Boleh mengubah', boleh: true },
-    { peran: 'Kader', izin: 'Menu ini tidak tampil', boleh: false },
+type Bagian = 'batas' | 'ambang' | 'pengguna' | 'standar' | 'riwayat';
+
+const BAGIAN: {
+    kunci: Bagian;
+    label: string;
+    ikon: ComponentType<{ className?: string; strokeWidth?: number }>;
+    keterangan: string;
+}[] = [
+    {
+        kunci: 'batas',
+        label: 'Batas angka ukur',
+        ikon: Ruler,
+        keterangan:
+            'Angka di luar batas ditanyakan ulang saat mencatat; kader tetap bisa menyimpan.',
+    },
+    {
+        kunci: 'ambang',
+        label: 'Ambang rujukan',
+        ikon: Flag,
+        keterangan:
+            'Mengatur kapan arahan untuk keluarga berubah. Kategori status gizi resmi tetap mengikuti Permenkes.',
+    },
+    {
+        kunci: 'pengguna',
+        label: 'Pengguna dan peran',
+        ikon: Users,
+        keterangan: 'Akun yang bisa masuk, beserta peran dan RT binaannya.',
+    },
+    {
+        kunci: 'standar',
+        label: 'Standar perhitungan',
+        ikon: Calculator,
+        keterangan: 'Acuan untuk menghitung z-score dan status gizi balita.',
+    },
+    {
+        kunci: 'riwayat',
+        label: 'Riwayat perubahan',
+        ikon: History,
+        keterangan:
+            'Setiap perubahan pengaturan tercatat: siapa, kapan, dan apa yang diubah. Data contoh.',
+    },
 ];
 
-const MENU_AKSES = [
-    {
-        peran: 'Kader',
-        keterangan: 'Wilayah binaan dan layanan hari Posyandu.',
-        menu: ['Pendaftaran & Ukur', 'Data Anak RT binaan'],
+/** Nama, satuan, dan jumlah desimal tiap angka yang bisa diubah. */
+const ANGKA: Record<
+    keyof Ambang,
+    { label: string; satuan: string; desimal: number }
+> = {
+    beratMin: { label: 'Berat badan minimal', satuan: 'kg', desimal: 1 },
+    beratMax: { label: 'Berat badan maksimal', satuan: 'kg', desimal: 1 },
+    tinggiMin: { label: 'Panjang/tinggi minimal', satuan: 'cm', desimal: 1 },
+    tinggiMax: { label: 'Panjang/tinggi maksimal', satuan: 'cm', desimal: 1 },
+    lilaMin: { label: 'LILA minimal', satuan: 'cm', desimal: 1 },
+    lilaMax: { label: 'LILA maksimal', satuan: 'cm', desimal: 1 },
+    likaMin: { label: 'LIKA minimal', satuan: 'cm', desimal: 1 },
+    likaMax: { label: 'LIKA maksimal', satuan: 'cm', desimal: 1 },
+    naikMax: { label: 'Berat naik maksimal', satuan: 'kg', desimal: 1 },
+    turunMax: { label: 'Berat turun maksimal', satuan: 'kg', desimal: 1 },
+    tinggiBerkurangMax: {
+        label: 'Tinggi berkurang maksimal',
+        satuan: 'cm',
+        desimal: 1,
     },
-    {
-        peran: 'Bidan',
-        keterangan: 'Memeriksa seluruh data dan menindaklanjuti hasil.',
-        menu: ['Pendaftaran & Ukur', 'Data Anak', 'Laporan'],
+    umurMaxBulan: { label: 'Umur maksimal', satuan: 'bulan', desimal: 0 },
+    ambangWaspada: { label: 'Zona waspada', satuan: 'SD', desimal: 2 },
+    ambangRujukan: {
+        label: 'Anjuran hubungi faskes',
+        satuan: 'SD',
+        desimal: 2,
     },
-    {
-        peran: 'Admin',
-        keterangan: 'Mengelola data sumber dan konfigurasi portal.',
-        menu: ['Sasaran & Impor', 'Laporan', 'Pengaturan', 'Periode'],
-    },
-] as const;
+};
 
-const STANDAR_ANTROPOMETRI: {
+const KUNCI_ANGKA = Object.keys(ANGKA) as (keyof Ambang)[];
+
+/** Pasangan minimal dan maksimal pada tabel Rentang wajar. */
+const RENTANG: { label: string; min: keyof Ambang; max: keyof Ambang }[] = [
+    { label: 'Berat badan', min: 'beratMin', max: 'beratMax' },
+    { label: 'Panjang/tinggi', min: 'tinggiMin', max: 'tinggiMax' },
+    { label: 'LILA', min: 'lilaMin', max: 'lilaMax' },
+    { label: 'LIKA', min: 'likaMin', max: 'likaMax' },
+];
+
+const STANDAR: {
     nilai: StandarisasiAntropometri['standar'];
     judul: string;
     cakupan: string;
@@ -102,30 +193,20 @@ const STANDAR_ANTROPOMETRI: {
         judul: 'Permenkes RI No. 2/2020 + WHO LMS 2006',
         cakupan: 'Standar operasional balita 0–60 bulan',
         keterangan:
-            'Dipakai untuk hitung LMS, KMS, penapisan stunting, wasting, dan underweight pada Portal SIMPATIK.',
+            'Dipakai untuk menghitung z-score, grafik KMS, dan status gizi di SIMPATIK.',
     },
     {
         nilai: 'who_2007',
         judul: 'WHO Reference 2007',
         cakupan: 'Pembanding usia 5–19 tahun',
-        keterangan:
-            'Tidak digunakan untuk penilaian balita. Tabel LMS-nya harus tersedia di server sebelum dipakai untuk perhitungan.',
-    },
-    {
-        nilai: 'cdc_2000',
-        judul: 'CDC Growth Charts 2000',
-        cakupan: 'Pembanding klinis',
-        keterangan:
-            'Bukan standar nasional Posyandu. Pilihan ini hanya untuk studi pembanding setelah tabel acuan disahkan.',
+        keterangan: 'Tidak dipakai untuk menilai balita.',
     },
 ];
 
 /**
- * Empat ambang z-score PMK No. 2 Tahun 2020, apa adanya.
- *
- * Ditulis sebagai rujukan yang bisa dibaca bidan, bukan sebagai kontrol: tidak
- * satu pun dapat diubah dari aplikasi. Warnanya mengikuti nada keparahan bagian
- * 2.3, dan tiap chip memuat teks — laporan Posyandu dicetak hitam-putih.
+ * Empat ambang z-score PMK No. 2 Tahun 2020, apa adanya: rujukan yang bisa
+ * dibaca bidan, bukan kontrol. Tiap blok memuat teks — laporan Posyandu
+ * dicetak hitam-putih.
  */
 const AMBANG_Z = [
     { teks: 'di bawah −3 SD', kelas: 'bg-tone-red-bg text-tone-red' },
@@ -133,6 +214,46 @@ const AMBANG_Z = [
     { teks: '−2 SD sampai +1 SD', kelas: 'bg-tone-green-bg text-tone-green' },
     { teks: 'di atas +1 SD', kelas: 'bg-tone-blue-bg text-tone-blue' },
 ];
+
+const NAMA_PERAN: Record<Peran, string> = {
+    kader: 'Kader',
+    bidan: 'Bidan',
+    admin: 'Admin',
+};
+
+const URUTAN_PERAN: Peran[] = ['kader', 'bidan', 'admin'];
+
+/** Sama dengan `SANDI_MINIMAL` di server/src/auth/akun.ts. */
+const SANDI_MINIMAL = 8;
+
+/** Sama dengan `POLA_USERNAME` dan `ATURAN_USERNAME` di server/src/auth/akun.ts. */
+const POLA_USERNAME = /^[a-z0-9._-]{3,32}$/;
+const ATURAN_USERNAME =
+    'Nama pengguna 3–32 karakter tanpa spasi: huruf, angka, titik, garis bawah, atau tanda hubung. Contoh: kader01.';
+
+/** Label RT dua digit, sama seperti Data Balita dan Laporan. */
+function labelRt(rt: string): string {
+    return `RT ${rt.padStart(2, '0')}`;
+}
+
+/** "2,5" atau "−1,96" menjadi angka; teks kosong atau rusak menjadi null. */
+function keAngka(teks: string): number | null {
+    const bersih = teks.trim().replace('−', '-').replace(',', '.');
+    const n = Number(bersih);
+
+    return bersih === '' || !Number.isFinite(n) ? null : n;
+}
+
+/**
+ * Admin aktif terakhir tidak boleh diturunkan perannya maupun dinonaktifkan.
+ * Tanpa penjaga ini satu klik bisa mengunci semua orang keluar dari layar yang
+ * memuat penjaganya sendiri.
+ */
+function adminAktifTerakhir(daftar: Pengguna[], id: number): boolean {
+    const admin = daftar.filter((p) => p.peran === 'admin' && p.aktif);
+
+    return admin.length === 1 && admin[0].id === id;
+}
 
 export default function Pengaturan({
     ambang,
@@ -144,964 +265,1379 @@ export default function Pengaturan({
     onSimpanStandarisasi,
     peran,
     pengguna,
-    wilayahRt,
     onSimpanPengguna,
+    riwayat,
 }: Props) {
-    // Nilai dapat diubah selama sesi; tidak ada yang tersimpan (bagian 11).
-    const [nilai, setNilai] = useState(ambang);
-    const [rumus, setRumus] = useState(standarisasi);
-    const [aksesMenu, setAksesMenu] = useState(
+    const [bagian, setBagian] = useState<Bagian>('batas');
+    const teksAwal = () =>
         Object.fromEntries(
-            MENU_AKSES.flatMap((akses) =>
-                akses.menu.map((menu) => [`${akses.peran}-${menu}`, true]),
-            ),
+            KUNCI_ANGKA.map((k) => [k, angka(ambang[k], ANGKA[k].desimal)]),
+        ) as Record<keyof Ambang, string>;
+    const [teks, setTeks] = useState(teksAwal);
+    const [rumus, setRumus] = useState(standarisasi);
+    /** Alamat yang dituju saat perubahan belum disimpan. */
+    const [tujuan, setTujuan] = useState<string | null>(null);
+
+    const nilai = Object.fromEntries(
+        KUNCI_ANGKA.map((k) => [k, keAngka(teks[k])]),
+    ) as Record<keyof Ambang, number | null>;
+    const salahAngka = KUNCI_ANGKA.filter((k) => nilai[k] === null);
+    const salahRentang = RENTANG.filter((r) => {
+        const min = nilai[r.min];
+        const max = nilai[r.max];
+
+        return min !== null && max !== null && max <= min;
+    });
+    const diubah = (k: keyof Ambang) =>
+        nilai[k] !== null &&
+        angka(nilai[k], ANGKA[k].desimal) !==
+            angka(ambang[k], ANGKA[k].desimal);
+
+    // Kalimat tiap perubahan, dipakai bilah Simpan dan dialog pindah bagian.
+    const perubahan = [
+        ...KUNCI_ANGKA.filter(diubah).map(
+            (k) =>
+                `${ANGKA[k].label} diubah dari ${angka(ambang[k], ANGKA[k].desimal)} menjadi ${angka(nilai[k], ANGKA[k].desimal)} ${ANGKA[k].satuan}.`,
         ),
-    );
-    const ubah = (kunci: keyof Ambang, isi: string) =>
-        setNilai({ ...nilai, [kunci]: Number(isi.replace(',', '.')) });
-    // Dua belas angka bisa diubah dan tombol simpannya dulu berada di kaki
-    // gulir panjang, tanpa satu tanda pun bahwa ada yang belum tersimpan.
-    const belumTersimpan =
-        (Object.keys(ambang) as (keyof Ambang)[]).some(
-            (k) => nilai[k] !== ambang[k],
-        ) ||
-        rumus.standar !== standarisasi.standar ||
-        rumus.koreksiPosisiOtomatis !== standarisasi.koreksiPosisiOtomatis;
+        ...(rumus.standar !== standarisasi.standar
+            ? [
+                  `Standar perhitungan diubah menjadi ${STANDAR.find((s) => s.nilai === rumus.standar)?.judul ?? rumus.standar}.`,
+              ]
+            : []),
+        ...(rumus.koreksiPosisiOtomatis !== standarisasi.koreksiPosisiOtomatis
+            ? [
+                  `Koreksi posisi ukur otomatis ${rumus.koreksiPosisiOtomatis ? 'dinyalakan' : 'dimatikan'}.`,
+              ]
+            : []),
+    ];
+    const bisaSimpan =
+        onSimpan !== undefined &&
+        perubahan.length > 0 &&
+        salahAngka.length === 0 &&
+        salahRentang.length === 0;
+
+    const simpan = () => {
+        if (!bisaSimpan) {
+            return;
+        }
+
+        onSimpan?.(
+            Object.fromEntries(
+                KUNCI_ANGKA.map((k) => [k, nilai[k] ?? ambang[k]]),
+            ) as Ambang,
+        );
+        onSimpanStandarisasi?.(rumus);
+    };
+
+    const batalkan = () => {
+        setTeks(teksAwal());
+        setRumus(standarisasi);
+    };
+
+    /* Meninggalkan Pengaturan dengan perubahan tertahan ditanyakan dulu.
+       Klik tautan ditangkap sebelum sampai ke tautannya; alamatnya baru
+       diganti setelah pengguna memilih. */
+    const adaPerubahan = perubahan.length > 0;
+
+    useEffect(() => {
+        if (!adaPerubahan) {
+            return;
+        }
+
+        const tangkap = (e: MouseEvent) => {
+            const tautan = (e.target as Element | null)?.closest?.(
+                'a[href^="#/"]',
+            );
+            const href = tautan?.getAttribute('href')?.slice(1);
+
+            if (href === undefined || href.startsWith('/pengaturan')) {
+                return;
+            }
+
+            e.preventDefault();
+            e.stopPropagation();
+            setTujuan(href);
+        };
+
+        document.addEventListener('click', tangkap, true);
+
+        return () => document.removeEventListener('click', tangkap, true);
+    }, [adaPerubahan]);
+
+    const info = BAGIAN.find((b) => b.kunci === bagian) ?? BAGIAN[0];
+    const ubahTeks = (k: keyof Ambang, v: string) =>
+        setTeks((lama) => ({ ...lama, [k]: v.replace(/[^\d.,−-]/g, '') }));
 
     return (
         <Halaman
             ikon={Settings}
+            penuh="lg"
             judul="Pengaturan"
-            subjudul={`Batas pengukuran dan ambang peringatan. Terakhir diubah ${tanggalPanjang(terakhirDiubah.tanggal)} oleh ${terakhirDiubah.oleh}. Data contoh.`}
+            subjudul={`Terakhir diubah ${tanggalPanjang(terakhirDiubah.tanggal)} oleh ${terakhirDiubah.oleh}. Data contoh.`}
         >
-            <div className="flex max-w-[100ch] flex-col gap-7">
-                <div className="flex items-start gap-3 rounded-xl border border-tone-blue bg-tone-blue-bg p-5 text-base text-tone-blue">
-                    <Info
-                        className="mt-0.5 size-5 shrink-0"
-                        strokeWidth={2.5}
-                        aria-hidden="true"
-                    />
-                    <p className="text-pretty">
-                        Batas ini hanya memicu pertanyaan konfirmasi. Kader
-                        tidak pernah diblokir. Perubahan berlaku untuk
-                        pengukuran baru, data lama tidak dihitung ulang.
-                    </p>
-                </div>
+            <div className="kartu grid overflow-hidden lg:min-h-0 lg:flex-1 lg:grid-cols-[272px_minmax(0,1fr)]">
+                <nav
+                    aria-label="Bagian pengaturan"
+                    className="flex flex-wrap gap-1 border-b border-border p-3.5 lg:flex-col lg:flex-nowrap lg:border-r lg:border-b-0"
+                >
+                    {BAGIAN.map((b) => {
+                        const Ikon = b.ikon;
+                        const aktif = b.kunci === bagian;
 
-                <section className="kartu overflow-hidden">
-                    <div className="strip-kepala">
-                        <h2 className="text-xl font-extrabold">
-                            Standarisasi perhitungan antropometri
-                        </h2>
-                        <p className="mt-0.5 max-w-[88ch] text-sm text-pretty text-muted-foreground">
-                            Metode LMS menghitung z-score; ambang Permenkes
-                            membaca hasilnya untuk layanan Posyandu. Keduanya
-                            disimpan sebagai satu pengaturan yang dapat diaudit.
-                        </p>
-                    </div>
-
-                    <div className="divide-y divide-border">
-                        {STANDAR_ANTROPOMETRI.map((standar) => {
-                            const dipilih = rumus.standar === standar.nilai;
-
-                            return (
-                                <label
-                                    key={standar.nilai}
-                                    className={`flex cursor-pointer gap-3 px-5 py-5 sm:px-6 ${
-                                        dipilih
-                                            ? 'bg-tone-green-bg'
-                                            : 'hover:bg-surface-subtle'
-                                    }`}
-                                >
-                                    <input
-                                        type="radio"
-                                        name="standar-antropometri"
-                                        value={standar.nilai}
-                                        checked={dipilih}
-                                        onChange={() =>
-                                            setRumus({
-                                                ...rumus,
-                                                standar: standar.nilai,
-                                            })
-                                        }
-                                        className="mt-1 size-4 accent-primary"
-                                    />
-                                    <span className="min-w-0 flex-1">
-                                        <span className="flex flex-wrap items-center gap-2">
-                                            <span className="font-bold">
-                                                {standar.judul}
-                                            </span>
-                                            {dipilih && (
-                                                <CheckCircle2
-                                                    className="size-5 text-tone-green"
-                                                    strokeWidth={2.5}
-                                                    aria-label="Standar terpilih"
-                                                />
-                                            )}
-                                        </span>
-                                        <span className="mt-1 block text-sm font-semibold text-muted-foreground">
-                                            {standar.cakupan}
-                                        </span>
-                                        <span className="mt-1 block max-w-[84ch] text-sm text-muted-foreground">
-                                            {standar.keterangan}
-                                        </span>
-                                    </span>
-                                </label>
-                            );
-                        })}
-                    </div>
-
-                    <div className="border-t border-border px-5 py-5 sm:px-6">
-                        <label className="flex cursor-pointer items-start gap-3">
-                            <input
-                                type="checkbox"
-                                checked={rumus.koreksiPosisiOtomatis}
-                                onChange={(event) =>
-                                    setRumus({
-                                        ...rumus,
-                                        koreksiPosisiOtomatis:
-                                            event.target.checked,
-                                    })
-                                }
-                                className="mt-0.5 size-4 accent-primary"
-                            />
-                            <span>
-                                <span className="font-bold">
-                                    Koreksi posisi ukur otomatis ±0,7 cm
-                                </span>
-                                <span className="mt-1 block max-w-[82ch] text-sm text-muted-foreground">
-                                    Protokol WHO: anak &lt;24 bulan yang diukur
-                                    berdiri dikurangi 0,7 cm; anak ≥24 bulan
-                                    yang diukur telentang ditambah 0,7 cm.
-                                </span>
-                            </span>
-                        </label>
-                    </div>
-                </section>
-
-                <section className="kartu overflow-hidden">
-                    <div className="strip-kepala">
-                        <h2 className="text-xl font-extrabold">
-                            Ambang pemantauan dan rujukan
-                        </h2>
-                        <p className="mt-0.5 max-w-[88ch] text-sm text-pretty text-muted-foreground">
-                            Ambang ini menyalakan edukasi KMS dan arahan tindak
-                            lanjut; kategori status gizi resmi tetap mengikuti
-                            Permenkes.
-                        </p>
-                    </div>
-                    <div className="grid gap-5 p-5 sm:grid-cols-2 sm:p-6">
-                        <Isian
-                            id="ambang-waspada"
-                            label="Zona waspada"
-                            satuan="SD"
-                            nilai={nilai.ambangWaspada}
-                            desimal={2}
-                            onGanti={(v) => ubah('ambangWaspada', v)}
-                        />
-                        <Isian
-                            id="ambang-rujukan"
-                            label="Anjuran hubungi faskes"
-                            satuan="SD"
-                            nilai={nilai.ambangRujukan}
-                            desimal={2}
-                            onGanti={(v) => ubah('ambangRujukan', v)}
-                        />
-                    </div>
-                    <p className="border-t border-border px-5 py-4 text-sm text-muted-foreground sm:px-6">
-                        Nilai awal mengikuti diskusi kader: zona waspada −1,00
-                        SD dan arahan faskes pada z-score ≤ −1,96 SD. Keduanya
-                        harus disahkan Puskesmas sebelum dipakai pada data
-                        produksi.
-                    </p>
-                </section>
-
-                <section className="kartu overflow-hidden">
-                    <div className="strip-kepala">
-                        <h2 className="text-xl font-extrabold">
-                            Rentang wajar pengukuran
-                        </h2>
-                        <p className="mt-0.5 text-sm text-pretty text-muted-foreground">
-                            Angka di luar rentang ini memunculkan peringatan
-                            sebelum disimpan.
-                        </p>
-                    </div>
-
-                    {/* Dua kolom, bukan empat. Tiap blok di sini memuat DUA kotak
-                        isian; pada grid empat kolom keduanya menyusut ke 65 px -
-                        lebih sempit daripada kotak `2,0` di bagian berikutnya yang
-                        mendapat 224 px. Kotak terlebar justru memuat nilai terpendek.
-                        Lebar sekarang mengikuti isinya. */}
-                    <div className="grid gap-5 p-5 sm:grid-cols-2 sm:p-6">
-                        <Rentang
-                            label="Berat badan"
-                            satuan="kg"
-                            min={nilai.beratMin}
-                            max={nilai.beratMax}
-                            onMin={(v) => ubah('beratMin', v)}
-                            onMax={(v) => ubah('beratMax', v)}
-                        />
-                        <Rentang
-                            label="Panjang atau tinggi"
-                            satuan="cm"
-                            min={nilai.tinggiMin}
-                            max={nilai.tinggiMax}
-                            onMin={(v) => ubah('tinggiMin', v)}
-                            onMax={(v) => ubah('tinggiMax', v)}
-                        />
-                        <Rentang
-                            label="LILA"
-                            satuan="cm"
-                            min={nilai.lilaMin}
-                            max={nilai.lilaMax}
-                            onMin={(v) => ubah('lilaMin', v)}
-                            onMax={(v) => ubah('lilaMax', v)}
-                        />
-                        <Rentang
-                            label="LIKA"
-                            satuan="cm"
-                            min={nilai.likaMin}
-                            max={nilai.likaMax}
-                            onMin={(v) => ubah('likaMin', v)}
-                            onMax={(v) => ubah('likaMax', v)}
-                        />
-                    </div>
-                </section>
-
-                <section className="kartu overflow-hidden">
-                    <div className="strip-kepala flex items-start gap-3">
-                        <KeyRound
-                            className="mt-0.5 size-5 shrink-0 text-primary"
-                            strokeWidth={2.5}
-                            aria-hidden="true"
-                        />
-                        <div>
-                            <h2 className="text-xl font-extrabold">
-                                Akses menu per peran
-                            </h2>
-                            <p className="mt-0.5 max-w-[80ch] text-sm text-pretty text-muted-foreground">
-                                Tetapkan menu yang terlihat oleh setiap peran.
-                                Pembatasan wilayah dan izin ubah tetap diperiksa
-                                kembali oleh server.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="divide-y divide-border">
-                        {MENU_AKSES.map((akses) => (
-                            <section
-                                key={akses.peran}
-                                className="px-5 py-5 sm:px-6"
+                        return (
+                            <button
+                                key={b.kunci}
+                                type="button"
+                                aria-current={aktif ? 'true' : undefined}
+                                onClick={() => setBagian(b.kunci)}
+                                className={`flex min-h-15 items-center gap-3.5 rounded-lg px-4 text-left text-base ${
+                                    aktif
+                                        ? 'bg-primary font-bold text-primary-foreground'
+                                        : 'font-semibold text-[#33403a] hover:bg-surface'
+                                }`}
                             >
-                                <h3 className="font-bold">{akses.peran}</h3>
-                                <p className="mt-0.5 text-sm text-muted-foreground">
-                                    {akses.keterangan}
-                                </p>
-                                <div className="mt-4 flex flex-wrap gap-x-5 gap-y-3">
-                                    {akses.menu.map((menu) => {
-                                        const kunci = `${akses.peran}-${menu}`;
-
-                                        return (
-                                            <label
-                                                key={kunci}
-                                                className="flex min-h-11 items-center gap-2.5 text-sm font-semibold"
-                                            >
-                                                <input
-                                                    type="checkbox"
-                                                    checked={aksesMenu[kunci]}
-                                                    onChange={(event) =>
-                                                        setAksesMenu(
-                                                            (nilaiSaatIni) => ({
-                                                                ...nilaiSaatIni,
-                                                                [kunci]:
-                                                                    event.target
-                                                                        .checked,
-                                                            }),
-                                                        )
-                                                    }
-                                                    className="size-4 accent-primary"
-                                                />
-                                                {menu}
-                                            </label>
-                                        );
-                                    })}
-                                </div>
-                            </section>
-                        ))}
-                    </div>
-                </section>
-
-                <section className="kartu overflow-hidden">
-                    <div className="strip-kepala">
-                        <h2 className="text-xl font-extrabold">
-                            Ambang selisih antar bulan
-                        </h2>
-                        <p className="mt-0.5 text-sm text-pretty text-muted-foreground">
-                            Selisih yang melebihi batas memunculkan pertanyaan,
-                            Yakin dengan angka ini?
-                        </p>
-                    </div>
-
-                    <div className="grid gap-5 p-5 sm:grid-cols-2 sm:p-6 xl:grid-cols-4">
-                        <Isian
-                            id="naik-max"
-                            label="Berat naik maksimal"
-                            satuan="kg"
-                            nilai={nilai.naikMax}
-                            onGanti={(v) => ubah('naikMax', v)}
-                        />
-                        <Isian
-                            id="turun-max"
-                            label="Berat turun maksimal"
-                            satuan="kg"
-                            nilai={nilai.turunMax}
-                            onGanti={(v) => ubah('turunMax', v)}
-                        />
-                        <Isian
-                            id="tinggi-berkurang"
-                            label="Tinggi berkurang"
-                            satuan="cm"
-                            nilai={nilai.tinggiBerkurangMax}
-                            onGanti={(v) => ubah('tinggiBerkurangMax', v)}
-                        />
-                        <Isian
-                            id="umur-max"
-                            label="Umur maksimal balita"
-                            satuan="bulan"
-                            desimal={0}
-                            nilai={nilai.umurMaxBulan}
-                            onGanti={(v) => ubah('umurMaxBulan', v)}
-                        />
-                    </div>
-                </section>
-
-                <section className="kartu overflow-hidden">
-                    <div className="strip-kepala flex items-start gap-3">
+                                <Ikon
+                                    className="size-6 shrink-0"
+                                    strokeWidth={2.25}
+                                />
+                                {b.label}
+                            </button>
+                        );
+                    })}
+                    <p className="mt-auto hidden gap-2 border-t border-border px-1.5 pt-3.5 text-sm text-muted-foreground lg:flex">
                         <Lock
-                            className="mt-1 size-5 shrink-0 text-muted-foreground"
-                            strokeWidth={2.5}
+                            className="size-5 shrink-0"
+                            strokeWidth={2.25}
                             aria-hidden="true"
                         />
-                        <div>
-                            <h2 className="text-xl font-extrabold">
-                                Kategori z-score Permenkes, terkunci
-                            </h2>
-                            <p className="mt-0.5 text-sm text-pretty text-muted-foreground">
-                                Batas kategori klinis ditetapkan Permenkes No. 2
-                                Tahun 2020 dan tidak bisa diubah dari aplikasi.
-                            </p>
-                        </div>
-                    </div>
+                        Menu ini hanya tampil untuk bidan dan admin.
+                    </p>
+                </nav>
 
-                    <div className="p-5 sm:p-6">
-                        <ul className="flex flex-wrap gap-2.5">
-                            {AMBANG_Z.map((a) => (
-                                <li
-                                    key={a.teks}
-                                    className={`rounded-md px-3 py-1.5 text-sm font-bold ${a.kelas}`}
-                                >
-                                    {a.teks}
-                                </li>
-                            ))}
-                        </ul>
-
-                        <dl className="mt-5 grid max-w-xl gap-x-10 gap-y-2 border-t border-border pt-5 sm:grid-cols-2">
-                            <BarisDefinisi label="Tabel standar">
-                                {standarVersi}
-                            </BarisDefinisi>
-                            <BarisDefinisi label="Jumlah baris">
-                                {barisStandar}
-                            </BarisDefinisi>
-                        </dl>
-                    </div>
-                </section>
-
-                <section className="kartu overflow-hidden">
-                    <div className="strip-kepala">
-                        <h2 className="text-xl font-extrabold">
-                            Siapa boleh mengubah batas
+                <section
+                    aria-labelledby="judul-bagian"
+                    className="flex min-w-0 flex-col lg:min-h-0"
+                >
+                    <div className="shrink-0 border-b border-border px-7 pt-4.5 pb-3.5">
+                        <h2
+                            id="judul-bagian"
+                            className="text-xl leading-tight font-extrabold"
+                        >
+                            {info.label}
                         </h2>
-                    </div>
-
-                    <div className="p-5 sm:p-6">
-                        <ul className="flex flex-col divide-y divide-border">
-                            {IZIN_PERAN.map((i) => (
-                                <li
-                                    key={i.peran}
-                                    className="flex items-center gap-3 py-2.5 text-base first:pt-0 last:pb-0"
-                                >
-                                    {/* Ikon berpasangan dengan teks izinnya,
-                                        tidak pernah sendirian. */}
-                                    {i.boleh ? (
-                                        <Check
-                                            className="size-5 shrink-0 text-tone-green"
-                                            strokeWidth={2.5}
-                                            aria-hidden="true"
-                                        />
-                                    ) : (
-                                        <Lock
-                                            className="size-5 shrink-0 text-muted-foreground"
-                                            strokeWidth={2.5}
-                                            aria-hidden="true"
-                                        />
-                                    )}
-                                    <span className="w-24 font-semibold">
-                                        {i.peran}
-                                    </span>
-                                    <span className="text-muted-foreground">
-                                        {i.izin}
-                                    </span>
-                                </li>
-                            ))}
-                        </ul>
-
-                        <p className="mt-4 text-sm text-muted-foreground">
-                            Setiap perubahan dicatat dengan nama dan waktu.
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            {info.keterangan}
                         </p>
                     </div>
+
+                    {/* Panel dua kolom di bagian ini mulai 1280 px (80rem), bukan
+                        dari xl yang sudah diturunkan ke 1200 px: di bawah 1280 px
+                        kotak angka tabel Rentang wajar terpotong. */}
+                    {bagian === 'batas' && (
+                        <IsiGulir>
+                            <div className="grid gap-y-5 px-7 pt-3.5 pb-4.5 min-[80rem]:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+                                <div className="min-w-0 min-[80rem]:border-r min-[80rem]:border-border min-[80rem]:pr-7">
+                                    <h3 className="mb-2 text-base font-extrabold">
+                                        Rentang wajar
+                                    </h3>
+                                    <table className="w-full table-fixed">
+                                        <colgroup>
+                                            <col className="w-[34%]" />
+                                            <col />
+                                            <col />
+                                        </colgroup>
+                                        <thead>
+                                            <tr className="border-b-2 border-border-strong text-left text-sm text-muted-foreground">
+                                                <th
+                                                    scope="col"
+                                                    className="pr-2 pb-1.5 font-semibold"
+                                                >
+                                                    Ukuran
+                                                </th>
+                                                <th
+                                                    scope="col"
+                                                    className="px-1.5 pb-1.5 font-semibold"
+                                                >
+                                                    Minimal
+                                                </th>
+                                                <th
+                                                    scope="col"
+                                                    className="pb-1.5 pl-1.5 font-semibold"
+                                                >
+                                                    Maksimal
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {RENTANG.map((r) => {
+                                                const salah =
+                                                    salahRentang.includes(r);
+
+                                                return [
+                                                    <tr
+                                                        key={r.label}
+                                                        className={
+                                                            salah
+                                                                ? ''
+                                                                : 'border-b border-rule'
+                                                        }
+                                                    >
+                                                        <th
+                                                            scope="row"
+                                                            className="py-0.5 pr-2 text-left font-bold"
+                                                        >
+                                                            {r.label}
+                                                        </th>
+                                                        <td className="px-1.5 py-0.5">
+                                                            <IsianAngka
+                                                                kunci={r.min}
+                                                                teks={teks}
+                                                                ambang={ambang}
+                                                                salah={salah}
+                                                                onGanti={
+                                                                    ubahTeks
+                                                                }
+                                                            />
+                                                        </td>
+                                                        <td className="py-0.5 pl-1.5">
+                                                            <IsianAngka
+                                                                kunci={r.max}
+                                                                teks={teks}
+                                                                ambang={ambang}
+                                                                salah={salah}
+                                                                onGanti={
+                                                                    ubahTeks
+                                                                }
+                                                            />
+                                                        </td>
+                                                    </tr>,
+                                                    salah && (
+                                                        <tr
+                                                            key={`${r.label}-salah`}
+                                                            className="border-b border-rule"
+                                                        >
+                                                            <td
+                                                                colSpan={3}
+                                                                className="pb-2 text-right text-sm font-semibold text-tone-red"
+                                                            >
+                                                                Batas maksimal
+                                                                harus lebih
+                                                                besar dari
+                                                                minimal.
+                                                            </td>
+                                                        </tr>
+                                                    ),
+                                                ];
+                                            })}
+                                            <tr>
+                                                <th
+                                                    scope="row"
+                                                    className="py-0.5 pr-2 text-left font-bold"
+                                                >
+                                                    Umur balita
+                                                </th>
+                                                <td className="px-1.5 py-0.5">
+                                                    {/* Umur minimal tetap nol:
+                                                        bayi baru lahir adalah
+                                                        balita. */}
+                                                    <div
+                                                        aria-label="Umur minimal 0 bulan, tetap"
+                                                        className="flex h-14 text-muted-foreground"
+                                                    >
+                                                        <span className="flex flex-1 items-center justify-end px-2.5 font-bold">
+                                                            0
+                                                        </span>
+                                                        <span className="flex w-14 shrink-0 items-center justify-center text-sm">
+                                                            bulan
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="py-0.5 pl-1.5">
+                                                    <IsianAngka
+                                                        kunci="umurMaxBulan"
+                                                        teks={teks}
+                                                        ambang={ambang}
+                                                        onGanti={ubahTeks}
+                                                    />
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div className="min-w-0 min-[80rem]:pl-7">
+                                    <h3 className="text-base font-extrabold">
+                                        Selisih antar bulan
+                                    </h3>
+                                    <p className="mt-0.5 text-sm text-muted-foreground">
+                                        Dibanding hasil ukur bulan lalu.
+                                    </p>
+                                    <div className="mt-3 flex flex-col gap-3.5">
+                                        {(
+                                            [
+                                                'naikMax',
+                                                'turunMax',
+                                                'tinggiBerkurangMax',
+                                            ] as const
+                                        ).map((k) => (
+                                            <IsianAngka
+                                                key={k}
+                                                kunci={k}
+                                                teks={teks}
+                                                ambang={ambang}
+                                                onGanti={ubahTeks}
+                                                berlabel
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </IsiGulir>
+                    )}
+
+                    {bagian === 'ambang' && (
+                        <IsiGulir>
+                            <div className="grid gap-y-5 px-7 pt-3.5 pb-4.5 min-[80rem]:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+                                <div className="min-w-0 min-[80rem]:border-r min-[80rem]:border-border min-[80rem]:pr-7">
+                                    <h3 className="text-base font-extrabold">
+                                        Batas z-score
+                                    </h3>
+                                    <div className="mt-3 flex flex-col gap-4.5">
+                                        <div className="max-w-[560px]">
+                                            <IsianAngka
+                                                kunci="ambangWaspada"
+                                                teks={teks}
+                                                ambang={ambang}
+                                                onGanti={ubahTeks}
+                                                berlabel
+                                                sempit
+                                            />
+                                            <p className="mt-1.5 text-sm text-muted-foreground">
+                                                Jika salah satu z-score sama
+                                                dengan atau di bawah angka ini,
+                                                arahan untuk keluarga berbunyi:
+                                                pertumbuhan perlu dipantau lebih
+                                                dekat.
+                                            </p>
+                                        </div>
+                                        <div className="max-w-[560px]">
+                                            <IsianAngka
+                                                kunci="ambangRujukan"
+                                                teks={teks}
+                                                ambang={ambang}
+                                                onGanti={ubahTeks}
+                                                berlabel
+                                                sempit
+                                            />
+                                            <p className="mt-1.5 text-sm text-muted-foreground">
+                                                Jika salah satu z-score sama
+                                                dengan atau di bawah angka ini,
+                                                keluarga dianjurkan menghubungi
+                                                fasilitas kesehatan atau dokter
+                                                terdekat.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex min-w-0 flex-col gap-3.5 min-[80rem]:pl-7">
+                                    <div
+                                        role="note"
+                                        className="flex gap-2.5 rounded-lg bg-tone-amber-bg px-4 py-3.5"
+                                    >
+                                        <TriangleAlert
+                                            className="mt-0.5 size-5 shrink-0 text-tone-amber"
+                                            strokeWidth={2.5}
+                                            aria-hidden="true"
+                                        />
+                                        <div>
+                                            <p className="text-base font-bold text-tone-amber">
+                                                Belum disahkan Puskesmas
+                                            </p>
+                                            <p className="mt-0.5 text-sm">
+                                                Nilai awal mengikuti diskusi
+                                                kader. Keduanya harus disahkan
+                                                Puskesmas sebelum dipakai untuk
+                                                data sungguhan.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {nilai.ambangRujukan !== null && (
+                                        <div className="rounded-lg bg-surface px-4 py-3.5">
+                                            <p className="text-base font-bold">
+                                                Contoh
+                                            </p>
+                                            <p className="mt-0.5 text-sm text-muted-foreground">
+                                                Balita dengan TB/U{' '}
+                                                {zScore(
+                                                    nilai.ambangRujukan - 0.24,
+                                                ).replace('+', '')}{' '}
+                                                SD mendapat anjuran menghubungi
+                                                faskes, karena{' '}
+                                                {zScore(
+                                                    nilai.ambangRujukan - 0.24,
+                                                ).replace('+', '')}{' '}
+                                                lebih rendah dari{' '}
+                                                {zScore(
+                                                    nilai.ambangRujukan,
+                                                ).replace('+', '')}
+                                                .
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </IsiGulir>
+                    )}
+
+                    {bagian === 'pengguna' && (
+                        <BagianPengguna
+                            peran={peran}
+                            daftar={pengguna}
+                            onSimpan={onSimpanPengguna}
+                        />
+                    )}
+
+                    {bagian === 'standar' && (
+                        <IsiGulir>
+                            <div className="grid gap-y-5 px-7 pt-3.5 pb-4.5 min-[80rem]:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+                                <div className="flex min-w-0 flex-col gap-3.5 min-[80rem]:border-r min-[80rem]:border-border min-[80rem]:pr-7">
+                                    <fieldset className="flex flex-col gap-3">
+                                        <legend className="mb-2 text-base font-extrabold">
+                                            Standar yang dipakai
+                                        </legend>
+                                        {STANDAR.map((s) => {
+                                            const dipilih =
+                                                rumus.standar === s.nilai;
+
+                                            return (
+                                                <label
+                                                    key={s.nilai}
+                                                    className={`flex cursor-pointer gap-3.5 rounded-lg border-2 px-4.5 py-3.5 ${
+                                                        dipilih
+                                                            ? 'border-primary bg-accent'
+                                                            : 'border-border bg-card hover:bg-surface'
+                                                    }`}
+                                                >
+                                                    <input
+                                                        type="radio"
+                                                        name="standar-antropometri"
+                                                        checked={dipilih}
+                                                        onChange={() =>
+                                                            setRumus({
+                                                                ...rumus,
+                                                                standar:
+                                                                    s.nilai,
+                                                            })
+                                                        }
+                                                        className="mt-0.5 size-5 shrink-0 accent-primary"
+                                                    />
+                                                    <span className="min-w-0">
+                                                        <span className="block text-base font-bold">
+                                                            {s.judul}
+                                                        </span>
+                                                        <span
+                                                            className={`block text-sm font-semibold ${dipilih ? 'text-primary' : ''}`}
+                                                        >
+                                                            {s.cakupan}
+                                                        </span>
+                                                        <span className="mt-0.5 block text-sm text-muted-foreground">
+                                                            {s.keterangan}
+                                                        </span>
+                                                    </span>
+                                                </label>
+                                            );
+                                        })}
+                                    </fieldset>
+                                    <label className="flex cursor-pointer gap-3.5 rounded-lg border-2 border-border bg-surface px-4.5 py-3.5">
+                                        <input
+                                            type="checkbox"
+                                            checked={
+                                                rumus.koreksiPosisiOtomatis
+                                            }
+                                            onChange={(e) =>
+                                                setRumus({
+                                                    ...rumus,
+                                                    koreksiPosisiOtomatis:
+                                                        e.target.checked,
+                                                })
+                                            }
+                                            className="mt-0.5 size-5 shrink-0 accent-primary"
+                                        />
+                                        <span>
+                                            <span className="block text-base font-bold">
+                                                Koreksi posisi ukur otomatis
+                                                ±0,7 cm
+                                            </span>
+                                            <span className="mt-0.5 block text-sm text-muted-foreground">
+                                                Aturan WHO: balita di bawah 24
+                                                bulan yang diukur berdiri
+                                                ditambah 0,7 cm; balita 24 bulan
+                                                ke atas yang diukur telentang
+                                                dikurangi 0,7 cm.
+                                            </span>
+                                        </span>
+                                    </label>
+                                </div>
+
+                                <div className="min-w-0 min-[80rem]:pl-7">
+                                    <h3 className="flex items-center gap-2 text-base font-extrabold">
+                                        <Lock
+                                            className="size-5"
+                                            strokeWidth={2.5}
+                                            aria-hidden="true"
+                                        />
+                                        Kategori z-score, terkunci
+                                    </h3>
+                                    <p className="mt-1.5 text-sm text-muted-foreground">
+                                        Ditetapkan Permenkes No. 2 Tahun 2020,
+                                        tidak bisa diubah dari aplikasi.
+                                    </p>
+                                    <ul className="mt-2.5 flex flex-col gap-1.5">
+                                        {AMBANG_Z.map((a) => (
+                                            <li
+                                                key={a.teks}
+                                                className={`rounded-lg px-3.5 py-2 text-base font-bold ${a.kelas}`}
+                                            >
+                                                {a.teks}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-7 gap-y-1.5 border-t border-border pt-4 text-sm">
+                                        <dt className="text-muted-foreground">
+                                            Tabel standar
+                                        </dt>
+                                        <dd className="text-base font-bold">
+                                            {standarVersi}
+                                        </dd>
+                                        <dt className="text-muted-foreground">
+                                            Jumlah baris
+                                        </dt>
+                                        <dd className="text-base font-bold">
+                                            {barisStandar}
+                                        </dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </IsiGulir>
+                    )}
+
+                    {bagian === 'riwayat' && (
+                        <>
+                            <Table
+                                aria-label="Riwayat perubahan pengaturan"
+                                containerClassName="lg:min-h-0 lg:flex-1"
+                            >
+                                <TableHeader className="sticky top-0 z-10">
+                                    <TableRow>
+                                        <TableHead
+                                            scope="col"
+                                            className="first:pl-7"
+                                        >
+                                            Waktu
+                                        </TableHead>
+                                        <TableHead scope="col">Oleh</TableHead>
+                                        <TableHead scope="col">
+                                            Bagian
+                                        </TableHead>
+                                        <TableHead
+                                            scope="col"
+                                            className="last:pr-7"
+                                        >
+                                            Perubahan
+                                        </TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {riwayat.map((r) => (
+                                        <TableRow
+                                            key={`${r.waktu}-${r.perubahan}`}
+                                        >
+                                            <TableCell className="font-bold whitespace-nowrap first:pl-7">
+                                                {r.waktu}
+                                            </TableCell>
+                                            <TableCell>{r.oleh}</TableCell>
+                                            <TableCell>{r.bagian}</TableCell>
+                                            <TableCell className="last:pr-7">
+                                                {r.perubahan}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                            <p className="shrink-0 border-t border-border px-7 py-3 text-sm text-muted-foreground">
+                                Menampilkan {riwayat.length} perubahan · terbaru
+                                di atas
+                            </p>
+                        </>
+                    )}
+
+                    {bagian !== 'riwayat' && (
+                        <BilahSimpan
+                            perubahan={perubahan}
+                            bisaSimpan={bisaSimpan}
+                            tanpaTempat={onSimpan === undefined}
+                            onSimpan={simpan}
+                            onBatal={batalkan}
+                        />
+                    )}
                 </section>
-
-                {peran === 'admin' && (
-                    <KelolaPengguna
-                        pengguna={pengguna}
-                        wilayahRt={wilayahRt}
-                        onSimpan={onSimpanPengguna}
-                    />
-                )}
             </div>
 
-            {/* Bilah simpan menempel di kaki layar dan menyebutkan berapa
-                yang belum tersimpan. */}
-            <div className="sticky bottom-0 -mx-4 mt-7 flex flex-wrap items-center gap-3 border-t border-border bg-background px-4 py-4 sm:-mx-7 sm:px-7">
-                <button
-                    type="button"
-                    disabled={onSimpan === undefined || !belumTersimpan}
-                    onClick={() => {
-                        onSimpan?.(nilai);
-                        onSimpanStandarisasi?.(rumus);
-                    }}
-                    className="tombol-utama disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+            {tujuan !== null && (
+                <Dialog
+                    judul={`${perubahan.length} perubahan belum disimpan.`}
+                    keterangan="Perubahan ini hilang bila Anda pindah tanpa menyimpan."
+                    lebar="w-[560px]"
+                    onTutup={() => setTujuan(null)}
                 >
-                    Simpan pengaturan
-                </button>
-                <button
-                    type="button"
-                    disabled={!belumTersimpan}
-                    onClick={() => {
-                        setNilai(ambang);
-                        setRumus(standarisasi);
-                    }}
-                    className="tombol-kedua disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                    Kembalikan ke bawaan
-                </button>
-                <p
-                    aria-live="polite"
-                    className="text-base text-pretty text-muted-foreground"
-                >
-                    {onSimpan === undefined
-                        ? 'Belum ada tempat menyimpannya: tabel pengaturan_ambang belum ada di basis data.'
-                        : belumTersimpan
-                          ? 'Ada perubahan yang belum disimpan.'
-                          : 'Semua perubahan tersimpan.'}
-                </p>
-            </div>
+                    <ul className="flex list-disc flex-col gap-1 overflow-y-auto px-7 py-4.5 pl-12 text-base">
+                        {perubahan.map((p) => (
+                            <li key={p}>{p}</li>
+                        ))}
+                    </ul>
+                    <KakiDialog>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const ke = tujuan;
+
+                                batalkan();
+                                setTujuan(null);
+                                navigate(ke);
+                            }}
+                            className="tombol-kedua"
+                        >
+                            Pindah tanpa menyimpan
+                        </button>
+                        <button
+                            type="button"
+                            disabled={!bisaSimpan}
+                            onClick={() => {
+                                const ke = tujuan;
+
+                                simpan();
+                                setTujuan(null);
+                                navigate(ke);
+                            }}
+                            className="tombol-utama disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+                        >
+                            <Save
+                                className="size-5"
+                                strokeWidth={2.5}
+                                aria-hidden="true"
+                            />
+                            Simpan pengaturan
+                        </button>
+                    </KakiDialog>
+                </Dialog>
+            )}
         </Halaman>
     );
 }
 
-const NAMA_PERAN: Record<Peran, string> = {
-    kader: 'Kader',
-    bidan: 'Bidan',
-    admin: 'Admin',
-};
-
-const URUTAN_PERAN: Peran[] = ['kader', 'bidan', 'admin'];
-
-/** Label RT dua digit, sama seperti Data Balita dan Laporan. */
-function labelRt(rt: string): string {
-    return `RT ${rt.padStart(2, '0')}`;
+/** Badan bagian yang menggulir di dalam panel, di antara kepala dan bilah Simpan. */
+function IsiGulir({ children }: { children: ReactNode }) {
+    return (
+        <div
+            tabIndex={0}
+            aria-label="Isi pengaturan"
+            className="gulir-dalam lg:min-h-0 lg:flex-1 lg:overflow-y-auto"
+        >
+            {children}
+        </div>
+    );
 }
 
 /**
- * Admin aktif terakhir tidak boleh diturunkan perannya maupun dinonaktifkan.
- *
- * Tanpa penjaga ini satu klik bisa mengunci semua orang keluar dari layar yang
- * memuat penjaganya sendiri — dan tidak ada seorang pun yang tersisa untuk
- * mengembalikannya selain lewat basis data.
+ * Satu kotak angka bersatuan. Angka yang sudah diubah berbingkai biru dengan
+ * nilai lamanya di bawah; yang tidak terbaca sebagai angka berbingkai merah.
  */
-function adminAktifTerakhir(daftar: Pengguna[], id: number): boolean {
-    const admin = daftar.filter((p) => p.peran === 'admin' && p.aktif);
-
-    return admin.length === 1 && admin[0].id === id;
-}
-
-/**
- * Kelola pengguna — hanya dirender untuk Admin.
- *
- * Akun dinonaktifkan, tidak dihapus: setiap perubahan batas tercatat dengan
- * nama pelakunya, dan baris audit yang menunjuk akun yang sudah lenyap tidak
- * bisa dibaca siapa pun. Perubahan hanya di memori, sama seperti sisa demo.
- */
-function KelolaPengguna({
-    pengguna,
-    wilayahRt,
-    onSimpan,
+function IsianAngka({
+    kunci,
+    teks,
+    ambang,
+    onGanti,
+    salah = false,
+    berlabel = false,
+    sempit = false,
 }: {
-    pengguna: Pengguna[];
-    wilayahRt: string[];
-    onSimpan: (daftar: Pengguna[]) => void;
+    kunci: keyof Ambang;
+    teks: Record<keyof Ambang, string>;
+    ambang: Ambang;
+    onGanti: (k: keyof Ambang, v: string) => void;
+    /** Bagian dari pasangan rentang yang maksimalnya tidak lebih besar. */
+    salah?: boolean;
+    /** Label tampil di atas kotak; tanpa ini label hanya dibacakan. */
+    berlabel?: boolean;
+    sempit?: boolean;
 }) {
-    const [menambah, setMenambah] = useState(false);
-    const aktif = pengguna.filter((p) => p.aktif).length;
-
-    const ubah = (id: number, patch: Partial<Pengguna>) =>
-        onSimpan(pengguna.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+    const { label, satuan, desimal } = ANGKA[kunci];
+    const n = keAngka(teks[kunci]);
+    const rusak = n === null;
+    const berubah =
+        !rusak && angka(n, desimal) !== angka(ambang[kunci], desimal);
+    const id = `atur-${kunci}`;
 
     return (
-        <section className="kartu flex flex-col overflow-hidden">
-            <div className="strip-kepala flex shrink-0 flex-wrap items-center gap-x-4 gap-y-3">
-                <UserRound
-                    className="size-5 shrink-0 text-muted-foreground"
-                    strokeWidth={2.5}
-                    aria-hidden="true"
+        <div className={sempit ? 'w-52' : ''}>
+            {berlabel && (
+                <label
+                    htmlFor={id}
+                    className="mb-1.5 block text-sm font-semibold text-muted-foreground"
+                >
+                    {label}
+                </label>
+            )}
+            <div
+                className={`isian flex overflow-hidden p-0 ${
+                    rusak || salah
+                        ? 'border-tone-red'
+                        : berubah
+                          ? 'border-tone-blue bg-card'
+                          : ''
+                }`}
+            >
+                <input
+                    id={id}
+                    aria-label={berlabel ? undefined : label}
+                    aria-invalid={rusak || salah}
+                    inputMode="decimal"
+                    value={teks[kunci]}
+                    onChange={(e) => onGanti(kunci, e.target.value)}
+                    className="min-w-0 flex-1 bg-transparent px-2.5 text-right font-bold outline-none"
                 />
-                <h2 className="text-xl font-extrabold">Kelola pengguna</h2>
-                <span className="text-sm text-muted-foreground">
-                    {aktif} aktif dari {pengguna.length} akun
+                <span className="flex w-14 shrink-0 items-center justify-center border-l-2 border-border bg-surface-alt text-sm text-muted-foreground">
+                    {satuan}
                 </span>
+            </div>
+            {rusak ? (
+                <p className="mt-1 text-sm font-semibold text-tone-red">
+                    Isi dengan angka.
+                </p>
+            ) : (
+                berubah && (
+                    <p className="mt-1 text-sm font-semibold text-tone-blue">
+                        Diubah dari {angka(ambang[kunci], desimal)} {satuan}
+                    </p>
+                )
+            )}
+        </div>
+    );
+}
+
+/** Kaki panel: berapa yang belum disimpan, lalu Batalkan dan Simpan. */
+function BilahSimpan({
+    perubahan,
+    bisaSimpan,
+    tanpaTempat,
+    onSimpan,
+    onBatal,
+}: {
+    perubahan: string[];
+    bisaSimpan: boolean;
+    tanpaTempat: boolean;
+    onSimpan: () => void;
+    onBatal: () => void;
+}) {
+    const ada = perubahan.length > 0;
+
+    return (
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4.5 gap-y-3 border-t border-border px-7 py-3.5">
+            <div
+                role="status"
+                className="flex min-w-0 flex-1 basis-64 items-center gap-3.5"
+            >
+                {ada ? (
+                    <>
+                        <span
+                            aria-hidden="true"
+                            className="flex size-10 shrink-0 items-center justify-center rounded-md bg-tone-blue-bg text-tone-blue"
+                        >
+                            <Pencil className="size-5" strokeWidth={2.25} />
+                        </span>
+                        <span className="flex min-w-0 flex-col leading-snug">
+                            <span className="text-base font-extrabold text-tone-blue">
+                                {perubahan.length} perubahan belum disimpan
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                                {perubahan.length === 1
+                                    ? perubahan[0]
+                                    : `${perubahan[0].slice(0, -1)}, dan ${perubahan.length - 1} perubahan lainnya.`}{' '}
+                                Berlaku mulai penimbangan berikutnya.
+                            </span>
+                        </span>
+                    </>
+                ) : (
+                    <span className="text-sm text-muted-foreground">
+                        {tanpaTempat
+                            ? 'Belum ada tempat menyimpannya: tabel pengaturan belum ada di basis data.'
+                            : 'Belum ada perubahan.'}
+                    </span>
+                )}
+            </div>
+            <div className="flex shrink-0 gap-2.5">
+                {ada && (
+                    <button
+                        type="button"
+                        onClick={onBatal}
+                        className="tombol-kedua"
+                    >
+                        Batalkan perubahan
+                    </button>
+                )}
                 <button
                     type="button"
-                    onClick={() => setMenambah(!menambah)}
-                    aria-expanded={menambah}
-                    className="tombol-utama ml-auto"
+                    disabled={!bisaSimpan}
+                    onClick={onSimpan}
+                    className="tombol-utama disabled:cursor-not-allowed disabled:bg-border disabled:text-muted-foreground disabled:shadow-none"
                 >
-                    <Plus className="size-5" strokeWidth={2.5} />
+                    <Save
+                        className="size-5"
+                        strokeWidth={2.5}
+                        aria-hidden="true"
+                    />
+                    Simpan pengaturan
+                </button>
+            </div>
+        </div>
+    );
+}
+
+/**
+ * Pengguna dan peran, khusus admin — server pun menolak permintaan daftar
+ * akun dari peran lain. Akun dinonaktifkan, tidak dihapus: riwayat perubahan
+ * menyebut nama pelakunya, dan baris audit yang menunjuk akun yang lenyap
+ * tidak bisa dibaca siapa pun.
+ */
+function BagianPengguna({
+    peran,
+    daftar,
+    onSimpan,
+}: {
+    peran: Peran;
+    daftar: DaftarPengguna;
+    onSimpan: (
+        id: number | null,
+        isian: IsianPengguna,
+    ) => Promise<string | null>;
+}) {
+    /** null: dialog tertutup; 'baru': tambah; angka: id yang diubah. */
+    const [dialog, setDialog] = useState<'baru' | number | null>(null);
+
+    if (peran !== 'admin') {
+        return (
+            <div className="px-7 pt-3.5">
+                <div
+                    role="note"
+                    className="flex max-w-[640px] gap-2.5 rounded-lg bg-surface px-4 py-3.5"
+                >
+                    <Lock
+                        className="mt-0.5 size-5 shrink-0 text-muted-foreground"
+                        strokeWidth={2.5}
+                        aria-hidden="true"
+                    />
+                    <div>
+                        <p className="text-base font-bold">Khusus admin</p>
+                        <p className="mt-0.5 text-sm">
+                            Menambah akun, mengubah peran, dan mengganti kata
+                            sandi hanya dapat dilakukan oleh admin.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (daftar.status === 'memuat') {
+        return (
+            <p className="px-7 pt-3.5 text-base text-muted-foreground">
+                Memuat daftar akun…
+            </p>
+        );
+    }
+
+    if (daftar.status === 'gagal') {
+        return (
+            <div className="px-7 pt-3.5">
+                <div
+                    role="alert"
+                    className="flex max-w-[640px] gap-2.5 rounded-lg bg-tone-red-bg px-4 py-3.5"
+                >
+                    <TriangleAlert
+                        className="mt-0.5 size-5 shrink-0 text-tone-red"
+                        strokeWidth={2.5}
+                        aria-hidden="true"
+                    />
+                    <div>
+                        <p className="text-base font-bold text-tone-red">
+                            Daftar akun tidak dapat dimuat
+                        </p>
+                        <p className="mt-0.5 text-sm">
+                            Periksa sambungan ke server, lalu ulangi.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={daftar.ulangi}
+                            className="tombol-kedua mt-3 px-5.5"
+                        >
+                            Ulangi
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    const { pengguna, wilayahRt } = daftar;
+    const aktif = pengguna.filter((p) => p.aktif).length;
+    const diubah =
+        typeof dialog === 'number'
+            ? (pengguna.find((p) => p.id === dialog) ?? null)
+            : null;
+
+    return (
+        <>
+            {/* Baris judul membeku; hanya tabel di bawahnya yang digulir. */}
+            <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4.5 gap-y-2 px-7 pt-3.5 pb-2.5">
+                <p className="text-base">
+                    <span className="font-extrabold">Pengguna</span>{' '}
+                    <span className="text-sm text-muted-foreground">
+                        · {aktif} aktif dari {pengguna.length} akun
+                    </span>
+                </p>
+                <button
+                    type="button"
+                    onClick={() => setDialog('baru')}
+                    className="tombol-utama"
+                >
+                    <Plus
+                        className="size-5"
+                        strokeWidth={2.5}
+                        aria-hidden="true"
+                    />
                     Tambah pengguna
                 </button>
-
-                {/* Terukur, bukan diasumsikan: pada 375 px tabelnya 680 px di
-                    dalam wadah 346 px, dan pada 768 px sudah muat — jadi
-                    petunjuk ini benar tepat selama ia tampil, dan hilang
-                    tepat saat tidak lagi benar. */}
-                <p className="w-full text-sm text-muted-foreground md:hidden">
-                    Tabel ini lebih lebar daripada layar. Geser ke samping untuk
-                    melihat kolom Status dan Aksi.
-                </p>
             </div>
 
-            {menambah && (
-                <FormPengguna
-                    wilayahRt={wilayahRt}
-                    emailTerpakai={pengguna.map((p) => p.email.toLowerCase())}
-                    onBatal={() => setMenambah(false)}
-                    onTambah={(baru) => {
-                        onSimpan([
-                            ...pengguna,
-                            {
-                                ...baru,
-                                id:
-                                    Math.max(0, ...pengguna.map((p) => p.id)) +
-                                    1,
-                                aktif: true,
-                            },
-                        ]);
-                        setMenambah(false);
-                    }}
-                />
-            )}
-
-            {/* Batas tinggi disetel ke tinggi alami kolom kiri (832 px pada
-                1920x1080), bukan angka karangan: tanpa batas, sepuluh akun
-                membuat kartu ini 907 px dan menyeret seluruh halaman 28 px
-                melewati satu layar. Pada 43rem kolomnya berimbang, halaman muat
-                pas, dan sembilan dari sepuluh baris tetap terlihat sekaligus. */}
-            <Table containerClassName="lg:max-h-[43rem]">
-                <TableHeader>
+            <Table
+                aria-label="Daftar pengguna"
+                containerClassName="lg:min-h-0 lg:flex-1"
+            >
+                <TableHeader className="sticky top-0 z-10">
                     <TableRow>
-                        <TableHead scope="col">Nama dan email</TableHead>
-                        <TableHead scope="col">Peran</TableHead>
-                        <TableHead scope="col">RT binaan</TableHead>
-                        <TableHead scope="col">Status</TableHead>
-                        <TableHead scope="col" className="text-right">
+                        <TableHead scope="col" className="bg-card first:pl-7">
+                            Nama dan nama pengguna
+                        </TableHead>
+                        <TableHead scope="col" className="bg-card">
+                            Peran
+                        </TableHead>
+                        <TableHead scope="col" className="bg-card">
+                            RT binaan
+                        </TableHead>
+                        <TableHead scope="col" className="bg-card">
+                            Status
+                        </TableHead>
+                        <TableHead
+                            scope="col"
+                            className="bg-card text-right last:pr-7"
+                        >
                             Aksi
                         </TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {pengguna.map((p) => {
-                        const terkunci = adminAktifTerakhir(pengguna, p.id);
-
-                        return (
-                            <TableRow key={p.id}>
-                                <TableCell>
-                                    <span
-                                        className={`block font-semibold ${p.aktif ? '' : 'text-muted-foreground'}`}
-                                    >
-                                        {p.nama}
-                                    </span>
-                                    <span className="block text-sm text-muted-foreground">
-                                        {p.email}
-                                    </span>
-                                </TableCell>
-
-                                <TableCell>
-                                    <label
-                                        htmlFor={`peran-${p.id}`}
-                                        className="sr-only"
-                                    >
-                                        Peran {p.nama}
-                                    </label>
-                                    <select
-                                        id={`peran-${p.id}`}
-                                        value={p.peran}
-                                        disabled={terkunci}
-                                        onChange={(e) => {
-                                            const baru = e.target
-                                                .value as Peran;
-
-                                            ubah(p.id, {
-                                                peran: baru,
-                                                // Bidan dan admin melihat
-                                                // seluruh RW, jadi RT binaan
-                                                // tidak punya arti bagi keduanya.
-                                                rt:
-                                                    baru === 'kader'
-                                                        ? (p.rt ??
-                                                          wilayahRt[0] ??
-                                                          null)
-                                                        : null,
-                                            });
-                                        }}
-                                        className="isian font-semibold disabled:cursor-not-allowed disabled:opacity-60"
-                                    >
-                                        {URUTAN_PERAN.map((x) => (
-                                            <option key={x} value={x}>
-                                                {NAMA_PERAN[x]}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </TableCell>
-
-                                <TableCell>
-                                    {p.peran === 'kader' ? (
-                                        <>
-                                            <label
-                                                htmlFor={`rt-${p.id}`}
-                                                className="sr-only"
-                                            >
-                                                RT binaan {p.nama}
-                                            </label>
-                                            <select
-                                                id={`rt-${p.id}`}
-                                                value={p.rt ?? ''}
-                                                onChange={(e) =>
-                                                    ubah(p.id, {
-                                                        rt: e.target.value,
-                                                    })
-                                                }
-                                                className="isian font-semibold"
-                                            >
-                                                {wilayahRt.map((w) => (
-                                                    <option key={w} value={w}>
-                                                        {labelRt(w)}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </>
+                    {pengguna.map((p) => (
+                        <TableRow key={p.id}>
+                            <TableCell className="first:pl-7">
+                                <span
+                                    className={`block font-bold ${p.aktif ? '' : 'text-muted-foreground'}`}
+                                >
+                                    {p.nama}
+                                </span>
+                                <span className="block text-sm text-muted-foreground">
+                                    {p.username}
+                                </span>
+                            </TableCell>
+                            <TableCell>{NAMA_PERAN[p.peran]}</TableCell>
+                            <TableCell className="whitespace-nowrap">
+                                {/* Bidan dan admin memang melihat semua RT;
+                                    itu keterangan, bukan data yang hilang. */}
+                                {p.peran === 'kader' && p.rt !== null
+                                    ? labelRt(p.rt)
+                                    : 'Semua RT'}
+                            </TableCell>
+                            <TableCell>
+                                <span
+                                    className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-sm font-bold whitespace-nowrap ${
+                                        p.aktif
+                                            ? 'bg-tone-green-bg text-tone-green'
+                                            : 'bg-surface-alt text-muted-foreground'
+                                    }`}
+                                >
+                                    {p.aktif ? (
+                                        <CircleCheck
+                                            className="size-4"
+                                            strokeWidth={2.5}
+                                            aria-hidden="true"
+                                        />
                                     ) : (
-                                        /* Bukan sel kosong: bidan dan admin
-                                           memang melihat semua RT, dan itu
-                                           keterangan, bukan data yang hilang. */
-                                        <span className="text-muted-foreground">
-                                            Semua RT
-                                        </span>
+                                        <CircleMinus
+                                            className="size-4"
+                                            strokeWidth={2.5}
+                                            aria-hidden="true"
+                                        />
                                     )}
-                                </TableCell>
-
-                                <TableCell>
-                                    <span
-                                        className={`inline-block rounded-md px-3 py-1.5 text-sm font-bold ${
-                                            p.aktif
-                                                ? 'bg-tone-green-bg text-tone-green'
-                                                : 'bg-surface-alt text-muted-foreground'
-                                        }`}
-                                    >
-                                        {p.aktif ? 'Aktif' : 'Nonaktif'}
-                                    </span>
-                                </TableCell>
-
-                                <TableCell className="text-right">
-                                    <button
-                                        type="button"
-                                        disabled={terkunci}
-                                        onClick={() =>
-                                            ubah(p.id, { aktif: !p.aktif })
-                                        }
-                                        className="tombol-kedua disabled:cursor-not-allowed disabled:opacity-60"
-                                    >
-                                        {p.aktif ? 'Nonaktifkan' : 'Aktifkan'}
-                                    </button>
-                                </TableCell>
-                            </TableRow>
-                        );
-                    })}
+                                    {p.aktif ? 'Aktif' : 'Nonaktif'}
+                                </span>
+                            </TableCell>
+                            <TableCell className="py-1 text-right last:pr-7">
+                                <button
+                                    type="button"
+                                    aria-label={`Ubah pengguna ${p.nama}`}
+                                    onClick={() => setDialog(p.id)}
+                                    className="tombol-ubah"
+                                >
+                                    <Pencil
+                                        className="size-4.5"
+                                        strokeWidth={2.5}
+                                        aria-hidden="true"
+                                    />
+                                    Ubah
+                                </button>
+                            </TableCell>
+                        </TableRow>
+                    ))}
                 </TableBody>
             </Table>
 
-            <p className="shrink-0 border-t border-border px-5 py-4 text-sm text-pretty text-muted-foreground sm:px-6">
-                Akun dinonaktifkan, bukan dihapus — riwayat perubahan menyebut
-                nama pelakunya. Admin aktif terakhir tidak bisa diturunkan
-                perannya maupun dinonaktifkan.
-            </p>
-        </section>
+            {dialog !== null && (
+                <DialogPengguna
+                    pengguna={diubah}
+                    terkunci={
+                        diubah !== null &&
+                        adminAktifTerakhir(pengguna, diubah.id)
+                    }
+                    wilayahRt={wilayahRt}
+                    usernameTerpakai={pengguna
+                        .filter((p) => p.id !== diubah?.id)
+                        .map((p) => p.username)}
+                    onTutup={() => setDialog(null)}
+                    onSimpan={async (isian) => {
+                        const galat = await onSimpan(diubah?.id ?? null, isian);
+
+                        if (galat === null) {
+                            setDialog(null);
+                        }
+
+                        return galat;
+                    }}
+                />
+            )}
+        </>
     );
 }
 
-/** Form akun baru. Hanya kolom yang wajib; kata sandi diatur lewat surel undangan. */
-function FormPengguna({
+/**
+ * Tambah atau ubah satu akun. Admin memberi kata sandi awal sendiri: Posyandu
+ * tidak punya layanan surel untuk tautan undangan.
+ */
+function DialogPengguna({
+    pengguna,
+    terkunci,
     wilayahRt,
-    emailTerpakai,
-    onTambah,
-    onBatal,
+    usernameTerpakai,
+    onTutup,
+    onSimpan,
 }: {
+    /** null berarti akun baru. */
+    pengguna: Pengguna | null;
+    /** Admin aktif terakhir: peran dan statusnya tidak bisa diubah. */
+    terkunci: boolean;
     wilayahRt: string[];
-    emailTerpakai: string[];
-    onTambah: (baru: Omit<Pengguna, 'id' | 'aktif'>) => void;
-    onBatal: () => void;
+    usernameTerpakai: string[];
+    onTutup: () => void;
+    /** Hasilnya null bila tersimpan, atau alasan penolakan dari server. */
+    onSimpan: (isian: IsianPengguna) => Promise<string | null>;
 }) {
-    const [nama, setNama] = useState('');
-    const [email, setEmail] = useState('');
-    const [peran, setPeran] = useState<Peran>('kader');
-    const [rt, setRt] = useState(wilayahRt[0] ?? '');
+    const [nama, setNama] = useState(pengguna?.nama ?? '');
+    const [username, setUsername] = useState(pengguna?.username ?? '');
+    const [peran, setPeran] = useState<Peran>(pengguna?.peran ?? 'kader');
+    const [rt, setRt] = useState(pengguna?.rt ?? wilayahRt[0] ?? '');
+    const [aktif, setAktif] = useState(pengguna?.aktif ?? true);
+    const [kataSandi, setKataSandi] = useState('');
+    const [dicoba, setDicoba] = useState(false);
+    const [menyimpan, setMenyimpan] = useState(false);
+    const [galatServer, setGalatServer] = useState<string | null>(null);
 
-    const bentrok = emailTerpakai.includes(email.trim().toLowerCase());
-    const lengkap = nama.trim() !== '' && email.trim() !== '' && !bentrok;
+    // Huruf kecil dipaksakan, sama seperti di server: "Kader01" tetap kader01.
+    const usernameBersih = username.trim().toLowerCase();
+    const bentrok = usernameTerpakai.includes(usernameBersih);
+    const kosong = nama.trim() === '' || usernameBersih === '';
+    const salahBentuk =
+        usernameBersih !== '' && !POLA_USERNAME.test(usernameBersih);
+    const galatUsername = bentrok
+        ? 'Nama pengguna ini sudah dipakai akun lain.'
+        : dicoba && salahBentuk
+          ? ATURAN_USERNAME
+          : null;
+    const galatSandi =
+        pengguna === null && kataSandi === ''
+            ? 'Kata sandi awal wajib diisi.'
+            : kataSandi !== '' && kataSandi.length < SANDI_MINIMAL
+              ? `Kata sandi minimal ${SANDI_MINIMAL} karakter.`
+              : null;
+    const sandiSalah = dicoba && galatSandi !== null;
 
     return (
-        <div className="shrink-0 border-b-2 border-border bg-accent px-5 py-5 sm:px-6">
-            <h3 className="text-base font-bold">Tambah pengguna baru</h3>
+        <Dialog
+            judul={
+                pengguna === null ? 'Tambah pengguna' : `Ubah ${pengguna.nama}`
+            }
+            keterangan="Setiap perubahan dicatat: siapa yang mengubah dan kapan."
+            lebar="w-[640px]"
+            onTutup={onTutup}
+        >
+            <form
+                noValidate
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    setDicoba(true);
 
-            <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <IsianTeks
-                    id="pengguna-nama"
-                    label="Nama"
-                    nilai={nama}
-                    onGanti={setNama}
-                />
-                <IsianTeks
-                    id="pengguna-email"
-                    label="Email"
-                    tipe="email"
-                    nilai={email}
-                    onGanti={setEmail}
-                    galat={
-                        bentrok ? 'Email ini sudah dipakai akun lain.' : null
+                    if (
+                        kosong ||
+                        bentrok ||
+                        salahBentuk ||
+                        galatSandi !== null ||
+                        menyimpan
+                    ) {
+                        return;
                     }
-                />
 
-                <div>
-                    <label
-                        htmlFor="pengguna-peran"
-                        className="block text-sm font-semibold text-muted-foreground"
+                    setMenyimpan(true);
+                    setGalatServer(null);
+                    // Bila tersimpan, BagianPengguna menutup dialog ini.
+                    void onSimpan({
+                        nama: nama.trim(),
+                        username: usernameBersih,
+                        peran,
+                        rt: peran === 'kader' ? rt : null,
+                        aktif,
+                        kataSandi,
+                    })
+                        .catch(
+                            () =>
+                                'Perubahan tidak dapat disimpan. Silakan ulangi.',
+                        )
+                        .then((galat) => {
+                            setGalatServer(galat);
+                            setMenyimpan(false);
+                        });
+                }}
+                className="flex min-h-0 flex-1 flex-col"
+            >
+                <div className="grid min-h-0 gap-4 overflow-y-auto px-7 pt-4.5 pb-5.5 sm:grid-cols-2">
+                    <KolomPengguna id="pengguna-nama" label="Nama lengkap">
+                        <input
+                            id="pengguna-nama"
+                            value={nama}
+                            maxLength={120}
+                            onChange={(e) => setNama(e.target.value)}
+                            className="isian w-full"
+                        />
+                    </KolomPengguna>
+                    <KolomPengguna
+                        id="pengguna-username"
+                        label="Nama pengguna"
+                        galat={galatUsername}
                     >
-                        Peran
-                    </label>
-                    <select
-                        id="pengguna-peran"
-                        value={peran}
-                        onChange={(e) => setPeran(e.target.value as Peran)}
-                        className="isian mt-1.5 w-full font-semibold"
-                    >
-                        {URUTAN_PERAN.map((x) => (
-                            <option key={x} value={x}>
-                                {NAMA_PERAN[x]}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-
-                <div>
-                    <label
-                        htmlFor="pengguna-rt"
-                        className="block text-sm font-semibold text-muted-foreground"
-                    >
-                        RT binaan
-                    </label>
-                    {peran === 'kader' ? (
+                        {/* Tanpa `autoComplete="off"`, peramban cenderung
+                            mengisi nama pengguna admin sendiri ke akun orang
+                            lain. Huruf besar otomatis dan koreksi ejaan
+                            dimatikan: papan ketik tablet mengubah "kader01". */}
+                        <input
+                            id="pengguna-username"
+                            type="text"
+                            autoComplete="off"
+                            autoCapitalize="none"
+                            autoCorrect="off"
+                            spellCheck={false}
+                            maxLength={32}
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            aria-invalid={galatUsername !== null}
+                            aria-describedby="pengguna-username-ket"
+                            className={`isian w-full ${galatUsername !== null ? 'border-tone-red' : ''}`}
+                        />
+                        {galatUsername === null && (
+                            <p
+                                id="pengguna-username-ket"
+                                className="mt-1.5 text-sm text-muted-foreground"
+                            >
+                                Dipakai untuk masuk. Contoh: kader01.
+                            </p>
+                        )}
+                    </KolomPengguna>
+                    <KolomPengguna id="pengguna-peran" label="Peran">
                         <select
-                            id="pengguna-rt"
-                            value={rt}
-                            onChange={(e) => setRt(e.target.value)}
-                            className="isian mt-1.5 w-full font-semibold"
+                            id="pengguna-peran"
+                            value={peran}
+                            disabled={terkunci}
+                            onChange={(e) => setPeran(e.target.value as Peran)}
+                            className="isian w-full cursor-pointer font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                            {wilayahRt.map((w) => (
-                                <option key={w} value={w}>
-                                    {labelRt(w)}
+                            {URUTAN_PERAN.map((x) => (
+                                <option key={x} value={x}>
+                                    {NAMA_PERAN[x]}
                                 </option>
                             ))}
                         </select>
-                    ) : (
-                        /* Kotak pilih yang dinonaktifkan tetap berbentuk kontrol
-                           dan mengundang klik yang tidak melakukan apa-apa;
-                           kalimat ini menjawab pertanyaannya langsung. */
-                        <p className="mt-1.5 flex h-14 items-center text-base text-muted-foreground">
-                            Semua RT
+                    </KolomPengguna>
+                    <KolomPengguna id="pengguna-rt" label="RT binaan">
+                        {peran === 'kader' ? (
+                            <select
+                                id="pengguna-rt"
+                                value={rt}
+                                onChange={(e) => setRt(e.target.value)}
+                                className="isian w-full cursor-pointer font-semibold"
+                            >
+                                {wilayahRt.map((w) => (
+                                    <option key={w} value={w}>
+                                        {labelRt(w)}
+                                    </option>
+                                ))}
+                            </select>
+                        ) : (
+                            /* Bidan dan admin melihat seluruh RW; kalimat ini
+                               menjawab pertanyaannya langsung, tanpa kotak
+                               pilih mati yang mengundang klik. */
+                            <p className="flex h-14 items-center text-base text-muted-foreground">
+                                Semua RT
+                            </p>
+                        )}
+                    </KolomPengguna>
+                    <KolomPengguna
+                        id="pengguna-sandi"
+                        label={
+                            pengguna === null
+                                ? 'Kata sandi awal'
+                                : 'Kata sandi baru'
+                        }
+                        galat={sandiSalah ? galatSandi : null}
+                    >
+                        {/* `new-password`: pengelola sandi menawarkan sandi
+                            baru, bukan mengisikan sandi admin yang tersimpan. */}
+                        <input
+                            id="pengguna-sandi"
+                            type="password"
+                            autoComplete="new-password"
+                            value={kataSandi}
+                            onChange={(e) => setKataSandi(e.target.value)}
+                            aria-invalid={sandiSalah}
+                            aria-describedby="pengguna-sandi-ket"
+                            className={`isian w-full ${sandiSalah ? 'border-tone-red' : ''}`}
+                        />
+                        {/* Pada akun baru, galatnya sudah mengulang aturan ini. */}
+                        {!(pengguna === null && sandiSalah) && (
+                            <p
+                                id="pengguna-sandi-ket"
+                                className="mt-1.5 text-sm text-muted-foreground"
+                            >
+                                {pengguna === null
+                                    ? `Minimal ${SANDI_MINIMAL} karakter.`
+                                    : 'Kosongkan jika tidak diganti. Jika diganti, akun ini keluar dari semua perangkat.'}
+                            </p>
+                        )}
+                    </KolomPengguna>
+                    {pengguna !== null && (
+                        <label className="flex min-h-13 cursor-pointer items-center gap-3 sm:col-span-2">
+                            <input
+                                type="checkbox"
+                                checked={aktif}
+                                disabled={terkunci}
+                                onChange={(e) => setAktif(e.target.checked)}
+                                className="size-5 accent-primary"
+                            />
+                            <span className="text-base font-semibold">
+                                Akun aktif
+                            </span>
+                        </label>
+                    )}
+                    {terkunci && (
+                        <p className="text-sm text-muted-foreground sm:col-span-2">
+                            Admin aktif terakhir tidak bisa diturunkan perannya
+                            maupun dinonaktifkan.
+                        </p>
+                    )}
+                    {dicoba && kosong && (
+                        <p className="text-sm font-semibold text-tone-red sm:col-span-2">
+                            Nama lengkap dan nama pengguna harus diisi.
+                        </p>
+                    )}
+                    {galatServer !== null && (
+                        <p
+                            role="alert"
+                            className="text-sm font-semibold text-tone-red sm:col-span-2"
+                        >
+                            {galatServer}
                         </p>
                     )}
                 </div>
-            </div>
-
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-                <button
-                    type="button"
-                    disabled={!lengkap}
-                    onClick={() =>
-                        onTambah({
-                            nama: nama.trim(),
-                            email: email.trim(),
-                            peran,
-                            rt: peran === 'kader' ? rt : null,
-                        })
-                    }
-                    className="tombol-utama disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
-                >
-                    Simpan pengguna
-                </button>
-                <button
-                    type="button"
-                    onClick={onBatal}
-                    className="tombol-kedua"
-                >
-                    Batal
-                </button>
-                {!lengkap && !bentrok && (
-                    <p className="text-sm text-muted-foreground">
-                        Nama dan email harus diisi.
-                    </p>
-                )}
-            </div>
-        </div>
+                <KakiDialog>
+                    <button
+                        type="button"
+                        onClick={onTutup}
+                        className="tombol-kedua px-5.5"
+                    >
+                        Batal
+                    </button>
+                    <button
+                        type="submit"
+                        disabled={menyimpan}
+                        className="tombol-utama px-5.5 disabled:cursor-wait disabled:opacity-60"
+                    >
+                        <Save
+                            className="size-5"
+                            strokeWidth={2.5}
+                            aria-hidden="true"
+                        />
+                        {menyimpan
+                            ? 'Menyimpan…'
+                            : pengguna === null
+                              ? 'Simpan pengguna'
+                              : 'Simpan perubahan'}
+                    </button>
+                </KakiDialog>
+            </form>
+        </Dialog>
     );
 }
 
-function IsianTeks({
+function KolomPengguna({
     id,
     label,
-    nilai,
-    tipe = 'text',
     galat = null,
-    onGanti,
+    children,
 }: {
     id: string;
     label: string;
-    nilai: string;
-    tipe?: string;
     galat?: string | null;
-    onGanti: (v: string) => void;
+    children: ReactNode;
 }) {
     return (
-        <div>
+        <div className="min-w-0">
             <label
                 htmlFor={id}
                 className="block text-sm font-semibold text-muted-foreground"
             >
                 {label}
             </label>
-            <input
-                id={id}
-                type={tipe}
-                value={nilai}
-                onChange={(e) => onGanti(e.target.value)}
-                aria-invalid={galat !== null}
-                className={`isian mt-1.5 w-full ${galat === null ? '' : 'border-tone-red'}`}
-            />
+            <div className="mt-1.5">{children}</div>
             {galat !== null && (
-                <p className="mt-1 text-sm font-semibold text-tone-red">
+                <p className="mt-1.5 text-sm font-semibold text-tone-red">
                     {galat}
                 </p>
             )}
-        </div>
-    );
-}
-
-function Rentang({
-    label,
-    satuan,
-    min,
-    max,
-    onMin,
-    onMax,
-}: {
-    label: string;
-    satuan: string;
-    min: number;
-    max: number;
-    onMin: (v: string) => void;
-    onMax: (v: string) => void;
-}) {
-    const id = label.toLowerCase().replace(/\s+/g, '-');
-
-    return (
-        <div>
-            <p className="text-base font-semibold">{label}</p>
-            <div className="mt-2 flex items-end gap-3">
-                <Isian
-                    id={`${id}-min`}
-                    label="Minimal"
-                    satuan={satuan}
-                    nilai={min}
-                    onGanti={onMin}
-                />
-                <Isian
-                    id={`${id}-max`}
-                    label="Maksimal"
-                    satuan={satuan}
-                    nilai={max}
-                    onGanti={onMax}
-                />
-            </div>
-        </div>
-    );
-}
-
-function Isian({
-    id,
-    label,
-    satuan,
-    nilai,
-    desimal = 1,
-    onGanti,
-}: {
-    id: string;
-    label: string;
-    satuan: string;
-    nilai: number;
-    desimal?: number;
-    onGanti: (v: string) => void;
-}) {
-    return (
-        <div className="min-w-0 flex-1">
-            {/* Semua label di atas kotaknya, tidak pernah di dalamnya. */}
-            <label
-                htmlFor={id}
-                className="block text-sm font-semibold text-muted-foreground"
-            >
-                {label}
-            </label>
-            {/* Satuan berada di segmen dalam kotak, bukan tombol terpisah. */}
-            <div className="isian mt-1.5 flex items-stretch overflow-hidden p-0">
-                <input
-                    id={id}
-                    inputMode="decimal"
-                    value={angka(nilai, desimal)}
-                    onChange={(e) => onGanti(e.target.value)}
-                    className="w-full min-w-0 bg-transparent px-3.5 text-right text-lg font-bold outline-none"
-                />
-                <span className="flex shrink-0 items-center border-l-2 border-border bg-surface-subtle px-3 text-sm text-muted-foreground">
-                    {satuan}
-                </span>
-            </div>
         </div>
     );
 }

@@ -24,7 +24,7 @@ Akibatnya arsip bisa membantah dirinya sendiri tanpa ada yang tahu. Satu contoh 
 
 - **O** dan **B** dihitung sistem dari kehadiran.
 - Perbandingan hitungan terhadap nilai arsip, dilaporkan sebagai satu angka, bukan per baris.
-- Badge tren di Detail anak memakai nilai terhitung untuk O dan B.
+- Badge tren di Detail Balita memakai nilai terhitung untuk O dan B.
 
 **Sengaja tidak masuk:**
 

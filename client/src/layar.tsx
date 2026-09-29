@@ -10,6 +10,8 @@
 
 import type { Rute } from '@/app-shell';
 import {
+    balitaKartu,
+    balitaPenimbangan,
     cakupanEnamBulan,
     cariPeriode,
     daftarAnak,
@@ -20,16 +22,17 @@ import {
     periodeTerakhirTerisi,
     perluPerhatian,
     rekapPerRt,
+    RIWAYAT_PENGATURAN_CONTOH,
     ringkasan,
     RT_KADER,
     standarLms,
     statusGizi,
-    trenDsPerRt,
     trenStatusGizi,
 } from '@/data/contoh/store';
 import { umurBulanPada } from '@/lib/format';
 import DaftarAnak from '@/pages/anak/index';
 import type { AnakBaru, BarisAnak, PatchAnak } from '@/pages/anak/index';
+import RiwayatPenimbangan from '@/pages/anak/riwayat';
 import DetailAnak from '@/pages/anak/show';
 import Dashboard from '@/pages/dashboard';
 import KartuSasaran from '@/pages/kartu-sasaran/index';
@@ -39,10 +42,12 @@ import LayananPosyandu from '@/pages/layanan/index';
 import Pengaturan from '@/pages/pengaturan/index';
 import type {
     Ambang,
+    DaftarPengguna,
+    IsianPengguna,
     StandarisasiAntropometri,
 } from '@/pages/pengaturan/index';
 import SasaranImpor from '@/pages/sasaran/index';
-import type { Pengguna, Peran, Periode } from '@/types/posyandu';
+import type { Anak, Peran, Periode } from '@/types/posyandu';
 
 /**
  * Anak baru menjadi satu baris daftar.
@@ -95,10 +100,41 @@ function terapkanKoreksi(
         nikLengkap: patch.nik.replace(/\D/g, '').length === 16,
         namaOrtu: patch.namaOrtu === '' ? null : patch.namaOrtu,
         rt: patch.rt === '' ? null : patch.rt,
-        bbKg: patch.bbKg,
-        tinggiCm: patch.tinggiCm,
+        jk: patch.jk ?? baris.jk,
+        bbKg: patch.bbKg === undefined ? baris.bbKg : patch.bbKg,
+        tinggiCm:
+            patch.tinggiCm === undefined ? baris.tinggiCm : patch.tinggiCm,
     };
 }
+
+/** Koreksi yang sama, ditempelkan pada identitas di Detail Balita. */
+function terapkanIdentitas(anak: Anak, patch: PatchAnak | undefined): Anak {
+    if (patch === undefined) {
+        return anak;
+    }
+
+    const nikBaru = patch.nik.replace(/\D/g, '');
+
+    return {
+        ...anak,
+        nama: patch.nama === '' ? null : patch.nama,
+        nik: nikBaru === '' ? null : nikBaru,
+        nikLengkap: nikBaru.length === 16,
+        namaOrtu: patch.namaOrtu === '' ? null : patch.namaOrtu,
+        rt: patch.rt === '' ? null : patch.rt,
+        jk: patch.jk ?? anak.jk,
+        tglLahir: patch.tglLahir ?? anak.tglLahir,
+        anakKe: patch.anakKe === undefined ? anak.anakKe : patch.anakKe,
+        bbLahirKg:
+            patch.bbLahirKg === undefined ? anak.bbLahirKg : patch.bbLahirKg,
+        bbLahirMeragukan:
+            patch.bbLahirKg === undefined ? anak.bbLahirMeragukan : false,
+        bukuKia: patch.bukuKia ?? anak.bukuKia,
+    };
+}
+
+/** Nama Posyandu di kepala kartu balita. */
+const LEMBAGA = `Posyandu ${data.meta.posyandu} · RW ${data.meta.rw} ${data.meta.kelurahan}`;
 
 export type LayarProps = {
     rute: Rute;
@@ -115,8 +151,11 @@ export type LayarProps = {
     onSimpanAmbang: (nilai: Ambang) => void;
     standarisasi: StandarisasiAntropometri;
     onSimpanStandarisasi: (nilai: StandarisasiAntropometri) => void;
-    pengguna: Pengguna[];
-    onSimpanPengguna: (daftar: Pengguna[]) => void;
+    pengguna: DaftarPengguna;
+    onSimpanPengguna: (
+        id: number | null,
+        isian: IsianPengguna,
+    ) => Promise<string | null>;
     tabLaporan: TabPeriode;
     onGantiTabLaporan: (tab: TabPeriode) => void;
 };
@@ -187,44 +226,57 @@ export function Layar({
     }
 
     if (rute.nama === 'layanan') {
-        const detail = detailAnak(110);
-        const terbaru = detail?.pengukuran[0] ?? null;
-
+        // Kader hanya mencari di RT binaannya.
         return (
             <LayananPosyandu
-                sasaranContoh={{
-                    kodeKartu: detail?.anak.nik ?? 'KMS-110',
-                    nama: detail?.anak.nama ?? 'Sasaran contoh',
-                    namaIbu: detail?.anak.namaOrtu ?? null,
-                    rt: detail?.anak.rt ?? null,
-                    umur: '8 bulan',
-                    bukuKia: detail?.anak.bukuKia ?? false,
-                    beratTerakhir: terbaru?.bbKg ?? 15,
-                    tanggalUkurTerakhir: terbaru?.tanggalUkur ?? null,
-                }}
+                balita={balitaPenimbangan(periodeId).filter(
+                    (b) => rtLingkup === null || b.rt === rtLingkup,
+                )}
+                ambang={ambang}
+                standarLms={standarLms}
             />
         );
     }
 
-    if (rute.nama === 'detail' && periode !== null) {
+    if (
+        (rute.nama === 'detail' || rute.nama === 'riwayat') &&
+        periode !== null
+    ) {
         const detail = detailAnak(rute.id);
 
         if (detail === null) {
             return <TidakDitemukan />;
         }
 
+        const anak = terapkanIdentitas(detail.anak, koreksi[rute.id]);
+
+        if (rute.nama === 'riwayat') {
+            return (
+                <RiwayatPenimbangan
+                    anak={anak}
+                    pengukuran={detail.pengukuran}
+                    periode={periode}
+                    ambang={ambang}
+                />
+            );
+        }
+
         return (
             // Di-key menurut anak: tanpa ini React memakai ulang instance yang
-            // sama saat berpindah anak, sehingga panel umur kurva KMS dan baris
-            // riwayat yang tersorot masih milik anak sebelumnya.
+            // sama saat berpindah anak, sehingga panel umur kurva KMS dan
+            // titik yang tersorot masih milik anak sebelumnya.
             <DetailAnak
                 key={detail.anak.id}
-                anak={detail.anak}
+                anak={anak}
                 pengukuran={detail.pengukuran}
                 garisSd={detail.garisSd}
                 peran={peran}
                 periode={periode}
                 ambang={ambang}
+                wilayahRt={daftarRt()}
+                noWa={koreksi[rute.id]?.noWa ?? null}
+                lembaga={LEMBAGA}
+                onSimpan={(patch) => onSimpanAnak(rute.id, patch)}
             />
         );
     }
@@ -248,11 +300,6 @@ export function Layar({
                 wilayahRt={rtLingkup === null ? daftarRt() : [rtLingkup]}
                 rw={data.meta.rw}
                 kelurahan={data.meta.kelurahan}
-                trenRt={trenDsPerRt(rtLingkup)}
-                semuaPeriode={data.periode.map((p) => ({
-                    periodeId: p.id,
-                    label: p.label,
-                }))}
                 periodeTerisi={periodeTerakhirTerisi()}
                 onPindahPeriode={onPindahPeriode}
             />
@@ -264,14 +311,12 @@ export function Layar({
     }
 
     if (rute.nama === 'kartu-sasaran') {
-        // Alamat memuat id anak, sedangkan KartuSasaran memilih menurut urutan
-        // di daftar — id 110 bukan baris ke-110.
-        const urutan = data.anak.findIndex((a) => a.id === rute.id);
-
         return (
             <KartuSasaran
-                sasaran={data.anak}
-                terpilihAwal={urutan === -1 ? undefined : urutan}
+                balita={balitaKartu(periodeId)}
+                wilayahRt={daftarRt()}
+                terpilihAwal={rute.id}
+                lembaga={LEMBAGA}
             />
         );
     }
@@ -287,9 +332,9 @@ export function Layar({
                 barisStandar={data.meta.barisStandar}
                 peran={peran}
                 pengguna={pengguna}
-                wilayahRt={daftarRt()}
                 onSimpanPengguna={onSimpanPengguna}
                 terakhirDiubah={PENGATURAN_TERAKHIR_DIUBAH}
+                riwayat={RIWAYAT_PENGATURAN_CONTOH}
             />
         );
     }

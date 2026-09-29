@@ -7,7 +7,7 @@
 | **PR** | `feat/f05-grafik-6-indeks` |
 | **Bergantung pada** | — |
 | **Terhambat** | [OI-04](../../pertanyaan-terbuka.md) — label LILA/U |
-| **Perubahan berarti terakhir** | 21 September 2026 |
+| **Perubahan berarti terakhir** | 29 September 2026 |
 
 ## 1. Latar
 
@@ -36,14 +36,14 @@ Tidak ada data baru yang perlu dicari. Yang kurang hanya penyambungannya.
 **Masuk:**
 
 - Generalisasi `kms-chart.tsx` dari khusus-BB/U menjadi satu indeks berkunci umur mana pun.
-- Pemilih indeks di Detail anak: **BB/U · PB/U atau TB/U · IMT/U · LILA/U · LIKA/U**.
+- Pemilih indeks di Detail Balita: **BB/U · PB/U atau TB/U · IMT/U · LILA/U · LIKA/U**.
 - Dua kotak isian baru di editor baris: LILA dan LIKA.
 - Kartu z-score di editor bertambah mengikuti isian baru.
 
 **Sengaja tidak masuk:**
 
-- **Kurva BB/TB.** Sumbu datarnya panjang badan dalam cm, bukan umur dalam bulan — bukan varian dari kurva yang sama melainkan grafik lain. BB/TB tetap hadir sebagai kartu angka di Detail anak, tempatnya sekarang. Tidak diminta pula: butir feedback menyebut LILA, LIKA, BB/U, TB/U, dan IMT.
-- **Menggeser BB/U dari tampilan awal.** Panel pembuka tetap BB/U. [`rujukan/layar-demo.md` bagian 6.5](../../rujukan/layar-demo.md) memilihnya supaya layar bisa disandingkan langsung dengan KMS di Buku KIA yang dipegang ibu; alasan itu tidak gugur. Lima indeks lain berdiri sebagai tab **di sebelahnya**, untuk Bidan.
+- **Kurva BB/TB.** Sumbu datarnya panjang badan dalam cm, bukan umur dalam bulan — bukan varian dari kurva yang sama melainkan grafik lain. BB/TB tetap hadir sebagai kartu angka di Detail Balita, tempatnya sekarang. Tidak diminta pula: butir feedback menyebut LILA, LIKA, BB/U, TB/U, dan IMT.
+- **Menggeser BB/U dari tampilan awal.** Panel pembuka tetap BB/U. Rancangan Detail Balita tahap demo ([`riwayat/layar-demo.md` bagian 6.5](../../riwayat/layar-demo.md)) memilihnya supaya layar bisa disandingkan langsung dengan KMS di Buku KIA yang dipegang ibu; alasan itu tidak gugur. Lima indeks lain berdiri sebagai tab **di sebelahnya**, untuk Bidan.
 - **Hover detail z-score dan zoom interaktif.** Tooltip `<title>` bawaan peramban sudah memuat angkanya, jalan tanpa JS, dan terbaca pembaca layar.
 
 ## 3. Perilaku yang diharapkan

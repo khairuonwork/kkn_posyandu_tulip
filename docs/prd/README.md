@@ -1,10 +1,10 @@
-# PRD — Portal Posyandu Tulip
+# PRD — SIMPATIK Posyandu
 
 | | |
 |---|---|
 | **Jenis** | Kontrak — indeks |
 | **Status** | hidup |
-| **Perubahan berarti terakhir** | 22 September 2026 |
+| **Perubahan berarti terakhir** | 29 September 2026 |
 
 Semua yang menyatakan **apa yang akan dibangun**. Yang menjelaskan apa yang **sudah** ada tinggal di luar folder ini — mulai dari [Ringkasan](../ringkasan.md).
 
@@ -27,7 +27,9 @@ Keduanya sama-sama "fitur", tetapi berbeda status keputusannya:
 
 **`dasar/`** adalah kemampuan yang **harus** ada supaya Portal berfungsi sebagai sistem pencatatan — menyimpan hasil hitungan, mencatat riwayat perubahan, menyambungkan layar ke basis data. Tidak ada perdebatan apakah ini dikerjakan; yang ada hanya urutannya.
 
-**`feedback/`** adalah usulan pihak Posyandu setelah mencoba Portal. Isinya bagus dan sudah ditulis lengkap, tetapi **lingkupnya belum diputuskan**. Menaruhnya bersebelahan dengan kebutuhan inti akan membuat pembaca mengira semuanya sudah disepakati.
+**`feedback/`** menyimpan kebutuhan yang berasal dari percobaan Portal oleh pihak Posyandu. Pemisahan folder menjelaskan asal kebutuhan; persetujuan tiap fitur mengikuti rujukan di bawah.
+
+Catatan persetujuan lintas dokumen sebelumnya tidak konsisten. Rujukan yang berlaku untuk **persetujuan dan target rilis** sekarang ada di [PRD utama bagian 13](prd-utama.md#13-status-lingkup). Prioritas Must/Should dan kelengkapan PRD tidak berarti fitur sudah disetujui.
 
 ## Urutan kerja
 

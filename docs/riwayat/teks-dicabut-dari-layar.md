@@ -155,7 +155,7 @@ Berfungsi penuh saat dihapus — ini bukan kontrol mati.
 - **Handler:** prop `onUnduhCsv`, diisi `csvLaporan()` di `client/src/data/contoh/store.ts` lalu diserahkan ke peramban lewat blob (`unduhBerkas` di `client/demo/DemoApp.tsx`).
 - **Hak akses:** tampil untuk Bidan dan Admin, disembunyikan dari Kader (`peran !== 'kader'`).
 - **Isi berkas:** rinci, satu baris per anak dengan enam pasang kolom z-score dan status — **berbeda dari tabel di layar**, yang bersifat agregat SKDN per RT.
-- **Risiko setelah dihapus:** ini fitur yang jadi alasan layar Laporan ada ([`rujukan/layar-demo.md`](../rujukan/layar-demo.md) bagian 6.6: "berkas yang selama ini disusun manual bisa keluar dari sistem dalam satu klik").
+- **Risiko setelah dihapus:** ini fitur yang jadi alasan layar Laporan ada ([`riwayat/layar-demo.md`](layar-demo.md) bagian 6.6: "berkas yang selama ini disusun manual bisa keluar dari sistem dalam satu klik").
 - **Untuk mengembalikan:** `csvLaporan()` **masih utuh** — ia tidak ikut dihapus. Yang ikut hilang hanya pembantu `unduhBerkas()`, empat baris yang membungkus isi CSV jadi blob lalu menyerahkannya ke peramban:
 
     ```tsx

@@ -16,3 +16,7 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# Konfigurasi dan laporan alat bantu pribadi (Claude Code, Impeccable).
+.claude/
+.impeccable/

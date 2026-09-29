@@ -1,9 +1,10 @@
 /**
  * Tipe domain Posyandu.
  *
- * Bentuknya mengikuti demo/data/posyandu.json, yang menjadi kontrak props bagi
- * controller nanti (docs/rujukan/layar-demo.md bagian 10). Dideklarasikan di
- * satu tempat, tidak diketik ulang di tiap halaman (bagian 14.4).
+ * Bentuknya mengikuti src/data/contoh/posyandu.json, yang menjadi kontrak
+ * props bagi endpoint nanti (docs/arsitektur.md — Konvensi). Dideklarasikan di
+ * satu tempat, tidak diketik ulang di tiap halaman (docs/arsitektur.md —
+ * TypeScript).
  */
 
 export type JenisKelamin = 'L' | 'P';
@@ -24,7 +25,8 @@ export type Peran = 'kader' | 'bidan' | 'admin';
 export type Pengguna = {
     id: number;
     nama: string;
-    email: string;
+    /** Untuk masuk; huruf kecil, mis. `kader01`. */
+    username: string;
     peran: Peran;
     rt: string | null;
     aktif: boolean;

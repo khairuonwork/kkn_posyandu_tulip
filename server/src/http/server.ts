@@ -14,6 +14,7 @@ import type { Pool } from 'pg';
 
 import { ruteAuth } from './auth-controller.ts';
 import { sesiMiddleware, wajibJson } from './middleware.ts';
+import { rutePengguna } from './pengguna-controller.ts';
 
 export function buatApp(pool: Pool): Express {
     const app = express();
@@ -29,6 +30,7 @@ export function buatApp(pool: Pool): Express {
     app.use(sesiMiddleware(pool));
 
     app.use('/api', ruteAuth(pool));
+    app.use('/api', rutePengguna(pool));
 
     app.use('/api', (_req: Request, res: Response) => {
         res.status(404).json({ galat: 'Rute tidak ada' });

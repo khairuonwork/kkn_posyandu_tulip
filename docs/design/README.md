@@ -7,11 +7,11 @@
 | **Perubahan berarti terakhir** | 21 September 2026 |
 
 Salinan artboard dari project Claude Design `014dc8d1-6c07-42c3-bee3-4ed3963de545`.
-Rujukan untuk [bagian 8](../rujukan/layar-demo.md) PRD demo frontend dan
+Rujukan untuk [bagian 8](../riwayat/layar-demo.md) PRD demo frontend dan
 [bagian 2, 3, dan 8](../rujukan/ui-ux.md) UI/UX spec.
 
 Project memuat **sembilan artboard**. Lima sudah disalin ke sini; empat sisanya
-sudah dibaca dan isinya terekam di [bagian 13](../rujukan/layar-demo.md) PRD,
+sudah dibaca dan isinya terekam di [bagian 13](../riwayat/layar-demo.md) PRD,
 tetapi berkasnya belum disalin.
 
 ## Yang ada di folder ini
