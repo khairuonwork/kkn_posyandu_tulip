@@ -18,7 +18,6 @@ import { kodeKartuSasaran } from '@/lib/kartu-sasaran';
 import type { BarisLms } from '@/lib/z-score';
 import type { BarisAnak } from '@/pages/anak/index';
 import type { BalitaKartu } from '@/pages/kartu-sasaran/index';
-import type { BalitaTimbang } from '@/pages/layanan/index';
 import type {
     Anak,
     GarisSd,
@@ -100,62 +99,6 @@ export function balitaKartu(periodeId: string): BalitaKartu[] {
             };
         })
         .sort((a, b) => (a.nama ?? '').localeCompare(b.nama ?? ''));
-}
-
-/**
- * Daftar pencarian layar Penimbangan: seluruh balita beserta hasil timbang
- * terakhirnya, dari periode mana pun. Umur dihitung pada tanggal kegiatan
- * periode yang sedang dibuka.
- */
-export function balitaPenimbangan(periodeId: string): BalitaTimbang[] {
-    const tanggal = cariPeriode(periodeId)?.tanggalKegiatan ?? null;
-    const urutan = new Map(data.periode.map((p, i) => [p.id, i]));
-    const terakhir = new Map<number, Pengukuran>();
-
-    for (const ukur of data.pengukuran) {
-        const lama = terakhir.get(ukur.anakId);
-
-        if (
-            ukur.statusKehadiran === 'hadir' &&
-            (lama === undefined ||
-                (urutan.get(ukur.periodeId) ?? -1) >
-                    (urutan.get(lama.periodeId) ?? -1))
-        ) {
-            terakhir.set(ukur.anakId, ukur);
-        }
-    }
-
-    return data.anak.map((anak) => {
-        const ukur = terakhir.get(anak.id);
-
-        return {
-            anakId: anak.id,
-            nama: anak.nama,
-            jk: anak.jk,
-            umurBulan: umurBulanPada(anak.tglLahir, tanggal),
-            rt: anak.rt,
-            namaIbu: anak.namaOrtu,
-            kodeKartu: kodeKartuSasaran(anak),
-            nik: anak.nik,
-            nikLengkap: anak.nikLengkap,
-            nikOrtu: anak.nikOrtu,
-            tglLahir: anak.tglLahir,
-            anakKe: anak.anakKe,
-            bbLahirKg: anak.bbLahirKg,
-            pbLahirCm: anak.pbLahirCm,
-            imd: anak.imd,
-            bukuKia: anak.bukuKia,
-            terakhir:
-                ukur === undefined
-                    ? null
-                    : {
-                          tanggal: ukur.tanggalUkur,
-                          bbKg: ukur.bbKg,
-                          tinggiCm: ukur.tinggiCm,
-                          kategori: ukur.penilaian.BB_TB?.kategori ?? null,
-                      },
-        };
-    });
 }
 
 export function cariAnak(id: number): Anak | null {

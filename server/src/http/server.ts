@@ -13,6 +13,7 @@ import type { Express, NextFunction, Request, Response } from 'express';
 import type { Pool } from 'pg';
 
 import { ruteAuth } from './auth-controller.ts';
+import { ruteAnak } from './anak-controller.ts';
 import { sesiMiddleware, wajibJson } from './middleware.ts';
 import { rutePengguna } from './pengguna-controller.ts';
 
@@ -29,8 +30,27 @@ export function buatApp(pool: Pool): Express {
     app.use(wajibJson);
     app.use(sesiMiddleware(pool));
 
+    // HTML tablet dibundel sebagai file lokal WebView sehingga origin-nya
+    // `null`. Hanya API v1 bertoken yang dibuka untuk origin tersebut.
+    app.use('/api/v1', (req, res, next) => {
+        if (req.headers.origin === 'null') {
+            res.set('Access-Control-Allow-Origin', 'null');
+            res.set('Vary', 'Origin');
+            res.set('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+            res.set('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
+        }
+
+        if (req.method === 'OPTIONS') {
+            res.status(204).end();
+            return;
+        }
+
+        next();
+    });
+
     app.use('/api', ruteAuth(pool));
     app.use('/api', rutePengguna(pool));
+    app.use('/api/v1', ruteAnak(pool));
 
     app.use('/api', (_req: Request, res: Response) => {
         res.status(404).json({ galat: 'Rute tidak ada' });

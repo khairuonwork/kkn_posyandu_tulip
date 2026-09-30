@@ -12,7 +12,7 @@ import * as penggunaRepo from '../repositories/pengguna-repository.ts';
 import { GalatMasuk, keluar, masuk } from '../services/auth-service.ts';
 import { catatBerhasil, catatGagal, sisaTahanan } from './batas-masuk.ts';
 import { bacaCookie, hapusCookieSesi, NAMA_COOKIE_SESI, pasangCookieSesi } from './cookie.ts';
-import { wajibMasuk } from './middleware.ts';
+import { tokenPermintaan, wajibMasuk } from './middleware.ts';
 
 function alamat(ip: string | undefined): string {
     return ip ?? 'tidak-diketahui';
@@ -63,6 +63,62 @@ export function ruteAuth(pool: Pool): Router {
 
                 res.status(401).json({ galat: galat.message });
             });
+    });
+
+    // Aplikasi tablet memakai token Bearer karena cookie httpOnly adalah
+    // mekanisme sesi peramban. Token tetap tersimpan di tabel sesi yang sama,
+    // sehingga penonaktifan akun mencabut akses Portal dan tablet seketika.
+    rute.post('/v1/masuk', (req, res, next) => {
+        const username = typeof req.body?.username === 'string' ? req.body.username.trim() : '';
+        const kataSandi = typeof req.body?.kataSandi === 'string' ? req.body.kataSandi : '';
+
+        if (username === '' || kataSandi === '') {
+            res.status(400).json({ galat: 'Nama pengguna dan kata sandi wajib diisi' });
+            return;
+        }
+
+        const ip = alamat(req.ip);
+        const tahan = sisaTahanan(username, ip);
+        if (tahan > 0) {
+            res.set('Retry-After', String(tahan)).status(429).json({
+                galat: `Terlalu banyak percobaan. Coba lagi dalam ${tahan} detik.`,
+            });
+            return;
+        }
+
+        masuk(pool, username, kataSandi)
+            .then((hasil) => {
+                catatBerhasil(username, ip);
+                res.json({
+                    token: hasil.token,
+                    kedaluwarsa: hasil.kedaluwarsa.toISOString(),
+                    pengguna: hasil.pengguna,
+                });
+            })
+            .catch((galat: unknown) => {
+                if (!(galat instanceof GalatMasuk)) {
+                    next(galat);
+                    return;
+                }
+
+                catatGagal(username, ip);
+                res.status(401).json({ galat: galat.message });
+            });
+    });
+
+    rute.post('/v1/keluar', wajibMasuk, async (req, res, next) => {
+        const token = tokenPermintaan(req);
+        if (token === null) {
+            res.status(204).end();
+            return;
+        }
+
+        try {
+            await keluar(pool, token);
+            res.status(204).end();
+        } catch (galat) {
+            next(galat);
+        }
     });
 
     rute.post('/keluar', (req, res, next) => {

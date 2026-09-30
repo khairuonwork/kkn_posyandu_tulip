@@ -11,7 +11,6 @@
 import type { Rute } from '@/app-shell';
 import {
     balitaKartu,
-    balitaPenimbangan,
     cakupanEnamBulan,
     cariPeriode,
     daftarAnak,
@@ -38,7 +37,6 @@ import Dashboard from '@/pages/dashboard';
 import KartuSasaran from '@/pages/kartu-sasaran/index';
 import Laporan from '@/pages/laporan/index';
 import type { TabPeriode } from '@/pages/laporan/index';
-import LayananPosyandu from '@/pages/layanan/index';
 import Pengaturan from '@/pages/pengaturan/index';
 import type {
     Ambang,
@@ -156,6 +154,7 @@ export type LayarProps = {
         id: number | null,
         isian: IsianPengguna,
     ) => Promise<string | null>;
+    anakServer?: BarisAnak[] | null;
     tabLaporan: TabPeriode;
     onGantiTabLaporan: (tab: TabPeriode) => void;
 };
@@ -179,6 +178,7 @@ export function Layar({
     onSimpanStandarisasi,
     pengguna,
     onSimpanPengguna,
+    anakServer,
 }: LayarProps) {
     const periode = cariPeriode(periodeId);
     // Satu sumber untuk lingkup data kader, dipakai Beranda, Data Balita, dan
@@ -206,9 +206,14 @@ export function Layar({
         // Baris arsip dulu dengan koreksinya, lalu anak yang baru ditambah.
         // Anak baru berada di bawah dengan sengaja: ia satu-satunya baris tanpa
         // status gizi, dan menaruhnya di puncak daftar terbaca seperti galat.
-        const baris = daftarAnak(periodeId)
+        const sumber = anakServer ?? daftarAnak(periodeId);
+        const baris = sumber
             .map((b) => terapkanKoreksi(b, koreksi[b.anakId]))
-            .concat(tambahan.map((t, i) => keBaris(t, i, periode)));
+            .concat(
+                anakServer === undefined
+                    ? tambahan.map((t, i) => keBaris(t, i, periode))
+                    : [],
+            );
 
         return (
             <DaftarAnak
@@ -221,19 +226,6 @@ export function Layar({
                 standarLms={standarLms}
                 onSimpanAnak={onSimpanAnak}
                 onTambahAnak={onTambahAnak}
-            />
-        );
-    }
-
-    if (rute.nama === 'layanan') {
-        // Kader hanya mencari di RT binaannya.
-        return (
-            <LayananPosyandu
-                balita={balitaPenimbangan(periodeId).filter(
-                    (b) => rtLingkup === null || b.rt === rtLingkup,
-                )}
-                ambang={ambang}
-                standarLms={standarLms}
             />
         );
     }

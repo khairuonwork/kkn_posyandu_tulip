@@ -19,6 +19,8 @@ export type Aksi =
     | 'lihat-anak'
     | 'lihat-kms'
     | 'lihat-rekap'
+    | 'daftar-anak-lapangan'
+    | 'catat-pengukuran-lapangan'
     // Bidan ke atas
     | 'ubah-anak'
     | 'ubah-pengukuran'
@@ -45,6 +47,8 @@ const MINIMUM: Readonly<Record<Aksi, Peran>> = {
     'lihat-anak': 'kader',
     'lihat-kms': 'kader',
     'lihat-rekap': 'kader',
+    'daftar-anak-lapangan': 'kader',
+    'catat-pengukuran-lapangan': 'kader',
 
     'ubah-anak': 'bidan',
     'ubah-pengukuran': 'bidan',

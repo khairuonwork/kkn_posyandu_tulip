@@ -4,7 +4,7 @@
 |---|---|
 | **Jenis** | Panduan — pengembangan lokal |
 | **Status** | hidup |
-| **Perubahan berarti terakhir** | 30 September 2026 |
+| **Perubahan berarti terakhir** | 1 Oktober 2026 |
 
 Sistem pencatatan, pemantauan, dan pelaporan status gizi balita Posyandu Tulip RW 18, Kelurahan Citeureup. Baru bergabung? Mulai dari [docs/mulai-di-sini.md](docs/mulai-di-sini.md): aplikasi ini apa, peta layarnya, dan apa yang dibaca berikutnya. Dokumentasi lengkap ada di [docs/](docs/README.md).
 
@@ -13,6 +13,7 @@ Sistem pencatatan, pemantauan, dan pelaporan status gizi balita Posyandu Tulip R
 | [`server/`](server/) | API dan perhitungan gizi: Node, TypeScript, PostgreSQL |
 | [`client/`](client/) | Antarmuka: React, Tailwind |
 | [`docs/`](docs/README.md) | Dokumentasi produk dan teknis |
+| [`archive-fitur/`](archive-fitur/) | Fitur web yang dinonaktifkan tetapi disimpan agar dapat dipulihkan |
 
 `server/` dan `client/` masing-masing punya `package.json` sendiri; di akar repo tidak ada.
 
@@ -105,7 +106,10 @@ Buka http://localhost:5173 dan masuk, misalnya sebagai `admin`.
 
 Setelah `git pull`, jalankan `npm ci` di folder yang dependensinya berubah, lalu `npm run migrate` dari `server/`.
 
-> Yang sudah tersambung ke database baru masuk/keluar dan daftar akun. Layar lain masih menampilkan data contoh; lihat [rencana kerja](docs/rencana-kerja.md).
+> Masuk/keluar, daftar akun, Data Balita, dan REST API Android sudah tersambung
+> ke database live. Input pengukuran hanya tersedia di aplikasi Android;
+> halaman Penimbangan web telah diarsipkan. Dashboard, laporan, dan sebagian
+> detail masih memakai data contoh; lihat [rencana kerja](docs/rencana-kerja.md).
 
 ### Demo tanpa database
 

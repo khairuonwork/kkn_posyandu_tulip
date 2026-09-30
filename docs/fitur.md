@@ -4,7 +4,7 @@
 |---|---|
 | **Jenis** | Orientasi |
 | **Status** | hidup |
-| **Perubahan berarti terakhir** | 29 September 2026 |
+| **Perubahan berarti terakhir** | 1 Oktober 2026 |
 
 Seluruh kemampuan SIMPATIK Posyandu beserta keadaannya hari ini. Untuk tahu **apa yang sudah bisa dipakai**, baca tabel pertama saja.
 
@@ -20,8 +20,8 @@ Urutan pengerjaan yang berlaku ada di [Rencana kerja](rencana-kerja.md). Perilak
 | Perhitungan umur, skema basis data, aturan integritasnya | **Berjalan** |
 | Login, tiga peran, pembatasan kader ke RT binaan | **Berjalan** — ditegakkan server, bukan antarmuka |
 | Kelola akun di Pengaturan › Pengguna dan peran | **Berjalan** — tersimpan ke basis data lewat `/api/pengguna`, khusus admin, tercatat di audit. Wajib ganti kata sandi awal saat pertama masuk belum ada |
-| Sembilan layar: Beranda, Penimbangan, Data Balita, Detail Balita, Detail riwayat penimbangan, Kartu Balita, Laporan, Sasaran & Impor, Pengaturan ([peta layar](mulai-di-sini.md#peta-layar)) | **Tampilannya jadi** — masih menampilkan [data contoh](rujukan/data-contoh.md), kecuali daftar akun. Sasaran & Impor belum menyimpan apa pun; Penimbangan hanya menyimpan antrean hari ini di peramban |
-| Kartu balita ber-QR dan pemindaiannya | **Berjalan di peramban** — QR kartu bisa dipindai kamera di Penimbangan maupun pemindai Android v1.6 ([format](arsitektur.md#kartu-balita)). Antrean hari ini tersimpan di peramban, belum ke server |
+| Delapan layar web: Beranda, Data Balita, Detail Balita, Detail riwayat penimbangan, Kartu Balita, Laporan, Sasaran & Impor, Pengaturan ([peta layar](mulai-di-sini.md#peta-layar)) | **Tampilannya jadi** — Data Balita memakai REST API live; sebagian layar lain masih menampilkan [data contoh](rujukan/data-contoh.md). Fitur input Penimbangan web diarsipkan karena menjadi tanggung jawab aplikasi Android |
+| Kartu balita ber-QR dan pemindaiannya | **Berjalan** — kartu dibuat/cetak dari Portal dan QR dipindai aplikasi Android ([format](arsitektur.md#kartu-balita)) |
 | Jalur dari basis data ke layar | **Baru untuk daftar akun** — data balita, pengukuran, dan laporan belum |
 | Penyimpanan hasil perhitungan gizi | **Berjalan** — `hitungDanSimpan()`, lihat [B01](prd/dasar/B01-simpan-hasil-gizi.md) |
 | Pencatatan riwayat perubahan (audit) | **Berjalan setelah migrasi 004–005** — trigger tujuh tabel; cakupan dan batasnya di [Basis Data](database.md#audit), kontrak selesai di [B02](prd/dasar/B02-jejak-audit.md) |
@@ -46,7 +46,7 @@ Tabel ini memetakan kemampuan inti dan perluasan yang diusulkan. Judul modul tid
 | **M7 — Impor arsip** | Perintah impor untuk memuat arsip 2025–2026, lengkap dengan laporan konflik dan mode uji-coba. Rancangannya di [`rujukan/migrasi-data.md`](rujukan/migrasi-data.md); perintahnya belum ada di stack baru. |
 | **M8 — Akun dan peran** | Autentikasi, pengelolaan akun kader, penetapan peran. Mesinnya sudah berdiri di [`server/src/auth/`](../server/src/auth) — kata sandi di-*hash* scrypt, sesi tersimpan di basis data dan dapat dicabut seketika, matriks peran ditegakkan server. Layar pengelolaannya, Pengaturan › Pengguna dan peran, tersambung ke basis data sejak 28 September 2026. Wajib ganti kata sandi awal saat pertama masuk belum ada. |
 | **M9 — Komunikasi orang tua** | Nomor WhatsApp orang tua pada profil. Kartu edukasi dan anjuran rujukan yang menyesuaikan hasil ukur anak. Penyusun pesan hasil pengukuran yang dapat langsung diteruskan ke WhatsApp orang tua. |
-| **M10 — Skrining dan validasi meja** | Peringatan angka tidak wajar saat kader mengetik, dibandingkan terhadap pengukuran bulan sebelumnya. Skrining kelengkapan identitas saat pendaftaran. Status pertumbuhan N/T/O/B. |
+| **M10 — Skrining dan validasi meja** | Peringatan angka tidak wajar di aplikasi Android saat kader mengetik, dibandingkan terhadap pengukuran bulan sebelumnya. Skrining kelengkapan identitas saat pendaftaran. Status pertumbuhan N/T/O/B. |
 | **M11 — Aksesibilitas kader** | Mode tampilan teks besar. Lembar cetak A4 sebagai bukti fisik kegiatan. |
 
 M9–M11 berasal dari feedback lapangan, bukan dari analisis arsip seperti M1–M8. Ketiganya menjawab keluhan yang sama dari arah berbeda: **data yang benar di layar tidak berarti apa-apa kalau tidak sampai ke orang tua, tidak tertangkap saat salah ketik, dan tidak punya wujud di atas kertas.**

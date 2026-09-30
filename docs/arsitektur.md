@@ -195,7 +195,6 @@ Alamatnya memakai hash (`#/balita/12`), bukan path. Router dan penjaga rutenya a
 | Alamat | Berkas di `client/src/pages/` | Peran | Isi |
 |---|---|---|---|
 | `#/beranda` | `dashboard.tsx` | semua | Angka S, D, D/S, dan N bulan berjalan; sebaran status gizi; cakupan dan tren enam bulan; daftar Perlu perhatian |
-| `#/layanan` | `layanan/index.tsx` | semua | Penimbangan: pindai kartu dengan kamera atau cari balita, periksa identitas, masukkan antrean hari ini, lalu catat berat dan tinggi. Hasil ukur belum disimpan; antrean hanya di peramban |
 | `#/balita` | `anak/index.tsx` | semua | Data Balita: tabel, pencarian, saringan, tambah dan ubah |
 | `#/balita/{id}` | `anak/show.tsx` | semua | Detail Balita: identitas, kurva KMS, status gizi, riwayat singkat, dialog Ubah data dan Cetak kartu |
 | `#/balita/{id}/riwayat` | `anak/riwayat.tsx` | semua | Seluruh hasil ukur satu balita beserta z-score |
@@ -206,6 +205,10 @@ Alamatnya memakai hash (`#/balita/12`), bukan path. Router dan penjaga rutenya a
 | — | `auth/login.tsx` | — | Layar Masuk |
 
 Alamat lain jatuh ke Beranda, dan alamat yang tidak boleh dibuka suatu peran dikembalikan ke Beranda. Itu kenyamanan; penolakan yang mengikat tetap di server.
+
+Input pengukuran hanya ada di aplikasi Android. Implementasi React lama untuk
+`#/layanan` disimpan di [`archive-fitur/penimbangan`](../archive-fitur/penimbangan/README.md)
+dan tidak ikut dalam build website.
 
 Yang pernah dirancang tetapi tidak dibangun: halaman Periode dan form profil anak tersendiri. Penggantinya pemilih periode di sidebar dan dialog Ubah data.
 

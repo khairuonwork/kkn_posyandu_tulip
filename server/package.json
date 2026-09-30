@@ -16,6 +16,7 @@
         "seed:contoh": "node --env-file=.env db/seed-contoh.ts",
         "pengguna:buat": "node --env-file=.env db/buat-pengguna.ts",
         "pengguna:sandi": "node --env-file=.env db/ganti-sandi.ts",
+        "akun:siapkan": "node --env-file=.env db/siapkan-akun-live.ts",
         "db:up": "docker compose up -d",
         "db:down": "docker compose down"
     },

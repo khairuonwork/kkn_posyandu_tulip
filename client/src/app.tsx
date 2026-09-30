@@ -17,6 +17,7 @@ import {
     STANDARISASI_BAWAAN,
 } from '@/data/contoh/store';
 import { Layar } from '@/layar';
+import { useAnakServer } from '@/lib/anak';
 import { navigate, useAlamat } from '@/lib/nav';
 import { usePenggunaServer } from '@/lib/pengguna';
 import { useSesi } from '@/lib/sesi';
@@ -108,6 +109,7 @@ function Portal({
         peran === 'admin' && rute.nama === 'pengaturan',
         onSesiBerakhir,
     );
+    const anakServer = useAnakServer(onSesiBerakhir);
 
     // Alamat yang tidak boleh dibuka peran ini dikembalikan ke Beranda. Ini
     // kenyamanan; penolakan yang mengikat ada di server.
@@ -155,6 +157,7 @@ function Portal({
                 onSimpanStandarisasi={setStandarisasi}
                 pengguna={akun.daftar}
                 onSimpanPengguna={akun.simpan}
+                anakServer={anakServer}
             />
         </Cangkang>
     );

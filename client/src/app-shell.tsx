@@ -15,7 +15,6 @@ import {
     LogOut,
     Menu as MenuIcon,
     Settings,
-    Stethoscope,
     Upload,
     X,
 } from 'lucide-react';
@@ -29,7 +28,6 @@ import type { Peran } from '@/types/posyandu';
 
 export type Rute =
     | { nama: 'beranda' }
-    | { nama: 'layanan' }
     | { nama: 'balita' }
     | { nama: 'detail'; id: number }
     | { nama: 'riwayat'; id: number }
@@ -38,7 +36,7 @@ export type Rute =
     | { nama: 'kartu-sasaran'; id?: number }
     | { nama: 'pengaturan' };
 
-/** Router, seluruhnya. Tanpa pustaka: sembilan alamat dan dua parameter. */
+/** Router portal, seluruhnya, tanpa pustaka tambahan. */
 export function bacaRute(alamat: string): Rute {
     const detail = /^\/balita\/(\d+)$/.exec(alamat);
     const riwayat = /^\/balita\/(\d+)\/riwayat$/.exec(alamat);
@@ -59,9 +57,6 @@ export function bacaRute(alamat: string): Rute {
     switch (alamat) {
         case '/balita':
             return { nama: 'balita' };
-
-        case '/layanan':
-            return { nama: 'layanan' };
 
         case '/laporan':
             return { nama: 'laporan' };
@@ -110,12 +105,6 @@ const SEMUA: Peran[] = ['kader', 'bidan', 'admin'];
 
 const NAV: ButirNav[] = [
     { href: '/beranda', label: 'Beranda', ikon: House, peran: SEMUA },
-    {
-        href: '/layanan',
-        label: 'Penimbangan',
-        ikon: Stethoscope,
-        peran: SEMUA,
-    },
     { href: '/balita', label: 'Data Balita', ikon: Baby, peran: SEMUA },
     {
         href: '/kartu-sasaran',

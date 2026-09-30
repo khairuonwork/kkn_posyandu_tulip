@@ -18,9 +18,22 @@ import { boleh } from '../auth/peran.ts';
 import { dariToken } from '../services/auth-service.ts';
 import { bacaCookie, NAMA_COOKIE_SESI } from './cookie.ts';
 
+/** Cookie untuk Portal, Bearer token untuk aplikasi tablet. */
+export function tokenPermintaan(req: Request): string | null {
+    const authorization = req.headers.authorization;
+
+    if (authorization?.startsWith('Bearer ')) {
+        const token = authorization.slice('Bearer '.length).trim();
+
+        return token === '' ? null : token;
+    }
+
+    return bacaCookie(req.headers.cookie, NAMA_COOKIE_SESI);
+}
+
 export function sesiMiddleware(pool: Pool): RequestHandler {
     return (req: Request, _res: Response, next: NextFunction) => {
-        const token = bacaCookie(req.headers.cookie, NAMA_COOKIE_SESI);
+        const token = tokenPermintaan(req);
 
         if (token === null || token === '') {
             next();

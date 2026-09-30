@@ -51,7 +51,7 @@ try {
         isi: isi.rows[0],
     }, null, 2));
 
-    if (migrasi.rowCount !== 7 || standar.rows[0].jumlah !== 906 || objek.rowCount !== 2 || fungsi.rowCount !== 2 || rls.rows.some((baris) => !baris.aktif)) {
+    if (migrasi.rowCount !== 8 || standar.rows[0].jumlah !== 906 || objek.rowCount !== 2 || fungsi.rowCount !== 2 || rls.rows.some((baris) => !baris.aktif)) {
         throw new Error('Verifikasi Supabase belum lengkap.');
     }
 } finally {

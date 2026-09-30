@@ -5,6 +5,10 @@
 
 > **Catatan 22 September 2026.** Pembagian tanggung jawab Portal dan Aplikasi Tablet **tetap berlaku utuh** — itulah inti ADR ini, dan tidak ada yang berubah. Tiga penyebutan teknologi di dalamnya sudah usang sejak [ADR-0006](0006-pindah-ke-express-react-postgres.md): Portal bukan lagi Laravel + Inertia melainkan Express + React SPA, impornya bukan `php artisan posyandu:import` melainkan skrip di `server/db/` yang **belum dibangun**, dan rumus z-score kini tinggal di `server/src/antropometri/`. Nama teknologinya berubah; batas tanggung jawabnya tidak.
 
+> **Catatan 1 Oktober 2026.** Batas ini kini diterapkan di UI: menu dan route
+> Penimbangan di Portal dihapus. Kode halaman lama tidak dibuang, tetapi
+> disimpan di [`archive-fitur/penimbangan`](../../archive-fitur/penimbangan/README.md).
+
 ## Konteks
 
 PRD v1.0 memperlakukan produk ini sebagai satu aplikasi utuh, termasuk pencatatan di lokasi Posyandu. Ternyata pemilik program merencanakan **dua** aplikasi:
