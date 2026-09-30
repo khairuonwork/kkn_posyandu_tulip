@@ -4,7 +4,7 @@
 |---|---|
 | **Jenis** | Panduan — pengembangan lokal |
 | **Status** | hidup |
-| **Perubahan berarti terakhir** | 29 September 2026 |
+| **Perubahan berarti terakhir** | 30 September 2026 |
 
 Sistem pencatatan, pemantauan, dan pelaporan status gizi balita Posyandu Tulip RW 18, Kelurahan Citeureup. Baru bergabung? Mulai dari [docs/mulai-di-sini.md](docs/mulai-di-sini.md): aplikasi ini apa, peta layarnya, dan apa yang dibaca berikutnya. Dokumentasi lengkap ada di [docs/](docs/README.md).
 
@@ -38,6 +38,28 @@ npm run seed
 ```
 
 `migrate` membuat tabel, `seed` mengisi tabel standar WHO. Keduanya aman diulang.
+
+### Supabase produksi
+
+Proyek produksi memakai PostgreSQL Supabase. Pada Windows, buat `server/.env`
+tanpa menampilkan kata sandi di terminal:
+
+```powershell
+.\server\setup-supabase-env.ps1
+```
+
+Masukkan **Database Password** proyek ketika diminta, lalu jalankan dari folder
+`server/`:
+
+```powershell
+node --experimental-strip-types --env-file=.env db/migrate.ts
+node --experimental-strip-types --env-file=.env db/seed-standar-lms.ts
+node --experimental-strip-types --env-file=.env db/verify-supabase.ts
+```
+
+Migrasi `007_api_tablet_supabase.sql` menyediakan view baca dan RPC atomik untuk
+Android. RLS mewajibkan sesi Supabase Auth; publishable key boleh berada di APK,
+sedangkan secret key dan Database Password tidak boleh masuk repository.
 
 Lalu isi wilayah (Posyandu Tulip, RT 01–07) dan akun contoh. Pilih sendiri kata sandinya, minimal 8 karakter, dan jalankan dari `server/`:
 

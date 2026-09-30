@@ -1,5 +1,7 @@
 node_modules/
 dist-demo/
+server/db/*.generated.sql
+server/.npm-cache/
 
 .env
 .env.backup
