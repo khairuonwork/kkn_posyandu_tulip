@@ -17,7 +17,8 @@
  */
 
 import { useState } from 'react';
-import { satuan, tanggalRingkas, zScore } from '@/lib/format';
+import { nadaKategori } from '@/components/status-gizi-badge';
+import { angka, KOSONG, satuan, tanggalRingkas, zScore } from '@/lib/format';
 import type { GarisSd, JenisKelamin } from '@/types/posyandu';
 
 const LEBAR = 1500;
@@ -41,6 +42,14 @@ const PITA_HIJAU_TUA = '#1E8C34';
 const GARIS_MERAH = '#D92B0C';
 const TINTA = '#16211C';
 const TEKS_SEKUNDER = '#4A5750';
+
+const WARNA_NADA: Record<string, string> = {
+    merah: 'text-tone-red',
+    oranye: 'text-tone-amber',
+    hijau: 'text-tone-green',
+    biru: 'text-tone-blue',
+    netral: 'text-muted-foreground',
+};
 
 const EPSILON_L = 1e-7;
 
@@ -108,8 +117,13 @@ export default function KmsChart({
                     12,
             ),
     );
+    // Urutan titik di panel aktif: yang disorot tetikus dan yang diketuk.
+    const [sorot, setSorot] = useState<number | null>(null);
+    const [pin, setPin] = useState<number | null>(null);
     const gantiPanel = (awal: number) => {
         setPanel(awal);
+        setSorot(null);
+        setPin(null);
         onGantiPanel?.(awal);
     };
 
@@ -225,6 +239,27 @@ export default function KmsChart({
     }
 
     const acuan = kelamin === 'P' ? 'perempuan' : 'laki-laki';
+
+    // Kartu rincian: di atas titik bila muat, di bawahnya bila tidak.
+    const urutanAktif = sorot ?? pin;
+    const aktif = urutanAktif === null ? undefined : kunjungan[urutanAktif];
+    const kartu = (() => {
+        if (aktif === undefined) {
+            return null;
+        }
+
+        const lebar = 380;
+        const tinggi = 112;
+        const cx = x(aktif.umurBulan);
+        const cy = y(aktif.beratKg);
+        const kiri = Math.min(
+            Math.max(cx - lebar / 2, KIRI + 6),
+            KIRI + PLOT_LEBAR - lebar - 6,
+        );
+        const atas = cy - tinggi - 22 > ATAS ? cy - tinggi - 22 : cy + 22;
+
+        return { cx, cy, kiri, atas, lebar, tinggi };
+    })();
 
     return (
         <div>
@@ -482,28 +517,161 @@ export default function KmsChart({
                                         fill="#FFFFFF"
                                         stroke={TINTA}
                                         strokeWidth={3.5}
-                                    >
-                                        {/* <title> memberi tooltip asli
-                                            peramban tanpa JS, dan ikut terbaca
-                                            pembaca layar. */}
-                                        <title>
-                                            {[
-                                                tanggalRingkas(
-                                                    d?.tanggal ?? null,
-                                                ),
-                                                satuan(kg, 'kg', 2),
-                                                nilaiTitik,
-                                                `${umur} bulan`,
-                                                d?.kategori ?? null,
-                                            ]
-                                                .filter((b) => b !== null)
-                                                .join(' · ')}
-                                        </title>
-                                    </circle>
+                                    />
+                                    {/* Sasaran sentuh yang lebih lebar dari
+                                        titiknya. Rinciannya muncul saat
+                                        disorot tetikus, diketuk, atau difokus
+                                        papan tombol, dan ikut terbaca pembaca
+                                        layar lewat aria-label. */}
+                                    <circle
+                                        cx={x(umur)}
+                                        cy={y(kg)}
+                                        r={22}
+                                        fill="transparent"
+                                        className="cursor-pointer"
+                                        tabIndex={0}
+                                        role="button"
+                                        aria-label={[
+                                            tanggalRingkas(d?.tanggal ?? null),
+                                            `umur ${umur} bulan`,
+                                            satuan(kg, 'kg', 2),
+                                            nilaiTitik,
+                                            d?.kategori ?? null,
+                                        ]
+                                            .filter((b) => b !== null)
+                                            .join(', ')}
+                                        aria-pressed={pin === urutan}
+                                        onClick={() =>
+                                            setPin((lama) =>
+                                                lama === urutan ? null : urutan,
+                                            )
+                                        }
+                                        onKeyDown={(e) => {
+                                            if (
+                                                e.key === 'Enter' ||
+                                                e.key === ' '
+                                            ) {
+                                                e.preventDefault();
+                                                setPin((lama) =>
+                                                    lama === urutan
+                                                        ? null
+                                                        : urutan,
+                                                );
+                                            }
+                                        }}
+                                        onMouseEnter={() => setSorot(urutan)}
+                                        onMouseLeave={() => setSorot(null)}
+                                        onFocus={() => setSorot(urutan)}
+                                        onBlur={() => setSorot(null)}
+                                    />
                                 </g>
                             );
                         })}
                     </g>
+
+                    {/* Kartu rincian dan garis bantu ke kedua sumbu. Digambar
+                        di luar klip supaya kartunya tidak terpotong. */}
+                    {kartu !== null && aktif !== undefined && (
+                        <g pointerEvents="none">
+                            <line
+                                x1={kartu.cx}
+                                x2={kartu.cx}
+                                y1={kartu.cy}
+                                y2={ATAS + PLOT_TINGGI}
+                                stroke={TINTA}
+                                strokeWidth={2}
+                                strokeDasharray="7 6"
+                            />
+                            <line
+                                x1={KIRI}
+                                x2={kartu.cx}
+                                y1={kartu.cy}
+                                y2={kartu.cy}
+                                stroke={TINTA}
+                                strokeWidth={2}
+                                strokeDasharray="7 6"
+                            />
+                            <rect
+                                x={kartu.cx - 24}
+                                y={ATAS + PLOT_TINGGI + 6}
+                                width={48}
+                                height={28}
+                                rx={5}
+                                fill={TINTA}
+                            />
+                            <text
+                                x={kartu.cx}
+                                y={ATAS + PLOT_TINGGI + 26}
+                                textAnchor="middle"
+                                fontSize={17}
+                                fontWeight={700}
+                                fill="#FFFFFF"
+                            >
+                                {aktif.umurBulan}
+                            </text>
+                            <rect
+                                x={KIRI - 60}
+                                y={kartu.cy - 14}
+                                width={56}
+                                height={28}
+                                rx={5}
+                                fill={TINTA}
+                            />
+                            <text
+                                x={KIRI - 32}
+                                y={kartu.cy + 6}
+                                textAnchor="middle"
+                                fontSize={17}
+                                fontWeight={700}
+                                fill="#FFFFFF"
+                            >
+                                {angka(aktif.beratKg, 1)}
+                            </text>
+                            <rect
+                                x={kartu.kiri}
+                                y={kartu.atas}
+                                width={kartu.lebar}
+                                height={kartu.tinggi}
+                                rx={10}
+                                fill="#FFFFFF"
+                                stroke={TINTA}
+                                strokeWidth={2}
+                            />
+                            <text
+                                x={kartu.kiri + 16}
+                                y={kartu.atas + 30}
+                                fontSize={16}
+                                fontWeight={600}
+                                fill={TEKS_SEKUNDER}
+                            >
+                                {tanggalRingkas(aktif.tanggal)} · umur{' '}
+                                {aktif.umurBulan} bulan
+                            </text>
+                            <text
+                                x={kartu.kiri + 16}
+                                y={kartu.atas + 62}
+                                fontSize={21}
+                                fontWeight={800}
+                                fill={TINTA}
+                            >
+                                Berat badan {satuan(aktif.beratKg, 'kg', 2)}
+                            </text>
+                            <text
+                                x={kartu.kiri + 16}
+                                y={kartu.atas + 94}
+                                fontSize={18}
+                                fontWeight={700}
+                                fill="currentColor"
+                                className={
+                                    WARNA_NADA[nadaKategori(aktif.kategori)]
+                                }
+                            >
+                                {aktif.z === null
+                                    ? KOSONG
+                                    : `${zScore(aktif.z)} SD${aktif.kategori === null ? '' : ` · ${aktif.kategori}`}`}
+                            </text>
+                        </g>
+                    )}
                 </svg>
             </div>
 

@@ -29,13 +29,12 @@ import { useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import BarisDefinisi from '@/components/baris-definisi';
 import Dialog, { KakiDialog } from '@/components/dialog';
+import DialogKirimWa from '@/components/dialog-kirim-wa';
+import GrafikPertumbuhan from '@/components/grafik-pertumbuhan';
 import Halaman from '@/components/halaman';
 import KartuBalita, { LembarCetak } from '@/components/kartu-balita';
 import KmsChart from '@/components/kms-chart-sep24';
-import {
-    nadaKategori,
-    PERLU_TINDAK_LANJUT,
-} from '@/components/status-gizi-badge';
+import { nadaKategori } from '@/components/status-gizi-badge';
 import {
     Table,
     TableBody,
@@ -61,8 +60,12 @@ import {
 } from '@/lib/format';
 import { kodeKartuSasaran } from '@/lib/kartu-sasaran';
 import { kbmKg } from '@/lib/kategori';
+import { tandaGizi, tentukanKesimpulan } from '@/lib/kesimpulan-gizi';
+import { buatTautanLembar } from '@/lib/lembar';
 import { Link } from '@/lib/nav';
 import { penilaianLayak, terbaruUntuk } from '@/lib/penilaian-utama';
+import { kalimatKesimpulan, nomorBaku, susunPesan } from '@/lib/pesan-wa';
+import type { BarisLms } from '@/lib/z-score';
 import type { PatchAnak } from '@/pages/anak/index';
 import type {
     Anak,
@@ -73,6 +76,9 @@ import type {
     Periode,
     Peran,
 } from '@/types/posyandu';
+
+/** Nomor uji WhatsApp dari client/.env.local; null di lingkungan sebenarnya. */
+const NOMOR_UJI = nomorBaku(import.meta.env.VITE_WA_NOMOR_UJI);
 
 const ARTI_NTOB: Record<string, string> = {
     N: 'N, naik',
@@ -116,12 +122,13 @@ export type AmbangDetail = {
     ambangRujukan: number;
 };
 
-type TabDetail = 'profil' | 'status' | 'kurva' | 'riwayat';
+type TabDetail = 'profil' | 'status' | 'kurva' | 'grafik' | 'riwayat';
 
 const TAB_DETAIL: { nilai: TabDetail; label: string }[] = [
     { nilai: 'profil', label: 'Profil Anak' },
     { nilai: 'status', label: 'Status Gizi' },
     { nilai: 'kurva', label: 'Kurva KMS' },
+    { nilai: 'grafik', label: 'Grafik Pertumbuhan' },
     { nilai: 'riwayat', label: 'Riwayat Ukur' },
 ];
 
@@ -130,6 +137,8 @@ type Props = {
     /** Seluruh pengukuran lintas periode, terbaru di atas. */
     pengukuran: Pengukuran[];
     garisSd: GarisSd[];
+    /** Tabel LMS WHO keenam indeks, untuk tab Grafik Pertumbuhan. */
+    standarLms: BarisLms[];
     peran: Peran;
     /** Periode yang sedang dilihat. Menentukan umur dan status utama. */
     periode: Periode;
@@ -211,6 +220,7 @@ export default function DetailAnak({
     anak,
     pengukuran,
     garisSd,
+    standarLms,
     peran,
     periode,
     ambang,
@@ -222,8 +232,7 @@ export default function DetailAnak({
 }: Props) {
     const [umurDisorot, setUmurDisorot] = useState<number | null>(null);
     const [tabAktif, setTabAktif] = useState<TabDetail>('profil');
-    const [dialog, setDialog] = useState<'ubah' | 'cetak' | null>(null);
-    const [tanpaWa, setTanpaWa] = useState(false);
+    const [dialog, setDialog] = useState<'ubah' | 'cetak' | 'wa' | null>(null);
     const bolehUbah = peran !== 'kader' && onSimpan !== undefined;
     const bolehCetak = peran !== 'kader';
     const terbaru = terbaruUntuk(pengukuran, periode);
@@ -278,50 +287,50 @@ export default function DetailAnak({
             URUT_NADA[nadaKategori(b.nilai?.kategori ?? null)],
     );
 
-    const perluTindakLanjut = indeks.some(
-        (i) =>
-            i.nilai?.kategori !== null &&
-            i.nilai?.kategori !== undefined &&
-            PERLU_TINDAK_LANJUT.includes(i.nilai.kategori),
+    // Aturan yang sama dipakai pesan WhatsApp dan Lembar Hasil.
+    const penilaianUtama = terbaru?.penilaian ?? {};
+    const { perluRujukan, perluWaspada, perluTindakLanjut } = tandaGizi(
+        penilaianUtama,
+        ambang,
     );
-    const perluRujukan = indeks.some(
-        (i) => i.nilai !== undefined && i.nilai.z <= ambang.ambangRujukan,
-    );
-    const perluWaspada = indeks.some(
-        (i) => i.nilai !== undefined && i.nilai.z <= ambang.ambangWaspada,
-    );
+    const kesimpulanWa = tentukanKesimpulan(penilaianUtama, ambang);
+    // Anjuran yang sama dikirim lewat WhatsApp (lib/pesan-wa.ts).
     const edukasiKms =
         indeksTidakWajar.length > 0 ||
         indeks.every((i) => i.nilai === undefined)
             ? 'Data pengukuran ini perlu diperiksa atau diukur ulang bersama kader atau petugas kesehatan sebelum status gizi disimpulkan.'
-            : perluRujukan
-              ? 'Hasil pengukuran perlu ditindaklanjuti. Silakan hubungi fasilitas kesehatan atau dokter terdekat untuk penilaian lebih lanjut.'
-              : perluWaspada || perluTindakLanjut
-                ? 'Pertumbuhan perlu dipantau lebih dekat. Pastikan anak hadir pada penimbangan berikutnya dan diskusikan asupan makan dengan kader atau bidan.'
-                : 'Pertumbuhan saat ini berada dalam pemantauan. Lanjutkan makan beragam sesuai usia dan datang kembali pada penimbangan bulan depan.';
+            : kalimatKesimpulan(kesimpulanWa, nama).anjuran;
 
-    const kirimWa = () => {
-        const nomor = (noWa ?? '').replace(/\D/g, '');
+    // Nomor uji (client/.env.local) menggantikan nomor orang tua, sehingga
+    // pengujian tidak pernah menyentuh nomor yang sebenarnya.
+    const nomorTujuan = NOMOR_UJI ?? nomorBaku(noWa);
 
-        if (nomor === '' || terbaru === null || indeksTidakWajar.length > 0) {
-            setTanpaWa(true);
+    const umurTerbaru = terbaru?.umurBulan ?? null;
+    const duaBulanLalu =
+        umurTerbaru === null
+            ? undefined
+            : pengukuran.find(
+                  (p) =>
+                      p.statusKehadiran === 'hadir' &&
+                      p.umurBulan === umurTerbaru - 2,
+              );
 
-            return;
-        }
-
-        const pesan = [
-            `Hasil penimbangan ${nama} pada ${tanggalPanjang(terbaru.tanggalUkur)}:`,
-            `berat badan ${satuan(terbaru.bbKg, 'kg', 2)}, tinggi atau panjang badan ${satuan(terbaru.tinggiCm, 'cm')}.`,
-            `Status gizi (${labelIndeks('BB_TB', umur)}): ${penilaianLayak(terbaru.penilaian.BB_TB)?.kategori ?? 'perlu verifikasi'}.`,
-            edukasiKms,
-        ].join(' ');
-
-        window.open(
-            `https://wa.me/${nomor.replace(/^0/, '62')}?text=${encodeURIComponent(pesan)}`,
-            '_blank',
-            'noopener,noreferrer',
-        );
-    };
+    // Tombol kirim tidak dirender bila tak ada yang dapat dikirim; sebabnya
+    // ditulis sebagai satu baris di bawah judul (docs/prd/feedback/F03).
+    const alasanTanpaWa =
+        terbaru === null
+            ? `Belum ada hasil pengukuran pada ${periode.label}, sehingga tidak ada yang dapat dikirim.${
+                  hasilTerakhir === undefined
+                      ? ''
+                      : ` Pengukuran terakhir tercatat ${tanggalPanjang(hasilTerakhir.tanggalUkur)}; lihat tab Riwayat Ukur, lalu pilih periode bulan itu di kiri atas.`
+              }`
+            : indeksTidakWajar.length > 0
+              ? 'Hasil periode ini ditandai tidak wajar. Verifikasi ulang sebelum dikirim ke orang tua.'
+              : nomorTujuan !== null
+                ? null
+                : (noWa ?? '').trim() === ''
+                  ? 'Nomor WhatsApp orang tua belum diisi. Isi lewat Ubah data.'
+                  : 'Nomor WhatsApp orang tua tidak sah. Periksa lewat Ubah data.';
 
     // Titik kurva hanya dari pengukuran yang punya umur dan berat sekaligus.
     const riwayatKurva = pengukuran
@@ -418,50 +427,35 @@ export default function DetailAnak({
                             Ubah data
                         </button>
                     )}
-                    <button
-                        type="button"
-                        onClick={kirimWa}
-                        className="tombol-utama"
-                    >
-                        <MessageCircle
-                            className="size-5"
-                            strokeWidth={2.5}
-                            aria-hidden="true"
-                        />
-                        Kirim hasil ke WhatsApp
-                    </button>
+                    {alasanTanpaWa === null && (
+                        <button
+                            type="button"
+                            onClick={() => setDialog('wa')}
+                            className="tombol-utama"
+                        >
+                            <MessageCircle
+                                className="size-5"
+                                strokeWidth={2.5}
+                                aria-hidden="true"
+                            />
+                            Kirim ke WhatsApp
+                        </button>
+                    )}
                 </>
             }
         >
-            {tanpaWa && (
-                <div
-                    role="alert"
-                    className="mb-5 flex flex-wrap items-center gap-3 rounded-lg border border-tone-amber bg-tone-amber-bg px-4 py-3"
+            {alasanTanpaWa !== null && (
+                <p
+                    role="status"
+                    className="mb-5 flex items-start gap-2.5 text-sm text-muted-foreground"
                 >
-                    <TriangleAlert
-                        className="size-5 shrink-0 text-tone-amber"
+                    <Info
+                        className="mt-0.5 size-4 shrink-0"
                         strokeWidth={2.5}
                         aria-hidden="true"
                     />
-                    <p className="min-w-0 flex-1 text-sm font-semibold">
-                        {terbaru === null
-                            ? `Belum ada hasil pengukuran ${nama} pada ${periode.label} untuk dikirim.`
-                            : indeksTidakWajar.length > 0
-                              ? 'Hasil periode ini ditandai tidak wajar. Verifikasi ulang sebelum dikirim ke keluarga.'
-                              : 'Nomor WhatsApp orang tua belum diisi. Isi lewat Ubah data.'}
-                    </p>
-                    {bolehUbah &&
-                        terbaru !== null &&
-                        indeksTidakWajar.length === 0 && (
-                            <button
-                                type="button"
-                                onClick={() => setDialog('ubah')}
-                                className="tombol-kedua"
-                            >
-                                Ubah data
-                            </button>
-                        )}
-                </div>
+                    {alasanTanpaWa}
+                </p>
             )}
 
             {/* Kategori ditata sebagai tab lembar kerja: satu kelompok data
@@ -808,6 +802,33 @@ export default function DetailAnak({
                 </section>
 
                 <section
+                    id="panel-grafik"
+                    role="tabpanel"
+                    aria-labelledby="tab-grafik"
+                    hidden={tabAktif !== 'grafik'}
+                >
+                    {anak.jk === null ? (
+                        <p className="mt-2 text-base text-muted-foreground">
+                            Jenis kelamin belum tercatat, sehingga grafik belum
+                            dapat digambarkan. Lengkapi lewat Ubah data.
+                        </p>
+                    ) : (
+                        <GrafikPertumbuhan
+                            kelamin={anak.jk}
+                            nama={nama}
+                            umurBalita={umur}
+                            keterangan={
+                                terbaru === null
+                                    ? `Grafik ini hanya menampilkan riwayat; belum ada pengukuran pada ${periode.label}.`
+                                    : `Hasil ${periode.label} tersedia pada tab Status Gizi.`
+                            }
+                            pengukuran={pengukuran}
+                            standar={standarLms}
+                        />
+                    )}
+                </section>
+
+                <section
                     id="panel-riwayat"
                     role="tabpanel"
                     aria-labelledby="tab-riwayat"
@@ -986,6 +1007,31 @@ export default function DetailAnak({
                         onSimpan?.(patch);
                         setDialog(null);
                     }}
+                />
+            )}
+            {dialog === 'wa' && terbaru !== null && nomorTujuan !== null && (
+                <DialogKirimWa
+                    nama={nama}
+                    nomor={nomorTujuan}
+                    modeUji={NOMOR_UJI !== null}
+                    susun={(tautan) =>
+                        susunPesan({
+                            nama,
+                            umurBulan: umur,
+                            terbaru,
+                            duaBulanLalu,
+                            kesimpulan: kesimpulanWa,
+                            tautan,
+                            lembaga,
+                        })
+                    }
+                    // Tautan butuh server; di demo barisnya dihilangkan.
+                    buatTautan={
+                        sumberLive
+                            ? () => buatTautanLembar(anak.id, periode.id)
+                            : undefined
+                    }
+                    onTutup={() => setDialog(null)}
                 />
             )}
             {dialog === 'cetak' && (

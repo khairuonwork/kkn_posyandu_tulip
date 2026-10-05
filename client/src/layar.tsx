@@ -388,6 +388,7 @@ export function Layar({
                 anak={anak}
                 pengukuran={detail.pengukuran}
                 garisSd={detail.garisSd}
+                standarLms={standarLms}
                 peran={peran}
                 periode={periode}
                 ambang={ambang}

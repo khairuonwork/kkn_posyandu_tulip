@@ -6,6 +6,7 @@ server/akun-live.txt
 .qa-lan/
 
 .env
+.env.local
 .env.backup
 .env.production
 

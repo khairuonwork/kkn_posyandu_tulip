@@ -39,6 +39,7 @@ Cara menjalankan aplikasinya ada di [`README.md`](../README.md) di akar repo.
 | **[Pertanyaan terbuka](pertanyaan-terbuka.md)** | Hal yang belum diputuskan pemilik program. **Jangan ditebak diam-diam di dalam kode** |
 | **[PRD](prd/README.md)** | Apa yang akan dibangun: kontrak produk, fitur dasar, fitur dari feedback |
 | **[Status lingkup](prd/prd-utama.md#13-status-lingkup)** | Persetujuan dan target rilis; dibaca terpisah dari prioritas dan status pengerjaan |
+| **[Panduan Kirim ke WhatsApp](panduan-kirim-whatsapp.md)** | Menyiapkan tombol kirim hasil dan tautan Lembar Hasil: kunci, alamat, nomor uji, dan cara mengecek |
 | **[Panduan penulisan](panduan-penulisan.md)** | Cara menulis dokumen di repo ini. Baca sebelum menambah atau menyunting apa pun di sini |
 
 ---

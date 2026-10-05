@@ -621,9 +621,13 @@ export default function DaftarAnak({
                                                     }
                                                     tenang
                                                 />
-                                                {baris.tanggalUkurTerakhir !== null && (
+                                                {baris.tanggalUkurTerakhir !==
+                                                    null && (
                                                     <span className="text-sm text-muted-foreground">
-                                                        Hasil terakhir {tanggalRingkas(baris.tanggalUkurTerakhir)}
+                                                        Hasil terakhir{' '}
+                                                        {tanggalRingkas(
+                                                            baris.tanggalUkurTerakhir,
+                                                        )}
                                                     </span>
                                                 )}
                                                 {!baris.nikLengkap && (

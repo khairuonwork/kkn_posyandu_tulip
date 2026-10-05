@@ -484,6 +484,18 @@
     .halaman-a4:last-child {
         break-after: auto;
     }
+
+    /* Dokumen PDF Lembar Hasil (pages/hasil/lembar.tsx): satu bagian satu
+       halaman A4, setinggi isi halaman setelah margin 12 mm. */
+    .halaman-hasil {
+        height: 270mm;
+        overflow: hidden;
+        break-after: page;
+    }
+
+    .halaman-hasil:last-child {
+        break-after: auto;
+    }
 }
 
 /* Jeda bertahap kecil pada baris tabel saat filter berubah, supaya terlihat

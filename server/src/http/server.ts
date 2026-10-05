@@ -15,6 +15,7 @@ import type { Pool } from "pg";
 import { ruteAuth } from "./auth-controller.ts";
 import { ruteBeranda } from "./beranda-controller.ts";
 import { ruteAnak } from "./anak-controller.ts";
+import { ruteLembar } from "./lembar-controller.ts";
 import { sesiMiddleware, wajibJson } from "./middleware.ts";
 import { rutePengguna } from "./pengguna-controller.ts";
 import { ruteSasaran } from "./sasaran-controller.ts";
@@ -77,6 +78,7 @@ export function buatApp(pool: Pool): Express {
     });
 
     app.use("/api/v1", ruteAnak(pool));
+    app.use("/api/v1", ruteLembar(pool));
     app.use("/api/v1", ruteBeranda(pool));
     app.use("/api/v1", ruteSasaran(pool));
 

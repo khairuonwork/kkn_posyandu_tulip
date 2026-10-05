@@ -16,6 +16,8 @@ import { defineConfig } from 'vite';
  */
 export default defineConfig({
     root: 'demo',
+    // File .env berada di client/, bukan di demo/, sama dengan aplikasi utama.
+    envDir: fileURLToPath(new URL('.', import.meta.url)),
     base: './',
 
     plugins: [react(), tailwindcss()],

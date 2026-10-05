@@ -20,6 +20,7 @@ import { usePenggunaServer } from '@/lib/pengguna';
 import { useSesi } from '@/lib/sesi';
 import type { AnakBaru, PatchAnak } from '@/pages/anak/index';
 import Login from '@/pages/auth/login';
+import LembarHasil from '@/pages/hasil/lembar';
 import type { TabPeriode } from '@/pages/laporan/index';
 import type {
     Ambang,
@@ -34,6 +35,19 @@ const NAMA_PERAN: Record<Peran, string> = {
 };
 
 export default function App() {
+    const alamat = useAlamat();
+    const hasil = /^\/hasil\/([\w.-]{10,400})$/.exec(alamat);
+
+    // Tautan hasil untuk orang tua: dibuka tanpa masuk, jadi sebelum sesi
+    // diperiksa dan tanpa cangkang portal.
+    if (hasil !== null) {
+        return <LembarHasil token={hasil[1]} />;
+    }
+
+    return <AplikasiPetugas />;
+}
+
+function AplikasiPetugas() {
     const sesi = useSesi();
 
     if (sesi.status === 'memeriksa') {

@@ -126,3 +126,25 @@ Diuji dengan `npm run demo` dari `client/`:
 - [ ] Anak bernama panjang berspasi menghasilkan tautan yang tetap sah.
 - [ ] Tidak ada NIK di dalam pesan.
 - [ ] `pesan-wa.test.ts` lulus dijalankan.
+
+## 8. Pembaruan 5 Oktober 2026
+
+Keputusan pemilik program yang mengubah bagian di atas. Bagian 2 dan 6 tetap berlaku.
+
+- **Nama tombol:** Kirim ke WhatsApp.
+- **Pratinjau yang bisa diubah** muncul sebelum `wa.me` dibuka (`dialog-kirim-wa.tsx`). Petugas tetap menekan Kirim sendiri di dalam WhatsApp.
+- **Isi pesan** mengikuti tiga kesimpulan berbahasa awam, bukan "sehat/tidak sehat" dan bukan istilah KMS: *Pertumbuhan {nama} baik.*, *Pertumbuhan {nama} perlu diperhatikan.*, dan *Sebaiknya {nama} diperiksa ke puskesmas.* Anjuran di bawahnya (`kalimatKesimpulan()`) sama dengan kartu "Arahan untuk keluarga" di tab Status Gizi. Pesan memuat BB/U, TB/U, status BB/TB, LILA dan LIKA bila ada, serta selisih berat dibanding 2 bulan lalu. Penyusunnya di `client/src/lib/pesan-wa.ts`, ujinya di `client/test/pesan-wa.test.ts`.
+- **Nomor baku `62…`:** `nomorBaku()` menerima `0831…`, `+62 831…`, dan `831…`.
+- **Nomor uji:** `VITE_WA_NOMOR_UJI` di `client/.env.local` (tidak ikut Git; contoh di `.env.example`). Bila terisi, semua pesan menuju nomor itu dan dialog menandainya "Mode uji". Kosongkan sebelum dipakai sungguhan.
+- **Tidak termasuk:** tautan PDF/Lembar Hasil, pengiriman otomatis bulanan, dan catatan audit pengiriman. Semuanya ditunda; pengiriman otomatis membutuhkan WhatsApp Business API, persetujuan orang tua, dan templat yang disetujui Meta.
+
+### 8.1 Lembar Hasil (tautan dan PDF), 5 Oktober 2026
+
+Cara menyiapkan dan menjalankannya ada di [panduan Kirim ke WhatsApp](../../panduan-kirim-whatsapp.md). Bagian ini hanya mencatat keputusannya.
+
+- **Tautan:** `POST /api/v1/lembar` (wajib masuk) membuat token bertanda tangan HMAC berisi anak, periode, dan masa berlaku **20 hari**; token masuk ke pesan WhatsApp sebagai `https://<alamat portal>/#/hasil/<token>`. Tanpa tabel di basis data. Rahasianya `LEMBAR_RAHASIA` di `server/.env` (contoh di `.env.example`).
+- **Halaman orang tua:** `GET /api/v1/lembar/:token` dibuka tanpa masuk. Isinya dibaca langsung dari basis data saat tautan dibuka, bukan salinan. Jawabannya hanya nama depan, jenis kelamin, dan riwayat ukur; tanpa NIK, alamat, nama orang tua, atau tanggal lahir. Header `no-store`, `no-referrer`, dan `noindex`.
+- **Tautan tidak dapat dicabut satu per satu.** Mengganti `LEMBAR_RAHASIA` mencabut semuanya. Jika pencabutan per tautan dibutuhkan, tabel token (hash) dan salinan hasil perlu ditambahkan.
+- **PDF:** tombol "Unduh hasil lengkap (PDF)" membuka jendela cetak peramban dengan dokumen A4 dua halaman; orang tua memilih Simpan sebagai PDF. Bukan berkas yang dibuat server.
+- **Batas jaringan:** selama portal hanya berjalan di jaringan lokal (QA LAN), tautan hanya terbuka dari ponsel yang satu Wi-Fi dengan komputer server. Tautan memakai alamat yang sedang dibuka petugas, jadi petugas harus membuka portal lewat alamat IP komputer, bukan `localhost`.
+- **Demo:** tanpa server, baris tautan dihilangkan dari pesan.

@@ -23,7 +23,7 @@ Ada empat jenis, dibedakan dari **apa yang sedang dilakukan pembacanya**:
 | Jenis | Pembacanya sedang | Menjawab | Berkas di repo ini |
 |---|---|---|---|
 | **Orientasi** | baru datang | "Bagaimana saya memulai?" | [`README.md`](README.md) (peta), [`ringkasan.md`](ringkasan.md), [`fitur.md`](fitur.md), [`glosarium.md`](glosarium.md) |
-| **Panduan** | sedang bekerja | "Bagaimana cara melakukan X?" | [`../README.md`](../README.md) (pengembangan lokal); panduan operasional dan manual kader belum ada |
+| **Panduan** | sedang bekerja | "Bagaimana cara melakukan X?" | [`../README.md`](../README.md) (pengembangan lokal), [`panduan-kirim-whatsapp.md`](panduan-kirim-whatsapp.md); panduan operasional dan manual kader belum ada |
 | **Rujukan** | sedang mencari | "Apa persisnya aturan atau nilai Y?" | seluruh isi [`rujukan/`](rujukan), ditambah [`arsitektur.md`](arsitektur.md), [`database.md`](database.md), dan berkas ini |
 | **Penjelasan** | ingin paham | "Kenapa dirancang begini?" | [`adr/`](adr), [`rencana-kerja.md`](rencana-kerja.md), [`pertanyaan-terbuka.md`](pertanyaan-terbuka.md) |
 

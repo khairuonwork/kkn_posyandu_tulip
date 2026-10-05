@@ -134,6 +134,13 @@ Setelah `git pull`, jalankan `npm ci` di folder yang dependensinya berubah, lalu
 > Dashboard, laporan, dan sebagian detail masih memakai data contoh; lihat
 > [rencana kerja](docs/rencana-kerja.md).
 
+### Kirim ke WhatsApp dan Lembar Hasil
+
+Tombol **Kirim ke WhatsApp** di Detail Balita membutuhkan satu kunci di
+`server/.env` (`LEMBAR_RAHASIA`) dan, untuk pengujian, dua isian di
+`client/.env.local`. Langkahnya ada di
+[panduan Kirim ke WhatsApp](docs/panduan-kirim-whatsapp.md).
+
 ### Data balita dan sasaran bulanan
 
 `anak` adalah data induk: halaman **Data Balita** dan **Kartu Balita** selalu
