@@ -11,28 +11,29 @@
  * lambat akan punya satu baris yang lupa diperbarui.
  */
 
-export type Peran = 'kader' | 'bidan' | 'admin';
+export type Peran = "kader" | "bidan" | "admin";
 
 export type Aksi =
     // Kader ke atas
-    | 'lihat-dashboard'
-    | 'lihat-anak'
-    | 'lihat-kms'
-    | 'lihat-rekap'
-    | 'daftar-anak-lapangan'
-    | 'catat-pengukuran-lapangan'
+    | "lihat-dashboard"
+    | "lihat-anak"
+    | "lihat-kms"
+    | "lihat-rekap"
+    | "daftar-anak-lapangan"
+    | "catat-pengukuran-lapangan"
+    | "selesaikan-sesi-lapangan"
     // Bidan ke atas
-    | 'ubah-anak'
-    | 'ubah-pengukuran'
-    | 'gabung-duplikat'
-    | 'selesaikan-konflik-impor'
-    | 'unduh-rekap'
+    | "ubah-anak"
+    | "ubah-pengukuran"
+    | "gabung-duplikat"
+    | "selesaikan-konflik-impor"
+    | "unduh-rekap"
     // Admin saja
-    | 'kelola-wilayah-rt'
-    | 'kelola-periode'
-    | 'hapus-data'
-    | 'kelola-akun'
-    | 'jalankan-impor';
+    | "kelola-wilayah-rt"
+    | "kelola-periode"
+    | "hapus-data"
+    | "kelola-akun"
+    | "jalankan-impor";
 
 /** Menaik. Perbandingan angkanya yang menegakkan pewarisan hak. */
 const TINGKAT: Readonly<Record<Peran, number>> = {
@@ -43,27 +44,28 @@ const TINGKAT: Readonly<Record<Peran, number>> = {
 
 /** Peran terendah yang boleh melakukan tiap aksi. */
 const MINIMUM: Readonly<Record<Aksi, Peran>> = {
-    'lihat-dashboard': 'kader',
-    'lihat-anak': 'kader',
-    'lihat-kms': 'kader',
-    'lihat-rekap': 'kader',
-    'daftar-anak-lapangan': 'kader',
-    'catat-pengukuran-lapangan': 'kader',
+    "lihat-dashboard": "kader",
+    "lihat-anak": "kader",
+    "lihat-kms": "kader",
+    "lihat-rekap": "kader",
+    "daftar-anak-lapangan": "kader",
+    "catat-pengukuran-lapangan": "kader",
+    "selesaikan-sesi-lapangan": "kader",
 
-    'ubah-anak': 'bidan',
-    'ubah-pengukuran': 'bidan',
-    'gabung-duplikat': 'bidan',
-    'selesaikan-konflik-impor': 'bidan',
-    'unduh-rekap': 'bidan',
+    "ubah-anak": "bidan",
+    "ubah-pengukuran": "bidan",
+    "gabung-duplikat": "bidan",
+    "selesaikan-konflik-impor": "bidan",
+    "unduh-rekap": "bidan",
 
-    'kelola-wilayah-rt': 'admin',
-    'kelola-periode': 'admin',
-    'hapus-data': 'admin',
-    'kelola-akun': 'admin',
-    'jalankan-impor': 'admin',
+    "kelola-wilayah-rt": "admin",
+    "kelola-periode": "admin",
+    "hapus-data": "admin",
+    "kelola-akun": "admin",
+    "jalankan-impor": "admin",
 };
 
-export const SEMUA_PERAN: readonly Peran[] = ['kader', 'bidan', 'admin'];
+export const SEMUA_PERAN: readonly Peran[] = ["kader", "bidan", "admin"];
 
 export const SEMUA_AKSI: readonly Aksi[] = Object.keys(MINIMUM) as Aksi[];
 
@@ -93,11 +95,11 @@ export type PenggunaAktif = {
  * mengembalikan null — pemanggil tidak punya cara keliru untuk memakainya.
  */
 export function rtYangBolehDilihat(pengguna: PenggunaAktif): string | null {
-    if (pengguna.peran !== 'kader') {
+    if (pengguna.peran !== "kader") {
         return null;
     }
 
-    if (pengguna.rt === null || pengguna.rt === '') {
+    if (pengguna.rt === null || pengguna.rt === "") {
         throw new Error(
             `Kader #${pengguna.id} tidak punya RT binaan; aksesnya tidak dapat ditentukan.`,
         );
@@ -112,7 +114,10 @@ export function rtYangBolehDilihat(pengguna: PenggunaAktif): string | null {
  * Dipakai di lapisan data, bukan hanya di route: penyaringan yang hanya ada di
  * query membuat satu endpoint yang lupa menyaring membocorkan seluruh RW.
  */
-export function bolehAksesRt(pengguna: PenggunaAktif, rt: string | null): boolean {
+export function bolehAksesRt(
+    pengguna: PenggunaAktif,
+    rt: string | null,
+): boolean {
     const terbatas = rtYangBolehDilihat(pengguna);
 
     return terbatas === null || terbatas === rt;

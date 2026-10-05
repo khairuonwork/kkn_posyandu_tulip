@@ -11,13 +11,10 @@
 import { useEffect, useState } from 'react';
 
 import { bacaRute, boleh, Cangkang, KartuAkun } from '@/app-shell';
-import {
-    PENGATURAN_BAWAAN,
-    periodeTerbaru,
-    STANDARISASI_BAWAAN,
-} from '@/data/contoh/store';
+import { PENGATURAN_BAWAAN, STANDARISASI_BAWAAN } from '@/data/contoh/store';
 import { Layar } from '@/layar';
-import { useAnakServer } from '@/lib/anak';
+import { useAnakServer, useDetailAnakServer } from '@/lib/anak';
+import { useBerandaServer } from '@/lib/beranda';
 import { navigate, useAlamat } from '@/lib/nav';
 import { usePenggunaServer } from '@/lib/pengguna';
 import { useSesi } from '@/lib/sesi';
@@ -51,6 +48,7 @@ export default function App() {
         <Portal
             nama={sesi.pengguna.nama}
             peran={sesi.pengguna.peran}
+            rt={sesi.pengguna.rt}
             // Alamat baru diganti setelah server menjawab. Menggantinya lebih
             // dulu membuat permintaan keluar berlomba dengan perpindahan
             // halaman — dan permintaan yang batal berarti sesinya tetap hidup
@@ -82,15 +80,17 @@ function Memeriksa() {
 function Portal({
     nama,
     peran,
+    rt,
     onKeluar,
     onSesiBerakhir,
 }: {
     nama: string;
     peran: Peran;
+    rt: string | null;
     onKeluar: () => void;
     onSesiBerakhir: () => void;
 }) {
-    const [periodeId, setPeriodeId] = useState(periodeTerbaru);
+    const [periodePilihan, setPeriodePilihan] = useState('');
     const [tabLaporan, setTabLaporan] = useState<TabPeriode>('bulanan');
     /*
         ponytail: keempat state di bawah hanya hidup di memori, sama seperti
@@ -105,11 +105,21 @@ function Portal({
 
     const alamat = useAlamat();
     const rute = bacaRute(alamat);
+    const berandaServer = useBerandaServer(
+        periodePilihan,
+        rute.nama === 'beranda',
+        onSesiBerakhir,
+    );
+    const periodeId = berandaServer.periodeAktif;
     const akun = usePenggunaServer(
         peran === 'admin' && rute.nama === 'pengaturan',
         onSesiBerakhir,
     );
     const anakServer = useAnakServer(onSesiBerakhir);
+    const detailServer = useDetailAnakServer(
+        rute.nama === 'detail' || rute.nama === 'riwayat' ? rute.id : null,
+        onSesiBerakhir,
+    );
 
     // Alamat yang tidak boleh dibuka peran ini dikembalikan ke Beranda. Ini
     // kenyamanan; penolakan yang mengikat ada di server.
@@ -123,7 +133,8 @@ function Portal({
         <Cangkang
             peran={peran}
             periodeId={periodeId}
-            onPindahPeriode={setPeriodeId}
+            periode={berandaServer.periode}
+            onPindahPeriode={setPeriodePilihan}
             kakiSidebar={
                 <KartuAkun
                     nama={nama}
@@ -135,8 +146,9 @@ function Portal({
             <Layar
                 rute={rute}
                 peran={peran}
+                rtPengguna={rt}
                 periodeId={periodeId}
-                onPindahPeriode={setPeriodeId}
+                onPindahPeriode={setPeriodePilihan}
                 tabLaporan={tabLaporan}
                 onGantiTabLaporan={setTabLaporan}
                 koreksi={koreksi}
@@ -157,7 +169,15 @@ function Portal({
                 onSimpanStandarisasi={setStandarisasi}
                 pengguna={akun.daftar}
                 onSimpanPengguna={akun.simpan}
-                anakServer={anakServer}
+                modeDataLive
+                statusAnakServer={anakServer.status}
+                pesanGalatAnakServer={anakServer.pesanGalat}
+                onMuatUlangAnakServer={anakServer.muatUlang}
+                anakServer={anakServer.baris}
+                kartuServer={anakServer.kartu}
+                detailServer={detailServer}
+                periodeServer={berandaServer.periode}
+                berandaServer={berandaServer}
             />
         </Cangkang>
     );

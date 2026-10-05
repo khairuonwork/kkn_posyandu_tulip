@@ -104,12 +104,56 @@ npm run dev
 
 Buka http://localhost:5173 dan masuk, misalnya sebagai `admin`.
 
+### QA sementara melalui satu Wi-Fi/AP
+
+Untuk uji website dan tablet sebelum hosting tersedia, jalankan dari akar repo:
+
+```powershell
+.\mulai-qa-lan.ps1
+```
+
+Skrip mendeteksi IPv4 PC, membuka React pada semua antarmuka jaringan, membuka
+REST API pada semua antarmuka jaringan, lalu memeriksa jalur API sampai ke
+PostgreSQL. Alamat yang dicetak skrip dimasukkan pada layar masuk Android,
+misalnya `http://192.168.1.20:4321/api/v1`, lalu tekan **Uji koneksi API**.
+
+```powershell
+.\hentikan-qa-lan.ps1
+```
+
+Gunakan router/hotspot privat bila AP kantor/kampus menerapkan *client
+isolation*. Berada pada SSID yang sama tidak selalu berarti dua perangkat boleh
+saling menghubungi. APK debug mengizinkan HTTP lokal khusus QA; build rilis
+tetap disiapkan untuk HTTPS.
+
 Setelah `git pull`, jalankan `npm ci` di folder yang dependensinya berubah, lalu `npm run migrate` dari `server/`.
 
-> Masuk/keluar, daftar akun, Data Balita, dan REST API Android sudah tersambung
-> ke database live. Input pengukuran hanya tersedia di aplikasi Android;
-> halaman Penimbangan web telah diarsipkan. Dashboard, laporan, dan sebagian
-> detail masih memakai data contoh; lihat [rencana kerja](docs/rencana-kerja.md).
+> Masuk/keluar, daftar akun, Data Balita, Kartu Balita, Sasaran & Impor, dan
+> REST API Android sudah tersambung ke database live. Input pengukuran hanya
+> tersedia di aplikasi Android; halaman Penimbangan web telah diarsipkan.
+> Dashboard, laporan, dan sebagian detail masih memakai data contoh; lihat
+> [rencana kerja](docs/rencana-kerja.md).
+
+### Data balita dan sasaran bulanan
+
+`anak` adalah data induk: halaman **Data Balita** dan **Kartu Balita** selalu
+membaca semua anak aktif, sehingga pergantian periode tidak menghapus profil,
+kartu, maupun riwayat. Setiap anak otomatis memiliki payload QR kartu dari ID
+anaknya.
+
+`sasaran` adalah daftar kerja per periode. Admin mengunggah `.xlsx` Puskesmas di
+**Sasaran & Impor**, memeriksa pratinjau per sheet, lalu menerbitkannya. Impor
+ulang hanya mengganti keanggotaan sasaran pada periode terpilih. Aplikasi Android
+membaca daftar ini melalui `/api/v1/sinkronisasi`; hasil ukur mengubah status
+menjadi `selesai`, sedangkan **Konfirmasi beres sesi** mengubah sasaran tersisa
+menjadi `tidak_hadir`.
+
+Endpoint terkait:
+
+- `GET /api/v1/sasaran` — daftar dan ringkasan sasaran aktif.
+- `POST /api/v1/sasaran/pratinjau` — membaca sheet Excel tanpa menulis data.
+- `POST /api/v1/sasaran/impor` — mengganti sasaran periode secara transaksional.
+- `POST /api/v1/sasaran/tutup-sesi` — menutup sisa sasaran sesuai cakupan RT akun.
 
 ### Demo tanpa database
 

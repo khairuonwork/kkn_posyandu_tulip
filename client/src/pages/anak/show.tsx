@@ -1,40 +1,39 @@
 /**
- * Detail Balita — satu layar, mengikuti mockup yang disetujui 26 September
- * 2026 (rancangan awal: docs/riwayat/layar-demo.md bagian 6.5).
+ * Detail anak — docs/10-prd-demo-frontend.md bagian 6.5.
  *
- * Kiri: identitas ringkas dan kurva KMS. Kanan: status gizi penimbangan
- * terakhir dan riwayat penimbangan yang digulir di dalam kartunya. Seluruh
- * angka tiap penimbangan ada di layar Detail riwayat penimbangan; ubah data
- * dan cetak kartu dibuka sebagai dialog, bukan layar sendiri.
+ * Layar yang paling sering membuat client mengangguk: riwayat pertumbuhan satu
+ * anak sebagai satu garis.
  *
- * Status N/T di kolom "Berat naik?" adalah nilai arsip apa adanya sampai OI-01
- * dijawab (docs/pertanyaan-terbuka.md); KBM hanya dipakai sebagai keterangan
- * "kurang dari … kg".
+ * Urutannya sengaja vonis dulu, identitas belakangan. Kader membuka layar ini
+ * untuk tahu kondisi anaknya, bukan untuk membaca ulang NIK yang barusan ia
+ * klik namanya.
  */
 
 import {
     ArrowRight,
     ChevronDown,
-    ChevronRight,
     CircleCheck,
+    CreditCard,
     Info,
     Mars,
     MessageCircle,
-    OctagonAlert,
     Pencil,
     Printer,
     Save,
+    ShieldCheck,
+    Syringe,
     TriangleAlert,
     Venus,
 } from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
+import BarisDefinisi from '@/components/baris-definisi';
 import Dialog, { KakiDialog } from '@/components/dialog';
 import Halaman from '@/components/halaman';
 import KartuBalita, { LembarCetak } from '@/components/kartu-balita';
-import KmsChart from '@/components/kms-chart';
-import type { TitikKms } from '@/components/kms-chart';
-import StatusGiziBadge, {
+import KmsChart from '@/components/kms-chart-sep24';
+import {
+    nadaKategori,
     PERLU_TINDAK_LANJUT,
 } from '@/components/status-gizi-badge';
 import {
@@ -45,6 +44,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import ZScoreCell from '@/components/z-score-cell';
 import {
     angka,
     KOSONG,
@@ -55,21 +55,58 @@ import {
     tanggalPanjang,
     tanggalRingkas,
     umurBulanPada,
+    umurPanjang,
     umurRingkas,
     zScore,
 } from '@/lib/format';
 import { kodeKartuSasaran } from '@/lib/kartu-sasaran';
 import { kbmKg } from '@/lib/kategori';
 import { Link } from '@/lib/nav';
+import { penilaianLayak, terbaruUntuk } from '@/lib/penilaian-utama';
 import type { PatchAnak } from '@/pages/anak/index';
 import type {
     Anak,
     GarisSd,
     JenisKelamin,
+    PenilaianGizi,
     Pengukuran,
     Periode,
     Peran,
 } from '@/types/posyandu';
+
+const ARTI_NTOB: Record<string, string> = {
+    N: 'N, naik',
+    T: 'T, tidak naik',
+    O: 'O, tidak ditimbang bulan lalu',
+    B: 'B, baru pertama',
+};
+
+/**
+ * Sebab baris kosong. Ketidakhadiran bukan berat badan nol (DR-04), dan
+ * sebabnya ada di data sejak awal — dulu tidak pernah sampai ke layar.
+ */
+const ARTI_KEHADIRAN: Record<string, string> = {
+    tidak_hadir: 'Tidak hadir',
+    pindah: 'Pindah',
+    tidak_dapat_diukur: 'Tidak dapat diukur',
+};
+
+/** Nada mana yang harus memimpin bila satu anak punya tiga vonis sekaligus. */
+const URUT_NADA: Record<string, number> = {
+    merah: 0,
+    oranye: 1,
+    biru: 2,
+    hijau: 3,
+    netral: 4,
+};
+
+const WARNA_NADA: Record<string, string> = {
+    merah: 'text-tone-red',
+    oranye: 'text-tone-amber',
+    hijau: 'text-tone-green',
+    biru: 'text-tone-blue',
+    netral: 'text-muted-foreground',
+};
 
 export type AmbangDetail = {
     turunMax: number;
@@ -79,65 +116,31 @@ export type AmbangDetail = {
     ambangRujukan: number;
 };
 
+type TabDetail = 'profil' | 'status' | 'kurva' | 'riwayat';
+
+const TAB_DETAIL: { nilai: TabDetail; label: string }[] = [
+    { nilai: 'profil', label: 'Profil Anak' },
+    { nilai: 'status', label: 'Status Gizi' },
+    { nilai: 'kurva', label: 'Kurva KMS' },
+    { nilai: 'riwayat', label: 'Riwayat Ukur' },
+];
+
 type Props = {
     anak: Anak;
     /** Seluruh pengukuran lintas periode, terbaru di atas. */
     pengukuran: Pengukuran[];
     garisSd: GarisSd[];
     peran: Peran;
-    /** Periode yang sedang dilihat. Menentukan umur dan data basi. */
+    /** Periode yang sedang dilihat. Menentukan umur dan status utama. */
     periode: Periode;
-    /** Ambang dari Pengaturan, satu sumber dengan layar itu. */
+    /** Ambang kewajaran dari Pengaturan, satu sumber dengan layar itu. */
     ambang: AmbangDetail;
     wilayahRt: string[];
-    /** Nomor WhatsApp orang tua; null bila belum diisi. */
     noWa: string | null;
-    /** Nama Posyandu di kepala kartu, mis. "Posyandu Tulip · RW 18 Citeureup". */
     lembaga: string;
     onSimpan?: (patch: PatchAnak) => void;
+    sumberLive?: boolean;
 };
-
-/**
- * Pengukuran yang berlaku untuk periode yang dilihat: yang terakhir sampai
- * tanggal kegiatannya, tidak pernah yang sesudahnya. Angka yang belum terjadi
- * pada periode ini bukan status periode ini.
- */
-export function terbaruUntuk(
-    pengukuran: Pengukuran[],
-    periode: Periode,
-): Pengukuran | null {
-    const batas = periode.tanggalKegiatan;
-
-    return (
-        (batas === null
-            ? pengukuran.find((p) => p.periodeId === periode.id)
-            : pengukuran.find(
-                  (p) =>
-                      p.statusKehadiran === 'hadir' &&
-                      p.tanggalUkur !== null &&
-                      p.tanggalUkur <= batas,
-              )) ?? null
-    );
-}
-
-/** "13 Jun" — tanggal tanpa tahun untuk kolom yang sempit. */
-function tanggalPendek(iso: string | null): string {
-    return tanggalRingkas(iso).replace(/ \d{4}$/, '');
-}
-
-/** Umur dalam bulan pecahan, supaya titik kurva jatuh di tanggal ukurnya. */
-function umurTepat(tglLahir: string | null, tanggal: string | null) {
-    if (tglLahir === null || tanggal === null) {
-        return null;
-    }
-
-    return (Date.parse(tanggal) - Date.parse(tglLahir)) / 86_400_000 / 30.4375;
-}
-
-/** "+0,15 kg" dengan tanda minus yang benar, atau `—`. */
-function teksSelisih(kg: number | null): string {
-    return kg === null ? KOSONG : `${kg >= 0 ? '+' : ''}${angka(kg, 2)} kg`;
-}
 
 /**
  * Isi kolom "Berat naik?": status arsip N/T/O/B, dengan batas KBM umurnya di
@@ -215,19 +218,39 @@ export default function DetailAnak({
     noWa,
     lembaga,
     onSimpan,
+    sumberLive = false,
 }: Props) {
+    const [umurDisorot, setUmurDisorot] = useState<number | null>(null);
+    const [tabAktif, setTabAktif] = useState<TabDetail>('profil');
     const [dialog, setDialog] = useState<'ubah' | 'cetak' | null>(null);
     const [tanpaWa, setTanpaWa] = useState(false);
-    const bolehUbah = peran !== 'kader';
-    const nama = namaTampil(anak.nama);
-
+    const bolehUbah = peran !== 'kader' && onSimpan !== undefined;
+    const bolehCetak = peran !== 'kader';
     const terbaru = terbaruUntuk(pengukuran, periode);
+    const nama = namaTampil(anak.nama);
+    const inisial = nama
+        .split(' ')
+        .filter((bagian) => bagian.length > 0)
+        .map((bagian) => bagian[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase();
+
     // Umur dihitung terhadap periode yang dilihat, bukan diambil dari
-    // pengukuran terakhir: untuk balita yang dua bulan tidak hadir, umur lama
-    // itu salah, dan umur jugalah yang memilih label PB/U atau TB/U.
+    // pengukuran terakhir. Untuk anak yang dua bulan tidak hadir, umur lama itu
+    // salah — dan ia juga yang memilih label PB/U atau TB/U serta kalimat cara
+    // ukur, sehingga seluruh halaman bisa memakai protokol yang keliru.
     const umur = umurBulanPada(anak.tglLahir, periode.tanggalKegiatan);
-    const berdiri = umur !== null && umur >= 24;
-    const basi = terbaru !== null && terbaru.periodeId !== periode.id;
+
+    const hasilTerakhir = pengukuran.find(
+        (p) => p.statusKehadiran === 'hadir' && p.tanggalUkur !== null,
+    );
+    const indeksTidakWajar =
+        terbaru === null
+            ? []
+            : (['BB_TB', 'BB_U', 'TB_U'] as const).filter(
+                  (namaIndeks) => terbaru.penilaian[namaIndeks]?.tidakWajar,
+              );
 
     const indeks =
         terbaru === null
@@ -235,28 +258,30 @@ export default function DetailAnak({
             : [
                   {
                       label: labelIndeks('BB_TB', umur),
-                      nama: berdiri
-                          ? 'berat menurut tinggi'
-                          : 'berat menurut panjang',
-                      nilai: terbaru.penilaian.BB_TB,
+                      nilai: penilaianLayak(terbaru.penilaian.BB_TB),
                   },
                   {
                       label: 'BB/U',
-                      nama: 'berat menurut umur',
-                      nilai: terbaru.penilaian.BB_U,
+                      nilai: penilaianLayak(terbaru.penilaian.BB_U),
                   },
                   {
                       label: labelIndeks('TB_U', umur),
-                      nama: berdiri
-                          ? 'tinggi menurut umur'
-                          : 'panjang menurut umur',
-                      nilai: terbaru.penilaian.TB_U,
+                      nilai: penilaianLayak(terbaru.penilaian.TB_U),
                   },
               ];
 
+    // Vonis terberat memimpin. Array.sort stabil, jadi saat semuanya sama
+    // beratnya urutan aslinya bertahan dan BB/TB tetap di depan.
+    const terurut = [...indeks].sort(
+        (a, b) =>
+            URUT_NADA[nadaKategori(a.nilai?.kategori ?? null)] -
+            URUT_NADA[nadaKategori(b.nilai?.kategori ?? null)],
+    );
+
     const perluTindakLanjut = indeks.some(
         (i) =>
-            i.nilai?.kategori != null &&
+            i.nilai?.kategori !== null &&
+            i.nilai?.kategori !== undefined &&
             PERLU_TINDAK_LANJUT.includes(i.nilai.kategori),
     );
     const perluRujukan = indeks.some(
@@ -265,42 +290,20 @@ export default function DetailAnak({
     const perluWaspada = indeks.some(
         (i) => i.nilai !== undefined && i.nilai.z <= ambang.ambangWaspada,
     );
-    const arahan = perluRujukan
-        ? 'Hasil pengukuran perlu ditindaklanjuti. Silakan hubungi fasilitas kesehatan atau dokter terdekat untuk penilaian lebih lanjut.'
-        : perluWaspada || perluTindakLanjut
-          ? 'Pertumbuhan perlu dipantau lebih dekat. Pastikan anak hadir pada penimbangan berikutnya dan diskusikan asupan makan dengan kader atau bidan.'
-          : 'Pertumbuhan saat ini berada dalam pemantauan. Lanjutkan makan beragam sesuai usia dan datang kembali pada penimbangan bulan depan.';
-
-    // Penimbangan yang dihadiri, terbaru di atas; selisih dihitung terhadap
-    // penimbangan sebelumnya di daftar yang sama.
-    const hadir = pengukuran.filter(
-        (p): p is Pengukuran & { bbKg: number } =>
-            p.statusKehadiran === 'hadir' && p.bbKg !== null,
-    );
-    const selisih = (i: number) =>
-        hadir[i + 1] === undefined ? null : hadir[i].bbKg - hadir[i + 1].bbKg;
-
-    const titik: TitikKms[] = hadir
-        .map((p, i) => ({
-            umur: umurTepat(anak.tglLahir, p.tanggalUkur) ?? p.umurBulan ?? 0,
-            beratKg: p.bbKg,
-            tanggal: p.tanggalUkur,
-            umurBulan: p.umurBulan,
-            tinggiCm: p.tinggiCm,
-            naik: p.ntob,
-            selisihKg: selisih(i),
-            kbmKg: kbmKg(p.umurBulan),
-            zBbTb: p.penilaian.BB_TB?.z ?? null,
-            kategoriBbTb: p.penilaian.BB_TB?.kategori ?? null,
-        }))
-        .reverse();
-    const panelAwal =
-        umur === null ? 0 : Math.min(48, Math.floor(umur / 12) * 12);
+    const edukasiKms =
+        indeksTidakWajar.length > 0 ||
+        indeks.every((i) => i.nilai === undefined)
+            ? 'Data pengukuran ini perlu diperiksa atau diukur ulang bersama kader atau petugas kesehatan sebelum status gizi disimpulkan.'
+            : perluRujukan
+              ? 'Hasil pengukuran perlu ditindaklanjuti. Silakan hubungi fasilitas kesehatan atau dokter terdekat untuk penilaian lebih lanjut.'
+              : perluWaspada || perluTindakLanjut
+                ? 'Pertumbuhan perlu dipantau lebih dekat. Pastikan anak hadir pada penimbangan berikutnya dan diskusikan asupan makan dengan kader atau bidan.'
+                : 'Pertumbuhan saat ini berada dalam pemantauan. Lanjutkan makan beragam sesuai usia dan datang kembali pada penimbangan bulan depan.';
 
     const kirimWa = () => {
         const nomor = (noWa ?? '').replace(/\D/g, '');
 
-        if (nomor === '' || terbaru === null) {
+        if (nomor === '' || terbaru === null || indeksTidakWajar.length > 0) {
             setTanpaWa(true);
 
             return;
@@ -308,9 +311,9 @@ export default function DetailAnak({
 
         const pesan = [
             `Hasil penimbangan ${nama} pada ${tanggalPanjang(terbaru.tanggalUkur)}:`,
-            `berat badan ${satuan(terbaru.bbKg, 'kg', 2)}, ${berdiri ? 'tinggi' : 'panjang'} badan ${satuan(terbaru.tinggiCm, 'cm')}.`,
-            `Status gizi (${labelIndeks('BB_TB', umur)}): ${terbaru.penilaian.BB_TB?.kategori ?? 'belum dinilai'}.`,
-            arahan,
+            `berat badan ${satuan(terbaru.bbKg, 'kg', 2)}, tinggi atau panjang badan ${satuan(terbaru.tinggiCm, 'cm')}.`,
+            `Status gizi (${labelIndeks('BB_TB', umur)}): ${penilaianLayak(terbaru.penilaian.BB_TB)?.kategori ?? 'perlu verifikasi'}.`,
+            edukasiKms,
         ].join(' ');
 
         window.open(
@@ -320,39 +323,91 @@ export default function DetailAnak({
         );
     };
 
-    const [kelasVonis, IkonVonis, teksVonis] = perluRujukan
-        ? [
-              'bg-tone-red-bg text-tone-red',
-              OctagonAlert,
-              'Perlu tindak lanjut bulan ini',
-          ]
-        : perluTindakLanjut
-          ? [
-                'bg-tone-amber-bg text-tone-amber',
-                TriangleAlert,
-                'Perlu tindak lanjut bulan ini',
-            ]
-          : [
-                'bg-tone-green-bg text-tone-green',
-                CircleCheck,
-                'Tidak perlu tindak lanjut bulan ini',
-            ];
+    // Titik kurva hanya dari pengukuran yang punya umur dan berat sekaligus.
+    const riwayatKurva = pengukuran
+        .filter(
+            (p): p is Pengukuran & { umurBulan: number; bbKg: number } =>
+                p.umurBulan !== null &&
+                p.umurBulan >= 0 &&
+                p.umurBulan <= 60 &&
+                p.bbKg !== null &&
+                p.bbKg > 0 &&
+                !p.penilaian.BB_U?.tidakWajar,
+        )
+        .map((p) => [p.umurBulan, p.bbKg] as [number, number])
+        .sort((a, b) => a[0] - b[0]);
+
+    const titikPerluVerifikasi = pengukuran.filter(
+        (p) => p.bbKg !== null && p.penilaian.BB_U?.tidakWajar,
+    ).length;
+
+    /**
+     * Selisih yang tidak masuk akal secara biologis terhadap bulan sebelumnya.
+     *
+     * `tidakWajar` hanya menangkap nilai di luar rentang mutlak — 2 baris dari
+     * 633. Tinggi yang turun 11,5 cm lolos bersih karena kedua angkanya
+     * sendiri-sendiri masih wajar. Yang salah adalah selisihnya.
+     */
+    const janggal = (urutan: number): string | null => {
+        const kini = pengukuran[urutan];
+        const lalu = pengukuran[urutan + 1];
+
+        if (lalu === undefined) {
+            return null;
+        }
+
+        if (
+            kini.tinggiCm !== null &&
+            lalu.tinggiCm !== null &&
+            lalu.tinggiCm - kini.tinggiCm > ambang.tinggiBerkurangMax
+        ) {
+            return `Tinggi berkurang ${satuan(lalu.tinggiCm - kini.tinggiCm, 'cm')} dari bulan sebelumnya`;
+        }
+
+        if (kini.bbKg !== null && lalu.bbKg !== null) {
+            const selisih = kini.bbKg - lalu.bbKg;
+
+            if (selisih > ambang.naikMax) {
+                return `Berat naik ${satuan(selisih, 'kg', 2)} dalam sebulan`;
+            }
+
+            if (-selisih > ambang.turunMax) {
+                return `Berat turun ${satuan(-selisih, 'kg', 2)} dalam sebulan`;
+            }
+        }
+
+        return null;
+    };
 
     return (
         <Halaman
-            penuh="xl"
             judul={nama}
             kembali={{ href: '/balita', label: 'Data Balita' }}
-            subjudul={`${umur !== null ? `${umurRingkas(umur)} · ` : ''}Data contoh.`}
+            subjudul={`${umur !== null ? `${umurPanjang(umur)}, ` : ''}${
+                anak.rt === null
+                    ? 'RT belum tercatat'
+                    : `RT ${anak.rt.padStart(2, '0')}`
+            }. ${sumberLive ? 'Database live' : 'Data contoh'}.`}
             aksi={
                 <>
+                    {bolehCetak && (
+                        <button
+                            type="button"
+                            onClick={() => setDialog('cetak')}
+                            className="tombol-kedua"
+                        >
+                            <CreditCard
+                                className="size-5"
+                                strokeWidth={2.5}
+                                aria-hidden="true"
+                            />
+                            Cetak kartu
+                        </button>
+                    )}
                     {bolehUbah && (
                         <button
                             type="button"
-                            onClick={() => {
-                                setTanpaWa(false);
-                                setDialog('ubah');
-                            }}
+                            onClick={() => setDialog('ubah')}
                             className="tombol-kedua"
                         >
                             <Pencil
@@ -361,20 +416,6 @@ export default function DetailAnak({
                                 aria-hidden="true"
                             />
                             Ubah data
-                        </button>
-                    )}
-                    {bolehUbah && (
-                        <button
-                            type="button"
-                            onClick={() => setDialog('cetak')}
-                            className="tombol-kedua"
-                        >
-                            <Printer
-                                className="size-5"
-                                strokeWidth={2.5}
-                                aria-hidden="true"
-                            />
-                            Cetak kartu
                         </button>
                     )}
                     <button
@@ -392,294 +433,549 @@ export default function DetailAnak({
                 </>
             }
         >
-            {/* Kolom kanan paling sempit 350 px: di bawahnya tabel Riwayat
-                tergulir ke samping. Yang mengalah kolom kurva, yang tetap
-                terbaca meski sedikit menyempit. */}
-            <div className="grid gap-3.5 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,634px)_minmax(350px,1fr)] xl:gap-4.5">
-                <div className="flex min-w-0 flex-col gap-3.5">
-                    <section
-                        aria-label="Identitas"
-                        className="kartu px-4.5 py-3"
-                    >
-                        <dl className="grid grid-cols-2 gap-x-4.5 gap-y-2 sm:grid-cols-4">
-                            <Fakta label="Jenis kelamin">
-                                {anak.jk === 'L'
-                                    ? 'Laki-laki'
-                                    : anak.jk === 'P'
-                                      ? 'Perempuan'
-                                      : KOSONG}
-                            </Fakta>
-                            <Fakta label="Tanggal lahir">
-                                {tanggalRingkas(anak.tglLahir)}
-                            </Fakta>
-                            <Fakta label="Anak ke-">
-                                {anak.anakKe ?? KOSONG}
-                            </Fakta>
-                            <Fakta label="Berat lahir">
-                                {anak.bbLahirKg === null ? (
-                                    <>
-                                        {KOSONG}{' '}
-                                        <span className="text-sm font-medium text-muted-foreground">
-                                            tidak tercatat
-                                        </span>
-                                    </>
-                                ) : (
-                                    <>
-                                        {satuan(anak.bbLahirKg, 'kg', 2)}{' '}
-                                        {/* BBLR hanya ditandai bila angkanya
-                                            tepercaya; angka yang diragukan
-                                            tidak boleh memicu penanda klinis. */}
-                                        {anak.bbLahirMeragukan ? (
-                                            <span className="text-sm font-semibold text-tone-amber">
-                                                angka di arsip meragukan
-                                            </span>
-                                        ) : (
-                                            anak.bbLahirKg < 2.5 && (
-                                                <span className="text-sm font-semibold text-tone-blue">
-                                                    BBLR
-                                                </span>
-                                            )
-                                        )}
-                                    </>
-                                )}
-                            </Fakta>
-                            <Fakta label="Nama ibu">
-                                {anak.namaOrtu ?? KOSONG}
-                            </Fakta>
-                            <Fakta label="RT">
-                                {anak.rt === null
-                                    ? KOSONG
-                                    : anak.rt.padStart(2, '0')}
-                            </Fakta>
-                            <Fakta label="NIK" lebar>
-                                {nik(anak.nik)}
-                                {!anak.nikLengkap && (
-                                    <span className="ml-2 text-sm font-semibold text-tone-amber">
-                                        NIK belum lengkap
-                                    </span>
-                                )}
-                            </Fakta>
-                        </dl>
-                    </section>
-
-                    {titik.length === 0 || anak.jk === null ? (
-                        <p className="kartu px-4.5 py-6 text-base text-muted-foreground">
-                            Belum ada pengukuran berat yang dapat digambarkan.
-                        </p>
-                    ) : (
-                        <KmsChart
-                            judul="Kurva berat badan menurut umur"
-                            namaAnak={nama}
-                            kelamin={anak.jk}
-                            garisSd={garisSd}
-                            titik={titik}
-                            panelAwal={panelAwal}
-                        />
-                    )}
+            {tanpaWa && (
+                <div
+                    role="alert"
+                    className="mb-5 flex flex-wrap items-center gap-3 rounded-lg border border-tone-amber bg-tone-amber-bg px-4 py-3"
+                >
+                    <TriangleAlert
+                        className="size-5 shrink-0 text-tone-amber"
+                        strokeWidth={2.5}
+                        aria-hidden="true"
+                    />
+                    <p className="min-w-0 flex-1 text-sm font-semibold">
+                        {terbaru === null
+                            ? `Belum ada hasil pengukuran ${nama} pada ${periode.label} untuk dikirim.`
+                            : indeksTidakWajar.length > 0
+                              ? 'Hasil periode ini ditandai tidak wajar. Verifikasi ulang sebelum dikirim ke keluarga.'
+                              : 'Nomor WhatsApp orang tua belum diisi. Isi lewat Ubah data.'}
+                    </p>
+                    {bolehUbah &&
+                        terbaru !== null &&
+                        indeksTidakWajar.length === 0 && (
+                            <button
+                                type="button"
+                                onClick={() => setDialog('ubah')}
+                                className="tombol-kedua"
+                            >
+                                Ubah data
+                            </button>
+                        )}
                 </div>
+            )}
 
-                <div className="flex min-w-0 flex-col gap-3.5 xl:min-h-0">
-                    {tanpaWa && (
-                        <div
-                            role="alert"
-                            className="flex flex-wrap items-center gap-x-3.5 gap-y-2 rounded-lg border border-tone-amber bg-tone-amber-bg px-4 py-2.5"
-                        >
-                            <TriangleAlert
-                                className="size-5 shrink-0 text-tone-amber"
-                                strokeWidth={2.5}
-                                aria-hidden="true"
-                            />
-                            <p className="min-w-0 flex-1 text-sm font-semibold">
-                                {terbaru === null
-                                    ? `Belum ada hasil penimbangan ${nama} untuk dikirim.`
-                                    : 'Nomor WhatsApp orang tua belum diisi. Isi lewat Ubah data.'}
-                            </p>
-                            {bolehUbah && terbaru !== null && (
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setTanpaWa(false);
-                                        setDialog('ubah');
-                                    }}
-                                    className="tombol-kedua"
-                                >
-                                    Ubah data
-                                </button>
-                            )}
-                        </div>
-                    )}
+            {/* Kategori ditata sebagai tab lembar kerja: satu kelompok data
+                tampil pada satu waktu, tetapi semua bagian tetap dapat dicapai
+                dalam satu langkah. */}
+            <div
+                className="mb-7 border-b border-border"
+                role="tablist"
+                aria-label="Kategori detail anak"
+            >
+                <div className="flex flex-wrap items-end gap-1">
+                    {TAB_DETAIL.map((tab) => {
+                        const aktif = tabAktif === tab.nilai;
 
-                    <section
-                        aria-labelledby="judul-status"
-                        className="kartu @container shrink-0 px-4.5 pt-3.5 pb-4"
-                    >
-                        {terbaru === null ? (
-                            <>
-                                <h2
-                                    id="judul-status"
-                                    className="text-lg leading-tight font-extrabold"
-                                >
-                                    Status gizi
-                                </h2>
-                                <p className="mt-1 text-base text-muted-foreground">
-                                    Belum ada penimbangan sampai {periode.label}
-                                    , jadi status gizi belum dapat ditampilkan.
-                                </p>
-                            </>
-                        ) : (
-                            <>
-                                <h2
-                                    id="judul-status"
-                                    className="text-lg leading-tight font-extrabold"
-                                >
-                                    Status gizi{' '}
-                                    {tanggalPanjang(terbaru.tanggalUkur)}
-                                </h2>
-                                {basi && (
-                                    <p className="mt-1 text-sm font-semibold text-tone-amber">
-                                        Belum ditimbang bulan ini. Status
-                                        terakhir dari{' '}
-                                        {tanggalPanjang(terbaru.tanggalUkur)}.
-                                    </p>
-                                )}
-                                <p className="mt-1.5">
-                                    <span
-                                        className={`inline-flex items-center gap-2 rounded-full px-3.5 py-1 text-base font-bold ${kelasVonis}`}
-                                    >
-                                        <IkonVonis
-                                            className="size-5 shrink-0"
-                                            strokeWidth={2.5}
-                                            aria-hidden="true"
-                                        />
-                                        {teksVonis}
-                                    </span>
-                                </p>
-                                <div className="mt-2">
-                                    {indeks.map((i) => (
-                                        <div
-                                            key={i.label}
-                                            className="flex flex-wrap items-center gap-x-2.5 gap-y-1 border-t border-rule py-1.5"
-                                        >
-                                            {/* Di kartu sempit (tablet mendatar) nama indeks
-                                                mengambil barisnya sendiri; z dan
-                                                lencananya turun ke kanan bawah. */}
-                                            <span className="w-full text-sm font-semibold text-muted-foreground @sm:w-auto @sm:min-w-32 @sm:flex-1">
-                                                {i.label} · {i.nama}
-                                            </span>
-                                            <span className="ml-auto text-base font-extrabold whitespace-nowrap tabular-nums @sm:ml-0">
-                                                {i.nilai === undefined
-                                                    ? KOSONG
-                                                    : `${zScore(i.nilai.z)} SD`}
-                                            </span>
-                                            <StatusGiziBadge
-                                                kategori={
-                                                    i.nilai?.kategori ?? null
-                                                }
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-                            </>
-                        )}
-                        <p className="mt-0 flex flex-wrap gap-x-4.5 gap-y-1 border-t border-rule pt-2 text-sm text-muted-foreground">
-                            <span>
-                                Buku KIA:{' '}
-                                <span
-                                    className={`font-bold ${anak.bukuKia ? 'text-tone-green' : 'text-tone-amber'}`}
-                                >
-                                    {anak.bukuKia ? 'ada' : 'belum ada'}
-                                </span>
-                            </span>
-                            <span>
-                                Imunisasi:{' '}
-                                <span className="font-bold text-tone-amber">
-                                    belum diperiksa
-                                </span>
-                            </span>
-                        </p>
-                    </section>
-
-                    <section
-                        aria-labelledby="judul-riwayat"
-                        className="kartu flex flex-col overflow-hidden xl:min-h-0 xl:flex-1"
-                    >
-                        <div className="flex shrink-0 items-baseline justify-between gap-2 px-4.5 pt-3.5 pb-1.5">
-                            <h2
-                                id="judul-riwayat"
-                                className="text-lg leading-tight font-extrabold"
+                        return (
+                            <button
+                                key={tab.nilai}
+                                id={`tab-${tab.nilai}`}
+                                type="button"
+                                role="tab"
+                                aria-selected={aktif}
+                                aria-controls={`panel-${tab.nilai}`}
+                                onClick={() => setTabAktif(tab.nilai)}
+                                className={`relative min-h-12 rounded-t-lg border px-4 text-base font-semibold transition-colors focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
+                                    aktif
+                                        ? 'z-10 -mb-px border-border bg-card text-foreground'
+                                        : 'border-transparent text-muted-foreground hover:border-border hover:bg-surface-subtle hover:text-foreground'
+                                }`}
                             >
-                                Riwayat penimbangan
-                            </h2>
-                            <span className="text-sm text-muted-foreground">
-                                {hadir.length} kali, terbaru di atas
-                            </span>
-                        </div>
-
-                        {hadir.length > 0 && (
-                            <Table
-                                aria-label="Riwayat penimbangan"
-                                containerClassName="xl:min-h-0 xl:flex-1"
-                            >
-                                <TableHeader className="sticky top-0 z-10">
-                                    <TableRow>
-                                        <TableHead className="h-auto bg-card px-2 py-1.5 first:pl-4.5">
-                                            Tanggal
-                                        </TableHead>
-                                        <TableHead className="h-auto bg-card px-2 py-1.5 text-right">
-                                            Berat
-                                        </TableHead>
-                                        <TableHead className="h-auto bg-card px-2 py-1.5 text-right">
-                                            Selisih
-                                        </TableHead>
-                                        <TableHead className="h-auto bg-card px-2 py-1.5 last:pr-4.5">
-                                            Berat naik?
-                                        </TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {hadir.map((p, i) => (
-                                        <TableRow key={p.periodeId}>
-                                            <TableCell className="px-2 py-1.5 font-bold whitespace-nowrap first:pl-4.5">
-                                                {tanggalPendek(p.tanggalUkur)}
-                                            </TableCell>
-                                            <TableCell className="px-2 py-1.5 text-right whitespace-nowrap tabular-nums">
-                                                {satuan(p.bbKg, 'kg', 2)}
-                                            </TableCell>
-                                            <TableCell className="px-2 py-1.5 text-right whitespace-nowrap tabular-nums">
-                                                {teksSelisih(selisih(i))}
-                                            </TableCell>
-                                            {/* Tanpa nowrap: "Pertama kali ditimbang"
-                                                membungkus, bukan mendorong tabel
-                                                tergulir ke samping di kolom sempit. */}
-                                            <TableCell className="px-2 py-1.5 last:pr-4.5">
-                                                <StatusNaik
-                                                    ntob={p.ntob}
-                                                    umurBulan={p.umurBulan}
-                                                />
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        )}
-
-                        <div className="shrink-0 border-t border-border p-3.5">
-                            <Link
-                                href={`/balita/${anak.id}/riwayat`}
-                                className="tombol-kedua w-full"
-                            >
-                                Detail riwayat penimbangan
-                                <ChevronRight
-                                    className="size-5"
-                                    strokeWidth={2.5}
-                                    aria-hidden="true"
-                                />
-                            </Link>
-                        </div>
-                    </section>
+                                {tab.label}
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
 
+            {/* Identitas memimpin halaman, seperti artboard Detail: satu
+                petak fakta registri yang dipisahkan garis tebal dari vonis di
+                bawahnya. Petak foto artboard tidak ikut — tidak ada satu pun
+                anak yang punya potret di arsip, dan kotak kosong bertuliskan
+                "Foto anak" pada 101 halaman adalah janji yang tidak ditepati. */}
+            <section
+                id="panel-profil"
+                role="tabpanel"
+                aria-labelledby="tab-profil"
+                hidden={tabAktif !== 'profil'}
+                className="mb-7 overflow-hidden rounded-xl border border-border bg-card"
+            >
+                <div className="flex flex-wrap items-center gap-4 bg-primary px-5 py-4 text-primary-foreground sm:px-6">
+                    <div
+                        aria-hidden="true"
+                        className="flex size-14 shrink-0 items-center justify-center rounded-full bg-card text-xl font-extrabold text-primary"
+                    >
+                        {inisial || '—'}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <h2 className="text-xl font-extrabold">Profil anak</h2>
+                        <p className="mt-0.5 text-base text-primary-foreground/80">
+                            {nama}
+                        </p>
+                    </div>
+                    <p className="text-base font-semibold text-primary-foreground">
+                        {anak.jk === 'L'
+                            ? 'Laki-laki'
+                            : anak.jk === 'P'
+                              ? 'Perempuan'
+                              : KOSONG}
+                        {umur !== null && ` · ${umurPanjang(umur)}`}
+                    </p>
+                </div>
+
+                <div className="p-5 sm:p-6">
+                    <dl className="grid gap-x-10 gap-y-4 sm:grid-cols-2 xl:grid-cols-3">
+                        <BarisDefinisi label="Tanggal lahir">
+                            {tanggalPanjang(anak.tglLahir)}
+                        </BarisDefinisi>
+                        <BarisDefinisi label="NIK">
+                            {nik(anak.nik)}
+                            {!anak.nikLengkap && (
+                                <span className="block text-sm text-tone-amber">
+                                    NIK belum lengkap
+                                </span>
+                            )}
+                        </BarisDefinisi>
+                        <BarisDefinisi label="Berat lahir">
+                            {satuan(anak.bbLahirKg, 'kg', 2)}
+                            {anak.bbLahirMeragukan && (
+                                <span className="block text-sm text-tone-amber">
+                                    Angka di arsip meragukan
+                                </span>
+                            )}
+                        </BarisDefinisi>
+                        <BarisDefinisi label="Ibu">
+                            {anak.namaOrtu ?? KOSONG}
+                        </BarisDefinisi>
+                        <BarisDefinisi label="Alamat">
+                            {anak.rt === null
+                                ? KOSONG
+                                : `RT ${anak.rt.padStart(2, '0')}`}
+                            {anak.anakKe !== null && `, anak ke-${anak.anakKe}`}
+                        </BarisDefinisi>
+                    </dl>
+
+                    <div className="mt-6 border-t border-border pt-5">
+                        <h3 className="text-base font-bold">
+                            Skrining saat pendaftaran
+                        </h3>
+                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                            <div className="flex gap-3 rounded-lg bg-surface-subtle p-4">
+                                <ShieldCheck
+                                    className={`mt-0.5 size-5 shrink-0 ${
+                                        anak.bukuKia
+                                            ? 'text-tone-green'
+                                            : 'text-tone-amber'
+                                    }`}
+                                    strokeWidth={2.5}
+                                    aria-hidden="true"
+                                />
+                                <div>
+                                    <p className="font-bold">Buku KIA</p>
+                                    <p className="mt-0.5 text-sm text-muted-foreground">
+                                        {anak.bukuKia
+                                            ? 'Tercatat pada data sasaran.'
+                                            : 'Belum tercatat. Konfirmasi saat daftar.'}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex gap-3 rounded-lg bg-surface-subtle p-4">
+                                <Syringe
+                                    className="mt-0.5 size-5 shrink-0 text-tone-amber"
+                                    strokeWidth={2.5}
+                                    aria-hidden="true"
+                                />
+                                <div>
+                                    <p className="font-bold">Imunisasi</p>
+                                    <p className="mt-0.5 text-sm text-muted-foreground">
+                                        Belum dipastikan dari arsip ini.
+                                        Konfirmasi dan lengkapi saat daftar.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <p className="mt-3 max-w-[78ch] text-sm text-muted-foreground">
+                            Saat kartu sasaran dipindai, item yang belum lengkap
+                            ini muncul sebagai skrining awal sebelum anak
+                            dicatat hadir.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <>
+                {tabAktif === 'status' && terbaru === null && (
+                    <section
+                        id="panel-status"
+                        role="tabpanel"
+                        aria-labelledby="tab-status"
+                        className="kartu px-6 py-6"
+                    >
+                        <h2 className="text-xl font-extrabold">
+                            Belum ada penilaian untuk {periode.label}
+                        </h2>
+                        <p className="mt-2 max-w-[72ch] text-base text-muted-foreground">
+                            Pengukuran dari periode lain tidak dipakai sebagai
+                            status bulan ini.
+                            {hasilTerakhir !== undefined &&
+                                ` Riwayat terakhir tercatat ${tanggalPanjang(hasilTerakhir.tanggalUkur)}; lihat Kurva KMS atau Riwayat Ukur untuk konteksnya.`}
+                        </p>
+                    </section>
+                )}
+
+                {terbaru !== null && (
+                    <section
+                        id="panel-status"
+                        role="tabpanel"
+                        aria-labelledby="tab-status"
+                        hidden={tabAktif !== 'status'}
+                    >
+                        <h2 className="text-xl font-extrabold">
+                            Status pengukuran{' '}
+                            {tanggalPanjang(terbaru.tanggalUkur)}
+                        </h2>
+
+                        {/* Tiga kartu indeks berdampingan, susunan artboard.
+                            Yang terberat tetap di depan: urutannya dihitung
+                            dari nadanya, bukan dari urutan tulis — supaya mata
+                            jatuh lebih dulu pada vonis yang menentukan. */}
+                        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                            {terurut.map((i) => (
+                                <KartuIndeks
+                                    key={i.label}
+                                    label={i.label}
+                                    nilai={i.nilai}
+                                />
+                            ))}
+                        </div>
+
+                        {indeksTidakWajar.length > 0 && (
+                            <p className="mt-4 rounded-xl bg-tone-amber-bg p-4 text-sm font-semibold text-tone-amber">
+                                {indeksTidakWajar.join(', ')} ditandai tidak
+                                wajar dalam arsip dan tidak dipakai untuk
+                                penilaian. Periksa ulang hasil ukur sebelum
+                                memberi arahan.
+                            </p>
+                        )}
+
+                        {/* Layar ini dulu tidak pernah menjawab pertanyaan yang
+                            jadi alasan keberadaannya: anak ini perlu
+                            ditindaklanjuti atau tidak. */}
+                        <p className="mt-4 text-base font-bold">
+                            {indeksTidakWajar.length > 0
+                                ? 'Sebagian hasil perlu verifikasi ulang sebelum keputusan tindak lanjut.'
+                                : indeks.every((i) => i.nilai === undefined)
+                                  ? 'Belum dapat dinilai dari data periode ini.'
+                                  : perluTindakLanjut
+                                    ? 'Perlu tindak lanjut bulan ini.'
+                                    : 'Tidak perlu tindak lanjut bulan ini.'}
+                        </p>
+
+                        <div
+                            className={`mt-5 rounded-xl p-5 ${
+                                perluRujukan
+                                    ? 'bg-tone-red-bg text-tone-red'
+                                    : 'bg-surface-subtle text-foreground'
+                            }`}
+                        >
+                            <h3 className="text-base font-extrabold">
+                                Arahan untuk keluarga
+                            </h3>
+                            <p className="mt-1 max-w-[76ch] text-base text-pretty">
+                                {edukasiKms}
+                            </p>
+                            {perluRujukan && (
+                                <p className="mt-2 text-sm font-semibold">
+                                    Ambang kerja rujukan: z-score ≤{' '}
+                                    {zScore(ambang.ambangRujukan)} SD. Perlu
+                                    pengesahan Puskesmas sebelum digunakan
+                                    sebagai aturan produksi.
+                                </p>
+                            )}
+                            {perluWaspada && !perluRujukan && (
+                                <p className="mt-2 text-sm font-semibold">
+                                    Zona waspada dimulai pada z-score ≤{' '}
+                                    {zScore(ambang.ambangWaspada)} SD.
+                                </p>
+                            )}
+                        </div>
+
+                        <p className="mt-2 max-w-[80ch] text-sm text-pretty text-muted-foreground">
+                            Acuan standar pertumbuhan WHO 2006, dihitung dari
+                            parameter LMS. Nilainya sama dengan tabel Permenkes
+                            No. 2 Tahun 2020. Indeks mengikuti umur anak: BB/PB
+                            di bawah 24 bulan, BB/TB untuk 24 bulan ke atas.
+                        </p>
+
+                        {/* Asumsi sistem harus terlihat di antarmuka, bukan hanya
+                            di basis data (prinsip P4). */}
+                        {terbaru.catatanUkur?.jenisUkur !== undefined && (
+                            <p className="mt-2 max-w-[80ch] text-sm text-muted-foreground">
+                                Cara ukur {terbaru.catatanUkur.jenisUkur}:{' '}
+                                {umur !== null && umur < 24
+                                    ? 'panjang badan, telentang'
+                                    : 'tinggi badan, berdiri'}
+                                . Berkas sumber tidak mencatatnya.
+                            </p>
+                        )}
+                    </section>
+                )}
+
+                {/* Kurva dan riwayat adalah cerita yang sama, jadi jaraknya
+                        lebih rapat satu sama lain daripada ke bagian lain. */}
+                <section
+                    id="panel-kurva"
+                    role="tabpanel"
+                    aria-labelledby="tab-kurva"
+                    hidden={tabAktif !== 'kurva'}
+                >
+                    {riwayatKurva.length === 0 ? (
+                        <p className="mt-2 text-base text-muted-foreground">
+                            Belum ada pengukuran berat yang dapat digambarkan.
+                        </p>
+                    ) : (
+                        anak.jk !== null && (
+                            <div className="overflow-hidden rounded-xl border border-border bg-card">
+                                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-surface-subtle px-4 py-3 sm:px-5">
+                                    <div>
+                                        <h2 className="text-xl font-extrabold">
+                                            Kartu Menuju Sehat
+                                        </h2>
+                                        <p className="mt-0.5 text-sm text-muted-foreground">
+                                            Berat badan menurut umur · WHO 2006
+                                        </p>
+                                    </div>
+                                    <p className="text-sm font-semibold text-muted-foreground">
+                                        {nama} · {umurPanjang(umur)}
+                                    </p>
+                                </div>
+                                <div className="px-4 py-4 sm:px-5">
+                                    <p className="mb-3 text-sm text-muted-foreground">
+                                        {terbaru === null
+                                            ? `Kurva ini hanya menampilkan riwayat; belum ada pengukuran pada ${periode.label}.`
+                                            : `Hasil ${periode.label} tersedia pada tab Status Gizi.`}
+                                        {umur !== null &&
+                                            umur > 60 &&
+                                            ' Kurva BB/U WHO 2006 ini hanya mencakup usia 0–60 bulan.'}
+                                        {titikPerluVerifikasi > 0 &&
+                                            ` ${titikPerluVerifikasi} titik BB/U yang ditandai tidak wajar disisihkan dari gambar dan tetap tersimpan di Riwayat Ukur.`}
+                                    </p>
+                                    <KmsChart
+                                        kelamin={anak.jk}
+                                        riwayat={riwayatKurva}
+                                        garisSd={garisSd}
+                                        umurDisorot={umurDisorot}
+                                        detail={pengukuran
+                                            .filter(
+                                                (
+                                                    p,
+                                                ): p is Pengukuran & {
+                                                    umurBulan: number;
+                                                    bbKg: number;
+                                                } =>
+                                                    p.umurBulan !== null &&
+                                                    p.umurBulan >= 0 &&
+                                                    p.umurBulan <= 60 &&
+                                                    p.bbKg !== null &&
+                                                    p.bbKg > 0 &&
+                                                    !p.penilaian.BB_U
+                                                        ?.tidakWajar,
+                                            )
+                                            .map((p) => ({
+                                                umurBulan: p.umurBulan,
+                                                beratKg: p.bbKg,
+                                                tanggal: p.tanggalUkur,
+                                                z: p.penilaian.BB_U?.z ?? null,
+                                                kategori:
+                                                    p.penilaian.BB_U
+                                                        ?.kategori ?? null,
+                                            }))}
+                                    />
+                                </div>
+                            </div>
+                        )
+                    )}
+                </section>
+
+                <section
+                    id="panel-riwayat"
+                    role="tabpanel"
+                    aria-labelledby="tab-riwayat"
+                    hidden={tabAktif !== 'riwayat'}
+                >
+                    <div className="kartu overflow-hidden">
+                        {/* Judul menyatu dengan kartunya di strip kepala,
+                                seperti artboard. */}
+                        <div className="strip-kepala">
+                            <h2 className="text-xl font-extrabold">
+                                Riwayat pengukuran
+                            </h2>
+                            {/* Mengklik baris menyorot titiknya di kurva.
+                                    Dulu tidak ada satu pun tanda bahwa itu
+                                    mungkin, dan <tr onClick> tidak bisa
+                                    dijangkau papan tombol sama sekali. */}
+                            <p className="mt-0.5 text-sm text-muted-foreground">
+                                Pilih tanggal untuk menyorot titiknya saat
+                                membuka tab Kurva KMS.
+                            </p>
+                            <p className="mt-2 text-sm text-muted-foreground md:hidden">
+                                Tabel ini lebih lebar daripada layar. Geser ke
+                                samping untuk melihat kolom z-score.
+                            </p>
+                        </div>
+
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead scope="col">Tanggal</TableHead>
+                                    <TableHead
+                                        scope="col"
+                                        className="hidden lg:table-cell"
+                                    >
+                                        Umur
+                                    </TableHead>
+                                    <TableHead scope="col">Berat</TableHead>
+                                    <TableHead scope="col">
+                                        Panjang atau Tinggi
+                                    </TableHead>
+                                    <TableHead scope="col">
+                                        {labelIndeks('BB_TB', umur)}
+                                    </TableHead>
+                                    <TableHead scope="col">
+                                        {labelIndeks('TB_U', umur)}
+                                    </TableHead>
+                                    <TableHead
+                                        scope="col"
+                                        className="hidden md:table-cell"
+                                    >
+                                        Pertumbuhan
+                                    </TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {pengukuran.map((p, urutan) => {
+                                    const sebab =
+                                        p.statusKehadiran === 'hadir'
+                                            ? null
+                                            : (ARTI_KEHADIRAN[
+                                                  p.statusKehadiran
+                                              ] ?? null);
+                                    const peringatan = janggal(urutan);
+
+                                    return (
+                                        <TableRow
+                                            key={p.periodeId}
+                                            aria-current={
+                                                p.umurBulan === umurDisorot
+                                                    ? 'true'
+                                                    : undefined
+                                            }
+                                            className={
+                                                p.umurBulan === umurDisorot
+                                                    ? 'bg-accent'
+                                                    : ''
+                                            }
+                                        >
+                                            <TableCell className="py-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setUmurDisorot(
+                                                            p.umurBulan,
+                                                        )
+                                                    }
+                                                    className="inline-flex min-h-13 items-center rounded-lg px-3 font-semibold text-primary underline"
+                                                >
+                                                    {tanggalRingkas(
+                                                        p.tanggalUkur,
+                                                    )}
+                                                </button>
+                                                {/* Baris kosong sekarang
+                                                        menyebutkan sebabnya. */}
+                                                {sebab !== null && (
+                                                    <span className="block px-3 pb-1 text-sm text-muted-foreground">
+                                                        {sebab}
+                                                    </span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell className="hidden whitespace-nowrap lg:table-cell">
+                                                {umurRingkas(p.umurBulan)}
+                                            </TableCell>
+                                            <TableCell className="whitespace-nowrap">
+                                                {satuan(p.bbKg, 'kg', 2)}
+                                            </TableCell>
+                                            <TableCell>
+                                                {satuan(p.tinggiCm, 'cm')}
+                                                {/* Keterangan cara ukur
+                                                        hanya bila ada angkanya:
+                                                        dulu ia tetap dicetak di
+                                                        bawah pengukuran yang
+                                                        tidak pernah terjadi. */}
+                                                {p.tinggiCm !== null && (
+                                                    <span className="block text-sm text-muted-foreground">
+                                                        {p.umurBulan !== null &&
+                                                        p.umurBulan < 24
+                                                            ? 'panjang badan'
+                                                            : 'tinggi badan'}
+                                                    </span>
+                                                )}
+                                                {peringatan !== null && (
+                                                    <span className="mt-1 flex items-start gap-1.5 text-sm text-tone-amber">
+                                                        <TriangleAlert
+                                                            className="mt-0.5 size-4 shrink-0"
+                                                            strokeWidth={2.5}
+                                                            aria-hidden="true"
+                                                        />
+                                                        {peringatan}
+                                                    </span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                <ZScoreCell
+                                                    nilai={p.penilaian.BB_TB}
+                                                />
+                                            </TableCell>
+                                            <TableCell>
+                                                <ZScoreCell
+                                                    nilai={p.penilaian.TB_U}
+                                                />
+                                            </TableCell>
+                                            <TableCell className="hidden md:table-cell">
+                                                {p.ntob === null
+                                                    ? KOSONG
+                                                    : (ARTI_NTOB[
+                                                          p.ntob.toUpperCase()
+                                                      ] ?? p.ntob)}
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })}
+                            </TableBody>
+                        </Table>
+                    </div>
+
+                    <p className="mt-3 max-w-[80ch] text-sm text-muted-foreground">
+                        Kolom Pertumbuhan menampilkan huruf N, T, O, dan B apa
+                        adanya dari arsip. Aturan 1T/2T/3T belum diterapkan
+                        karena definisinya masih dikonfirmasi.
+                    </p>
+                </section>
+            </>
+
+            {/* Tombol yang hanya memunculkan window.alert("Belum
+                tersedia di demo") dibuang. Kontrol yang menjanjikan sesuatu
+                lalu menolaknya lebih buruk daripada kontrol yang tidak ada;
+                kalimat di atas sudah menyebut keadaannya. */}
             {dialog === 'ubah' && (
                 <DialogUbah
                     anak={anak}
@@ -692,7 +988,6 @@ export default function DetailAnak({
                     }}
                 />
             )}
-
             {dialog === 'cetak' && (
                 <DialogCetak
                     anak={anak}
@@ -704,21 +999,35 @@ export default function DetailAnak({
     );
 }
 
-function Fakta({
+/**
+ * Satu kartu indeks: judul, z-score 36 px berwarna, lalu kategorinya.
+ *
+ * Bentuk kartu artboard Detail. Kategori selalu ditulis penuh — warna tidak
+ * pernah menjadi satu-satunya penanda (05-uiux-spec.md bagian 3).
+ */
+function KartuIndeks({
     label,
-    lebar = false,
-    children,
+    nilai,
 }: {
     label: string;
-    lebar?: boolean;
-    children: ReactNode;
+    nilai: PenilaianGizi | undefined;
 }) {
+    const warna = WARNA_NADA[nadaKategori(nilai?.kategori ?? null)];
+
     return (
-        <div className={`min-w-0 ${lebar ? 'col-span-2' : ''}`}>
-            <dt className="text-sm font-semibold text-muted-foreground">
-                {label}
-            </dt>
-            <dd className="font-bold">{children}</dd>
+        <div className="kartu p-5">
+            <p className="text-sm font-bold text-muted-foreground">{label}</p>
+            <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
+                <span
+                    className={`text-3xl leading-none font-extrabold ${warna}`}
+                >
+                    {nilai === undefined ? KOSONG : zScore(nilai.z)}
+                </span>
+                <span className="text-sm text-muted-foreground">SD</span>
+            </p>
+            <p className={`mt-1.5 text-base font-bold text-pretty ${warna}`}>
+                {nilai?.kategori ?? 'Belum dapat dinilai'}
+            </p>
         </div>
     );
 }

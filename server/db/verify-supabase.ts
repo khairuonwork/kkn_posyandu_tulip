@@ -1,10 +1,14 @@
-import { dapatkanPool, tutupPool } from '../src/db/pool.ts';
+import { dapatkanPool, tutupPool } from "../src/db/pool.ts";
 
 const pool = dapatkanPool();
 
 try {
-    const migrasi = await pool.query<{ nama: string }>('SELECT nama FROM migrasi ORDER BY nama');
-    const standar = await pool.query<{ jumlah: number }>('SELECT count(*)::int AS jumlah FROM standar_lms');
+    const migrasi = await pool.query<{ nama: string }>(
+        "SELECT nama FROM migrasi ORDER BY nama",
+    );
+    const standar = await pool.query<{ jumlah: number }>(
+        "SELECT count(*)::int AS jumlah FROM standar_lms",
+    );
     const objek = await pool.query<{ nama: string; jenis: string }>(`
         SELECT c.relname AS nama, c.relkind::text AS jenis
           FROM pg_class c
@@ -26,7 +30,7 @@ try {
           FROM pg_class c
           JOIN pg_namespace n ON n.oid = c.relnamespace
          WHERE n.nspname = 'public'
-           AND relname IN ('posyandu', 'wilayah_rt', 'orang_tua', 'anak', 'periode', 'pengukuran', 'layanan')
+           AND relname IN ('posyandu', 'wilayah_rt', 'orang_tua', 'anak', 'periode', 'pengukuran', 'layanan', 'sasaran')
          ORDER BY relname
     `);
     const isi = await pool.query<{
@@ -42,17 +46,30 @@ try {
             (SELECT count(*)::int FROM pengukuran) AS pengukuran
     `);
 
-    console.log(JSON.stringify({
-        migrasi: migrasi.rows.map((baris) => baris.nama),
-        standarLms: standar.rows[0].jumlah,
-        viewTablet: objek.rows.map((baris) => baris.nama),
-        rpcTablet: fungsi.rows.map((baris) => baris.nama),
-        rls: rls.rows,
-        isi: isi.rows[0],
-    }, null, 2));
+    console.log(
+        JSON.stringify(
+            {
+                migrasi: migrasi.rows.map((baris) => baris.nama),
+                standarLms: standar.rows[0].jumlah,
+                viewTablet: objek.rows.map((baris) => baris.nama),
+                rpcTablet: fungsi.rows.map((baris) => baris.nama),
+                rls: rls.rows,
+                isi: isi.rows[0],
+            },
+            null,
+            2,
+        ),
+    );
 
-    if (migrasi.rowCount !== 8 || standar.rows[0].jumlah !== 906 || objek.rowCount !== 2 || fungsi.rowCount !== 2 || rls.rows.some((baris) => !baris.aktif)) {
-        throw new Error('Verifikasi Supabase belum lengkap.');
+    if (
+        migrasi.rowCount !== 9 ||
+        standar.rows[0].jumlah !== 906 ||
+        objek.rowCount !== 2 ||
+        fungsi.rowCount !== 2 ||
+        rls.rowCount !== 8 ||
+        rls.rows.some((baris) => !baris.aktif)
+    ) {
+        throw new Error("Verifikasi Supabase belum lengkap.");
     }
 } finally {
     await tutupPool();

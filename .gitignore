@@ -3,6 +3,7 @@ dist-demo/
 server/db/*.generated.sql
 server/.npm-cache/
 server/akun-live.txt
+.qa-lan/
 
 .env
 .env.backup

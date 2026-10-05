@@ -21,13 +21,18 @@
         "db:down": "docker compose down"
     },
     "dependencies": {
+        "exceljs": "^4.4.0",
         "express": "^5.2.1",
-        "pg": "^8.13.1"
+        "pg": "^8.13.1",
+        "uuid": "^11.1.1"
     },
     "devDependencies": {
         "@types/express": "^5.0.6",
         "@types/node": "^22.13.5",
         "@types/pg": "^8.11.10",
         "typescript": "^5.7.2"
+    },
+    "overrides": {
+        "uuid": "^11.1.1"
     }
 }

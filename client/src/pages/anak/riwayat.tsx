@@ -42,6 +42,7 @@ type Props = {
     pengukuran: Pengukuran[];
     periode: Periode;
     ambang: AmbangDetail;
+    sumberLive?: boolean;
 };
 
 type KolomUrut = 'tanggal' | 'umur' | 'berat' | 'tinggi';
@@ -61,6 +62,7 @@ export default function RiwayatPenimbangan({
     pengukuran,
     periode,
     ambang,
+    sumberLive = false,
 }: Props) {
     const [urut, setUrut] = useState<{ kolom: KolomUrut; naik: boolean }>({
         kolom: 'tanggal',
@@ -180,7 +182,7 @@ export default function RiwayatPenimbangan({
             }}
             subjudul={`${namaTampil(anak.nama)}${
                 umur === null ? '' : ` · ${umurRingkas(umur)}`
-            }. Data contoh.`}
+            }. ${sumberLive ? 'Database live' : 'Data contoh'}.`}
         >
             <section className="kartu flex flex-col overflow-hidden lg:min-h-0">
                 <div className="flex shrink-0 flex-wrap items-baseline justify-between gap-x-3.5 gap-y-1 border-b border-border px-5.5 py-3.5">

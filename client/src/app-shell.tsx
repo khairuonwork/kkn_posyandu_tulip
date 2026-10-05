@@ -24,7 +24,7 @@ import FilterPeriode from '@/components/filter-periode';
 import { data } from '@/data/contoh/store';
 import { tanggalPanjang } from '@/lib/format';
 import { Link, useAlamat } from '@/lib/nav';
-import type { Peran } from '@/types/posyandu';
+import type { Peran, Periode } from '@/types/posyandu';
 
 export type Rute =
     | { nama: 'beranda' }
@@ -130,6 +130,7 @@ const NAV: ButirNav[] = [
 type CangkangProps = {
     peran: Peran;
     periodeId: string;
+    periode?: Periode[];
     onPindahPeriode: (id: string) => void;
     /** Isi `main`. */
     children: ReactNode;
@@ -147,6 +148,7 @@ const LEBAR_SIDEBAR = '(min-width: 64rem)';
 export function Cangkang({
     peran,
     periodeId,
+    periode = data.periode,
     onPindahPeriode,
     children,
     kakiSidebar,
@@ -154,7 +156,7 @@ export function Cangkang({
     const alamat = useAlamat();
     const laci = useRef<HTMLDialogElement>(null);
     const tanggalKegiatan =
-        data.periode.find((p) => p.id === periodeId)?.tanggalKegiatan ?? null;
+        periode.find((p) => p.id === periodeId)?.tanggalKegiatan ?? null;
 
     // Tablet yang diputar dari tegak ke mendatar dengan laci terbuka akan
     // menampilkan sidebar dan laci sekaligus.
@@ -234,7 +236,7 @@ export function Cangkang({
                     </label>
                     <FilterPeriode
                         id="periode-atas"
-                        periode={data.periode}
+                        periode={periode}
                         nilai={periodeId}
                         onGanti={onPindahPeriode}
                         className="w-50"
@@ -304,7 +306,7 @@ export function Cangkang({
                     </label>
                     <FilterPeriode
                         id="periode-sisi"
-                        periode={data.periode}
+                        periode={periode}
                         nilai={periodeId}
                         onGanti={onPindahPeriode}
                         className="mt-1.5"

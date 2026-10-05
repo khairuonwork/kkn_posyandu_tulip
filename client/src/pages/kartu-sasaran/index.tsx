@@ -46,7 +46,7 @@ export default function KartuSasaran({
 }: Props) {
     const [cari, setCari] = useState('');
     const [rt, setRt] = useState('');
-    const [hanyaAktif, setHanyaAktif] = useState(true);
+    const [hanyaAktif, setHanyaAktif] = useState(false);
     const [pilihan, setPilihan] = useState<Set<number>>(
         () => new Set(terpilihAwal === undefined ? [] : [terpilihAwal]),
     );
@@ -99,7 +99,7 @@ export default function KartuSasaran({
             ikon={CreditCard}
             penuh="lg"
             judul="Kartu Balita"
-            subjudul="Pilih balita, lalu cetak kartunya. Satu lembar A4 memuat 8 kartu. Data contoh."
+            subjudul="Setiap anak di master Data Balita otomatis memiliki kartu. Pilih satu atau beberapa kartu untuk dicetak pada A4."
         >
             <div className="grid gap-4.5 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_420px]">
                 <section className="kartu flex min-w-0 flex-col overflow-hidden lg:min-h-0">

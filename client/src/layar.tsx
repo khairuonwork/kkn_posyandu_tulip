@@ -28,6 +28,8 @@ import {
     statusGizi,
     trenStatusGizi,
 } from '@/data/contoh/store';
+import type { DetailAnakServerState } from '@/lib/anak';
+import type { useBerandaServer } from '@/lib/beranda';
 import { umurBulanPada } from '@/lib/format';
 import DaftarAnak from '@/pages/anak/index';
 import type { AnakBaru, BarisAnak, PatchAnak } from '@/pages/anak/index';
@@ -35,6 +37,7 @@ import RiwayatPenimbangan from '@/pages/anak/riwayat';
 import DetailAnak from '@/pages/anak/show';
 import Dashboard from '@/pages/dashboard';
 import KartuSasaran from '@/pages/kartu-sasaran/index';
+import type { BalitaKartu } from '@/pages/kartu-sasaran/index';
 import Laporan from '@/pages/laporan/index';
 import type { TabPeriode } from '@/pages/laporan/index';
 import Pengaturan from '@/pages/pengaturan/index';
@@ -137,6 +140,7 @@ const LEMBAGA = `Posyandu ${data.meta.posyandu} · RW ${data.meta.rw} ${data.met
 export type LayarProps = {
     rute: Rute;
     peran: Peran;
+    rtPengguna?: string | null;
     periodeId: string;
     onPindahPeriode: (id: string) => void;
     koreksi: Record<number, PatchAnak>;
@@ -155,6 +159,14 @@ export type LayarProps = {
         isian: IsianPengguna,
     ) => Promise<string | null>;
     anakServer?: BarisAnak[] | null;
+    kartuServer?: BalitaKartu[] | null;
+    modeDataLive?: boolean;
+    statusAnakServer?: 'memuat' | 'siap' | 'galat';
+    pesanGalatAnakServer?: string | null;
+    onMuatUlangAnakServer?: () => void;
+    detailServer?: DetailAnakServerState;
+    periodeServer?: Periode[];
+    berandaServer?: ReturnType<typeof useBerandaServer>;
     tabLaporan: TabPeriode;
     onGantiTabLaporan: (tab: TabPeriode) => void;
 };
@@ -162,6 +174,7 @@ export type LayarProps = {
 export function Layar({
     rute,
     peran,
+    rtPengguna,
     periodeId,
     onPindahPeriode,
     tabLaporan,
@@ -179,25 +192,116 @@ export function Layar({
     pengguna,
     onSimpanPengguna,
     anakServer,
+    kartuServer,
+    modeDataLive = false,
+    statusAnakServer,
+    pesanGalatAnakServer,
+    onMuatUlangAnakServer,
+    detailServer,
+    periodeServer,
+    berandaServer,
 }: LayarProps) {
-    const periode = cariPeriode(periodeId);
+    const periode = modeDataLive
+        ? (periodeServer?.find((p) => p.id === periodeId) ?? null)
+        : cariPeriode(periodeId);
     // Satu sumber untuk lingkup data kader, dipakai Beranda, Data Balita, dan
     // Laporan sekaligus.
-    const rtLingkup = peran === 'kader' ? RT_KADER : null;
+    const rtLingkup =
+        peran === 'kader'
+            ? modeDataLive
+                ? (rtPengguna ?? null)
+                : RT_KADER
+            : null;
+    const wilayahRt = modeDataLive
+        ? Array.from(
+              new Set(
+                  (anakServer ?? [])
+                      .map((anak) => anak.rt)
+                      .filter((rt): rt is string => rt !== null),
+              ),
+          ).sort()
+        : daftarRt();
+
+    if (
+        modeDataLive &&
+        periode === null &&
+        rute.nama !== 'sasaran' &&
+        rute.nama !== 'pengaturan'
+    ) {
+        return berandaServer?.statusPeriode === 'galat' ? (
+            <GalatData
+                pesan={berandaServer.pesanGalat}
+                onMuatUlang={berandaServer.muatUlang}
+            />
+        ) : (
+            <MemuatData />
+        );
+    }
 
     if (rute.nama === 'beranda' && periode !== null) {
+        if (modeDataLive && berandaServer?.status === 'galat') {
+            return (
+                <GalatData
+                    pesan={berandaServer.pesanGalat}
+                    onMuatUlang={berandaServer.muatUlang}
+                />
+            );
+        }
+
+        const live = modeDataLive ? berandaServer?.data : null;
+
         return (
             <Dashboard
                 periode={periode}
-                ringkasan={ringkasan(periodeId, rtLingkup)}
-                statusGizi={statusGizi(periodeId, rtLingkup)}
-                cakupanEnamBulan={cakupanEnamBulan(rtLingkup)}
-                trenGizi={trenStatusGizi(rtLingkup)}
-                perluPerhatian={perluPerhatian(periodeId, rtLingkup)}
-                periodeTerisi={periodeTerakhirTerisi()}
+                ringkasan={
+                    live?.ringkasan ??
+                    (modeDataLive
+                        ? {
+                              sasaran: 0,
+                              ditimbang: 0,
+                              naik: 0,
+                              tanggalUkur: null,
+                          }
+                        : ringkasan(periodeId, rtLingkup))
+                }
+                statusGizi={
+                    live?.statusGizi ??
+                    (modeDataLive
+                        ? {
+                              giziBaik: 0,
+                              giziKurang: 0,
+                              giziBuruk: 0,
+                              berisikoLebih: 0,
+                              giziLebih: 0,
+                              obesitas: 0,
+                              belumDinilai: 0,
+                              ditimbang: 0,
+                          }
+                        : statusGizi(periodeId, rtLingkup))
+                }
+                cakupanEnamBulan={
+                    live?.cakupanEnamBulan ??
+                    (modeDataLive ? [] : cakupanEnamBulan(rtLingkup))
+                }
+                trenGizi={
+                    live?.trenGizi ??
+                    (modeDataLive ? [] : trenStatusGizi(rtLingkup))
+                }
+                perluPerhatian={
+                    live?.perluPerhatian ??
+                    (modeDataLive ? [] : perluPerhatian(periodeId, rtLingkup))
+                }
+                periodeTerisi={
+                    modeDataLive
+                        ? (berandaServer?.periodeTerisi ?? null)
+                        : periodeTerakhirTerisi()
+                }
                 belumTerkirim={antrean}
                 onCobaKirim={onCobaKirim}
                 onPindahPeriode={onPindahPeriode}
+                memuat={modeDataLive && berandaServer?.status !== 'siap'}
+                sumberLive={modeDataLive}
+                sasaranHistoris={live?.sasaranHistoris ?? false}
             />
         );
     }
@@ -206,7 +310,9 @@ export function Layar({
         // Baris arsip dulu dengan koreksinya, lalu anak yang baru ditambah.
         // Anak baru berada di bawah dengan sengaja: ia satu-satunya baris tanpa
         // status gizi, dan menaruhnya di puncak daftar terbaca seperti galat.
-        const sumber = anakServer ?? daftarAnak(periodeId);
+        const sumber = modeDataLive
+            ? (anakServer ?? [])
+            : daftarAnak(periodeId);
         const baris = sumber
             .map((b) => terapkanKoreksi(b, koreksi[b.anakId]))
             .concat(
@@ -218,7 +324,7 @@ export function Layar({
         return (
             <DaftarAnak
                 anak={baris}
-                wilayahRt={daftarRt()}
+                wilayahRt={wilayahRt}
                 rw={data.meta.rw}
                 peran={peran}
                 rtTerkunci={rtLingkup}
@@ -226,6 +332,10 @@ export function Layar({
                 standarLms={standarLms}
                 onSimpanAnak={onSimpanAnak}
                 onTambahAnak={onTambahAnak}
+                sumberData={modeDataLive ? 'live' : 'contoh'}
+                statusMuat={statusAnakServer}
+                pesanGalat={pesanGalatAnakServer}
+                onMuatUlang={onMuatUlangAnakServer}
             />
         );
     }
@@ -234,7 +344,22 @@ export function Layar({
         (rute.nama === 'detail' || rute.nama === 'riwayat') &&
         periode !== null
     ) {
-        const detail = detailAnak(rute.id);
+        if (detailServer?.status === 'memuat') {
+            return <MemuatData />;
+        }
+
+        if (detailServer?.status === 'tidak-ada') {
+            return <TidakDitemukan />;
+        }
+
+        const detail =
+            detailServer?.status === 'siap'
+                ? {
+                      anak: detailServer.anak,
+                      pengukuran: detailServer.pengukuran,
+                      garisSd: detailServer.garisSd,
+                  }
+                : detailAnak(rute.id);
 
         if (detail === null) {
             return <TidakDitemukan />;
@@ -249,6 +374,7 @@ export function Layar({
                     pengukuran={detail.pengukuran}
                     periode={periode}
                     ambang={ambang}
+                    sumberLive={modeDataLive}
                 />
             );
         }
@@ -265,10 +391,15 @@ export function Layar({
                 peran={peran}
                 periode={periode}
                 ambang={ambang}
-                wilayahRt={daftarRt()}
+                wilayahRt={wilayahRt}
                 noWa={koreksi[rute.id]?.noWa ?? null}
                 lembaga={LEMBAGA}
-                onSimpan={(patch) => onSimpanAnak(rute.id, patch)}
+                onSimpan={
+                    modeDataLive
+                        ? undefined
+                        : (patch) => onSimpanAnak(rute.id, patch)
+                }
+                sumberLive={modeDataLive}
             />
         );
     }
@@ -305,8 +436,10 @@ export function Layar({
     if (rute.nama === 'kartu-sasaran') {
         return (
             <KartuSasaran
-                balita={balitaKartu(periodeId)}
-                wilayahRt={daftarRt()}
+                balita={
+                    modeDataLive ? (kartuServer ?? []) : balitaKartu(periodeId)
+                }
+                wilayahRt={wilayahRt}
                 terpilihAwal={rute.id}
                 lembaga={LEMBAGA}
             />
@@ -344,6 +477,41 @@ function TidakDitemukan() {
                     samping.
                 </p>
             </div>
+        </div>
+    );
+}
+
+function MemuatData() {
+    return (
+        <div className="flex min-h-80 items-center justify-center p-6">
+            <p className="text-base text-muted-foreground">Memuat data anak…</p>
+        </div>
+    );
+}
+
+function GalatData({
+    pesan,
+    onMuatUlang,
+}: {
+    pesan: string | null;
+    onMuatUlang: () => void;
+}) {
+    return (
+        <div
+            role="alert"
+            className="m-6 rounded-xl border border-tone-amber bg-tone-amber-bg p-6"
+        >
+            <p className="font-bold">Data live belum dapat dimuat.</p>
+            <p className="mt-1 text-sm">
+                {pesan ?? 'Periksa sambungan API lalu coba lagi.'}
+            </p>
+            <button
+                type="button"
+                onClick={onMuatUlang}
+                className="tombol-kedua mt-4"
+            >
+                Coba lagi
+            </button>
         </div>
     );
 }

@@ -14,6 +14,8 @@ import {
     Search,
     TriangleAlert,
     UserPlus,
+    RefreshCw,
+    Upload,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Halaman from '@/components/halaman';
@@ -115,6 +117,10 @@ type Props = {
     standarLms?: BarisLms[];
     onSimpanAnak?: (anakId: number, patch: PatchAnak) => void;
     onTambahAnak?: (baru: AnakBaru) => void;
+    sumberData?: 'live' | 'contoh';
+    statusMuat?: 'memuat' | 'siap' | 'galat';
+    pesanGalat?: string | null;
+    onMuatUlang?: () => void;
 };
 
 /** `RT 01` … `RT 07`, bukan `RT 1`. */
@@ -138,7 +144,7 @@ function keAngka(teks: string): number | null {
 /**
  * Alasan baris ini ditandai, saat alasannya bukan BB/TB.
  *
- * Kolom `Status gizi` hanya membaca BB/TB; penanda perhatian membaca ketiga
+ * Kolom `Status terakhir` hanya membaca BB/TB; penanda perhatian membaca ketiga
  * indeks. Tanpa baris ini, menyalakan "Hanya yang perlu perhatian" memulangkan
  * sepuluh anak yang tujuh di antaranya berlabel `Gizi baik` - kolom yang
  * seharusnya menjawab "kenapa dia di sini" justru berkata dia tidak apa-apa,
@@ -183,7 +189,7 @@ function Risiko({ baris }: { baris: BarisAnak }) {
 
 type KolomUrut = 'nama' | 'umur' | 'rt' | 'tanggal' | 'status';
 
-/** Status paling mendesak di atas saat kolom Status gizi diurutkan naik. */
+/** Status riwayat paling mendesak di atas saat kolom diurutkan naik. */
 const PERINGKAT_NADA = { merah: 0, oranye: 1, biru: 2, hijau: 3, netral: 4 };
 
 const LABEL_URUT: Record<KolomUrut, string> = {
@@ -191,7 +197,7 @@ const LABEL_URUT: Record<KolomUrut, string> = {
     umur: 'Umur',
     rt: 'RT',
     tanggal: 'Ditimbang terakhir',
-    status: 'Status gizi',
+    status: 'Status terakhir',
 };
 
 function bandingkan(a: BarisAnak, b: BarisAnak, kolom: KolomUrut): number {
@@ -228,6 +234,10 @@ export default function DaftarAnak({
     standarLms,
     onSimpanAnak,
     onTambahAnak,
+    sumberData = 'contoh',
+    statusMuat = 'siap',
+    pesanGalat,
+    onMuatUlang,
 }: Props) {
     const [cari, setCari] = useState('');
     const [rt, setRt] = useState(rtTerkunci ?? '');
@@ -240,13 +250,18 @@ export default function DaftarAnak({
         naik: true,
     });
 
-    const bolehUbah = peran !== 'kader';
+    // Portal live hanya membaca data induk. Penambahan massal dilakukan lewat
+    // Sasaran & Impor, sedangkan pencatatan lapangan dilakukan di Android.
+    // Jangan tampilkan editor memori milik demo sebagai tindakan sungguhan.
+    const bolehUbah = peran !== 'kader' && sumberData === 'contoh';
     const rtAktif = rtTerkunci ?? rt;
     // Kader hanya pernah melihat RT binaannya. Menyebut jumlah se-RW di
     // subjudulnya membuat dua angka berbeda berdiri 40 px bersebelahan.
     const terlihat =
         rtTerkunci === null ? anak : anak.filter((b) => b.rt === rtTerkunci);
     const lingkupRt = rtAktif === '' ? 'seluruh RT' : labelRt(rtAktif);
+    const adaSaringan =
+        cari.trim() !== '' || rtAktif !== '' || hanyaPerhatian || hanyaRisiko;
 
     // 906 baris standar hanya perlu disusun sekali, bukan tiap ketukan papan
     // tombol di dalam editor.
@@ -312,11 +327,21 @@ export default function DaftarAnak({
             ikon={Baby}
             penuh="lg"
             judul="Data Balita"
-            subjudul={`${
-                rtTerkunci === null
-                    ? `${anak.length} balita terdaftar di RW ${rw}`
-                    : `${terlihat.length} balita di ${labelRt(rtTerkunci)}, wilayah binaan Anda`
-            }. Data contoh.`}
+            subjudul={
+                sumberData === 'live'
+                    ? statusMuat === 'memuat'
+                        ? 'Mengambil seluruh data balita dari database…'
+                        : statusMuat === 'galat'
+                          ? 'Data live belum berhasil dimuat.'
+                          : rtTerkunci === null
+                            ? `${anak.length} balita terdaftar di RW ${rw} · Database live`
+                            : `${terlihat.length} balita di ${labelRt(rtTerkunci)}, wilayah binaan Anda · Database live`
+                    : `${
+                          rtTerkunci === null
+                              ? `${anak.length} balita terdaftar di RW ${rw}`
+                              : `${terlihat.length} balita di ${labelRt(rtTerkunci)}, wilayah binaan Anda`
+                      }. Data contoh.`
+            }
             aksi={
                 bolehUbah && (
                     <button
@@ -408,8 +433,8 @@ export default function DaftarAnak({
 
                     {/* <button aria-pressed>: keadaan tertekannya sampai ke
                         pembaca layar, bukan hanya ke mata. Dua saringan
-                        terpisah: "perlu perhatian" membaca status gizi bulan
-                        ini, yang kedua riwayat sejak lahir. */}
+                        terpisah: "perlu perhatian" membaca hasil ukur terakhir,
+                        bukan status periode aktif; yang kedua riwayat lahir. */}
                     <div
                         role="group"
                         aria-label="Tampilkan hanya"
@@ -430,7 +455,7 @@ export default function DaftarAnak({
                                 strokeWidth={2.5}
                                 aria-hidden="true"
                             />
-                            Hanya yang perlu perhatian
+                            Perhatian pada hasil terakhir
                         </button>
                         <button
                             type="button"
@@ -464,9 +489,71 @@ export default function DaftarAnak({
                     />
                 )}
 
-                {hasil.length === 0 ? (
+                {statusMuat === 'memuat' && sumberData === 'live' ? (
+                    <div className="flex flex-1 items-center justify-center px-6 py-14 text-center">
+                        <div>
+                            <RefreshCw
+                                className="mx-auto size-7 animate-spin text-primary"
+                                aria-hidden="true"
+                            />
+                            <p className="mt-3 text-base font-bold">
+                                Memuat data balita
+                            </p>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Portal sedang membaca seluruh halaman data dari
+                                database.
+                            </p>
+                        </div>
+                    </div>
+                ) : statusMuat === 'galat' && sumberData === 'live' ? (
+                    <div className="flex flex-1 items-center justify-center px-6 py-14 text-center">
+                        <div className="max-w-lg">
+                            <p className="text-base font-bold">
+                                Data balita tidak dapat dimuat
+                            </p>
+                            <p className="mt-1 text-base text-muted-foreground">
+                                {pesanGalat ??
+                                    'Periksa koneksi REST API, lalu coba kembali.'}
+                            </p>
+                            <button
+                                type="button"
+                                onClick={onMuatUlang}
+                                className="tombol-utama mt-4"
+                            >
+                                <RefreshCw
+                                    className="size-5"
+                                    aria-hidden="true"
+                                />
+                                Muat ulang data
+                            </button>
+                        </div>
+                    </div>
+                ) : hasil.length === 0 ? (
                     <div className="px-6 py-10 text-center lg:flex-1">
-                        {cari.trim() !== '' ? (
+                        {sumberData === 'live' &&
+                        anak.length === 0 &&
+                        !adaSaringan ? (
+                            <>
+                                <p className="text-base font-bold">
+                                    Database live belum memiliki data balita
+                                </p>
+                                <p className="mx-auto mt-1 max-w-xl text-base text-muted-foreground">
+                                    Akun dan wilayah sudah tersedia, tetapi
+                                    tabel anak masih kosong. Impor data sasaran
+                                    agar daftar dan kartu QR dapat dibuat.
+                                </p>
+                                <Link
+                                    href="/sasaran"
+                                    className="tombol-utama mt-4 inline-flex"
+                                >
+                                    <Upload
+                                        className="size-5"
+                                        aria-hidden="true"
+                                    />
+                                    Buka Sasaran &amp; Impor
+                                </Link>
+                            </>
+                        ) : cari.trim() !== '' ? (
                             <>
                                 <p className="text-base">
                                     Tidak ada balita bernama “{cari.trim()}” di{' '}
@@ -534,6 +621,11 @@ export default function DaftarAnak({
                                                     }
                                                     tenang
                                                 />
+                                                {baris.tanggalUkurTerakhir !== null && (
+                                                    <span className="text-sm text-muted-foreground">
+                                                        Hasil terakhir {tanggalRingkas(baris.tanggalUkurTerakhir)}
+                                                    </span>
+                                                )}
                                                 {!baris.nikLengkap && (
                                                     <span className="text-sm text-tone-amber">
                                                         NIK belum lengkap
@@ -732,11 +824,19 @@ export default function DaftarAnak({
                     aria-live="polite"
                     className="shrink-0 border-t border-border px-5.5 py-3 text-sm text-muted-foreground"
                 >
-                    Menampilkan{' '}
-                    <span className="font-bold text-foreground">
-                        {hasil.length}
-                    </span>{' '}
-                    dari {terlihat.length} balita · {keteranganUrut}
+                    {statusMuat === 'memuat' && sumberData === 'live' ? (
+                        'Menunggu data dari database…'
+                    ) : statusMuat === 'galat' && sumberData === 'live' ? (
+                        'Data belum tersedia karena pemuatan gagal.'
+                    ) : (
+                        <>
+                            Menampilkan{' '}
+                            <span className="font-bold text-foreground">
+                                {hasil.length}
+                            </span>{' '}
+                            dari {terlihat.length} balita · {keteranganUrut}
+                        </>
+                    )}
                 </p>
             </section>
         </Halaman>
