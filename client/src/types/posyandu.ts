@@ -65,6 +65,7 @@ export type Anak = {
     rw: string;
     namaOrtu: string | null;
     nikOrtu: string | null;
+    noWa: string | null;
 };
 
 export type PenilaianGizi = {

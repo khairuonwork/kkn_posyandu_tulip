@@ -233,7 +233,7 @@ export default function DetailAnak({
     const [umurDisorot, setUmurDisorot] = useState<number | null>(null);
     const [tabAktif, setTabAktif] = useState<TabDetail>('profil');
     const [dialog, setDialog] = useState<'ubah' | 'cetak' | 'wa' | null>(null);
-    const bolehUbah = peran !== 'kader' && onSimpan !== undefined;
+    const bolehUbah = onSimpan !== undefined;
     const bolehCetak = peran !== 'kader';
     const terbaru = terbaruUntuk(pengukuran, periode);
     const nama = namaTampil(anak.nama);
@@ -1003,8 +1003,8 @@ export default function DetailAnak({
                     noWa={noWa}
                     wilayahRt={wilayahRt}
                     onTutup={() => setDialog(null)}
-                    onSimpan={(patch) => {
-                        onSimpan?.(patch);
+                    onSimpan={async (patch) => {
+                        await onSimpan?.(patch);
                         setDialog(null);
                     }}
                 />
@@ -1102,7 +1102,7 @@ function DialogUbah({
     noWa: string | null;
     wilayahRt: string[];
     onTutup: () => void;
-    onSimpan: (patch: PatchAnak) => void;
+    onSimpan: (patch: PatchAnak) => void | Promise<void>;
 }) {
     const [isi, setIsi] = useState<IsianUbah>({
         nama: anak.nama ?? '',
@@ -1119,13 +1119,15 @@ function DialogUbah({
     const [galat, setGalat] = useState<
         Partial<Record<keyof IsianUbah, string>>
     >({});
+    const [galatSimpan, setGalatSimpan] = useState('');
+    const [menyimpan, setMenyimpan] = useState(false);
 
     const ubah = <K extends keyof IsianUbah>(kunci: K, nilai: IsianUbah[K]) => {
         setIsi((lama) => ({ ...lama, [kunci]: nilai }));
         setGalat((lama) => ({ ...lama, [kunci]: undefined }));
     };
 
-    const simpan = (e: FormEvent) => {
+    const simpan = async (e: FormEvent) => {
         e.preventDefault();
 
         const salah: Partial<Record<keyof IsianUbah, string>> = {};
@@ -1161,18 +1163,30 @@ function DialogUbah({
             return;
         }
 
-        onSimpan({
-            nama: isi.nama.trim(),
-            nik: digit,
-            namaOrtu: isi.namaOrtu.trim(),
-            rt: isi.rt,
-            jk: isi.jk,
-            tglLahir: isi.tglLahir,
-            anakKe: isi.anakKe === '' ? null : Number(isi.anakKe),
-            bbLahirKg: bb,
-            bukuKia: isi.bukuKia,
-            noWa: isi.noWa.trim(),
-        });
+        setMenyimpan(true);
+        setGalatSimpan('');
+        try {
+            await onSimpan({
+                nama: isi.nama.trim(),
+                nik: digit,
+                namaOrtu: isi.namaOrtu.trim(),
+                rt: isi.rt,
+                jk: isi.jk,
+                tglLahir: isi.tglLahir,
+                anakKe: isi.anakKe === '' ? null : Number(isi.anakKe),
+                bbLahirKg: bb,
+                bukuKia: isi.bukuKia,
+                noWa: isi.noWa.trim(),
+            });
+        } catch (error) {
+            setGalatSimpan(
+                error instanceof Error
+                    ? error.message
+                    : 'Perubahan profil belum tersimpan. Silakan coba lagi.',
+            );
+        } finally {
+            setMenyimpan(false);
+        }
     };
 
     return (
@@ -1419,21 +1433,41 @@ function DialogUbah({
                     </section>
                 </div>
 
+                {galatSimpan !== '' && (
+                    <p
+                        role="alert"
+                        className="mx-7 mb-3 rounded-lg bg-tone-red-bg px-4 py-3 text-sm font-semibold text-tone-red"
+                    >
+                        {galatSimpan}
+                    </p>
+                )}
                 <KakiDialog>
                     <button
                         type="button"
                         onClick={onTutup}
+                        disabled={menyimpan}
                         className="tombol-kedua px-5.5"
                     >
                         Batal
                     </button>
-                    <button type="submit" className="tombol-utama px-5.5">
-                        <Save
-                            className="size-5"
-                            strokeWidth={2.5}
-                            aria-hidden="true"
-                        />
-                        Simpan perubahan
+                    <button
+                        type="submit"
+                        disabled={menyimpan}
+                        className="tombol-utama px-5.5"
+                    >
+                        {menyimpan ? (
+                            <span
+                                className="size-5 animate-spin rounded-full border-2 border-current border-r-transparent"
+                                aria-hidden="true"
+                            />
+                        ) : (
+                            <Save
+                                className="size-5"
+                                strokeWidth={2.5}
+                                aria-hidden="true"
+                            />
+                        )}
+                        {menyimpan ? 'Menyimpan…' : 'Simpan perubahan'}
                     </button>
                 </KakiDialog>
             </form>

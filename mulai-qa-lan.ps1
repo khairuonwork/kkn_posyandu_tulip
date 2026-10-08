@@ -140,7 +140,8 @@ Write-Host ''
 Write-Host 'Mode QA LAN siap.' -ForegroundColor Green
 Write-Host "Website PC/tablet : http://${AlamatIp}:$PortWeb"
 Write-Host "REST API Android  : http://${AlamatIp}:$PortApi/api/v1"
+Write-Host "Auto-Discovery    : Aktif (UDP 43210 & Smart Probe)" -ForegroundColor Cyan
 Write-Host "Tes kesehatan     : http://${AlamatIp}:$PortApi/api/v1/kesehatan"
 Write-Host 'Untuk berhenti    : .\hentikan-qa-lan.ps1'
 Write-Host ''
-Write-Host 'Jika tablet tidak dapat terhubung, pastikan jaringan mengizinkan komunikasi antardevice dan izinkan Node.js pada Windows Firewall untuk jaringan Private.' -ForegroundColor Yellow
+Write-Host 'Aplikasi tablet Android sekarang dapat otomatis menemukan PC ini di Hotspot/Wi-Fi mana pun tanpa ketik IP manual.' -ForegroundColor Green

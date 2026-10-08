@@ -104,7 +104,37 @@ npm run dev
 
 Buka http://localhost:5173 dan masuk, misalnya sebagai `admin`.
 
-### QA sementara melalui satu Wi-Fi/AP
+### Website dan Android melalui domain ngrok tetap
+
+Alur operasional memakai satu domain HTTPS tetap untuk website dan REST API.
+Lakukan konfigurasi sekali saja:
+
+1. Pasang ngrok agent dan salin **development domain** yang diberikan pada
+   menu **Gateway › Domains**, misalnya `abc123.ngrok-free.dev`.
+2. Salin `.env.ngrok.example` menjadi `.env.ngrok`.
+3. Isi `NGROK_AUTHTOKEN` dan `NGROK_DOMAIN` pada berkas tersebut.
+4. Pastikan URL yang sama sudah dipasang sebagai `PORTAL_API_BAWAAN` pada
+   aplikasi Android, dengan akhiran `/api/v1`.
+
+Setelah itu, pada Windows cukup klik dua kali:
+
+```text
+mulai-ngrok.bat
+```
+
+File batch membuka Git Bash dan menjalankan seluruh proses secara otomatis.
+Alternatif dari Git Bash atau WSL:
+
+```bash
+./mulai-ngrok.sh
+```
+
+Skrip membangun website, menjalankan website dan REST API pada satu proses,
+membuka tunnel ngrok, lalu memeriksa jalur publik sampai database. Biarkan
+terminal tetap terbuka. Tekan `Ctrl+C` untuk menghentikan seluruh layanan.
+Authtoken disimpan hanya di `.env.ngrok` dan tidak ikut Git.
+
+### QA lokal website tanpa tunnel
 
 Untuk uji website dan tablet sebelum hosting tersedia, jalankan dari akar repo:
 
@@ -112,19 +142,17 @@ Untuk uji website dan tablet sebelum hosting tersedia, jalankan dari akar repo:
 .\mulai-qa-lan.ps1
 ```
 
-Skrip mendeteksi IPv4 PC, membuka React pada semua antarmuka jaringan, membuka
-REST API pada semua antarmuka jaringan, lalu memeriksa jalur API sampai ke
-PostgreSQL. Alamat yang dicetak skrip dimasukkan pada layar masuk Android,
-misalnya `http://192.168.1.20:4321/api/v1`, lalu tekan **Uji koneksi API**.
+Skrip mendeteksi IPv4 PC, membuka React dan REST API pada jaringan lokal, lalu
+memeriksa jalur API sampai PostgreSQL. Gunakan alamat yang dicetak untuk membuka
+website dari perangkat lain pada Wi-Fi yang sama.
 
 ```powershell
 .\hentikan-qa-lan.ps1
 ```
 
-Gunakan router/hotspot privat bila AP kantor/kampus menerapkan *client
-isolation*. Berada pada SSID yang sama tidak selalu berarti dua perangkat boleh
-saling menghubungi. APK debug mengizinkan HTTP lokal khusus QA; build rilis
-tetap disiapkan untuk HTTPS.
+Alur Android versi 1.10 ke atas memakai static domain ngrok dan tidak lagi
+menampilkan pengaturan IP pada halaman login. Mode LAN ini dipertahankan hanya
+untuk pemeriksaan website lokal.
 
 Setelah `git pull`, jalankan `npm ci` di folder yang dependensinya berubah, lalu `npm run migrate` dari `server/`.
 

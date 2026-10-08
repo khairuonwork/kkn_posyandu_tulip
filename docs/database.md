@@ -75,10 +75,12 @@ erDiagram
     ORANG_TUA {
         id id PK
         string nik "nullable unique"
+        uuid id_keluarga "UUID keluarga; dapat dipakai bersama"
         string nama
     }
     ANAK {
         id id PK
+        uuid id_publik "UUID unik untuk integrasi"
         string nik "nullable unique"
         id orang_tua_id FK "nullable"
         id wilayah_rt_id FK "nullable"
@@ -182,6 +184,7 @@ Hanya kolom yang menuntut penjelasan. Kolom `id`, `created_at`, dan `updated_at`
 | Kolom | Tipe | Aturan |
 |---|---|---|
 | `nik` | `string(16)` `nullable` | *Unique*, boleh `NULL` (DR-02). |
+| `id_keluarga` | `uuid` | ID keluarga terpisah dari NIK; beberapa anak/orang tua dapat berbagi ID ini. |
 | `nama` | `string` | Data sumber memuat bentuk `AYAH - IBU` dalam satu sel. Disimpan apa adanya; pemisahan menjadi dua entitas ditunda sampai ada kebutuhan nyata. |
 
 ### `anak`
@@ -189,6 +192,7 @@ Hanya kolom yang menuntut penjelasan. Kolom `id`, `created_at`, dan `updated_at`
 | Kolom | Tipe | Aturan |
 |---|---|---|
 | `nik` | `string(16)` `nullable` | *Unique*, boleh `NULL` (DR-01, DR-02). |
+| `id_publik` | `uuid` | ID anak stabil dan unik untuk integrasi web/tablet; tidak menggantikan `id` internal atau NIK. |
 | `nama` | `string` | Nama sebagaimana tertulis di sumber. |
 | `nama_baku` | `string` | Nama yang sudah dibakukan, dipakai untuk pencarian dan pencocokan. Berasal dari kolom `NAMA_BAKU` arsip; bila kosong, diisi dari `nama`. |
 | `tgl_lahir` | `date` | Wajib. Tanpa ini status gizi tidak dapat dihitung. |
@@ -199,6 +203,8 @@ Hanya kolom yang menuntut penjelasan. Kolom `id`, `created_at`, dan `updated_at`
 
 *Unique:* `nik` (mengizinkan banyak `NULL`)
 *Index:* `nama_baku`, `wilayah_rt_id`, `tgl_lahir`
+
+NIK anak mengidentifikasi anak dan tidak boleh dipakai bersama oleh saudara. NIK orang tua berada di `orang_tua`, sehingga dapat sama-sama dirujuk oleh beberapa anak. `id_keluarga` adalah pengelompokan keluarga yang terpisah dari kedua NIK; riwayat ukur tetap terikat ke `anak.id` masing-masing.
 
 ### `periode`
 

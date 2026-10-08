@@ -75,7 +75,7 @@ Tabel seluruh balita, digulir di dalam kartunya. Tombol **Tambah balita** dan **
 
 ![Detail Balita](gambar/detail-balita.png)
 
-Satu layar untuk satu balita: identitas, kurva berat badan menurut umur (KMS), status gizi tiga indeks, dan riwayat penimbangan singkat. **Ubah data** dan **Cetak kartu** hanya untuk bidan dan admin.
+Satu layar untuk satu balita: identitas, kurva berat badan menurut umur (KMS), status gizi tiga indeks, dan riwayat penimbangan singkat. **Ubah data** tersedia untuk kader pada RT binaannya serta bidan/admin; **Cetak kartu** hanya untuk bidan dan admin.
 
 ### 4. Detail riwayat penimbangan
 

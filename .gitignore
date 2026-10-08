@@ -4,6 +4,8 @@ server/db/*.generated.sql
 server/.npm-cache/
 server/akun-live.txt
 .qa-lan/
+.ngrok-run/
+.env.ngrok
 
 .env
 .env.local

@@ -8,11 +8,111 @@ import * as anakRepo from "../repositories/anak-repository.ts";
 import { hitungDanSimpan } from "./gizi-service.ts";
 
 export class GalatAnak extends Error {
-    readonly status: 400 | 404;
+    readonly status: 400 | 404 | 409;
 
-    constructor(status: 400 | 404, pesan: string) {
+    constructor(status: 400 | 404 | 409, pesan: string) {
         super(pesan);
         this.status = status;
+    }
+}
+
+export async function ubahProfil(
+    pool: Pool,
+    pengguna: PenggunaAktif,
+    anakId: number,
+    badan: unknown,
+) {
+    if (typeof badan !== "object" || badan === null)
+        throw new GalatAnak(400, "Data profil anak tidak valid.");
+    const data = badan as Record<string, unknown>;
+    const nama = teks(data, "nama").replace(/\s+/g, " ");
+    const nikMentah = teks(data, "nik").replace(/\D/g, "");
+    const tglLahir = teks(data, "tglLahir");
+    const jk = teks(data, "jk").toUpperCase();
+    const namaOrtu = teks(data, "namaOrtu").replace(/\s+/g, " ");
+    const rt = teks(data, "rt").replace(/\D/g, "");
+    const noWaMentah = teks(data, "noWa");
+    const noWa = noWaMentah === "" ? null : noWaMentah;
+    const anakKeRaw = data.anakKe;
+    const anakKe =
+        anakKeRaw === null || anakKeRaw === "" || anakKeRaw === undefined
+            ? null
+            : Number(anakKeRaw);
+    const bbRaw = data.bbLahirKg;
+    const bbLahirKg =
+        bbRaw === null || bbRaw === "" || bbRaw === undefined
+            ? null
+            : Number(String(bbRaw).replace(",", "."));
+    const bukuKia = data.bukuKia;
+    const tanggal = new Date(`${tglLahir}T00:00:00Z`);
+    if (
+        nama === "" ||
+        nama.length > 160 ||
+        (nikMentah !== "" && !/^\d{16}$/.test(nikMentah)) ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(tglLahir) ||
+        Number.isNaN(tanggal.getTime()) ||
+        tanggal.toISOString().slice(0, 10) !== tglLahir ||
+        !["L", "P"].includes(jk) ||
+        !/^\d{1,3}$/.test(rt) ||
+        (anakKe !== null &&
+            (!Number.isInteger(anakKe) || anakKe < 1 || anakKe > 30)) ||
+        (bbLahirKg !== null &&
+            (!Number.isFinite(bbLahirKg) ||
+                bbLahirKg < 0.5 ||
+                bbLahirKg > 6)) ||
+        typeof bukuKia !== "boolean" ||
+        (noWa !== null && noWa.length > 32)
+    ) {
+        throw new GalatAnak(
+            400,
+            "Periksa kembali nama, NIK 16 digit, tanggal lahir, RT, dan data profil lainnya.",
+        );
+    }
+
+    try {
+        const hasil = await dalamTransaksi(
+            pool,
+            { pengguna: pengguna.id, sumber: "web" },
+            (db) =>
+                anakRepo.ubahProfilAnak(db, pengguna, anakId, {
+                    nama,
+                    nik: nikMentah || null,
+                    namaOrtu,
+                    noWa,
+                    rt,
+                    jk: jk as "L" | "P",
+                    tglLahir,
+                    anakKe,
+                    bbLahirKg,
+                    bukuKia,
+                }),
+        );
+        if (hasil === "tidak_ada")
+            throw new GalatAnak(404, "Anak tidak ditemukan.");
+        if (hasil === "rt_tidak_ada")
+            throw new GalatAnak(
+                400,
+                "RT tujuan tidak tersedia di Posyandu ini.",
+            );
+        if (hasil === "nik_dipakai")
+            throw new GalatAnak(
+                409,
+                "NIK tersebut sudah digunakan profil anak lain.",
+            );
+        return { anakId, status: "tersimpan" as const };
+    } catch (galat) {
+        if (galat instanceof GalatAnak) throw galat;
+        if (
+            typeof galat === "object" &&
+            galat !== null &&
+            "code" in galat &&
+            galat.code === "23505"
+        )
+            throw new GalatAnak(
+                409,
+                "NIK tersebut sudah digunakan profil anak lain.",
+            );
+        throw galat;
     }
 }
 

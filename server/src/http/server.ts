@@ -9,6 +9,9 @@
  */
 
 import express from "express";
+import { existsSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { Express, NextFunction, Request, Response } from "express";
 import type { Pool } from "pg";
 
@@ -19,9 +22,19 @@ import { ruteLembar } from "./lembar-controller.ts";
 import { sesiMiddleware, wajibJson } from "./middleware.ts";
 import { rutePengguna } from "./pengguna-controller.ts";
 import { ruteSasaran } from "./sasaran-controller.ts";
+import {
+    ambilDaftarTabletAktif,
+    catatHeartbeatTablet,
+    dapatkanDaftarIpLokal,
+    mulaiLayananDiscovery,
+} from "./discovery.ts";
 
 export function buatApp(pool: Pool): Express {
     const app = express();
+    const folderWeb = path.resolve(
+        path.dirname(fileURLToPath(import.meta.url)),
+        "../../../client/dist",
+    );
 
     // Di balik proxy Vite saat pengembangan, dan kemungkinan di balik proxy
     // lain saat produksi. Tanpa ini `req.ip` selalu alamat proxy-nya, dan
@@ -43,7 +56,7 @@ export function buatApp(pool: Pool): Express {
             res.set("Vary", "Origin");
             res.set(
                 "Access-Control-Allow-Headers",
-                "Authorization, Content-Type",
+                "Authorization, Content-Type, ngrok-skip-browser-warning",
             );
             res.set(
                 "Access-Control-Allow-Methods",
@@ -71,10 +84,30 @@ export function buatApp(pool: Pool): Express {
                 status: "siap",
                 database: "terhubung",
                 waktuServer: new Date().toISOString(),
+                ipLokal: dapatkanDaftarIpLokal(),
             });
         } catch (galat) {
             next(galat);
         }
+    });
+
+    // Detak jantung (heartbeat) dari tablet Android agar PC dan tablet saling mengetahui status koneksi
+    app.post("/api/v1/heartbeat", (req: Request, res: Response) => {
+        const ip = req.ip || req.socket.remoteAddress || "127.0.0.1";
+        catatHeartbeatTablet(ip, req.body ?? {});
+        res.json({
+            ok: true,
+            status: "terhubung",
+            waktuServer: new Date().toISOString(),
+        });
+    });
+
+    // Informasi perangkat tablet yang sedang terhubung ke PC
+    app.get("/api/v1/perangkat-terhubung", (_req: Request, res: Response) => {
+        res.json({
+            serverIp: dapatkanDaftarIpLokal(),
+            daftarTablet: ambilDaftarTabletAktif(),
+        });
     });
 
     app.use("/api/v1", ruteAnak(pool));
@@ -85,6 +118,20 @@ export function buatApp(pool: Pool): Express {
     app.use("/api", (_req: Request, res: Response) => {
         res.status(404).json({ galat: "Rute tidak ada" });
     });
+
+    // Saat dijalankan lewat mulai-ngrok.sh, Express menjadi satu pintu untuk
+    // website dan REST API. Dengan begitu satu domain ngrok tetap cukup untuk
+    // browser petugas dan aplikasi Android.
+    if (existsSync(folderWeb)) {
+        app.use(express.static(folderWeb));
+        app.use((req: Request, res: Response, next: NextFunction) => {
+            if (req.method !== "GET" || !req.accepts("html")) {
+                next();
+                return;
+            }
+            res.sendFile(path.join(folderWeb, "index.html"));
+        });
+    }
 
     // Galat tak terduga tidak boleh bocor ke pemanggil: pesan pustaka basis
     // data kerap memuat potongan query beserta nilainya.
@@ -127,6 +174,7 @@ if (import.meta.filename === process.argv[1]) {
 
     const server = buatApp(dapatkanPool()).listen(porta, alamat, () => {
         console.log(`Server siap di http://${alamat}:${porta}`);
+        mulaiLayananDiscovery(porta, Number(process.env.PORT_WEB ?? 5173));
     });
 
     server.on("error", (galat: NodeJS.ErrnoException) => {

@@ -6,15 +6,24 @@
  * GET /api/v1/anak/:id/pengukuran
  */
 
-import { Router } from 'express';
-import type { Response } from 'express';
-import type { Pool } from 'pg';
+import { Router } from "express";
+import type { Response } from "express";
+import type { Pool } from "pg";
 
-import { wajibBoleh } from './middleware.ts';
-import { daftar, GalatAnak, ambil, riwayat, simpanAnak, simpanPengukuran, sinkronisasi } from '../services/anak-service.ts';
+import { wajibBoleh } from "./middleware.ts";
+import {
+    daftar,
+    GalatAnak,
+    ambil,
+    riwayat,
+    simpanAnak,
+    simpanPengukuran,
+    sinkronisasi,
+    ubahProfil,
+} from "../services/anak-service.ts";
 
 function idDari(teks: string | string[] | undefined): number | null {
-    if (typeof teks !== 'string') {
+    if (typeof teks !== "string") {
         return null;
     }
 
@@ -36,12 +45,21 @@ function jawabGalat(galat: unknown, res: Response): void {
 export function ruteAnak(pool: Pool): Router {
     const rute = Router();
 
-    rute.get('/anak', wajibBoleh('lihat-anak'), async (req, res, next) => {
+    rute.get("/anak", wajibBoleh("lihat-anak"), async (req, res, next) => {
         try {
             const query = {
-                cari: typeof req.query.cari === 'string' ? req.query.cari : undefined,
-                halaman: typeof req.query.halaman === 'string' ? req.query.halaman : undefined,
-                ukuran: typeof req.query.ukuran === 'string' ? req.query.ukuran : undefined,
+                cari:
+                    typeof req.query.cari === "string"
+                        ? req.query.cari
+                        : undefined,
+                halaman:
+                    typeof req.query.halaman === "string"
+                        ? req.query.halaman
+                        : undefined,
+                ukuran:
+                    typeof req.query.ukuran === "string"
+                        ? req.query.ukuran
+                        : undefined,
             };
             res.json(await daftar(pool, req.pengguna!, query));
         } catch (galat) {
@@ -53,34 +71,62 @@ export function ruteAnak(pool: Pool): Router {
         }
     });
 
-    rute.post('/anak', wajibBoleh('daftar-anak-lapangan'), async (req, res, next) => {
-        try {
-            res.status(201).json({ anak: await simpanAnak(pool, req.pengguna!, req.body) });
-        } catch (galat) {
-            try { jawabGalat(galat, res); } catch (takTerduga) { next(takTerduga); }
-        }
-    });
+    rute.post(
+        "/anak",
+        wajibBoleh("daftar-anak-lapangan"),
+        async (req, res, next) => {
+            try {
+                res.status(201).json({
+                    anak: await simpanAnak(pool, req.pengguna!, req.body),
+                });
+            } catch (galat) {
+                try {
+                    jawabGalat(galat, res);
+                } catch (takTerduga) {
+                    next(takTerduga);
+                }
+            }
+        },
+    );
 
-    rute.post('/pengukuran', wajibBoleh('catat-pengukuran-lapangan'), async (req, res, next) => {
-        try {
-            res.status(201).json({ pengukuran: await simpanPengukuran(pool, req.pengguna!, req.body) });
-        } catch (galat) {
-            try { jawabGalat(galat, res); } catch (takTerduga) { next(takTerduga); }
-        }
-    });
+    rute.post(
+        "/pengukuran",
+        wajibBoleh("catat-pengukuran-lapangan"),
+        async (req, res, next) => {
+            try {
+                res.status(201).json({
+                    pengukuran: await simpanPengukuran(
+                        pool,
+                        req.pengguna!,
+                        req.body,
+                    ),
+                });
+            } catch (galat) {
+                try {
+                    jawabGalat(galat, res);
+                } catch (takTerduga) {
+                    next(takTerduga);
+                }
+            }
+        },
+    );
 
-    rute.get('/sinkronisasi', wajibBoleh('lihat-anak'), async (req, res, next) => {
-        try {
-            res.json(await sinkronisasi(pool, req.pengguna!));
-        } catch (galat) {
-            next(galat);
-        }
-    });
+    rute.get(
+        "/sinkronisasi",
+        wajibBoleh("lihat-anak"),
+        async (req, res, next) => {
+            try {
+                res.json(await sinkronisasi(pool, req.pengguna!));
+            } catch (galat) {
+                next(galat);
+            }
+        },
+    );
 
-    rute.get('/anak/:id', wajibBoleh('lihat-anak'), async (req, res, next) => {
+    rute.get("/anak/:id", wajibBoleh("lihat-anak"), async (req, res, next) => {
         const id = idDari(req.params.id);
         if (id === null) {
-            res.status(404).json({ galat: 'Anak tidak ditemukan.' });
+            res.status(404).json({ galat: "Anak tidak ditemukan." });
             return;
         }
 
@@ -95,15 +141,16 @@ export function ruteAnak(pool: Pool): Router {
         }
     });
 
-    rute.get('/anak/:id/pengukuran', wajibBoleh('lihat-kms'), async (req, res, next) => {
+    rute.patch("/anak/:id", wajibBoleh("ubah-anak"), async (req, res, next) => {
         const id = idDari(req.params.id);
         if (id === null) {
-            res.status(404).json({ galat: 'Anak tidak ditemukan.' });
+            res.status(404).json({ galat: "Anak tidak ditemukan." });
             return;
         }
-
         try {
-            res.json(await riwayat(pool, req.pengguna!, id));
+            res.json({
+                hasil: await ubahProfil(pool, req.pengguna!, id, req.body),
+            });
         } catch (galat) {
             try {
                 jawabGalat(galat, res);
@@ -112,6 +159,28 @@ export function ruteAnak(pool: Pool): Router {
             }
         }
     });
+
+    rute.get(
+        "/anak/:id/pengukuran",
+        wajibBoleh("lihat-kms"),
+        async (req, res, next) => {
+            const id = idDari(req.params.id);
+            if (id === null) {
+                res.status(404).json({ galat: "Anak tidak ditemukan." });
+                return;
+            }
+
+            try {
+                res.json(await riwayat(pool, req.pengguna!, id));
+            } catch (galat) {
+                try {
+                    jawabGalat(galat, res);
+                } catch (takTerduga) {
+                    next(takTerduga);
+                }
+            }
+        },
+    );
 
     return rute;
 }

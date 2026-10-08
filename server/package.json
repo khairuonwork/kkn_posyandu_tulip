@@ -6,10 +6,10 @@
         "node": ">=24"
     },
     "scripts": {
-        "test": "node --env-file-if-exists=.env --test \"test/**/*.test.ts\"",
+        "test": "node --experimental-strip-types --env-file-if-exists=.env --test \"test/**/*.test.ts\"",
         "types:check": "tsc --noEmit",
-        "dev": "node --env-file=.env --watch src/http/server.ts",
-        "mulai": "node --env-file-if-exists=.env src/http/server.ts",
+        "dev": "node --experimental-strip-types --env-file=.env --watch src/http/server.ts",
+        "mulai": "node --experimental-strip-types --env-file-if-exists=.env src/http/server.ts",
         "migrate": "node --env-file=.env db/migrate.ts",
         "seed": "node --env-file=.env db/seed-standar-lms.ts",
         "db:verify": "node --env-file=.env db/verify-supabase.ts",

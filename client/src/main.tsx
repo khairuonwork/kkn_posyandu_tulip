@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import App from './app.tsx';
+import BatasGalat from './components/batas-galat.tsx';
 import './app.css';
 
 const akar = document.getElementById('app');
@@ -12,6 +13,8 @@ if (akar === null) {
 
 createRoot(akar).render(
     <StrictMode>
-        <App />
+        <BatasGalat>
+            <App />
+        </BatasGalat>
     </StrictMode>,
 );

@@ -136,7 +136,8 @@ Tiga peran, diurutkan menaik. Peran yang lebih tinggi mewarisi seluruh hak peran
 | Cari & lihat data anak | ✅ | ✅ | ✅ |
 | Lihat profil anak & kurva KMS | ✅ | ✅ | ✅ |
 | Lihat rekap | ✅ | ✅ | ✅ |
-| Tambah & ubah data anak | ❌ | ✅ | ✅ |
+| Ubah data profil anak | ✅* | ✅ | ✅ |
+| Tambah data anak | ✅ | ✅ | ✅ |
 | Ubah nilai pengukuran | ❌ | ✅ | ✅ |
 | Gabungkan profil duplikat | ❌ | ✅ | ✅ |
 | Selesaikan konflik impor | ❌ | ✅ | ✅ |
@@ -159,7 +160,7 @@ Ke-14 aksi × 3 peran diuji satu per satu di `server/test/auth.test.ts`, ditamba
 
 ### Pembatasan RT kader
 
-Kader hanya boleh menyentuh data RT binaannya. `rtYangBolehDilihat()` mengembalikan `null` untuk bidan dan admin, yang berarti seluruh RW. Untuk kader tanpa RT binaan ia **melempar galat**, bukan mengembalikan `null` — sebab `null` di sini berarti akses penuh, dan kader tanpa RT seharusnya tidak punya akses sama sekali.
+*Kader boleh mengubah profil hanya di RT binaannya.* `rtYangBolehDilihat()` mengembalikan `null` untuk bidan dan admin, yang berarti seluruh RW. Untuk kader tanpa RT binaan ia **melempar galat**, bukan mengembalikan `null` — sebab `null` di sini berarti akses penuh, dan kader tanpa RT seharusnya tidak punya akses sama sekali.
 
 Skema ikut menegakkannya lewat `CHECK ((peran = 'kader') = (wilayah_rt_id IS NOT NULL))`, sehingga keadaan itu tidak dapat tersimpan sejak awal.
 

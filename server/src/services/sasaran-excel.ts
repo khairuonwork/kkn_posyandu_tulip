@@ -67,6 +67,8 @@ export type BarisSasaranExcel = {
     imd: boolean;
     statusAwal: "menunggu" | "pindah";
     masalah: string[];
+    /** Baris ini berbagi NIK anak dengan baris lain dan tidak aman diterbitkan. */
+    identitasDuplikat: boolean;
 };
 
 export type SheetSasaran = {
@@ -77,6 +79,13 @@ export type SheetSasaran = {
     jumlahBaris: number;
     jumlahSiap: number;
     jumlahPerluVerifikasi: number;
+    jumlahDitahan: number;
+    barisVerifikasi: Array<{
+        barisAsal: number;
+        nama: string;
+        masalah: string[];
+        ditahan: boolean;
+    }>;
     baris: BarisSasaranExcel[];
 };
 
@@ -213,15 +222,24 @@ function nilaiKolom(baris: ExcelJS.Row, indeks: number | null): NilaiBaris {
 function cariHeader(
     sheet: ExcelJS.Worksheet,
 ): { nomor: number; header: string[] } | null {
-    const maksimum = Math.min(30, sheet.actualRowCount || sheet.rowCount);
+    const batasBaris = Math.max(
+        sheet.rowCount,
+        sheet.actualRowCount,
+        sheet.lastRow?.number ?? 0,
+        30,
+    );
+    const maksimum = Math.min(30, batasBaris);
     for (let nomor = 1; nomor <= maksimum; nomor++) {
         const baris = sheet.getRow(nomor);
         const header: string[] = [];
-        for (
-            let kolom = 1;
-            kolom <= Math.max(sheet.actualColumnCount, 1);
-            kolom++
-        ) {
+        const batasKolom = Math.max(
+            sheet.actualColumnCount,
+            sheet.columnCount,
+            baris.cellCount,
+            baris.actualCellCount,
+            30,
+        );
+        for (let kolom = 1; kolom <= batasKolom; kolom++) {
             header.push(headerBaku(baris.getCell(kolom).text));
         }
         const punyaNama = ALIAS.nama.some((nama) => header.includes(nama));
@@ -259,15 +277,13 @@ function bacaBaris(
     }
 
     const nikUtama = nik(ambil("nik"));
-    const eppgbm = nik(ambil("eppgbm"));
-    const nikAnak = nikUtama ?? eppgbm;
+    // EPPGBM adalah pengenal sistem yang berbeda dari NIK. Jangan pernah
+    // menyimpannya di kolom NIK, sekalipun kebetulan berisi 16 digit.
+    const eppgbm = teks(ambil("eppgbm")) || null;
     const bbMentah = teks(ambil("bbLahir")) || null;
     const bbAngka = angka(ambil("bbLahir"));
     const masalah: string[] = [];
-    if (nikUtama === null)
-        masalah.push(
-            eppgbm === null ? "NIK anak belum valid" : "NIK memakai EPPGBM",
-        );
+    if (nikUtama === null) masalah.push("NIK anak belum valid");
     if (nik(ambil("nikOrtu")) === null)
         masalah.push("NIK orang tua belum valid");
     if (bbAngka !== null && bbAngka > 10)
@@ -276,7 +292,7 @@ function bacaBaris(
     const nilaiBb = teks(ambil("bb")).toLocaleLowerCase("id-ID");
     return {
         barisAsal: baris.number,
-        nik: nikAnak,
+        nik: nikUtama,
         eppgbm,
         nama,
         tglLahir,
@@ -296,6 +312,7 @@ function bacaBaris(
         imd: benar(ambil("imd")),
         statusAwal: nilaiBb.includes("pindah") ? "pindah" : "menunggu",
         masalah,
+        identitasDuplikat: false,
     };
 }
 
@@ -339,23 +356,64 @@ export async function bacaWorkbookSasaran(
         const ditemukan = cariHeader(sheet);
         if (periode === null || ditemukan === null) continue;
         const baris: BarisSasaranExcel[] = [];
-        const batas = sheet.actualRowCount || sheet.rowCount;
-        for (let nomor = ditemukan.nomor + 1; nomor <= batas; nomor++) {
+        const batasMaksimal = Math.max(
+            sheet.rowCount,
+            sheet.actualRowCount,
+            sheet.lastRow?.number ?? 0,
+        );
+        let kosongBerturut = 0;
+        for (let nomor = ditemukan.nomor + 1; nomor <= batasMaksimal; nomor++) {
             const data = bacaBaris(sheet.getRow(nomor), ditemukan.header);
-            if (data !== null) baris.push(data);
+            if (data !== null) {
+                baris.push(data);
+                kosongBerturut = 0;
+            } else {
+                kosongBerturut++;
+                if (
+                    kosongBerturut >= 25 &&
+                    nomor > (sheet.actualRowCount || 0)
+                ) {
+                    break;
+                }
+            }
         }
         if (baris.length === 0) continue;
+
+        // Satu NIK tidak boleh membuat dua nama anak saling menimpa saat impor.
+        // Tandai semua baris dalam kelompok duplikat dan tahan sampai Excel
+        // diperbaiki. Baris tanpa NIK tetap dicocokkan secara terpisah.
+        const barisPerNik = new Map<string, BarisSasaranExcel[]>();
+        for (const data of baris) {
+            if (data.nik === null) continue;
+            const kelompok = barisPerNik.get(data.nik) ?? [];
+            kelompok.push(data);
+            barisPerNik.set(data.nik, kelompok);
+        }
+        for (const kelompok of barisPerNik.values()) {
+            if (kelompok.length < 2) continue;
+            const nomorBaris = kelompok.map((data) => data.barisAsal).join(", ");
+            for (const data of kelompok) {
+                data.identitasDuplikat = true;
+                data.masalah.push(`NIK anak duplikat pada baris ${nomorBaris}`);
+            }
+        }
+
+        const perluVerifikasi = baris.filter((data) => data.masalah.length > 0);
         hasil.push({
             sheet: sheet.name,
             periode: periode.periode,
             labelPeriode: periode.label,
             barisHeader: ditemukan.nomor,
             jumlahBaris: baris.length,
-            jumlahSiap: baris.filter((data) => data.masalah.length === 0)
-                .length,
-            jumlahPerluVerifikasi: baris.filter(
-                (data) => data.masalah.length > 0,
-            ).length,
+            jumlahSiap: baris.length - perluVerifikasi.length,
+            jumlahPerluVerifikasi: perluVerifikasi.length,
+            jumlahDitahan: baris.filter((data) => data.identitasDuplikat).length,
+            barisVerifikasi: perluVerifikasi.map((data) => ({
+                barisAsal: data.barisAsal,
+                nama: data.nama,
+                masalah: data.masalah,
+                ditahan: data.identitasDuplikat,
+            })),
             baris,
         });
     }

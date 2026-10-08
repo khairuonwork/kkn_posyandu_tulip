@@ -22,8 +22,10 @@ export type Aksi =
     | "daftar-anak-lapangan"
     | "catat-pengukuran-lapangan"
     | "selesaikan-sesi-lapangan"
-    // Bidan ke atas
+    // Semua petugas terautentikasi boleh memperbaiki profil di RT yang menjadi
+    // cakupannya; pembatasan RT kader tetap ditegakkan pada query repository.
     | "ubah-anak"
+    // Bidan ke atas
     | "ubah-pengukuran"
     | "gabung-duplikat"
     | "selesaikan-konflik-impor"
@@ -52,7 +54,7 @@ const MINIMUM: Readonly<Record<Aksi, Peran>> = {
     "catat-pengukuran-lapangan": "kader",
     "selesaikan-sesi-lapangan": "kader",
 
-    "ubah-anak": "bidan",
+    "ubah-anak": "kader",
     "ubah-pengukuran": "bidan",
     "gabung-duplikat": "bidan",
     "selesaikan-konflik-impor": "bidan",

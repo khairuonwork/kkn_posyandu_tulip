@@ -48,7 +48,7 @@ describe("matriks izin", () => {
         "catat-pengukuran-lapangan": { kader: true, bidan: true, admin: true },
         "selesaikan-sesi-lapangan": { kader: true, bidan: true, admin: true },
 
-        "ubah-anak": { kader: false, bidan: true, admin: true },
+        "ubah-anak": { kader: true, bidan: true, admin: true },
         "ubah-pengukuran": { kader: false, bidan: true, admin: true },
         "gabung-duplikat": { kader: false, bidan: true, admin: true },
         "selesaikan-konflik-impor": { kader: false, bidan: true, admin: true },

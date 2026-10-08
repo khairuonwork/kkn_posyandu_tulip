@@ -13,7 +13,11 @@ import { useEffect, useState } from 'react';
 import { bacaRute, boleh, Cangkang, KartuAkun } from '@/app-shell';
 import { PENGATURAN_BAWAAN, STANDARISASI_BAWAAN } from '@/data/contoh/store';
 import { Layar } from '@/layar';
-import { useAnakServer, useDetailAnakServer } from '@/lib/anak';
+import {
+    simpanProfilAnak,
+    useAnakServer,
+    useDetailAnakServer,
+} from '@/lib/anak';
 import { useBerandaServer } from '@/lib/beranda';
 import { navigate, useAlamat } from '@/lib/nav';
 import { usePenggunaServer } from '@/lib/pengguna';
@@ -168,14 +172,16 @@ function Portal({
                 koreksi={koreksi}
                 tambahan={tambahan}
                 onCobaKirim={() => undefined}
-                onSimpanAnak={(anakId, patch) =>
+                onSimpanAnak={async (anakId, patch) => {
+                    await simpanProfilAnak(anakId, patch, onSesiBerakhir);
                     setKoreksi((k) => ({
                         ...k,
                         // Dialog Ubah data dan editor baris mengisi kolom
                         // yang berbeda; keduanya ditumpuk, bukan saling ganti.
                         [anakId]: { ...k[anakId], ...patch },
-                    }))
-                }
+                    }));
+                    anakServer.muatUlang();
+                }}
                 onTambahAnak={(baru) => setTambahan((t) => [...t, baru])}
                 ambang={ambang}
                 onSimpanAmbang={setAmbang}

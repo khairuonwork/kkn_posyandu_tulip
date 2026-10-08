@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { umurBulanPada } from '@/lib/format';
 import { kodeKartuSasaran } from '@/lib/kartu-sasaran';
 import type { BarisAnak } from '@/pages/anak';
+import type { PatchAnak } from '@/pages/anak';
 import type { BalitaKartu } from '@/pages/kartu-sasaran';
 import type {
     Anak,
@@ -40,6 +41,7 @@ export type DataAnakServer = {
 
 type AnakDetailApi = AnakApi & {
     nikOrtu: string | null;
+    noWa: string | null;
     anakKe: number | null;
     bbLahirKg: number | null;
     pbLahirCm: number | null;
@@ -230,7 +232,38 @@ function keDetail(a: AnakDetailApi): Anak {
         rw: '18',
         namaOrtu: a.namaOrtu,
         nikOrtu: a.nikOrtu,
+        noWa: a.noWa,
     };
+}
+
+export async function simpanProfilAnak(
+    anakId: number,
+    patch: PatchAnak,
+    onSesiBerakhir: () => void,
+): Promise<void> {
+    let response: Response;
+    try {
+        response = await fetch(`/api/v1/anak/${anakId}`, {
+            method: 'PATCH',
+            credentials: 'same-origin',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(patch),
+        });
+    } catch {
+        throw new Error(
+            'Tidak dapat terhubung ke server. Periksa sambungan lalu coba lagi.',
+        );
+    }
+    if (response.status === 401) {
+        onSesiBerakhir();
+        throw new Error('Sesi telah berakhir. Silakan masuk kembali.');
+    }
+    if (!response.ok) {
+        const isi = (await response.json().catch(() => ({}))) as {
+            galat?: string;
+        };
+        throw new Error(isi.galat ?? 'Profil anak tidak dapat disimpan.');
+    }
 }
 
 function kePengukuran(anak: Anak, p: PengukuranApi): Pengukuran {

@@ -12,6 +12,8 @@ import { rtYangBolehDilihat } from "../auth/peran.ts";
 
 export type AnakRingkas = {
     id: number;
+    idPublik: string;
+    keluargaId: string | null;
     nik: string | null;
     nama: string;
     tglLahir: string;
@@ -46,6 +48,20 @@ export type AnakDetail = Omit<
     pbLahirCm: number | null;
     bukuKia: boolean;
     imd: boolean;
+    noWa: string | null;
+};
+
+export type PerubahanProfilAnak = {
+    nama: string;
+    nik: string | null;
+    namaOrtu: string;
+    noWa: string | null;
+    rt: string;
+    jk: "L" | "P";
+    tglLahir: string;
+    anakKe: number | null;
+    bbLahirKg: number | null;
+    bukuKia: boolean;
 };
 
 export type PengukuranRingkas = {
@@ -61,7 +77,10 @@ export type PengukuranRingkas = {
     sumber: string;
     catatan: string | null;
     ntob: string | null;
-    penilaian: Record<string, { z: number; kategori: string | null; tidakWajar: boolean }>;
+    penilaian: Record<
+        string,
+        { z: number; kategori: string | null; tidakWajar: boolean }
+    >;
 };
 
 export type AnakLapangan = {
@@ -91,6 +110,8 @@ type Halaman = { halaman: number; ukuran: number };
 
 const KOLOM_RINGKAS = `
     a.id,
+    a.id_publik AS "idPublik",
+    o.id_keluarga AS "keluargaId",
     a.nik,
     a.nama,
     to_char(a.tgl_lahir, 'YYYY-MM-DD') AS "tglLahir",
@@ -194,11 +215,13 @@ export async function ambil(
 ): Promise<AnakDetail | null> {
     const rt = batasRt(pengguna);
     const { rows } = await pool.query<AnakDetail>(
-        `SELECT a.id, a.nik, a.nama,
+        `SELECT a.id, a.id_publik AS "idPublik", o.id_keluarga AS "keluargaId",
+                a.nik, a.nama,
                 to_char(a.tgl_lahir, 'YYYY-MM-DD') AS "tglLahir",
                 a.jk, w.rt, a.status,
                 max(p.updated_at) AS "pengukuranTerakhir",
-                o.nama AS "namaOrtu", o.nik AS "nikOrtu", a.anak_ke AS "anakKe",
+                o.nama AS "namaOrtu", o.nik AS "nikOrtu", o.no_wa AS "noWa",
+                a.anak_ke AS "anakKe",
                 a.bb_lahir_kg::float8 AS "bbLahirKg", a.pb_lahir_cm::float8 AS "pbLahirCm",
                 a.buku_kia AS "bukuKia", a.imd
            FROM anak a
@@ -213,6 +236,86 @@ export async function ambil(
     );
 
     return rows[0] ?? null;
+}
+
+/** Memperbarui identitas profil tanpa menyentuh pengukuran atau penilaian gizi. */
+export async function ubahProfilAnak(
+    db: PoolClient,
+    pengguna: PenggunaAktif,
+    anakId: number,
+    data: PerubahanProfilAnak,
+): Promise<"berhasil" | "tidak_ada" | "nik_dipakai" | "rt_tidak_ada"> {
+    const rtSaatIni = rtYangBolehDilihat(pengguna);
+    const anak = await db.query<{
+        orangTuaId: number | null;
+        rt: string | null;
+        posyanduId: number | null;
+    }>(
+        `SELECT a.orang_tua_id AS "orangTuaId", w.rt, w.posyandu_id AS "posyanduId"
+           FROM anak a LEFT JOIN wilayah_rt w ON w.id=a.wilayah_rt_id
+          WHERE a.id=$1 AND a.deleted_at IS NULL
+            AND ($2::text IS NULL OR w.rt=$2)
+          FOR UPDATE OF a`,
+        [anakId, rtSaatIni],
+    );
+    const lama = anak.rows[0];
+    if (lama === undefined) return "tidak_ada";
+
+    const wilayah = await db.query<{ id: number }>(
+        `SELECT id FROM wilayah_rt
+          WHERE posyandu_id=$1 AND ltrim(rt,'0')=ltrim($2,'0')
+          ORDER BY id LIMIT 1`,
+        [lama.posyanduId, data.rt],
+    );
+    if (wilayah.rows[0] === undefined) return "rt_tidak_ada";
+
+    if (data.nik !== null) {
+        const bentrok = await db.query<{ ada: boolean }>(
+            `SELECT EXISTS(SELECT 1 FROM anak WHERE nik=$1 AND id<>$2
+                           AND deleted_at IS NULL) AS ada`,
+            [data.nik, anakId],
+        );
+        if (bentrok.rows[0]?.ada) return "nik_dipakai";
+    }
+
+    let orangTuaId: number | null = lama.orangTuaId;
+    if (data.namaOrtu !== "") {
+        if (orangTuaId === null) {
+            const orangTua = await db.query<{ id: number }>(
+                `INSERT INTO orang_tua(nama,no_wa) VALUES($1,$2) RETURNING id`,
+                [data.namaOrtu, data.noWa],
+            );
+            orangTuaId = orangTua.rows[0].id;
+        } else {
+            await db.query(
+                `UPDATE orang_tua SET nama=$2,no_wa=$3,updated_at=now() WHERE id=$1`,
+                [orangTuaId, data.namaOrtu, data.noWa],
+            );
+        }
+    } else {
+        orangTuaId = null;
+    }
+
+    await db.query(
+        `UPDATE anak SET nik=$2,orang_tua_id=$3,wilayah_rt_id=$4,nama=$5,
+                nama_baku=$6,tgl_lahir=$7,jk=$8,anak_ke=$9,bb_lahir_kg=$10,
+                buku_kia=$11,updated_at=now()
+          WHERE id=$1`,
+        [
+            anakId,
+            data.nik,
+            orangTuaId,
+            wilayah.rows[0].id,
+            data.nama,
+            data.nama.trim().replace(/\s+/g, " ").toLocaleLowerCase("id-ID"),
+            data.tglLahir,
+            data.jk,
+            data.anakKe,
+            data.bbLahirKg,
+            data.bukuKia,
+        ],
+    );
+    return "berhasil";
 }
 
 export async function daftarPengukuran(
@@ -255,13 +358,15 @@ export async function daftarPengukuran(
 }
 
 /** Garis WHO BB/U untuk pita KMS; parameter berasal dari database live. */
-export async function garisSdBbU(pool: Pool): Promise<{
-    jk: "L" | "P";
-    umurBulan: number;
-    l: number;
-    m: number;
-    s: number;
-}[]> {
+export async function garisSdBbU(pool: Pool): Promise<
+    {
+        jk: "L" | "P";
+        umurBulan: number;
+        l: number;
+        m: number;
+        s: number;
+    }[]
+> {
     const { rows } = await pool.query<{
         jk: "L" | "P";
         umurBulan: number;
@@ -484,7 +589,8 @@ export async function paketSinkronisasi(pool: Pool, pengguna: PenggunaAktif) {
         };
     }
     const anak = await pool.query(
-        `SELECT a.id AS id_anak, a.nik,
+        `SELECT a.id AS id_anak, a.id_publik AS id_anak_public,
+                o.id_keluarga AS id_keluarga, a.nik,
                 s.id AS id_sasaran, s.status AS status_sasaran,
                 'SPT-' || lpad(a.id::text, 8, '0') AS kode_kartu,
                 a.nama AS nama_anak, to_char(a.tgl_lahir, 'YYYY-MM-DD') AS tgl_lahir,

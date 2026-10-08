@@ -147,7 +147,7 @@ export type LayarProps = {
     tambahan: AnakBaru[];
     antrean?: { jumlah: number; sejak: string };
     onCobaKirim: () => void;
-    onSimpanAnak: (anakId: number, patch: PatchAnak) => void;
+    onSimpanAnak: (anakId: number, patch: PatchAnak) => void | Promise<void>;
     onTambahAnak: (baru: AnakBaru) => void;
     ambang: Ambang;
     onSimpanAmbang: (nilai: Ambang) => void;
@@ -393,13 +393,9 @@ export function Layar({
                 periode={periode}
                 ambang={ambang}
                 wilayahRt={wilayahRt}
-                noWa={koreksi[rute.id]?.noWa ?? null}
+                noWa={koreksi[rute.id]?.noWa ?? anak.noWa}
                 lembaga={LEMBAGA}
-                onSimpan={
-                    modeDataLive
-                        ? undefined
-                        : (patch) => onSimpanAnak(rute.id, patch)
-                }
+                onSimpan={(patch) => onSimpanAnak(rute.id, patch)}
                 sumberLive={modeDataLive}
             />
         );

@@ -21,6 +21,7 @@ import {
 import { useEffect, useRef } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import FilterPeriode from '@/components/filter-periode';
+import StatusTablet from '@/components/status-tablet';
 import { data } from '@/data/contoh/store';
 import { tanggalPanjang } from '@/lib/format';
 import { Link, useAlamat } from '@/lib/nav';
@@ -277,9 +278,10 @@ export function Cangkang({
 
                     <div className="mt-5.5">{menu}</div>
 
-                    {kakiSidebar !== undefined && (
-                        <div className="mt-auto pt-4">{kakiSidebar}</div>
-                    )}
+                    <div className="mt-auto space-y-2.5 pt-4">
+                        <StatusTablet />
+                        {kakiSidebar !== undefined && kakiSidebar}
+                    </div>
                 </div>
             </dialog>
 
@@ -320,11 +322,10 @@ export function Cangkang({
 
                 <div className="mt-5.5 pendek:pointer-fine:mt-3">{menu}</div>
 
-                {kakiSidebar !== undefined && (
-                    <div className="mt-auto pt-4 pendek:pointer-fine:pt-2.5">
-                        {kakiSidebar}
-                    </div>
-                )}
+                <div className="mt-auto space-y-2.5 pt-4 pendek:pointer-fine:pt-2.5">
+                    <StatusTablet />
+                    {kakiSidebar !== undefined && kakiSidebar}
+                </div>
             </aside>
 
             {/* Tanpa jarak tepi sendiri: bilah kepala tiap layar membentang
