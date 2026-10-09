@@ -146,6 +146,10 @@ Skrip mendeteksi IPv4 PC, membuka React dan REST API pada jaringan lokal, lalu
 memeriksa jalur API sampai PostgreSQL. Gunakan alamat yang dicetak untuk membuka
 website dari perangkat lain pada Wi-Fi yang sama.
 
+Panduan menyiapkan PC baru dari clone, termasuk dependensi, konfigurasi database,
+firewall, dan cara menjalankan/berhenti ada di
+[`docs/menjalankan-server-lan.md`](docs/menjalankan-server-lan.md).
+
 ```powershell
 .\hentikan-qa-lan.ps1
 ```
