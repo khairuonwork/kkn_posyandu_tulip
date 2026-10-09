@@ -12,6 +12,8 @@ import {
     tambahManual,
     tutupSesi,
     ubah,
+    pratinjauResetHariIni,
+    resetHariIni,
 } from "../services/sasaran-service.ts";
 import { wajibBoleh } from "./middleware.ts";
 
@@ -159,6 +161,38 @@ export function ruteSasaran(pool: Pool): Router {
                 res.json({
                     hasil: await tutupSesi(pool, req.pengguna!, req.body),
                 });
+            } catch (galat) {
+                try {
+                    jawabGalat(galat, res);
+                } catch (takTerduga) {
+                    next(takTerduga);
+                }
+            }
+        },
+    );
+
+    rute.get(
+        "/sasaran/reset-hari-ini",
+        wajibBoleh("hapus-data"),
+        async (req, res, next) => {
+            try {
+                res.json(await pratinjauResetHariIni(pool, req.query.periodeId));
+            } catch (galat) {
+                try {
+                    jawabGalat(galat, res);
+                } catch (takTerduga) {
+                    next(takTerduga);
+                }
+            }
+        },
+    );
+
+    rute.post(
+        "/sasaran/reset-hari-ini",
+        wajibBoleh("hapus-data"),
+        async (req, res, next) => {
+            try {
+                res.json({ hasil: await resetHariIni(pool, req.pengguna!, req.body) });
             } catch (galat) {
                 try {
                     jawabGalat(galat, res);

@@ -126,7 +126,7 @@ const BAGIAN: {
         kunci: 'pengguna',
         label: 'Pengguna dan peran',
         ikon: Users,
-        keterangan: 'Akun yang bisa masuk, beserta peran dan RT binaannya.',
+        keterangan: 'Akun yang bisa masuk, beserta peran dan cakupan aksesnya.',
     },
     {
         kunci: 'standar',
@@ -219,9 +219,10 @@ const NAMA_PERAN: Record<Peran, string> = {
     kader: 'Kader',
     bidan: 'Bidan',
     admin: 'Admin',
+    kms: 'Petugas KMS',
 };
 
-const URUTAN_PERAN: Peran[] = ['kader', 'bidan', 'admin'];
+const URUTAN_PERAN: Peran[] = ['kader', 'bidan', 'admin', 'kms'];
 
 /** Sama dengan `SANDI_MINIMAL` di server/src/auth/akun.ts. */
 const SANDI_MINIMAL = 8;
@@ -1233,7 +1234,7 @@ function BagianPengguna({
                             Peran
                         </TableHead>
                         <TableHead scope="col" className="bg-card">
-                            RT binaan
+                            Cakupan akses
                         </TableHead>
                         <TableHead scope="col" className="bg-card">
                             Status
@@ -1261,11 +1262,7 @@ function BagianPengguna({
                             </TableCell>
                             <TableCell>{NAMA_PERAN[p.peran]}</TableCell>
                             <TableCell className="whitespace-nowrap">
-                                {/* Bidan dan admin memang melihat semua RT;
-                                    itu keterangan, bukan data yang hilang. */}
-                                {p.peran === 'kader' && p.rt !== null
-                                    ? labelRt(p.rt)
-                                    : 'Semua RT'}
+                                Semua RT
                             </TableCell>
                             <TableCell>
                                 <span
@@ -1493,7 +1490,7 @@ function DialogPengguna({
                             ))}
                         </select>
                     </KolomPengguna>
-                    <KolomPengguna id="pengguna-rt" label="RT binaan">
+                    <KolomPengguna id="pengguna-rt" label="RT penugasan">
                         {peran === 'kader' ? (
                             <select
                                 id="pengguna-rt"
@@ -1508,14 +1505,17 @@ function DialogPengguna({
                                 ))}
                             </select>
                         ) : (
-                            /* Bidan dan admin melihat seluruh RW; kalimat ini
-                               menjawab pertanyaannya langsung, tanpa kotak
-                               pilih mati yang mengundang klik. */
+                            /* Peran lain tidak memiliki RT penugasan. */
                             <p className="flex h-14 items-center text-base text-muted-foreground">
                                 Semua RT
                             </p>
                         )}
                     </KolomPengguna>
+                    {peran === 'kader' && (
+                        <p className="-mt-3 text-sm text-muted-foreground sm:col-span-2">
+                            Semua kader dapat melihat sasaran dan antrean dari seluruh RT. RT penugasan hanya untuk informasi.
+                        </p>
+                    )}
                     <KolomPengguna
                         id="pengguna-sandi"
                         label={

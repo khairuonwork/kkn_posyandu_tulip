@@ -46,12 +46,14 @@ const NAMA_PERAN: Record<Peran, string> = {
     kader: 'Kader',
     bidan: 'Bidan',
     admin: 'Admin',
+    kms: 'Petugas KMS',
 };
 
 const KETERANGAN_PERAN: Record<Peran, string> = {
     kader: 'Mencatat penimbangan di RT binaannya',
     bidan: 'Melihat semua RT, mengoreksi data',
     admin: 'Mengubah batas dan mengelola pengguna',
+    kms: 'Membaca analisis dan menyelesaikan tahap penjelasan KMS',
 };
 
 const URUTAN_PERAN: Peran[] = ['kader', 'bidan', 'admin'];
@@ -151,6 +153,7 @@ function PortalDemo({
             <Layar
                 rute={rute}
                 peran={peran}
+                onSesiBerakhir={() => undefined}
                 periodeId={periodeId}
                 onPindahPeriode={setPeriodeId}
                 tabLaporan={tabLaporan}

@@ -26,8 +26,24 @@ masukkan password database saat diminta (input disembunyikan):
 
 Jangan commit atau mengirim `server/.env`. Pastikan `DATABASE_URL` menunjuk ke
 database yang memang akan digunakan. Jangan jalankan migrasi terhadap database
-live hanya untuk menyalakan server; migrasi hanya dilakukan ketika ada perubahan
-skema yang sudah ditinjau.
+live hanya untuk menyalakan server. Fitur antrean bersama tablet dan tahap KMS
+membutuhkan migrasi `012`–`015`. Tinjau file SQL dan pastikan cadangan database
+tersedia terlebih dahulu; baru jalankan perintah berikut dari akar repo untuk
+database yang memang dituju:
+
+```powershell
+npm --prefix server run migrate
+```
+
+Perintah migrasi mengubah skema database yang tercantum di `server/.env`.
+Jangan jalankan ke Supabase production selama demo aktif tanpa persetujuan
+admin proyek. Migrasi aman diulang karena pencatat migrasi hanya menjalankan
+file yang belum tercatat.
+
+Setelah migrasi, admin dapat membuat akun Petugas KMS di **Pengaturan → Akun**
+dengan peran **Petugas KMS**. Akun tersebut tidak mempunyai hak edit profil,
+ukur, impor, atau reset; menu utamanya hanya **Pemeriksaan KMS**. Kredensial
+ditentukan oleh admin saat akun dibuat, bukan disimpan di kode.
 
 ## Jalankan untuk PC dan tablet
 

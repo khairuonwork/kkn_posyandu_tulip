@@ -89,8 +89,24 @@ fi
 
 mkdir -p "$FOLDER_STATUS"
 if [[ -f "$FOLDER_STATUS/aktif" ]]; then
-  printf 'SIMPATIK tampaknya sudah berjalan. Hentikan terminal lama dengan Ctrl+C sebelum memulai lagi.\n' >&2
-  exit 1
+  mapfile -t PID_LAMA <"$FOLDER_STATUS/aktif"
+  API_LAMA="${PID_LAMA[0]:-}"
+  NGROK_LAMA="${PID_LAMA[1]:-}"
+  API_LAMA_AKTIF=false
+  NGROK_LAMA_AKTIF=false
+  [[ -n "$API_LAMA" ]] && kill -0 "$API_LAMA" 2>/dev/null && API_LAMA_AKTIF=true
+  [[ -n "$NGROK_LAMA" ]] && kill -0 "$NGROK_LAMA" 2>/dev/null && NGROK_LAMA_AKTIF=true
+
+  if [[ "$API_LAMA_AKTIF" == true && "$NGROK_LAMA_AKTIF" == true ]]; then
+    printf 'SIMPATIK tampaknya sudah berjalan. Hentikan terminal lama dengan Ctrl+C sebelum memulai lagi.\n' >&2
+    exit 1
+  elif [[ "$API_LAMA_AKTIF" == true || "$NGROK_LAMA_AKTIF" == true ]]; then
+    printf 'Ditemukan proses lama yang masih aktif sebagian. Jangan mulai ulang dulu; periksa proses API/ngrok dan log di .ngrok-run.\n' >&2
+    exit 1
+  else
+    rm -f "$FOLDER_STATUS/aktif"
+    printf 'Menghapus penanda proses lama yang sudah berhenti.\n'
+  fi
 fi
 
 API_PID=''

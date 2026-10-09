@@ -36,6 +36,7 @@ const NAMA_PERAN: Record<Peran, string> = {
     kader: 'Kader',
     bidan: 'Bidan',
     admin: 'Admin',
+    kms: 'Petugas KMS',
 };
 
 export default function App() {
@@ -66,7 +67,6 @@ function AplikasiPetugas() {
         <Portal
             nama={sesi.pengguna.nama}
             peran={sesi.pengguna.peran}
-            rt={sesi.pengguna.rt}
             // Alamat baru diganti setelah server menjawab. Menggantinya lebih
             // dulu membuat permintaan keluar berlomba dengan perpindahan
             // halaman — dan permintaan yang batal berarti sesinya tetap hidup
@@ -98,13 +98,11 @@ function Memeriksa() {
 function Portal({
     nama,
     peran,
-    rt,
     onKeluar,
     onSesiBerakhir,
 }: {
     nama: string;
     peran: Peran;
-    rt: string | null;
     onKeluar: () => void;
     onSesiBerakhir: () => void;
 }) {
@@ -125,7 +123,7 @@ function Portal({
     const rute = bacaRute(alamat);
     const berandaServer = useBerandaServer(
         periodePilihan,
-        rute.nama === 'beranda',
+        rute.nama === 'beranda' || rute.nama === 'kms',
         onSesiBerakhir,
     );
     const periodeId = berandaServer.periodeAktif;
@@ -133,7 +131,10 @@ function Portal({
         peran === 'admin' && rute.nama === 'pengaturan',
         onSesiBerakhir,
     );
-    const anakServer = useAnakServer(onSesiBerakhir);
+    const anakServer = useAnakServer(
+        onSesiBerakhir,
+        rute.nama === 'balita' || rute.nama === 'kartu-sasaran',
+    );
     const detailServer = useDetailAnakServer(
         rute.nama === 'detail' || rute.nama === 'riwayat' ? rute.id : null,
         onSesiBerakhir,
@@ -164,7 +165,7 @@ function Portal({
             <Layar
                 rute={rute}
                 peran={peran}
-                rtPengguna={rt}
+                onSesiBerakhir={onSesiBerakhir}
                 periodeId={periodeId}
                 onPindahPeriode={setPeriodePilihan}
                 tabLaporan={tabLaporan}

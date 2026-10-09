@@ -124,7 +124,10 @@ function keKartu(a: AnakApi): BalitaKartu {
     };
 }
 
-export function useAnakServer(onSesiBerakhir: () => void): DataAnakServer {
+export function useAnakServer(
+    onSesiBerakhir: () => void,
+    aktif = true,
+): DataAnakServer {
     const [versi, setVersi] = useState(0);
     const [state, setState] = useState<Omit<DataAnakServer, 'muatUlang'>>({
         status: 'memuat',
@@ -138,6 +141,10 @@ export function useAnakServer(onSesiBerakhir: () => void): DataAnakServer {
     }, []);
 
     useEffect(() => {
+        if (!aktif) {
+            return;
+        }
+
         const controller = new AbortController();
 
         const ambilHalaman = async (halaman: number) => {
@@ -209,7 +216,7 @@ export function useAnakServer(onSesiBerakhir: () => void): DataAnakServer {
             });
 
         return () => controller.abort();
-    }, [onSesiBerakhir, versi]);
+    }, [aktif, onSesiBerakhir, versi]);
 
     return { ...state, muatUlang };
 }

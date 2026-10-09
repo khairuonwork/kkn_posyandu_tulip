@@ -21,7 +21,8 @@ interface ResponsPerangkat {
 export default function StatusTablet() {
     const [data, setData] = useState<ResponsPerangkat | null>(null);
     const [bukaDetail, setBukaDetail] = useState(false);
-    const [sedangMuat, setSedangMuat] = useState(false);
+    const [sedangMuat, setSedangMuat] = useState(true);
+    const [gagalMemeriksa, setGagalMemeriksa] = useState(false);
 
     const ambilStatus = async () => {
         setSedangMuat(true);
@@ -32,9 +33,13 @@ export default function StatusTablet() {
             if (res.ok) {
                 const hasil = (await res.json()) as ResponsPerangkat;
                 setData(hasil);
+                setGagalMemeriksa(false);
+            } else {
+                setGagalMemeriksa(true);
             }
         } catch {
             // Server offline atau tidak terjangkau
+            setGagalMemeriksa(true);
         } finally {
             setSedangMuat(false);
         }
@@ -46,7 +51,7 @@ export default function StatusTablet() {
         return () => clearInterval(interval);
     }, []);
 
-    const daftarTablet = data?.daftarTablet ?? [];
+    const daftarTablet = gagalMemeriksa ? [] : (data?.daftarTablet ?? []);
     const tabletOnline = daftarTablet.filter((t) => t.status === 'online');
     const adaTablet = tabletOnline.length > 0;
     const ipServerUtama = data?.serverIp?.[0] ?? '127.0.0.1';
@@ -57,11 +62,12 @@ export default function StatusTablet() {
                 type="button"
                 onClick={() => setBukaDetail((v) => !v)}
                 className={`flex w-full items-center gap-2.5 rounded-xl border px-3 py-2 text-left text-xs transition-all ${
-                    adaTablet
+                    adaTablet && !gagalMemeriksa
                         ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-950 hover:bg-emerald-500/15'
                         : 'border-amber-500/30 bg-amber-500/10 text-amber-950 hover:bg-amber-500/15'
                 }`}
                 title="Status koneksi Tablet Android & Jaringan Lokal"
+                aria-expanded={bukaDetail}
             >
                 <div className="relative flex size-2.5 items-center justify-center">
                     {adaTablet ? (
@@ -76,14 +82,24 @@ export default function StatusTablet() {
 
                 <div className="min-w-0 flex-1">
                     <p className="truncate font-bold">
-                        {adaTablet
-                            ? `${tabletOnline.length} Tablet Terhubung`
-                            : 'Menunggu Tablet...'}
+                        {gagalMemeriksa
+                            ? 'Status server tidak tersedia'
+                            : data === null && sedangMuat
+                            ? 'Mendeteksi tablet…'
+                            : adaTablet
+                              ? `${tabletOnline.length} tablet terhubung`
+                              : 'Belum ada tablet terhubung'}
                     </p>
                     <p className="truncate text-[10px] text-muted-foreground">
-                        {adaTablet
-                            ? tabletOnline[0]?.namaPerangkat ?? tabletOnline[0]?.ip
-                            : `IP PC: ${ipServerUtama}`}
+                        {gagalMemeriksa
+                            ? 'Coba segarkan untuk memeriksa ulang'
+                            : adaTablet
+                            ? daftarTablet.length > tabletOnline.length
+                                ? `${daftarTablet.length - tabletOnline.length} siaga · ${tabletOnline[0]?.namaPerangkat ?? tabletOnline[0]?.ip}`
+                                : tabletOnline[0]?.namaPerangkat ?? tabletOnline[0]?.ip
+                            : data === null && sedangMuat
+                              ? 'Memeriksa koneksi ke server'
+                              : `Server: ${ipServerUtama}`}
                     </p>
                 </div>
 
@@ -96,7 +112,7 @@ export default function StatusTablet() {
                         className="fixed inset-0 z-40"
                         onClick={() => setBukaDetail(false)}
                     />
-                    <div className="absolute bottom-full left-0 z-50 mb-2 w-72 rounded-2xl border border-border bg-popover p-4 shadow-xl text-popover-foreground">
+                            <div className="absolute bottom-full left-0 z-50 mb-2 w-72 rounded-2xl border border-border bg-popover p-4 text-popover-foreground shadow-xl">
                         <div className="flex items-center justify-between border-b border-border pb-2.5">
                             <div className="flex items-center gap-2 font-bold text-sm">
                                 <Wifi className="size-4 text-primary" />
@@ -149,7 +165,9 @@ export default function StatusTablet() {
                                     <div className="flex items-center gap-2 rounded-lg border border-dashed border-border p-3 text-muted-foreground">
                                         <AlertCircle className="size-4 shrink-0 text-amber-500" />
                                         <p className="text-[11px] leading-tight">
-                                            Belum ada tablet yang terhubung. Buka aplikasi di tablet pada jaringan Wi-Fi/Hotspot yang sama.
+                                            {gagalMemeriksa
+                                                ? 'Server tidak dapat dihubungi saat ini. Segarkan status setelah koneksi kembali.'
+                                                : 'Belum ada tablet yang memberi sinyal koneksi. Buka aplikasi Android dan pastikan tersambung ke server.'}
                                         </p>
                                     </div>
                                 ) : (
@@ -161,7 +179,7 @@ export default function StatusTablet() {
                                             >
                                                 <div className="min-w-0 flex-1 pr-2">
                                                     <div className="flex items-center gap-1.5">
-                                                        <CheckCircle2 className="size-3.5 shrink-0 text-emerald-600" />
+                                                        <CheckCircle2 className={`size-3.5 shrink-0 ${tablet.status === 'online' ? 'text-emerald-600' : 'text-amber-600'}`} />
                                                         <span className="font-bold truncate text-[11px]">
                                                             {tablet.namaPerangkat}
                                                         </span>
@@ -171,7 +189,9 @@ export default function StatusTablet() {
                                                     </p>
                                                 </div>
                                                 <div className="text-right text-[10px] shrink-0 text-muted-foreground">
-                                                    <span className="font-semibold text-emerald-600">Online</span>
+                                                    <span className={`font-semibold ${tablet.status === 'online' ? 'text-emerald-600' : 'text-amber-700'}`}>
+                                                        {tablet.status === 'online' ? 'Online' : 'Siaga'}
+                                                    </span>
                                                     <p>{tablet.detikLalu}s lalu</p>
                                                 </div>
                                             </div>

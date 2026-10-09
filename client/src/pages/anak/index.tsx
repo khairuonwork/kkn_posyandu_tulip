@@ -8,6 +8,7 @@
 
 import {
     Baby,
+    ClipboardCheck,
     ChevronDown,
     ChevronRight,
     Pencil,
@@ -128,6 +129,11 @@ function labelRt(rt: string): string {
     return `RT ${rt.padStart(2, '0')}`;
 }
 
+function tanggalLokalISO(): string {
+    const tanggal = new Date();
+    return `${tanggal.getFullYear()}-${String(tanggal.getMonth() + 1).padStart(2, '0')}-${String(tanggal.getDate()).padStart(2, '0')}`;
+}
+
 /** Titik desimal maupun koma diterima; kader mengetik apa yang tertera di alat. */
 function keAngka(teks: string): number | null {
     const bersih = teks.trim().replace(',', '.');
@@ -196,7 +202,7 @@ const LABEL_URUT: Record<KolomUrut, string> = {
     nama: 'Nama balita',
     umur: 'Umur',
     rt: 'RT',
-    tanggal: 'Ditimbang terakhir',
+    tanggal: 'Tanggal ukur',
     status: 'Status terakhir',
 };
 
@@ -239,7 +245,9 @@ export default function DaftarAnak({
     pesanGalat,
     onMuatUlang,
 }: Props) {
-    const [cari, setCari] = useState('');
+    const [cariSemua, setCariSemua] = useState('');
+    const [cariHariIni, setCariHariIni] = useState('');
+    const [tabAktif, setTabAktif] = useState<'hari-ini' | 'semua'>('hari-ini');
     const [rt, setRt] = useState(rtTerkunci ?? '');
     const [hanyaPerhatian, setHanyaPerhatian] = useState(false);
     const [hanyaRisiko, setHanyaRisiko] = useState(false);
@@ -255,13 +263,18 @@ export default function DaftarAnak({
     // Jangan tampilkan editor memori milik demo sebagai tindakan sungguhan.
     const bolehUbah = peran !== 'kader' && sumberData === 'contoh';
     const rtAktif = rtTerkunci ?? rt;
+    const kataCari = tabAktif === 'hari-ini' ? cariHariIni : cariSemua;
+    const hariIni = tanggalLokalISO();
     // Kader hanya pernah melihat RT binaannya. Menyebut jumlah se-RW di
     // subjudulnya membuat dua angka berbeda berdiri 40 px bersebelahan.
     const terlihat =
         rtTerkunci === null ? anak : anak.filter((b) => b.rt === rtTerkunci);
     const lingkupRt = rtAktif === '' ? 'seluruh RT' : labelRt(rtAktif);
     const adaSaringan =
-        cari.trim() !== '' || rtAktif !== '' || hanyaPerhatian || hanyaRisiko;
+        kataCari.trim() !== '' ||
+        (rtTerkunci === null && rtAktif !== '') ||
+        hanyaPerhatian ||
+        hanyaRisiko;
 
     // 906 baris standar hanya perlu disusun sekali, bukan tiap ketukan papan
     // tombol di dalam editor.
@@ -271,7 +284,7 @@ export default function DaftarAnak({
     );
 
     const hasil = useMemo(() => {
-        const kunci = cari.trim().toLowerCase();
+        const kunci = kataCari.trim().toLowerCase();
 
         return anak
             .filter((baris) => {
@@ -299,7 +312,21 @@ export default function DaftarAnak({
                     (urut.naik ? 1 : -1) * bandingkan(a, b, urut.kolom) ||
                     (a.nama ?? '').localeCompare(b.nama ?? ''),
             );
-    }, [anak, cari, rtAktif, hanyaPerhatian, hanyaRisiko, urut]);
+    }, [anak, kataCari, rtAktif, hanyaPerhatian, hanyaRisiko, urut]);
+
+    const anakDalamLingkup =
+        rtTerkunci !== null
+            ? anak.filter((baris) => baris.rt === rtTerkunci)
+            : rtAktif === ''
+              ? anak
+              : anak.filter((baris) => baris.rt === rtAktif);
+    const jumlahHariIni = anakDalamLingkup.filter(
+        (baris) => baris.tanggalUkurTerakhir === hariIni,
+    ).length;
+    const hasilTampil =
+        tabAktif === 'hari-ini'
+            ? hasil.filter((baris) => baris.tanggalUkurTerakhir === hariIni)
+            : hasil;
 
     const keteranganUrut =
         urut.kolom === 'nama'
@@ -367,13 +394,57 @@ export default function DaftarAnak({
                 dalam kartu, dan jumlah baris di bilah bawah. Halamannya
                 sendiri tidak digulir dari 1024 px. */}
             <section className="kartu flex flex-col overflow-hidden lg:min-h-0 lg:flex-1">
+                <div
+                    role="tablist"
+                    aria-label="Daftar balita"
+                    className="flex shrink-0 gap-1 border-b border-border bg-surface px-4.5 pt-2.5"
+                >
+                    {([
+                        ['hari-ini', 'Hasil hari ini', jumlahHariIni],
+                        ['semua', 'Semua balita', anakDalamLingkup.length],
+                    ] as const).map(([id, label, jumlah]) => (
+                        <button
+                            key={id}
+                            type="button"
+                            role="tab"
+                            id={`tab-anak-${id}`}
+                            aria-controls={`panel-anak-${id}`}
+                            aria-selected={tabAktif === id}
+                            tabIndex={tabAktif === id ? 0 : -1}
+                            onClick={() => setTabAktif(id)}
+                            className={`-mb-px flex min-h-12 items-center gap-2 border-b-2 px-3.5 text-sm font-bold transition-colors sm:px-5 ${tabAktif === id ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:bg-surface-subtle hover:text-foreground'}`}
+                        >
+                            {id === 'hari-ini' ? (
+                                <ClipboardCheck
+                                    className="size-4.5"
+                                    aria-hidden="true"
+                                />
+                            ) : (
+                                <Baby className="size-4.5" aria-hidden="true" />
+                            )}
+                            {label}
+                            <span className="rounded-full bg-surface-alt px-2 py-0.5 text-xs tabular-nums text-foreground">
+                                {jumlah}
+                            </span>
+                        </button>
+                    ))}
+                </div>
+                <div
+                    role="tabpanel"
+                    id={`panel-anak-${tabAktif}`}
+                    aria-labelledby={`tab-anak-${tabAktif}`}
+                    tabIndex={0}
+                    className="flex min-h-0 flex-1 flex-col"
+                >
                 <div className="flex shrink-0 flex-wrap items-end gap-x-4.5 gap-y-3.5 border-b border-border px-4.5 pt-3.5 pb-4">
                     <div className="min-w-60 flex-1">
                         <label
                             htmlFor="cari-anak"
                             className="block text-sm font-semibold text-muted-foreground"
                         >
-                            Cari nama balita atau nama ibu
+                            {tabAktif === 'hari-ini'
+                                ? 'Cari anak yang diukur hari ini'
+                                : 'Cari nama balita atau nama ibu'}
                         </label>
                         {/* `items-stretch`: seluruh tinggi kotak meneruskan
                             sentuhan ke <input>. Ini kotak pertama yang disentuh
@@ -387,8 +458,17 @@ export default function DaftarAnak({
                             <input
                                 id="cari-anak"
                                 type="search"
-                                value={cari}
-                                onChange={(e) => setCari(e.target.value)}
+                                value={kataCari}
+                                placeholder={
+                                    tabAktif === 'hari-ini'
+                                        ? 'Cari hasil ukur hari ini…'
+                                        : 'Cari di semua data balita…'
+                                }
+                                onChange={(e) =>
+                                    tabAktif === 'hari-ini'
+                                        ? setCariHariIni(e.target.value)
+                                        : setCariSemua(e.target.value)
+                                }
                                 className="min-w-0 flex-1 self-stretch bg-transparent text-base outline-none"
                             />
                         </div>
@@ -528,7 +608,7 @@ export default function DaftarAnak({
                             </button>
                         </div>
                     </div>
-                ) : hasil.length === 0 ? (
+                ) : hasilTampil.length === 0 ? (
                     <div className="px-6 py-10 text-center lg:flex-1">
                         {sumberData === 'live' &&
                         anak.length === 0 &&
@@ -553,15 +633,37 @@ export default function DaftarAnak({
                                     Buka Sasaran &amp; Impor
                                 </Link>
                             </>
-                        ) : cari.trim() !== '' ? (
+                        ) : tabAktif === 'hari-ini' && !adaSaringan ? (
+                            <>
+                                <p className="text-base font-bold">
+                                    Belum ada hasil ukur hari ini
+                                </p>
+                                <p className="mx-auto mt-1 max-w-xl text-base text-muted-foreground">
+                                    Pengukuran yang tersimpan dari aplikasi
+                                    Android akan muncul di daftar ini setelah
+                                    tersinkron ke server.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => setTabAktif('semua')}
+                                    className="tombol-kedua mt-4"
+                                >
+                                    Lihat semua balita
+                                </button>
+                            </>
+                        ) : kataCari.trim() !== '' ? (
                             <>
                                 <p className="text-base">
-                                    Tidak ada balita bernama “{cari.trim()}” di{' '}
+                                    Tidak ada balita bernama “{kataCari.trim()}” di{' '}
                                     {lingkupRt}.
                                 </p>
                                 <button
                                     type="button"
-                                    onClick={() => setCari('')}
+                                    onClick={() =>
+                                        tabAktif === 'hari-ini'
+                                            ? setCariHariIni('')
+                                            : setCariSemua('')
+                                    }
                                     className="tombol-kedua mt-4"
                                 >
                                     Hapus pencarian
@@ -594,7 +696,7 @@ export default function DaftarAnak({
                             ini menaruh tiap balita dalam satu baris yang bisa
                             disentuh seluruhnya. */}
                         <ul className="md:hidden">
-                            {hasil.map((baris) => (
+                            {hasilTampil.map((baris) => (
                                 <li
                                     key={baris.anakId}
                                     className="border-b border-rule last:border-b-0"
@@ -621,7 +723,12 @@ export default function DaftarAnak({
                                                     }
                                                     tenang
                                                 />
-                                                {baris.tanggalUkurTerakhir !==
+                                                {tabAktif === 'hari-ini' ? (
+                                                    <span className="text-sm font-semibold text-foreground">
+                                                        BB {baris.bbKg === null ? KOSONG : `${angka(baris.bbKg, 1)} kg`}
+                                                        {' · '}PB/TB {baris.tinggiCm === null ? KOSONG : `${angka(baris.tinggiCm, 1)} cm`}
+                                                    </span>
+                                                ) : baris.tanggalUkurTerakhir !==
                                                     null && (
                                                     <span className="text-sm text-muted-foreground">
                                                         Hasil terakhir{' '}
@@ -668,7 +775,9 @@ export default function DaftarAnak({
                                         scope="col"
                                         className="hidden lg:table-cell"
                                     >
-                                        Nama ibu
+                                        {tabAktif === 'hari-ini'
+                                            ? 'Hasil ukur hari ini'
+                                            : 'Nama ibu'}
                                     </TableHead>
                                     {kepalaUrut('tanggal')}
                                     {kepalaUrut('status')}
@@ -686,9 +795,9 @@ export default function DaftarAnak({
                                 ulang, dan jeda bertahapnya terlihat setiap kali
                                 hasil berganti (bagian 8.4). */}
                             <TableBody
-                                key={`${cari}|${rtAktif}|${hanyaPerhatian}|${hanyaRisiko}`}
+                                key={`${kataCari}|${tabAktif}|${rtAktif}|${hanyaPerhatian}|${hanyaRisiko}`}
                             >
-                                {hasil.map((baris, urutan) => {
+                                {hasilTampil.map((baris, urutan) => {
                                     const terbuka = dibuka === baris.anakId;
 
                                     return [
@@ -731,7 +840,15 @@ export default function DaftarAnak({
                                                     : labelRt(baris.rt)}
                                             </TableCell>
                                             <TableCell className="hidden lg:table-cell">
-                                                {baris.namaOrtu ?? KOSONG}
+                                                {tabAktif === 'hari-ini' ? (
+                                                    <span className="font-semibold tabular-nums">
+                                                        BB {baris.bbKg === null ? KOSONG : `${angka(baris.bbKg, 1)} kg`}
+                                                        <br />
+                                                        PB/TB {baris.tinggiCm === null ? KOSONG : `${angka(baris.tinggiCm, 1)} cm`}
+                                                    </span>
+                                                ) : (
+                                                    baris.namaOrtu ?? KOSONG
+                                                )}
                                             </TableCell>
                                             <TableCell className="hidden whitespace-nowrap lg:table-cell">
                                                 {tanggalRingkas(
@@ -836,12 +953,13 @@ export default function DaftarAnak({
                         <>
                             Menampilkan{' '}
                             <span className="font-bold text-foreground">
-                                {hasil.length}
+                                {hasilTampil.length}
                             </span>{' '}
-                            dari {terlihat.length} balita · {keteranganUrut}
+                            dari {tabAktif === 'hari-ini' ? jumlahHariIni : anakDalamLingkup.length} balita · {keteranganUrut}
                         </>
                     )}
                 </p>
+                </div>
             </section>
         </Halaman>
     );

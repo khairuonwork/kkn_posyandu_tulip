@@ -216,3 +216,60 @@ export async function tutupSesi(
     );
     return hasil;
 }
+
+function tanggalHariIniJakarta(): string {
+    const bagian = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Jakarta",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+    }).formatToParts(new Date());
+    const nilai = Object.fromEntries(bagian.map((item) => [item.type, item.value]));
+    return `${nilai.year}-${nilai.month}-${nilai.day}`;
+}
+
+async function validasiPeriodeReset(pool: Pool, periodeRaw: unknown) {
+    const periodeId = idPositif(periodeRaw, "Periode");
+    const periode = await pool.query<{ kode: string; sesiDitutupPada: Date | null }>(
+        `SELECT tahun::text || '-' || lpad(bulan::text, 2, '0') AS kode,
+                sesi_ditutup_pada AS "sesiDitutupPada"
+           FROM periode WHERE id=$1`,
+        [periodeId],
+    );
+    if (!periode.rows[0]) throw new GalatSasaran(404, "Periode sasaran tidak ditemukan.");
+    const tanggal = tanggalHariIniJakarta();
+    if (periode.rows[0].kode !== tanggal.slice(0, 7)) {
+        throw new GalatSasaran(409, "Reset hanya tersedia untuk periode sasaran yang sedang berlangsung.");
+    }
+    if (periode.rows[0].sesiDitutupPada !== null) {
+        throw new GalatSasaran(409, "Sesi periode sudah ditutup; reset data hari ini tidak dapat dilakukan.");
+    }
+    return { periodeId, tanggal };
+}
+
+/** Pratinjau dampak sebelum hasil pengukuran hari ini direset oleh admin. */
+export async function pratinjauResetHariIni(pool: Pool, periodeRaw: unknown) {
+    const { periodeId, tanggal } = await validasiPeriodeReset(pool, periodeRaw);
+    return sasaranRepo.ringkasanResetPengukuranHariIni(pool, periodeId, tanggal);
+}
+
+/** Reset bersifat eksplisit, dibatasi hari ini + periode aktif, dan memeriksa ulang hitungan. */
+export async function resetHariIni(pool: Pool, pengguna: PenggunaAktif, badan: unknown) {
+    const data = objek(badan);
+    const { periodeId, tanggal } = await validasiPeriodeReset(pool, data.periodeId);
+    const jumlahDikonfirmasi = Number(data.jumlahDikonfirmasi);
+    const jumlahAntreanDikonfirmasi = Number(data.jumlahAntreanDikonfirmasi);
+    if (data.konfirmasi !== true || !Number.isSafeInteger(jumlahDikonfirmasi) || jumlahDikonfirmasi < 0 ||
+        !Number.isSafeInteger(jumlahAntreanDikonfirmasi) || jumlahAntreanDikonfirmasi < 0) {
+        throw new GalatSasaran(400, "Konfirmasi dan jumlah hasil pratinjau wajib valid.");
+    }
+    const hasil = await dalamTransaksi(
+        pool,
+        { pengguna: pengguna.id, sumber: "reset-hasil-harian" },
+        (db) => sasaranRepo.resetPengukuranHariIni(db, periodeId, tanggal, jumlahDikonfirmasi, jumlahAntreanDikonfirmasi),
+    );
+    if (hasil === null) {
+        throw new GalatSasaran(409, "Jumlah catatan berubah sejak pratinjau. Muat ulang sebelum mencoba lagi.");
+    }
+    return hasil;
+}

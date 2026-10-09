@@ -230,7 +230,25 @@ export async function ambil(
            LEFT JOIN pengukuran p ON p.anak_id = a.id
           WHERE a.id = $1
             AND a.deleted_at IS NULL
-            AND ($2::text IS NULL OR w.rt = $2)
+            AND (
+                $2::text IS NULL
+                OR w.rt = $2
+                OR EXISTS (
+                    SELECT 1
+                      FROM sasaran s
+                     WHERE s.anak_id=a.id
+                       AND s.periode_id=(
+                            SELECT p.id
+                              FROM periode p
+                             WHERE EXISTS (
+                                SELECT 1 FROM sasaran aktif
+                                 WHERE aktif.periode_id=p.id
+                             )
+                             ORDER BY p.tahun DESC,p.bulan DESC
+                             LIMIT 1
+                       )
+                )
+            )
           GROUP BY a.id, w.rt, o.id`,
         [id, rt],
     );
@@ -473,10 +491,22 @@ export async function upsertPengukuran(
           WHERE (($1::bigint IS NOT NULL AND a.id = $1)
                  OR ($2::text IS NOT NULL AND a.nik = $2))
             AND a.deleted_at IS NULL
-            AND ($3::text IS NULL OR w.rt = $3)
+            AND (
+                $3::text IS NULL
+                OR w.rt = $3
+                OR EXISTS (
+                    SELECT 1
+                      FROM periode target_periode
+                      JOIN sasaran target ON target.periode_id=target_periode.id
+                     WHERE target.anak_id=a.id
+                       AND target_periode.posyandu_id=w.posyandu_id
+                       AND target_periode.bulan=extract(month FROM $4::date)
+                       AND target_periode.tahun=extract(year FROM $4::date)
+                )
+            )
           ORDER BY (a.id = $1) DESC
           LIMIT 1`,
-        [data.anakId, data.nik, rt],
+        [data.anakId, data.nik, rt, data.tanggalUkur],
     );
     if (anak.rows[0] === undefined) {
         return null;
@@ -562,8 +592,7 @@ export async function upsertPengukuran(
 }
 
 /** Bentuk kompatibel dengan cache offline tablet versi 1.8. */
-export async function paketSinkronisasi(pool: Pool, pengguna: PenggunaAktif) {
-    const rt = batasRt(pengguna);
+export async function paketSinkronisasi(pool: Pool, _pengguna: PenggunaAktif) {
     const periode = await pool.query<{
         id: number;
         kode: string;
@@ -602,10 +631,9 @@ export async function paketSinkronisasi(pool: Pool, pengguna: PenggunaAktif) {
            JOIN anak a ON a.id=s.anak_id
            LEFT JOIN orang_tua o ON o.id=a.orang_tua_id
            LEFT JOIN wilayah_rt w ON w.id=a.wilayah_rt_id
-          WHERE s.periode_id=$1 AND a.deleted_at IS NULL
-            AND ($2::text IS NULL OR w.rt=$2)
+          WHERE s.periode_id=$1 AND s.status <> 'batal' AND a.deleted_at IS NULL
           ORDER BY a.nama_baku, a.id`,
-        [aktif.id, rt],
+        [aktif.id],
     );
     const pengukuran = await pool.query(
         `SELECT coalesce(p.id_sumber, 'ukur_db_' || p.id::text) AS id_pengukuran,
@@ -619,14 +647,13 @@ export async function paketSinkronisasi(pool: Pool, pengguna: PenggunaAktif) {
                      ELSE 'Tidak Dapat Diukur' END AS status_kehadiran
            FROM pengukuran p
            JOIN anak a ON a.id=p.anak_id
-           LEFT JOIN wilayah_rt w ON w.id=a.wilayah_rt_id
-          WHERE a.deleted_at IS NULL AND ($1::text IS NULL OR w.rt=$1)
+          WHERE a.deleted_at IS NULL
             AND EXISTS (
                 SELECT 1 FROM sasaran s
-                 WHERE s.periode_id=$2 AND s.anak_id=a.id
+                 WHERE s.periode_id=$1 AND s.anak_id=a.id
             )
           ORDER BY p.tanggal_ukur, p.id`,
-        [rt, aktif.id],
+        [aktif.id],
     );
     const ringkasan = {
         total: anak.rows.length,

@@ -16,6 +16,7 @@ import type { Express, NextFunction, Request, Response } from "express";
 import type { Pool } from "pg";
 
 import { ruteAuth } from "./auth-controller.ts";
+import { ruteAntrean } from "./antrean-controller.ts";
 import { ruteBeranda } from "./beranda-controller.ts";
 import { ruteAnak } from "./anak-controller.ts";
 import { ruteLembar } from "./lembar-controller.ts";
@@ -111,6 +112,7 @@ export function buatApp(pool: Pool): Express {
     });
 
     app.use("/api/v1", ruteAnak(pool));
+    app.use("/api/v1", ruteAntrean(pool));
     app.use("/api/v1", ruteLembar(pool));
     app.use("/api/v1", ruteBeranda(pool));
     app.use("/api/v1", ruteSasaran(pool));

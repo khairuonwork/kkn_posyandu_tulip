@@ -9,6 +9,7 @@
 
 import {
     Baby,
+    BadgeCheck,
     CreditCard,
     FileText,
     House,
@@ -35,7 +36,8 @@ export type Rute =
     | { nama: 'laporan' }
     | { nama: 'sasaran' }
     | { nama: 'kartu-sasaran'; id?: number }
-    | { nama: 'pengaturan' };
+    | { nama: 'pengaturan' }
+    | { nama: 'kms' };
 
 /** Router portal, seluruhnya, tanpa pustaka tambahan. */
 export function bacaRute(alamat: string): Rute {
@@ -71,6 +73,9 @@ export function bacaRute(alamat: string): Rute {
         case '/pengaturan':
             return { nama: 'pengaturan' };
 
+        case '/kms':
+            return { nama: 'kms' };
+
         default:
             return { nama: 'beranda' };
     }
@@ -84,6 +89,14 @@ export function bacaRute(alamat: string): Rute {
  * tentang apa yang bisa dilakukan, bukan mencegah siapa pun melakukannya.
  */
 export function boleh(rute: Rute, peran: Peran): boolean {
+    if (peran === 'kms') {
+        return rute.nama === 'kms' || rute.nama === 'detail' || rute.nama === 'riwayat';
+    }
+
+    if (rute.nama === 'kms') {
+        return false;
+    }
+
     if (rute.nama === 'pengaturan' || rute.nama === 'kartu-sasaran') {
         return peran !== 'kader';
     }
@@ -125,6 +138,12 @@ const NAV: ButirNav[] = [
         label: 'Pengaturan',
         ikon: Settings,
         peran: ['bidan', 'admin'],
+    },
+    {
+        href: '/kms',
+        label: 'Pemeriksaan KMS',
+        ikon: BadgeCheck,
+        peran: ['kms'],
     },
 ];
 

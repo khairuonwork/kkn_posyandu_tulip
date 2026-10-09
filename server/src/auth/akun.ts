@@ -67,7 +67,7 @@ export function bacaIsianAkun(badan: unknown, lama?: IsianAkun): HasilBacaAkun {
     }
 
     if (peran === undefined || !SEMUA_PERAN.includes(peran as Peran)) {
-        return { galat: 'Peran harus kader, bidan, atau admin.' };
+        return { galat: 'Peran harus kader, bidan, admin, atau KMS.' };
     }
 
     // Aturan yang sama dengan CHECK di basis data, diperiksa lebih awal supaya

@@ -128,25 +128,21 @@ Aplikasi dan demo berbagi seluruh `src/`; yang berbeda hanya entri, cara masuk, 
 
 ## Otorisasi
 
-Tiga peran, diurutkan menaik. Peran yang lebih tinggi mewarisi seluruh hak peran di bawahnya.
+Tiga peran operasional berjenjang (kader, bidan, admin); Petugas KMS adalah peran khusus yang tidak mewarisi hak kader.
 
-| Aksi | Kader | Bidan | Admin |
-|---|:---:|:---:|:---:|
-| Lihat dashboard | ✅ | ✅ | ✅ |
-| Cari & lihat data anak | ✅ | ✅ | ✅ |
-| Lihat profil anak & kurva KMS | ✅ | ✅ | ✅ |
-| Lihat rekap | ✅ | ✅ | ✅ |
-| Ubah data profil anak | ✅* | ✅ | ✅ |
-| Tambah data anak | ✅ | ✅ | ✅ |
-| Ubah nilai pengukuran | ❌ | ✅ | ✅ |
-| Gabungkan profil duplikat | ❌ | ✅ | ✅ |
-| Selesaikan konflik impor | ❌ | ✅ | ✅ |
-| Unduh *export* rekap | ❌ | ✅ | ✅ |
-| Kelola wilayah RT | ❌ | ❌ | ✅ |
-| Kelola periode | ❌ | ❌ | ✅ |
-| Hapus anak atau pengukuran | ❌ | ❌ | ✅ |
-| Kelola akun & peran | ❌ | ❌ | ✅ |
-| Jalankan impor arsip | ❌ | ❌ | ✅ |
+| Aksi | Kader | Bidan | Admin | Petugas KMS |
+|---|:---:|:---:|:---:|:---:|
+| Lihat dashboard dan antrean layanan | ✅ | ✅ | ✅ | ✅ |
+| Cari & lihat data anak, status gizi, dan kurva KMS | ✅ | ✅ | ✅ | ✅ |
+| Lihat rekap | ✅ | ✅ | ✅ | ❌ |
+| Ubah data profil anak | ✅* | ✅ | ✅ | ❌ |
+| Tambah data anak | ✅ | ✅ | ✅ | ❌ |
+| Ubah nilai pengukuran | ❌ | ✅ | ✅ | ❌ |
+| Gabungkan profil / selesaikan konflik impor | ❌ | ✅ | ✅ | ❌ |
+| Unduh *export* rekap | ❌ | ✅ | ✅ | ❌ |
+| Kelola wilayah, periode, data, akun, impor | ❌ | ❌ | ✅ | ❌ |
+| Tutup sesi sasaran (menandai sasaran tersisa tidak hadir) | ❌ | ❌ | ✅ | ❌ |
+| Konfirmasi tahap penjelasan KMS selesai | ❌ | ❌ | ❌ | ✅ |
 
 Matriks ini **ditulis sekali** di [`server/src/auth/peran.ts`](../server/src/auth/peran.ts) dan tidak disalin ke mana pun. Tiap aksi menyebut peran terendah yang boleh melakukannya, bukan daftar peran — daftar yang ditulis tangan cepat atau lambat punya satu baris yang lupa diperbarui.
 
@@ -156,11 +152,13 @@ Penegakan berlapis:
 2. **`wajibBoleh(aksi)`** sebagai middleware per rute. Ini yang mengikat: ia yang menjawab 403.
 3. **Antarmuka** menyembunyikan menu yang tidak boleh dipakai — kenyamanan, **bukan** pengamanan.
 
-Ke-14 aksi × 3 peran diuji satu per satu di `server/test/auth.test.ts`, ditambah invarian bahwa peran lebih tinggi tidak pernah kehilangan hak peran di bawahnya. Tabel harapan di berkas uji ditulis ulang dari dokumen ini, **tidak** diimpor dari kode yang diujinya.
+Ke-18 aksi diuji untuk setiap peran di `server/test/auth.test.ts`, ditambah invarian pewarisan untuk tiga peran operasional. Tabel harapan di berkas uji ditulis ulang dari dokumen ini, **tidak** diimpor dari kode yang diujinya.
 
-### Pembatasan RT kader
+### Cakupan RT kader
 
-*Kader boleh mengubah profil hanya di RT binaannya.* `rtYangBolehDilihat()` mengembalikan `null` untuk bidan dan admin, yang berarti seluruh RW. Untuk kader tanpa RT binaan ia **melempar galat**, bukan mengembalikan `null` — sebab `null` di sini berarti akses penuh, dan kader tanpa RT seharusnya tidak punya akses sama sekali.
+Semua kader yang masuk melihat seluruh data sasaran lintas RT: daftar master anak, profil dan riwayat, laporan, paket sinkronisasi tablet, serta antrean bersama. RT pada akun tetap dicatat sebagai informasi penugasan; nilai itu tidak membatasi akses. Penutupan sesi sasaran hanya dapat dilakukan admin.
+
+`rtYangBolehDilihat()` mengembalikan `null` untuk semua peran, yang berarti query tidak memasang filter RT. UI Pengaturan menampilkan “Semua RT” sebagai cakupan akses dan menyebut RT kader sebagai RT penugasan.
 
 Skema ikut menegakkannya lewat `CHECK ((peran = 'kader') = (wilayah_rt_id IS NOT NULL))`, sehingga keadaan itu tidak dapat tersimpan sejak awal.
 
@@ -168,9 +166,7 @@ Skema ikut menegakkannya lewat `CHECK ((peran = 'kader') = (wilayah_rt_id IS NOT
 
 ## Endpoint
 
-> **Baru autentikasi dan akun.** Endpoint untuk data balita, pengukuran, dan laporan belum ada; tabel ini bertambah saat endpoint itu dibangun ([rencana kerja](rencana-kerja.md)).
-
-Yang sudah ada:
+Endpoint operasional mencakup:
 
 | Method | URI | Aksi | Peran minimum |
 |---|---|---|---|
@@ -180,6 +176,12 @@ Yang sudah ada:
 | GET | `/api/pengguna` | daftar akun tanpa hash kata sandi, beserta pilihan RT binaan | admin (`kelola-akun`) |
 | POST | `/api/pengguna` | akun baru dengan kata sandi awal | admin (`kelola-akun`) |
 | PATCH | `/api/pengguna/:id` | ubah akun; kata sandi kosong berarti tidak diganti | admin (`kelola-akun`) |
+| GET | `/api/v1/antrean?periodeId=&tanggal=` | antrean layanan pada tanggal itu | kader, bidan, admin, KMS (`lihat-anak`) |
+| POST | `/api/v1/antrean` | check-in sasaran ke antrean | kader, bidan, admin (`catat-pengukuran-lapangan`) |
+| PATCH | `/api/v1/antrean/:id` | panggil, mulai ukur, atau kirim ke tahap KMS | kader, bidan, admin (`catat-pengukuran-lapangan`) |
+| POST | `/api/v1/antrean/:id/konfirmasi-kms` | tandai antrean dan sasaran selesai setelah penjelasan | KMS (`konfirmasi-kms`) |
+
+Status layanan bergerak `waiting → called → serving → kms_review → done`. Hasil pengukuran mengisi tahap ketiga, tetapi tidak melepas satu dari empat slot dan tidak menutup sasaran. Akun Petugas KMS membuka `#/kms`, membaca analisis dari profil anak, lalu mengonfirmasi setelah menjelaskan kepada orang tua. Endpoint konfirmasi memperbarui antrean dan sasaran dalam transaksi yang sama. Penutupan sesi bulanan oleh admin tetap tindakan terpisah.
 
 Seluruh rute berada di bawah `sesiMiddleware`, yang mengenali sesi tanpa menolak. Penolakan adalah tugas `wajibMasuk` dan `wajibBoleh(aksi)`, dipasang per rute. Permintaan yang mengubah data wajib berbadan `application/json` (`wajibJson`, 415 bila bukan) — berpasangan dengan `SameSite=Lax` untuk menutup CSRF tanpa token tersendiri.
 

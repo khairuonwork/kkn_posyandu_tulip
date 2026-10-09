@@ -1,7 +1,6 @@
 import type { Pool, PoolClient } from "pg";
 
 import type { PenggunaAktif } from "../auth/peran.ts";
-import { rtYangBolehDilihat } from "../auth/peran.ts";
 import type {
     BarisSasaranExcel,
     SheetSasaran,
@@ -42,17 +41,107 @@ const STATUS_SASARAN = [
 
 export type StatusSasaran = (typeof STATUS_SASARAN)[number];
 
+export type RingkasanResetHarian = {
+    periodeId: number;
+    tanggal: string;
+    jumlahPengukuran: number;
+    jumlahAnak: number;
+    jumlahAntrean: number;
+    namaAnak: string[];
+};
+
+/** Hitung dulu dampak reset; hanya tanggal dan periode sasaran yang diminta. */
+export async function ringkasanResetPengukuranHariIni(
+    db: Pool | PoolClient,
+    periodeId: number,
+    tanggal: string,
+): Promise<RingkasanResetHarian> {
+    const { rows } = await db.query<RingkasanResetHarian>(
+        `SELECT $1::bigint AS "periodeId", $2::date::text AS tanggal,
+                count(p.id)::int AS "jumlahPengukuran",
+                count(DISTINCT a.id)::int AS "jumlahAnak",
+                coalesce(array_agg(DISTINCT a.nama ORDER BY a.nama), ARRAY[]::text[]) AS "namaAnak",
+                (SELECT count(*)::int FROM antrean_layanan q
+                  WHERE q.periode_id=$1 AND q.tanggal=$2::date
+                    AND q.status <> 'cancelled') AS "jumlahAntrean"
+           FROM pengukuran p
+           JOIN sasaran s ON s.anak_id=p.anak_id AND s.periode_id=p.periode_id
+           JOIN anak a ON a.id=p.anak_id
+          WHERE p.periode_id=$1 AND p.tanggal_ukur=$2::date`,
+        [periodeId, tanggal],
+    );
+    return rows[0];
+}
+
+/** Hapus hanya hasil ukur tanggal ini dan buka kembali sasaran tanpa ukur lain. */
+export async function resetPengukuranHariIni(
+    db: PoolClient,
+    periodeId: number,
+    tanggal: string,
+    jumlahDikonfirmasi: number,
+    jumlahAntreanDikonfirmasi: number,
+): Promise<RingkasanResetHarian | null> {
+    // Gunakan kunci yang sama dengan simpan_pengukuran_tablet untuk menahan
+    // unggahan ukur anak pada periode ini selama reset sedang berlangsung.
+    await db.query(
+        `SELECT pg_advisory_xact_lock(hashtext(a.nik || ':' || to_char($2::date, 'YYYY-MM')))
+           FROM sasaran s JOIN anak a ON a.id=s.anak_id
+          WHERE s.periode_id=$1 AND a.nik IS NOT NULL
+          ORDER BY hashtext(a.nik || ':' || to_char($2::date, 'YYYY-MM'))`,
+        [periodeId, tanggal],
+    );
+    const dampak = await ringkasanResetPengukuranHariIni(db, periodeId, tanggal);
+    if (dampak.jumlahPengukuran !== jumlahDikonfirmasi || dampak.jumlahAntrean !== jumlahAntreanDikonfirmasi) return null;
+
+    // Kunci baris ukur sampai transaksi selesai agar pratinjau tidak kedaluwarsa
+    // diam-diam bila ada tablet yang menyimpan tepat pada saat tombol ditekan.
+    const terkunci = await db.query<{ id: number; anak_id: number }>(
+        `SELECT p.id, p.anak_id FROM pengukuran p
+          JOIN sasaran s ON s.anak_id=p.anak_id AND s.periode_id=p.periode_id
+         WHERE p.periode_id=$1 AND p.tanggal_ukur=$2::date
+         FOR UPDATE OF p`,
+        [periodeId, tanggal],
+    );
+    if (terkunci.rows.length !== jumlahDikonfirmasi) return null;
+
+    await db.query(
+        `DELETE FROM pengukuran p
+          USING sasaran s
+         WHERE s.anak_id=p.anak_id AND s.periode_id=p.periode_id
+           AND p.periode_id=$1 AND p.tanggal_ukur=$2::date`,
+        [periodeId, tanggal],
+    );
+    await db.query(
+        `UPDATE sasaran s
+            SET status='menunggu', diselesaikan_pada=NULL, diselesaikan_oleh=NULL
+          WHERE s.periode_id=$1 AND s.anak_id=ANY($2::bigint[])
+            AND NOT EXISTS (
+                SELECT 1 FROM pengukuran p
+                 WHERE p.periode_id=s.periode_id AND p.anak_id=s.anak_id
+            )`,
+        [periodeId, terkunci.rows.map((row) => row.anak_id)],
+    );
+    // Batalkan status antrean di server agar perangkat yang sinkron mengambil
+    // keadaan baru dan anak dapat check-in kembali untuk sesi uji ulang.
+    await db.query(
+        `UPDATE antrean_layanan
+            SET status='cancelled', called_at=NULL, completed_at=NULL
+          WHERE periode_id=$1 AND tanggal=$2::date AND status <> 'cancelled'`,
+        [periodeId, tanggal],
+    );
+    return dampak;
+}
+
 function namaBaku(nama: string): string {
     return nama.trim().replace(/\s+/g, " ").toLocaleLowerCase("id-ID");
 }
 
 export async function calonSasaran(
     pool: Pool,
-    pengguna: PenggunaAktif,
+    _pengguna: PenggunaAktif,
     periodeId: number,
     cari: string,
 ): Promise<CalonSasaran[]> {
-    const rt = rtYangBolehDilihat(pengguna);
     const posyanduId = await pool.query<{ id: number }>(
         `SELECT id FROM posyandu
           ORDER BY (slug = 'posyandu-tulip') DESC, id LIMIT 1`,
@@ -68,16 +157,15 @@ export async function calonSasaran(
            LEFT JOIN orang_tua o ON o.id = a.orang_tua_id
           WHERE a.deleted_at IS NULL AND a.status = 'aktif'
             AND w.posyandu_id = $1
-            AND ($2::text IS NULL OR w.rt = $2)
             AND NOT EXISTS (
                 SELECT 1 FROM sasaran s
-                 WHERE s.periode_id = $3 AND s.anak_id = a.id
+                 WHERE s.periode_id = $2 AND s.anak_id = a.id
             )
-            AND (a.nama_baku ILIKE $4 OR coalesce(a.nik, '') ILIKE $4
-                 OR coalesce(o.nama, '') ILIKE $4)
+            AND (a.nama_baku ILIKE $3 OR coalesce(a.nik, '') ILIKE $3
+                 OR coalesce(o.nama, '') ILIKE $3)
           ORDER BY a.nama_baku, a.id
           LIMIT 30`,
-        [posyanduId.rows[0].id, rt, periodeId, `%${cari}%`],
+        [posyanduId.rows[0].id, periodeId, `%${cari}%`],
     );
     return rows;
 }
@@ -386,9 +474,24 @@ export async function gantiSasaran(
         }
     }
 
-    // Penggantian berlaku hanya pada tabel keanggotaan sasaran periode ini.
-    // Master anak dan pengukuran periode yang sudah ada tidak disentuh.
-    await db.query("DELETE FROM sasaran WHERE periode_id = $1", [periodeId]);
+    // Pertahankan ID sasaran yang sudah ada. Antrean layanan merujuk ke ID ini;
+    // menghapus lalu memasukkan ulang sasaran akan menghapus antrean lewat FK.
+    // Baris yang tidak lagi ada di Excel dinonaktifkan secara lunak jika belum
+    // punya pengukuran atau check-in, sehingga riwayat operasional tetap utuh.
+    await db.query(
+        `UPDATE sasaran s
+            SET status='batal', diselesaikan_pada=now(), diselesaikan_oleh=$3
+          WHERE s.periode_id=$1 AND s.status='menunggu'
+            AND NOT (s.anak_id = ANY($2::bigint[]))
+            AND NOT EXISTS (
+                SELECT 1 FROM pengukuran p
+                 WHERE p.periode_id=s.periode_id AND p.anak_id=s.anak_id
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM antrean_layanan q WHERE q.sasaran_id=s.id
+            )`,
+        [periodeId, [...siap.keys()], pengguna.id],
+    );
     for (const item of siap.values()) {
         const sudahDiukur = await db.query<{ ada: boolean }>(
             "SELECT EXISTS (SELECT 1 FROM pengukuran WHERE periode_id=$1 AND anak_id=$2) AS ada",
@@ -404,7 +507,24 @@ export async function gantiSasaran(
             `INSERT INTO sasaran
                  (periode_id, anak_id, import_batch_id, status, diselesaikan_pada)
              VALUES ($1, $2, $3, $4::varchar(16),
-                     CASE WHEN $4::text='selesai' THEN now() ELSE NULL END)`,
+                     CASE WHEN $4::text='selesai' THEN now() ELSE NULL END)
+             ON CONFLICT (periode_id, anak_id) DO UPDATE
+                SET import_batch_id=EXCLUDED.import_batch_id,
+                    status=CASE
+                        WHEN EXCLUDED.status='pindah' THEN 'pindah'
+                        WHEN sasaran.status IN ('selesai','tidak_hadir') THEN sasaran.status
+                        ELSE EXCLUDED.status
+                    END,
+                    diselesaikan_pada=CASE
+                        WHEN EXCLUDED.status='pindah' THEN coalesce(sasaran.diselesaikan_pada, now())
+                        WHEN sasaran.status IN ('selesai','tidak_hadir') THEN sasaran.diselesaikan_pada
+                        WHEN EXCLUDED.status='selesai' THEN coalesce(sasaran.diselesaikan_pada, now())
+                        ELSE NULL
+                    END,
+                    diselesaikan_oleh=CASE
+                        WHEN sasaran.status IN ('selesai','tidak_hadir') THEN sasaran.diselesaikan_oleh
+                        ELSE NULL
+                    END`,
             [periodeId, item.anakId, batchId, status],
         );
     }
@@ -431,10 +551,9 @@ export async function gantiSasaran(
 
 export async function daftarSasaran(
     pool: Pool,
-    pengguna: PenggunaAktif,
+    _pengguna: PenggunaAktif,
     kodePeriode?: string,
 ) {
-    const rt = rtYangBolehDilihat(pengguna);
     const parameter: unknown[] = [];
     let kondisi = "";
     if (kodePeriode !== undefined) {
@@ -486,9 +605,9 @@ export async function daftarSasaran(
            JOIN anak a ON a.id=s.anak_id AND a.deleted_at IS NULL
            LEFT JOIN orang_tua o ON o.id=a.orang_tua_id
            LEFT JOIN wilayah_rt w ON w.id=a.wilayah_rt_id
-          WHERE s.periode_id=$1 AND ($2::text IS NULL OR w.rt=$2)
+          WHERE s.periode_id=$1
           ORDER BY a.nama_baku, a.id`,
-        [aktif.id, rt],
+        [aktif.id],
     );
     const hitung = (status: string) =>
         rows.filter((baris) => baris.status === status).length;
@@ -530,16 +649,12 @@ export async function tutupSesi(
     pengguna: PenggunaAktif,
     periodeId: number,
 ): Promise<{ ditandaiTidakHadir: number; sesiDitutupPada: string | null }> {
-    const rt = rtYangBolehDilihat(pengguna);
     const hasil = await db.query(
-        `UPDATE sasaran s
+        `UPDATE sasaran
             SET status='tidak_hadir', diselesaikan_pada=now(), diselesaikan_oleh=$2,
                 catatan=coalesce(catatan, 'Sesi ditutup: orang tua tidak hadir')
-           FROM anak a
-           LEFT JOIN wilayah_rt w ON w.id=a.wilayah_rt_id
-          WHERE s.anak_id=a.id AND s.periode_id=$1 AND s.status='menunggu'
-            AND ($3::text IS NULL OR w.rt=$3)`,
-        [periodeId, pengguna.id, rt],
+          WHERE periode_id=$1 AND status='menunggu'`,
+        [periodeId, pengguna.id],
     );
     const tersisa = await db.query<{ jumlah: number }>(
         `SELECT count(*)::int AS jumlah FROM sasaran

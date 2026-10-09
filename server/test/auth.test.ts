@@ -40,25 +40,26 @@ describe("matriks izin", () => {
         keduanya berasal dari dokumen, bukan satu dari yang lain.
     */
     const HARAPAN: Record<Aksi, Record<Peran, boolean>> = {
-        "lihat-dashboard": { kader: true, bidan: true, admin: true },
-        "lihat-anak": { kader: true, bidan: true, admin: true },
-        "lihat-kms": { kader: true, bidan: true, admin: true },
-        "lihat-rekap": { kader: true, bidan: true, admin: true },
-        "daftar-anak-lapangan": { kader: true, bidan: true, admin: true },
-        "catat-pengukuran-lapangan": { kader: true, bidan: true, admin: true },
-        "selesaikan-sesi-lapangan": { kader: true, bidan: true, admin: true },
+        "lihat-dashboard": { kader: true, bidan: true, admin: true, kms: true },
+        "lihat-anak": { kader: true, bidan: true, admin: true, kms: true },
+        "lihat-kms": { kader: true, bidan: true, admin: true, kms: true },
+        "lihat-rekap": { kader: true, bidan: true, admin: true, kms: false },
+        "daftar-anak-lapangan": { kader: true, bidan: true, admin: true, kms: false },
+        "catat-pengukuran-lapangan": { kader: true, bidan: true, admin: true, kms: false },
+        "selesaikan-sesi-lapangan": { kader: false, bidan: false, admin: true, kms: false },
+        "konfirmasi-kms": { kader: false, bidan: false, admin: false, kms: true },
 
-        "ubah-anak": { kader: true, bidan: true, admin: true },
-        "ubah-pengukuran": { kader: false, bidan: true, admin: true },
-        "gabung-duplikat": { kader: false, bidan: true, admin: true },
-        "selesaikan-konflik-impor": { kader: false, bidan: true, admin: true },
-        "unduh-rekap": { kader: false, bidan: true, admin: true },
+        "ubah-anak": { kader: true, bidan: true, admin: true, kms: false },
+        "ubah-pengukuran": { kader: false, bidan: true, admin: true, kms: false },
+        "gabung-duplikat": { kader: false, bidan: true, admin: true, kms: false },
+        "selesaikan-konflik-impor": { kader: false, bidan: true, admin: true, kms: false },
+        "unduh-rekap": { kader: false, bidan: true, admin: true, kms: false },
 
-        "kelola-wilayah-rt": { kader: false, bidan: false, admin: true },
-        "kelola-periode": { kader: false, bidan: false, admin: true },
-        "hapus-data": { kader: false, bidan: false, admin: true },
-        "kelola-akun": { kader: false, bidan: false, admin: true },
-        "jalankan-impor": { kader: false, bidan: false, admin: true },
+        "kelola-wilayah-rt": { kader: false, bidan: false, admin: true, kms: false },
+        "kelola-periode": { kader: false, bidan: false, admin: true, kms: false },
+        "hapus-data": { kader: false, bidan: false, admin: true, kms: false },
+        "kelola-akun": { kader: false, bidan: false, admin: true, kms: false },
+        "jalankan-impor": { kader: false, bidan: false, admin: true, kms: false },
     };
 
     for (const aksi of SEMUA_AKSI) {
@@ -73,7 +74,7 @@ describe("matriks izin", () => {
 
     test("tidak ada aksi yang lupa didaftarkan", () => {
         assert.equal(SEMUA_AKSI.length, Object.keys(HARAPAN).length);
-        assert.equal(SEMUA_AKSI.length, 17);
+        assert.equal(SEMUA_AKSI.length, 18);
     });
 
     test("peran yang lebih tinggi mewarisi seluruh hak di bawahnya", () => {
@@ -105,10 +106,10 @@ describe("pembatasan RT", () => {
         aktif: true,
     });
 
-    test("kader terbatas pada RT binaannya", () => {
-        assert.equal(rtYangBolehDilihat(kader("01")), "01");
+    test("kader dapat melihat seluruh RT, tanpa menghiraukan RT penugasan", () => {
+        assert.equal(rtYangBolehDilihat(kader("01")), null);
         assert.ok(bolehAksesRt(kader("01"), "01"));
-        assert.ok(!bolehAksesRt(kader("01"), "02"));
+        assert.ok(bolehAksesRt(kader("01"), "02"));
     });
 
     test("bidan dan admin melihat seluruh RW", () => {
@@ -121,21 +122,15 @@ describe("pembatasan RT", () => {
         }
     });
 
-    test("kader tanpa RT binaan ditolak, bukan diberi akses penuh", () => {
-        // Kegagalan yang paling sunyi: menafsirkan rt kosong sebagai "semua RT".
-        assert.throws(
-            () => rtYangBolehDilihat(kader(null)),
-            /tidak punya RT binaan/,
-        );
-        assert.throws(
-            () => rtYangBolehDilihat(kader("")),
-            /tidak punya RT binaan/,
-        );
-        assert.throws(() => bolehAksesRt(kader(null), "01"));
+    test("kader dapat melihat seluruh RT meski penugasan kosong", () => {
+        assert.equal(rtYangBolehDilihat(kader(null)), null);
+        assert.ok(bolehAksesRt(kader(null), "01"));
+        assert.equal(rtYangBolehDilihat(kader("")), null);
+        assert.ok(bolehAksesRt(kader(""), "02"));
     });
 
-    test("kader tidak boleh menyentuh baris yang RT-nya kosong", () => {
-        assert.ok(!bolehAksesRt(kader("01"), null));
+    test("kader juga dapat melihat baris dengan RT kosong", () => {
+        assert.ok(bolehAksesRt(kader("01"), null));
     });
 });
 

@@ -10,7 +10,7 @@
         "types:check": "tsc --noEmit",
         "dev": "node --experimental-strip-types --env-file=.env --watch src/http/server.ts",
         "mulai": "node --experimental-strip-types --env-file-if-exists=.env src/http/server.ts",
-        "migrate": "node --env-file=.env db/migrate.ts",
+        "migrate": "node --experimental-strip-types --env-file=.env db/migrate.ts",
         "seed": "node --env-file=.env db/seed-standar-lms.ts",
         "db:verify": "node --env-file=.env db/verify-supabase.ts",
         "seed:contoh": "node --env-file=.env db/seed-contoh.ts",

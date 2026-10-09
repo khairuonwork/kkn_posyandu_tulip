@@ -69,6 +69,15 @@ export type CalonSasaran = {
     rt: string;
 };
 
+export type RingkasanResetHariIni = {
+    periodeId: number;
+    tanggal: string;
+    jumlahPengukuran: number;
+    jumlahAnak: number;
+    jumlahAntrean: number;
+    namaAnak: string[];
+};
+
 async function galatDari(res: Response): Promise<Error> {
     try {
         const isi = (await res.json()) as { galat?: string };
@@ -116,10 +125,36 @@ export async function ambilPeriodeSasaran(): Promise<PeriodeSasaran[]> {
     });
 
     if (!res.ok) {
-throw await galatDari(res);
-}
+        throw await galatDari(res);
+    }
 
     return (await res.json()) as PeriodeSasaran[];
+}
+
+export async function pratinjauResetHariIni(
+    periodeId: number,
+): Promise<RingkasanResetHariIni> {
+    const res = await fetch(
+        `/api/v1/sasaran/reset-hari-ini?periodeId=${encodeURIComponent(periodeId)}`,
+        { credentials: 'same-origin' },
+    );
+    if (!res.ok) throw await galatDari(res);
+    return (await res.json()) as RingkasanResetHariIni;
+}
+
+export async function resetPengukuranHariIni(
+    periodeId: number,
+    jumlahDikonfirmasi: number,
+    jumlahAntreanDikonfirmasi: number,
+): Promise<RingkasanResetHariIni> {
+    const res = await fetch('/api/v1/sasaran/reset-hari-ini', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ periodeId, jumlahDikonfirmasi, jumlahAntreanDikonfirmasi, konfirmasi: true }),
+    });
+    if (!res.ok) throw await galatDari(res);
+    return ((await res.json()) as { hasil: RingkasanResetHariIni }).hasil;
 }
 
 export async function periksaFileSasaran(

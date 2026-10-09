@@ -183,9 +183,16 @@ anaknya.
 `sasaran` adalah daftar kerja per periode. Admin mengunggah `.xlsx` Puskesmas di
 **Sasaran & Impor**, memeriksa pratinjau per sheet, lalu menerbitkannya. Impor
 ulang hanya mengganti keanggotaan sasaran pada periode terpilih. Aplikasi Android
-membaca daftar ini melalui `/api/v1/sinkronisasi`; hasil ukur mengubah status
-menjadi `selesai`, sedangkan **Konfirmasi beres sesi** mengubah sasaran tersisa
-menjadi `tidak_hadir`.
+membaca daftar ini melalui `/api/v1/sinkronisasi`. Layanan memiliki tiga tahap:
+antrean/pemanggilan, pengukuran, lalu penjelasan KMS. Setelah hasil ukur disimpan,
+slot tetap aktif dengan status `kms_review` dan sasaran belum ditandai selesai.
+Petugas KMS di website mengonfirmasi setelah penjelasan; barulah antrean dan
+sasaran menjadi `done`/`selesai`. **Konfirmasi beres sesi** admin tetap menandai
+sasaran yang belum hadir sebagai `tidak_hadir`.
+
+Antrean lintas perangkat dan tahap KMS memerlukan migrasi database `012`–`015`.
+Lihat [panduan menjalankan server LAN](docs/menjalankan-server-lan.md) sebelum
+menerapkan migrasi ke database yang dipakai.
 
 Endpoint terkait:
 

@@ -48,6 +48,7 @@ import type {
     StandarisasiAntropometri,
 } from '@/pages/pengaturan/index';
 import SasaranImpor from '@/pages/sasaran/index';
+import PemeriksaanKms from '@/pages/kms';
 import type { Anak, Peran, Periode } from '@/types/posyandu';
 
 /**
@@ -140,7 +141,6 @@ const LEMBAGA = `Posyandu ${data.meta.posyandu} · RW ${data.meta.rw} ${data.met
 export type LayarProps = {
     rute: Rute;
     peran: Peran;
-    rtPengguna?: string | null;
     periodeId: string;
     onPindahPeriode: (id: string) => void;
     koreksi: Record<number, PatchAnak>;
@@ -167,6 +167,7 @@ export type LayarProps = {
     detailServer?: DetailAnakServerState;
     periodeServer?: Periode[];
     berandaServer?: ReturnType<typeof useBerandaServer>;
+    onSesiBerakhir: () => void;
     tabLaporan: TabPeriode;
     onGantiTabLaporan: (tab: TabPeriode) => void;
 };
@@ -174,7 +175,6 @@ export type LayarProps = {
 export function Layar({
     rute,
     peran,
-    rtPengguna,
     periodeId,
     onPindahPeriode,
     tabLaporan,
@@ -200,18 +200,14 @@ export function Layar({
     detailServer,
     periodeServer,
     berandaServer,
+    onSesiBerakhir,
 }: LayarProps) {
     const periode = modeDataLive
         ? (periodeServer?.find((p) => p.id === periodeId) ?? null)
         : cariPeriode(periodeId);
-    // Satu sumber untuk lingkup data kader, dipakai Beranda, Data Balita, dan
-    // Laporan sekaligus.
-    const rtLingkup =
-        peran === 'kader'
-            ? modeDataLive
-                ? (rtPengguna ?? null)
-                : RT_KADER
-            : null;
+    // Portal live memberi semua kader cakupan lintas RT. Data contoh masih
+    // mempertahankan RT binaan untuk merepresentasikan mode demonstrasi.
+    const rtLingkup = modeDataLive ? null : peran === 'kader' ? RT_KADER : null;
     const wilayahRt = modeDataLive
         ? Array.from(
               new Set(
@@ -226,7 +222,8 @@ export function Layar({
         modeDataLive &&
         periode === null &&
         rute.nama !== 'sasaran' &&
-        rute.nama !== 'pengaturan'
+        rute.nama !== 'pengaturan' &&
+        rute.nama !== 'kms'
     ) {
         return berandaServer?.statusPeriode === 'galat' ? (
             <GalatData
@@ -397,6 +394,7 @@ export function Layar({
                 lembaga={LEMBAGA}
                 onSimpan={(patch) => onSimpanAnak(rute.id, patch)}
                 sumberLive={modeDataLive}
+                kembaliKe={peran === 'kms' ? { href: '/kms', label: 'Pemeriksaan KMS' } : undefined}
             />
         );
     }
@@ -428,6 +426,10 @@ export function Layar({
 
     if (rute.nama === 'sasaran') {
         return <SasaranImpor />;
+    }
+
+    if (rute.nama === 'kms') {
+        return <PemeriksaanKms periodeId={periodeId} onSesiBerakhir={onSesiBerakhir} />;
     }
 
     if (rute.nama === 'kartu-sasaran') {

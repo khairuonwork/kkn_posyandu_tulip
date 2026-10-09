@@ -166,8 +166,17 @@ export function catatHeartbeatTablet(ipPemanggil: string, payload: {
     antreanTertunda?: number;
 }): void {
     const ipBersih = ipPemanggil.replace(/^.*:/, ''); // Hapus format IPv6 loopback jika ada
-    const deviceId = payload.deviceId?.trim() || `tablet-${ipBersih}`;
-    const nama = payload.namaPerangkat?.trim() || `Tablet (${ipBersih})`;
+    const idDikirim = payload.deviceId?.trim();
+    // Versi aplikasi lama memakai satu ID konstan di semua tablet. Selama
+    // perangkat belum diperbarui, pisahkan berdasarkan IP lokal pengirim.
+    const idLamaBersama = idDikirim === 'tablet-posyandu';
+    const deviceId = idLamaBersama
+        ? `${idDikirim}@${ipBersih}`
+        : (idDikirim || `tablet-${ipBersih}`);
+    const namaDikirim = payload.namaPerangkat?.trim();
+    const nama = idLamaBersama
+        ? `${namaDikirim || 'Tablet Posyandu Tulip'} (${ipBersih})`
+        : (namaDikirim || `Tablet (${ipBersih})`);
 
     catatanTablet.set(deviceId, {
         deviceId,

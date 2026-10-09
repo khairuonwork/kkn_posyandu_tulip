@@ -149,6 +149,7 @@ type Props = {
     lembaga: string;
     onSimpan?: (patch: PatchAnak) => void;
     sumberLive?: boolean;
+    kembaliKe?: { href: string; label: string };
 };
 
 /**
@@ -229,12 +230,19 @@ export default function DetailAnak({
     lembaga,
     onSimpan,
     sumberLive = false,
+    kembaliKe = { href: '/balita', label: 'Data Balita' },
 }: Props) {
     const [umurDisorot, setUmurDisorot] = useState<number | null>(null);
-    const [tabAktif, setTabAktif] = useState<TabDetail>('profil');
+    const [tabAktif, setTabAktif] = useState<TabDetail>(
+        peran === 'kms' ? 'kurva' : 'profil',
+    );
     const [dialog, setDialog] = useState<'ubah' | 'cetak' | 'wa' | null>(null);
-    const bolehUbah = onSimpan !== undefined;
-    const bolehCetak = peran !== 'kader';
+    const bolehUbah =
+        peran !== 'kms' &&
+        onSimpan !== undefined &&
+        (peran !== 'kader' ||
+            (anak.rt !== null && wilayahRt.includes(anak.rt)));
+    const bolehCetak = peran !== 'kader' && peran !== 'kms';
     const terbaru = terbaruUntuk(pengukuran, periode);
     const nama = namaTampil(anak.nama);
     const inisial = nama
@@ -391,7 +399,7 @@ export default function DetailAnak({
     return (
         <Halaman
             judul={nama}
-            kembali={{ href: '/balita', label: 'Data Balita' }}
+            kembali={kembaliKe}
             subjudul={`${umur !== null ? `${umurPanjang(umur)}, ` : ''}${
                 anak.rt === null
                     ? 'RT belum tercatat'
@@ -427,7 +435,7 @@ export default function DetailAnak({
                             Ubah data
                         </button>
                     )}
-                    {alasanTanpaWa === null && (
+                    {peran !== 'kms' && alasanTanpaWa === null && (
                         <button
                             type="button"
                             onClick={() => setDialog('wa')}
