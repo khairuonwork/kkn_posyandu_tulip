@@ -1,138 +1,139 @@
-# Kontrak REST API - SIMPATIK Posyandu Tulip
+# Kontrak REST API — SIMPATIK Posyandu Tulip
 
-| | |
+| Status | Draf |
 |---|---|
-| **Jenis** | Rujukan |
-| **Status** | draf |
-| **Perubahan berarti terakhir** | 9 Oktober 2026 |
+| Terakhir diperbarui | 9 Oktober 2026 |
+| Backend | Express + PostgreSQL |
+| Client | Portal React dan aplikasi tablet |
 
-Dokumen ini menyatukan kontrak API rinci dan versi ringkas yang diberikan tim.
-Ia mendefinisikan **target** komunikasi antara Portal web, aplikasi tablet, dan
-Express API. Daftar route di sini bukan pernyataan bahwa semuanya telah ada di
-kode: pada branch `refactor`, route yang telah terpasang baru autentikasi Portal.
+## 1. Arsitektur dan channel
 
-Kontrak mengikat bentuk komunikasi client-server. Database yang berada di
-belakang Express adalah PostgreSQL; tempat pemasangannya tidak ditentukan oleh
-kontrak ini.
-
----
-
-## 1. Batas tanggung jawab
-
-```mermaid
-flowchart LR
-    Web["Portal web React"] -->|"cookie sesi · /api"| Express
-    Tablet["Aplikasi Android / tablet"] -->|"Bearer token · /api/v1"| Express["Express API"]
-    Express -->|"SQL melalui pg"| Db[("PostgreSQL")]
+```text
+Portal React ── cookie sesi ──→ /api     ─┐
+                                          ├─ Express API ─→ PostgreSQL
+Tablet      ── Bearer token ─→ /api/v1 ──┘
 ```
 
-Express adalah satu-satunya pintu masuk data aplikasi. Ia menangani
-autentikasi, pembatasan peran dan RT, validasi, perhitungan gizi, audit, serta
-sinkronisasi tablet. Client tidak mengakses PostgreSQL secara langsung.
+| Channel | Base path | Auth | Kegunaan |
+|---|---|---|---|
+| Portal web | `/api` | Cookie `sesi` HTTP-only | Operasi internal Portal |
+| Tablet | `/api/v1` | `Authorization: Bearer <token>` | Kerja lapangan dan sinkronisasi |
 
-| Channel | Pemakai | Route | Autentikasi | Tujuan |
-|---|---|---|---|---|
-| Portal web | React di browser | `/api` | cookie `sesi` HTTP-only | operasi Portal internal |
-| API tablet | Android/WebView | `/api/v1` | `Authorization: Bearer <token>` | kerja lapangan dan sinkronisasi |
-
-Kredensial masuk memakai `username` dan `kataSandi`. Username dibuat lebih
-dulu oleh admin; tidak ada pendaftaran akun publik.
+Client tidak boleh mengakses PostgreSQL secara langsung.
 
 ---
 
-## 2. Aturan bersama
+## 2. Aturan umum
 
-### 2.1 Body, waktu, dan envelope
+### Request
 
-- Body memakai JSON dengan batas 4 MB.
-- Permintaan yang mengubah data wajib memakai `Content-Type: application/json`.
-- Waktu memakai ISO 8601; tanggal tanpa waktu memakai `YYYY-MM-DD`.
-- List berpaginasi memakai bentuk berikut:
+- Semua body mutasi menggunakan `Content-Type: application/json`.
+- Maksimum body JSON: **4 MB**.
+- Format tanggal: `YYYY-MM-DD`.
+- Format waktu: ISO 8601, contoh `2026-10-09T08:00:00.000Z`.
 
-  ```json
-  {
-    "items": [],
-    "total": 150,
-    "halaman": 1,
-    "ukuran": 25
-  }
-  ```
-
-- Respons detail membungkus sumber daya dengan nama yang jelas, misalnya
-  `{ "anak": { ... } }` atau `{ "pengguna": { ... } }`.
-
-### 2.2 Error response
-
-Error yang aman ditampilkan ke pengguna selalu berbentuk:
+### Response list
 
 ```json
-{ "error": "Pesan error berbahasa Indonesia" }
+{
+  "items": [],
+  "total": 150,
+  "halaman": 1,
+  "ukuran": 25
+}
+```
+
+### Response detail
+
+```json
+{
+  "anak": {}
+}
+```
+
+Nama pembungkus menyesuaikan resource, misalnya `anak`, `pengguna`, atau `pengukuran`.
+
+### Error
+
+```json
+{
+  "error": "Pesan error berbahasa Indonesia"
+}
 ```
 
 | Status | Arti |
 |---:|---|
-| `400` | body, parameter, atau format data tidak valid |
-| `401` | sesi/token tidak ada atau tidak berlaku |
-| `403` | peran tidak memiliki izin atau kader melewati RT binaannya |
-| `404` | route atau sumber daya tidak ditemukan |
-| `415` | body mutasi bukan JSON |
-| `429` | terlalu banyak percobaan login; sertakan `Retry-After` |
-| `500` | error tak terduga tanpa membocorkan detail internal |
+| `400` | Body, parameter, atau format data tidak valid |
+| `401` | Sesi atau token tidak ada/tidak valid |
+| `403` | Tidak memiliki izin atau melewati batas RT binaan |
+| `404` | Route atau data tidak ditemukan |
+| `415` | Request mutasi tidak memakai JSON |
+| `429` | Terlalu banyak percobaan login; sertakan header `Retry-After` |
+| `500` | Kesalahan internal tanpa detail sensitif |
 
-### 2.3 Sesi dan keamanan
+---
+
+## 3. Autentikasi dan keamanan
 
 | Hal | Ketentuan |
 |---|---|
-| Token | token acak 256-bit; basis data hanya menyimpan digest SHA-256 |
-| Masa berlaku | 12 jam |
-| Web | cookie `sesi`, HTTP-only dan `SameSite=Lax` |
-| Tablet | header `Authorization: Bearer <token>` |
-| Login | maksimum 5 kegagalan per `(username, IP)`, lalu ditahan 15 menit |
-| CORS | dibutuhkan untuk `/api/v1/*` bila tablet WebView memakai origin `null` |
+| Login | Menggunakan `username` dan `kataSandi` |
+| Pendaftaran publik | Tidak tersedia; akun dibuat admin |
+| Token tablet | Token acak 256-bit; database menyimpan digest SHA-256 |
+| Masa token | 12 jam |
+| Cookie web | `sesi`, HTTP-only, `SameSite=Lax` |
+| Pembatasan login | Maksimum 5 kegagalan per `(username, IP)`, lalu diblokir 15 menit |
+| CORS | Diperlukan di `/api/v1/*` jika tablet WebView memakai origin `null` |
 
 ---
 
-## 3. Peran dan izin
+## 4. Peran dan otorisasi
 
-Peran berjenjang: `bidan` mewarisi seluruh izin `kader`, dan `admin` mewarisi
-seluruh izin `bidan`. Kader hanya dapat mengakses data RT binaannya; aturan ini
-wajib ditegakkan di server dan query, bukan hanya disembunyikan di antarmuka.
+Urutan peran:
 
-| Aksi | Peran minimum | Kegunaan |
-|---|---|---|
-| `lihat-dashboard` | kader | melihat beranda periode |
-| `lihat-anak` | kader | mencari dan membuka profil anak |
-| `lihat-kms` | kader | membaca riwayat ukur/KMS |
-| `lihat-rekap` | kader | melihat rekap |
-| `daftar-anak-lapangan` | kader | mendaftarkan anak dari tablet |
-| `catat-pengukuran-lapangan` | kader | mencatat ukur dari tablet |
-| `selesaikan-sesi-lapangan` | kader | menutup sesi kerja lapangan |
-| `ubah-anak` | bidan | mengoreksi profil anak |
-| `ubah-pengukuran` | bidan | mengoreksi hasil ukur |
-| `gabung-duplikat` | bidan | menggabungkan profil ganda |
-| `selesaikan-konflik-impor` | bidan | menyelesaikan konflik impor |
-| `unduh-rekap` | bidan | mengunduh laporan |
-| `kelola-wilayah-rt` | admin | mengelola RT |
-| `kelola-periode` | admin | mengelola periode |
-| `hapus-data` | admin | menghapus data bila diperlukan |
-| `kelola-akun` | admin | membuat, mengubah, atau menonaktifkan akun |
-| `jalankan-impor` | admin | menjalankan impor Excel |
+```text
+admin → mewarisi izin bidan → mewarisi izin kader
+```
+
+Kader hanya dapat membaca/menulis data pada RT binaannya. Pembatasan RT wajib dilakukan pada server dan query database.
+
+| Izin | Peran minimum |
+|---|---|
+| `lihat-dashboard` | kader |
+| `lihat-anak` | kader |
+| `lihat-kms` | kader |
+| `lihat-rekap` | kader |
+| `daftar-anak-lapangan` | kader |
+| `catat-pengukuran-lapangan` | kader |
+| `selesaikan-sesi-lapangan` | kader |
+| `ubah-anak` | bidan |
+| `ubah-pengukuran` | bidan |
+| `gabung-duplikat` | bidan |
+| `selesaikan-konflik-impor` | bidan |
+| `unduh-rekap` | bidan |
+| `kelola-wilayah-rt` | admin |
+| `kelola-periode` | admin |
+| `hapus-data` | admin |
+| `kelola-akun` | admin |
+| `jalankan-impor` | admin |
 
 ---
 
-## 4. Endpoint
+# 5. Endpoint
 
-### 4.1 Autentikasi Portal web
+## 5.1 Autentikasi Portal
 
-Route ini dipasang pada `/api`.
+Base path: `/api`
 
-| Method | Path | Auth | Keterangan |
+| Method | Endpoint | Auth | Response sukses |
 |---|---|---|---|
-| `POST` | `/api/masuk` | publik | memulai sesi web dan memasang cookie `sesi` |
-| `POST` | `/api/keluar` | cookie opsional | mencabut sesi bila ada dan selalu menghapus cookie |
-| `GET` | `/api/saya` | cookie atau Bearer | mengembalikan identitas pengguna aktif |
+| `POST` | `/masuk` | Publik | `200` + cookie `sesi` + objek pengguna |
+| `POST` | `/keluar` | Cookie opsional | `204 No Content` |
+| `GET` | `/saya` | Cookie atau Bearer | `200` + objek pengguna |
 
-`POST /api/masuk` menerima:
+### `POST /api/masuk`
+
+Request:
 
 ```json
 {
@@ -141,7 +142,7 @@ Route ini dipasang pada `/api`.
 }
 ```
 
-Respons `200` memasang cookie dan mengembalikan pengguna aktif:
+Response `200`:
 
 ```json
 {
@@ -156,138 +157,476 @@ Respons `200` memasang cookie dan mengembalikan pengguna aktif:
 }
 ```
 
-`POST /api/keluar` selalu mengembalikan `204 No Content`, termasuk bila sesi
-sudah hilang. `GET /api/saya` mengembalikan `401` bila sesi tidak berlaku.
+Error: `400`, `401`, `429`, `500`.
 
-### 4.2 Autentikasi tablet dan health check
+### `POST /api/keluar`
 
-Route ini dipasang pada `/api/v1`.
+Response `204 No Content`.
 
-| Method | Path | Auth | Keterangan |
+Endpoint ini selalu berhasil menghapus cookie sesi, walaupun sesi sudah tidak ada.
+
+### `GET /api/saya`
+
+Response `200`:
+
+```json
+{
+  "pengguna": {
+    "id": 1,
+    "nama": "Siti Aminah",
+    "username": "kader.rt01",
+    "peran": "kader",
+    "rt": "001",
+    "aktif": true
+  }
+}
+```
+
+Error: `401`, `500`.
+
+---
+
+## 5.2 Autentikasi Tablet dan Health Check
+
+Base path: `/api/v1`
+
+| Method | Endpoint | Auth | Response sukses |
 |---|---|---|---|
-| `POST` | `/api/v1/masuk` | publik | login tablet dan mengembalikan Bearer token |
-| `POST` | `/api/v1/keluar` | Bearer | mencabut token tablet |
-| `GET` | `/api/v1/kesehatan` | publik | memeriksa API serta koneksi PostgreSQL |
+| `POST` | `/masuk` | Publik | `200` + Bearer token + pengguna |
+| `POST` | `/keluar` | Bearer | `204 No Content` |
+| `GET` | `/kesehatan` | Publik | `200` + status API/database |
 
-Login tablet menerima body yang sama seperti login web, tetapi mengembalikan:
+### `POST /api/v1/masuk`
+
+Request:
+
+```json
+{
+  "username": "kader.rt01",
+  "kataSandi": "kata-sandi"
+}
+```
+
+Response `200`:
 
 ```json
 {
   "token": "base64url-string",
   "kedaluwarsa": "2026-10-05T07:37:00.000Z",
-  "pengguna": { "id": 1, "peran": "kader", "rt": "001", "aktif": true }
+  "pengguna": {
+    "id": 1,
+    "peran": "kader",
+    "rt": "001",
+    "aktif": true
+  }
 }
 ```
 
-Health check yang sehat menjawab `200` dengan `status`, `database`, dan
-`waktuServer`; kegagalan koneksi basis data menjawab `500`.
+Error: `400`, `401`, `429`, `500`.
 
-### 4.3 Data anak dan pengukuran
+### `POST /api/v1/keluar`
 
-Semua route berikut memerlukan sesi yang sah. Hasilnya dibatasi berdasarkan RT
-untuk kader.
+Header:
 
-| Method | Path | Izin minimum | Keterangan |
+```text
+Authorization: Bearer <token>
+```
+
+Response `204 No Content`.
+
+Error: `401`, `500`.
+
+### `GET /api/v1/kesehatan`
+
+Response `200`:
+
+```json
+{
+  "status": "ok",
+  "database": "ok",
+  "waktuServer": "2026-10-09T08:00:00.000Z"
+}
+```
+
+Jika koneksi database gagal: `500`.
+
+---
+
+## 5.3 Data Anak
+
+Base path: `/api/v1`
+
+| Method | Endpoint | Izin | Response sukses |
 |---|---|---|---|
-| `GET` | `/api/v1/anak` | `lihat-anak` | daftar anak berpaginasi dan dapat dicari |
-| `GET` | `/api/v1/anak/:id` | `lihat-anak` | profil lengkap satu anak |
-| `GET` | `/api/v1/anak/:id/pengukuran` | `lihat-kms` | riwayat pengukuran untuk KMS |
-| `POST` | `/api/v1/anak` | `daftar-anak-lapangan` | mendaftarkan atau memperbarui anak berdasarkan NIK |
-| `POST` | `/api/v1/pengukuran` | `catat-pengukuran-lapangan` | menyimpan ukur dan menghitung gizi di server |
+| `GET` | `/anak` | `lihat-anak` | `200` + list anak berpaginasi |
+| `GET` | `/anak/:id` | `lihat-anak` | `200` + detail anak |
+| `POST` | `/anak` | `daftar-anak-lapangan` | `201` + anak baru/terbarui |
 
-`GET /api/v1/anak` mendukung parameter berikut:
+### `GET /api/v1/anak`
+
+Query parameter:
 
 | Parameter | Default | Keterangan |
 |---|---:|---|
-| `cari` | - | kata kunci pencarian |
-| `halaman` | `1` | nomor halaman positif |
-| `ukuran` | `25` | jumlah item per halaman |
+| `cari` | - | Kata kunci pencarian |
+| `halaman` | `1` | Nomor halaman positif |
+| `ukuran` | `25` | Jumlah item tiap halaman |
 
-Daftar menggunakan envelope paginasi pada [bagian 2.1](#21-body-waktu-dan-envelope).
-Endpoint detail mengembalikan `404` bila anak tidak ada atau tidak dapat
-diakses. Mutasi anak dan pengukuran mengembalikan `201` dengan envelope
-`anak` atau `pengukuran`.
-
-### 4.4 Sinkronisasi offline tablet
-
-| Method | Path | Izin minimum | Keterangan |
-|---|---|---|---|
-| `GET` | `/api/v1/sinkronisasi` | `lihat-anak` | paket sasaran dan riwayat ukur untuk cache tablet |
-
-Endpoint ini adalah sync download awal. Upload dasar saat perangkat online
-berjalan melalui `POST /api/v1/anak` dan `POST /api/v1/pengukuran`.
-
-### 4.5 Dashboard dan periode
-
-| Method | Path | Izin minimum | Keterangan |
-|---|---|---|---|
-| `GET` | `/api/v1/periode` | `lihat-dashboard` | daftar periode tersedia |
-| `GET` | `/api/v1/beranda` | `lihat-dashboard` | statistik dashboard per periode |
-
-`GET /api/v1/beranda` wajib menerima `periode=YYYY-MM`. Format salah menjawab
-`400`, sedangkan periode yang tidak tersedia menjawab `404`.
-
-### 4.6 Pengelolaan pengguna
-
-Route ini dipasang pada `/api` dan hanya dapat dipakai admin.
-
-| Method | Path | Izin minimum | Keterangan |
-|---|---|---|---|
-| `GET` | `/api/pengguna` | `kelola-akun` | daftar akun dan pilihan RT binaan |
-| `POST` | `/api/pengguna` | `kelola-akun` | membuat akun dengan username dan kata sandi awal |
-| `PATCH` | `/api/pengguna/:id` | `kelola-akun` | mengubah profil, peran, RT, status, atau kata sandi |
-
-Tidak ada `DELETE` akun. Akun dinonaktifkan agar sesi dapat dicabut dan jejak
-audit tetap utuh. Kata sandi kosong pada `PATCH` berarti kata sandi tidak diubah.
-
-### 4.7 Sasaran, impor Excel, dan sesi lapangan
-
-| Method | Path | Izin minimum | Keterangan |
-|---|---|---|---|
-| `GET` | `/api/v1/sasaran` | `lihat-anak` | daftar sasaran, dapat difilter `periode` |
-| `POST` | `/api/v1/sasaran/pratinjau` | `jalankan-impor` | validasi data Excel tanpa menulis produksi |
-| `POST` | `/api/v1/sasaran/impor` | `jalankan-impor` | menjalankan impor Excel |
-| `POST` | `/api/v1/sasaran/tutup-sesi` | `selesaikan-sesi-lapangan` | menutup sesi kerja lapangan |
-
-### 4.8 Catch-all
-
-Route `/api/*` yang tidak cocok mengembalikan `404`:
+Response `200`:
 
 ```json
-{ "error": "Rute tidak ada" }
+{
+  "items": [
+    {
+      "id": 1,
+      "nama": "Aisyah"
+    }
+  ],
+  "total": 1,
+  "halaman": 1,
+  "ukuran": 25
+}
+```
+
+> Field lengkap `Anak` harus dibekukan sebelum implementasi.
+
+Error: `400`, `401`, `403`, `500`.
+
+### `GET /api/v1/anak/:id`
+
+Response `200`:
+
+```json
+{
+  "anak": {
+    "id": 1,
+    "nama": "Aisyah"
+  }
+}
+```
+
+Error: `401`, `403`, `404`, `500`.
+
+### `POST /api/v1/anak`
+
+Mendaftarkan anak baru atau memperbarui data berdasarkan NIK.
+
+Response `201`:
+
+```json
+{
+  "anak": {
+    "id": 1,
+    "nama": "Aisyah"
+  }
+}
+```
+
+Error: `400`, `401`, `403`, `415`, `500`.
+
+> **TBD:** field wajib/opsional anak, perilaku NIK kosong, dan aturan jika NIK bertentangan.
+
+---
+
+## 5.4 Pengukuran dan KMS
+
+Base path: `/api/v1`
+
+| Method | Endpoint | Izin | Response sukses |
+|---|---|---|---|
+| `GET` | `/anak/:id/pengukuran` | `lihat-kms` | `200` + riwayat pengukuran |
+| `POST` | `/pengukuran` | `catat-pengukuran-lapangan` | `201` + pengukuran dan hasil gizi |
+
+### `GET /api/v1/anak/:id/pengukuran`
+
+Response `200`:
+
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "tanggal": "2026-10-09"
+    }
+  ],
+  "total": 1,
+  "halaman": 1,
+  "ukuran": 25
+}
+```
+
+Error: `401`, `403`, `404`, `500`.
+
+### `POST /api/v1/pengukuran`
+
+Response `201`:
+
+```json
+{
+  "pengukuran": {
+    "id": 1,
+    "tanggal": "2026-10-09"
+  }
+}
+```
+
+Error: `400`, `401`, `403`, `415`, `500`.
+
+> Perhitungan status gizi wajib dilakukan di server, dalam transaksi, dan dicatat untuk audit.  
+> **TBD:** field pengukuran, validasi nilai, periode, serta bentuk hasil gizi.
+
+---
+
+## 5.5 Sinkronisasi Offline Tablet
+
+Base path: `/api/v1`
+
+| Method | Endpoint | Izin | Response sukses |
+|---|---|---|---|
+| `GET` | `/sinkronisasi` | `lihat-anak` | `200` + paket data cache tablet |
+
+### `GET /api/v1/sinkronisasi`
+
+Response `200`:
+
+```json
+{
+  "sinkronisasi": {
+    "data": []
+  }
+}
+```
+
+Error: `401`, `403`, `500`.
+
+> Endpoint ini digunakan untuk unduhan awal cache tablet.  
+> Upload dasar saat online dilakukan melalui `POST /anak` dan `POST /pengukuran`.  
+> **TBD:** struktur paket, cursor, batch, masa cache, idempotency key, retry, serta strategi konflik web vs tablet.
+
+---
+
+## 5.6 Dashboard dan Periode
+
+Base path: `/api/v1`
+
+| Method | Endpoint | Izin | Response sukses |
+|---|---|---|---|
+| `GET` | `/periode` | `lihat-dashboard` | `200` + daftar periode |
+| `GET` | `/beranda?periode=YYYY-MM` | `lihat-dashboard` | `200` + statistik dashboard |
+
+### `GET /api/v1/periode`
+
+Response `200`:
+
+```json
+{
+  "items": [
+    {
+      "periode": "2026-10"
+    }
+  ],
+  "total": 1,
+  "halaman": 1,
+  "ukuran": 25
+}
+```
+
+Error: `401`, `403`, `500`.
+
+### `GET /api/v1/beranda?periode=YYYY-MM`
+
+Response `200`:
+
+```json
+{
+  "beranda": {
+    "periode": "2026-10"
+  }
+}
+```
+
+Error: `400` jika format periode salah, `401`, `403`, `404` jika periode tidak tersedia, `500`.
+
+> **TBD:** daftar statistik dashboard yang wajib dikirim.
+
+---
+
+## 5.7 Pengelolaan Pengguna
+
+Base path: `/api`
+
+Semua endpoint hanya dapat digunakan oleh admin dengan izin `kelola-akun`.
+
+| Method | Endpoint | Response sukses |
+|---|---|---|
+| `GET` | `/pengguna` | `200` + daftar akun dan RT binaan |
+| `POST` | `/pengguna` | `201` + akun baru |
+| `PATCH` | `/pengguna/:id` | `200` + akun terbarui |
+
+### `GET /api/pengguna`
+
+Response `200`:
+
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "nama": "Siti Aminah",
+      "username": "kader.rt01",
+      "peran": "kader",
+      "aktif": true
+    }
+  ],
+  "total": 1,
+  "halaman": 1,
+  "ukuran": 25
+}
+```
+
+### `POST /api/pengguna`
+
+Response `201`:
+
+```json
+{
+  "pengguna": {
+    "id": 2,
+    "nama": "Budi",
+    "username": "budi.admin",
+    "peran": "admin",
+    "aktif": true
+  }
+}
+```
+
+### `PATCH /api/pengguna/:id`
+
+Digunakan untuk mengubah profil, peran, RT, status aktif, atau kata sandi.
+
+Response `200`:
+
+```json
+{
+  "pengguna": {
+    "id": 2,
+    "nama": "Budi",
+    "username": "budi.admin",
+    "peran": "admin",
+    "aktif": true
+  }
+}
+```
+
+Error umum: `400`, `401`, `403`, `404`, `415`, `500`.
+
+Tidak ada endpoint hapus akun. Akun dinonaktifkan agar jejak audit tetap tersimpan. Nilai kata sandi kosong pada `PATCH` berarti kata sandi tidak diubah.
+
+---
+
+## 5.8 Sasaran, Impor Excel, dan Sesi Lapangan
+
+Base path: `/api/v1`
+
+| Method | Endpoint | Izin | Response sukses |
+|---|---|---|---|
+| `GET` | `/sasaran?periode=YYYY-MM` | `lihat-anak` | `200` + daftar sasaran |
+| `POST` | `/sasaran/pratinjau` | `jalankan-impor` | `200` + hasil validasi file |
+| `POST` | `/sasaran/impor` | `jalankan-impor` | `201` + hasil impor |
+| `POST` | `/sasaran/tutup-sesi` | `selesaikan-sesi-lapangan` | `200` + sesi ditutup |
+
+### `GET /api/v1/sasaran?periode=YYYY-MM`
+
+Response `200`:
+
+```json
+{
+  "items": [],
+  "total": 0,
+  "halaman": 1,
+  "ukuran": 25
+}
+```
+
+### `POST /api/v1/sasaran/pratinjau`
+
+Response `200`:
+
+```json
+{
+  "pratinjau": {
+    "valid": true,
+    "totalBaris": 0,
+    "kesalahan": []
+  }
+}
+```
+
+### `POST /api/v1/sasaran/impor`
+
+Response `201`:
+
+```json
+{
+  "impor": {
+    "berhasil": true,
+    "totalDiproses": 0
+  }
+}
+```
+
+### `POST /api/v1/sasaran/tutup-sesi`
+
+Response `200`:
+
+```json
+{
+  "sesi": {
+    "ditutup": true
+  }
+}
+```
+
+Error umum: `400`, `401`, `403`, `415`, `500`.
+
+> **TBD:** payload penutupan sesi, struktur sasaran, format hasil impor, dan format upload Excel.  
+> JSON/base64 hanya boleh digunakan bila file di bawah 4 MB; file lebih besar perlu mekanisme upload terautentikasi atau streaming.
+
+---
+
+## 5.9 Catch-all
+
+Route `/api/*` atau `/api/v1/*` yang tidak cocok:
+
+Response `404`:
+
+```json
+{
+  "error": "Rute tidak ada"
+}
 ```
 
 ---
 
-## 5. Rincian yang harus dibekukan sebelum implementasi
+# 6. Hal yang wajib dibekukan sebelum implementasi
 
-PDF mendefinisikan daftar endpoint, tetapi beberapa payload masih `{ ... }`.
-Hal berikut tidak boleh ditebak di controller:
-
-1. Field wajib/opsional pendaftaran anak, terutama untuk NIK kosong atau
-   bertentangan.
-2. Field pengukuran, pengenal periode, validasi nilai, dan respons hasil gizi.
-3. Bentuk paket sync: data minimum, ukuran batch, cursor, dan masa cache.
-4. Sync upload offline: idempotency key, retry, dan konflik edit web vs tablet.
-5. Arti request/response `sasaran/tutup-sesi`.
-6. Impor Excel: JSON/base64 hanya aman bila ukuran file di bawah batas 4 MB;
-   file lebih besar memerlukan upload terautentikasi atau streaming.
-7. Route data untuk React: apakah React memakai `/api/v1` dengan cookie atau
-   mendapat facade `/api` khusus Portal.
+1. Field wajib dan opsional data anak.
+2. Aturan NIK kosong, duplikat, dan konflik NIK.
+3. Field pengukuran, batas validasi, periode, serta output status gizi.
+4. Detail statistik dashboard.
+5. Struktur paket sinkronisasi, cursor, batch, cache, retry, dan konflik.
+6. Aturan idempotency untuk upload offline.
+7. Payload dan response sasaran, impor Excel, serta tutup sesi.
+8. Strategi upload file Excel di atas 4 MB.
+9. Keputusan apakah Portal React memakai `/api/v1` dengan cookie atau facade `/api` khusus Portal.
 
 ---
 
-## 6. Urutan implementasi
+# 7. Urutan implementasi
 
-1. Migrasi `username`, akun admin, login cookie/Bearer, serta middleware auth.
-2. RBAC dan pembatasan RT di repository/query.
+1. Akun admin, username, login cookie/Bearer, dan middleware autentikasi.
+2. RBAC serta pembatasan data berdasarkan RT pada query/repository.
 3. Health check, periode, daftar/detail anak, dan riwayat pengukuran.
-4. Pendaftaran anak serta pengukuran dengan transaksi hitung gizi dan audit.
-5. Kontrak dan implementasi sync offline dua arah.
-6. Dashboard, pengelolaan akun, sasaran, serta impor Excel.
-
-## 7. Sumber
-
-- `rest_api_contracts_detail.pdf`: versi rinci endpoint, autentikasi, dan
-  catatan deployment.
-- `rest_api_contracts_grup.pdf`: versi ringkas untuk koordinasi kelompok.
+4. Pendaftaran anak, pengukuran, perhitungan gizi, dan audit.
+5. Sinkronisasi offline dua arah.
+6. Dashboard, pengelolaan akun, sasaran, dan impor Excel.
