@@ -86,7 +86,7 @@ export default function Halaman({
                 {kembali?.teks === true ? (
                     <Link
                         href={kembali.href}
-                        className="inline-flex min-h-13 shrink-0 items-center gap-2 rounded-lg pr-3.5 pl-1 text-base font-bold text-primary"
+                        className="inline-flex min-h-14 shrink-0 items-center gap-2 rounded-lg pr-3.5 pl-1 text-base font-bold text-primary"
                     >
                         <ArrowLeft
                             className="size-5.5"
@@ -100,7 +100,7 @@ export default function Halaman({
                         href={kembali.href}
                         aria-label={`Kembali ke ${kembali.label}`}
                         title={`Kembali ke ${kembali.label}`}
-                        className="flex size-13 shrink-0 items-center justify-center rounded-lg border border-border text-primary"
+                        className="flex size-14 shrink-0 items-center justify-center rounded-lg border border-border text-primary"
                     >
                         <ArrowLeft
                             className="size-5.5"
@@ -112,7 +112,7 @@ export default function Halaman({
                     Ikon !== undefined && (
                         <span
                             aria-hidden="true"
-                            className="flex size-13 shrink-0 items-center justify-center rounded-lg bg-accent"
+                            className="flex size-14 shrink-0 items-center justify-center rounded-lg bg-accent"
                         >
                             <Ikon
                                 className="size-7 text-primary"

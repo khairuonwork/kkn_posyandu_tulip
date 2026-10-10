@@ -315,6 +315,35 @@ function dekode(isiBase64: string): Buffer {
     return buffer;
 }
 
+/**
+ * Dua anak berbeda yang NIK-nya sama (salah ketik di Excel) tidak boleh
+ * disatukan: impor memakai NIK sebagai kunci, jadi anak kedua akan menimpa
+ * nama anak pertama. Hanya baris yang NIK-nya cocok dengan EPPGBM-nya yang
+ * mempertahankan NIK; baris lain memakai EPPGBM dan ditandai perlu verifikasi.
+ */
+function pisahkanNikKembar(baris: BarisSasaranExcel[]) {
+    const kelompok = new Map<string, BarisSasaranExcel[]>();
+    for (const b of baris) {
+        if (b.nik !== null)
+            kelompok.set(b.nik, [...(kelompok.get(b.nik) ?? []), b]);
+    }
+    for (const [nikSama, isi] of kelompok) {
+        const anak = new Set(
+            isi.map(
+                (b) => `${b.nama.toLocaleLowerCase("id-ID")}|${b.tglLahir}`,
+            ),
+        );
+        if (anak.size < 2) continue;
+        const dipertahankan = isi.find((b) => b.eppgbm === nikSama);
+        for (const b of isi) {
+            if (b === dipertahankan) continue;
+            const lain = isi.find((x) => x !== b);
+            b.nik = b.eppgbm === nikSama ? null : b.eppgbm;
+            b.masalah.push(`NIK kembar dengan baris ${lain?.barisAsal}`);
+        }
+    }
+}
+
 export async function bacaWorkbookSasaran(
     isiBase64: string,
 ): Promise<SheetSasaran[]> {
@@ -345,6 +374,7 @@ export async function bacaWorkbookSasaran(
             if (data !== null) baris.push(data);
         }
         if (baris.length === 0) continue;
+        pisahkanNikKembar(baris);
         hasil.push({
             sheet: sheet.name,
             periode: periode.periode,

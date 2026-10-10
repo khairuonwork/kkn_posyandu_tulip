@@ -26,7 +26,7 @@ export class GalatMasuk extends Error {
     readonly sebab: SebabGagal;
 
     constructor(sebab: SebabGagal) {
-        super(sebab === 'nonaktif' ? 'Akun dinonaktifkan' : 'Nama pengguna atau kata sandi tidak cocok. Periksa kembali, lalu ulangi.');
+        super(sebab === 'nonaktif' ? 'Akun tidak aktif. Hubungi admin.' : 'Nama pengguna atau kata sandi tidak cocok. Periksa kembali, lalu coba lagi.');
         this.name = 'GalatMasuk';
         this.sebab = sebab;
     }

@@ -90,37 +90,15 @@ export const PERLU_TINDAK_LANJUT = [
 
 type Props = {
     kategori: string | null;
-    /**
-     * Untuk daftar panjang: kategori bernada hijau tampil sebagai teks biasa
-     * bercentang, tanpa pil. 83 pil hijau menenggelamkan satu pil merah.
-     */
-    tenang?: boolean;
     /** Tapak 2 × 8 untuk tabel yang rapat, mis. riwayat penimbangan. */
     rapat?: boolean;
 };
 
-export default function StatusGiziBadge({
-    kategori,
-    tenang = false,
-    rapat = false,
-}: Props) {
+export default function StatusGiziBadge({ kategori, rapat = false }: Props) {
     // Kategori kosong berarti belum bisa dinilai — LILA/U belum punya label
     // (OI-04), atau nilai ukurnya tidak ada.
     const nada = nadaKategori(kategori);
     const Ikon = IKON[nada];
-
-    if (tenang && nada === 'hijau') {
-        return (
-            <span className="inline-flex items-center gap-1.5 text-base whitespace-nowrap">
-                <Ikon
-                    className="size-4 shrink-0 text-tone-green"
-                    strokeWidth={2.25}
-                    aria-hidden="true"
-                />
-                {kategori}
-            </span>
-        );
-    }
 
     return (
         <span

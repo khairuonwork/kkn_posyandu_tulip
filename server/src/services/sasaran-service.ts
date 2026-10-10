@@ -72,7 +72,8 @@ export async function impor(
     const { namaFile, isiBase64 } = berkas(data);
     const namaSheet = teks(data, "sheet");
     const sheets = await baca(isiBase64);
-    const sheet = sheets.find((item) => item.sheet === namaSheet);
+    // `teks` memangkas spasi, sedangkan nama sheet di Excel bisa berekor spasi.
+    const sheet = sheets.find((item) => item.sheet.trim() === namaSheet);
     if (sheet === undefined)
         throw new GalatSasaran(
             400,

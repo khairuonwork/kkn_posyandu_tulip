@@ -15,9 +15,10 @@
  * dikirim tanpa baris tautan, dan dialog menyebutkannya.
  */
 
-import { Info, MessageCircle, TriangleAlert } from 'lucide-react';
+import { Info, TriangleAlert } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Dialog, { KakiDialog } from '@/components/dialog';
+import IkonWhatsApp from '@/components/ikon-whatsapp';
 import { nomorTampil, tautanWa } from '@/lib/pesan-wa';
 
 type Tahap = 'menyiapkan' | 'siap' | 'tanpa-tautan';
@@ -73,7 +74,7 @@ export default function DialogKirimWa({
     return (
         <Dialog
             judul={`Kirim hasil ${nama} ke WhatsApp`}
-            keterangan="Periksa dan ubah isi pesan bila perlu. WhatsApp akan terbuka dengan pesan ini; Ibu/Bapak tetap menekan Kirim di dalamnya."
+            keterangan="Periksa isi pesan dan ubah bila perlu. Setelah WhatsApp terbuka, tekan Kirim di sana."
             lebar="w-[680px]"
             onTutup={onTutup}
         >
@@ -81,7 +82,7 @@ export default function DialogKirimWa({
                 {modeUji ? (
                     <p
                         role="status"
-                        className="flex items-start gap-2.5 rounded-lg bg-tone-amber-bg px-4 py-3 text-sm font-semibold text-tone-amber"
+                        className="flex items-start gap-2.5 rounded-lg bg-tone-amber-bg px-4 py-3 text-base font-semibold text-tone-amber"
                     >
                         <TriangleAlert
                             className="mt-0.5 size-5 shrink-0"
@@ -92,7 +93,7 @@ export default function DialogKirimWa({
                         bukan ke nomor orang tua.
                     </p>
                 ) : (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-base text-muted-foreground">
                         Tujuan:{' '}
                         <span className="font-bold text-foreground">
                             {nomorTampil(nomor)}
@@ -104,22 +105,22 @@ export default function DialogKirimWa({
                 {tahap === 'tanpa-tautan' && (
                     <p
                         role="status"
-                        className="flex items-start gap-2.5 text-sm text-muted-foreground"
+                        className="flex items-start gap-2.5 text-base text-muted-foreground"
                     >
                         <Info
                             className="mt-0.5 size-4 shrink-0"
                             strokeWidth={2.5}
                             aria-hidden="true"
                         />
-                        Tautan hasil lengkap belum dapat dibuat, sehingga pesan
-                        tidak memuat tautan. Pesan tetap dapat dikirim.
+                        Tautan hasil lengkap belum dapat dibuat, jadi pesan
+                        dikirim tanpa tautan.
                     </p>
                 )}
 
                 <div>
                     <label
                         htmlFor="isi-pesan-wa"
-                        className="block text-sm font-semibold text-muted-foreground"
+                        className="block text-base font-semibold text-muted-foreground"
                     >
                         Isi pesan
                     </label>
@@ -129,7 +130,7 @@ export default function DialogKirimWa({
                         disabled={menyiapkan}
                         onChange={(e) => setPesan(e.target.value)}
                         rows={15}
-                        className="mt-1.5 w-full resize-y rounded-lg border-2 border-border bg-surface px-3.5 py-3 text-sm leading-relaxed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:text-muted-foreground"
+                        className="mt-1.5 w-full resize-y rounded-lg border-2 border-border-strong bg-surface px-3.5 py-3 text-base leading-relaxed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:text-muted-foreground lg:pendek:h-[272px]"
                     />
                 </div>
             </div>
@@ -155,11 +156,7 @@ export default function DialogKirimWa({
                     }}
                     className="tombol-utama px-5.5 disabled:opacity-50"
                 >
-                    <MessageCircle
-                        className="size-5"
-                        strokeWidth={2.5}
-                        aria-hidden="true"
-                    />
+                    <IkonWhatsApp className="size-5" />
                     Buka WhatsApp
                 </button>
             </KakiDialog>

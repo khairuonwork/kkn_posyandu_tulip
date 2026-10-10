@@ -392,7 +392,7 @@ export default function GrafikPertumbuhan({
 
     return (
         <div className="overflow-hidden rounded-xl border border-border bg-card">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-surface-subtle px-4 py-3 sm:px-5">
+            <div className="strip-kepala flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <h2 className="text-xl font-extrabold">
                         Grafik Pertumbuhan
@@ -406,14 +406,14 @@ export default function GrafikPertumbuhan({
                 </p>
             </div>
 
-            <p className="px-4 pt-4 text-sm text-muted-foreground sm:px-5">
+            <p className="px-5 pt-4 text-sm text-muted-foreground sm:px-6">
                 {keterangan}
             </p>
 
             <div
                 role="group"
                 aria-label="Jenis grafik"
-                className="grid grid-cols-2 gap-2 px-4 pt-3 sm:px-5 md:grid-cols-5"
+                className="grid grid-cols-2 gap-2 px-5 pt-3 sm:px-6 md:grid-cols-5"
             >
                 {SPEK.map((s) => {
                     const aktif = s.indeks === jenis;
@@ -450,7 +450,7 @@ export default function GrafikPertumbuhan({
                 })}
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 px-4 pt-3 sm:px-5">
+            <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-3 sm:px-6">
                 <div className="flex flex-wrap gap-2">
                     {panelTersedia.map((awal) => (
                         <button
@@ -458,7 +458,7 @@ export default function GrafikPertumbuhan({
                             type="button"
                             onClick={() => setPanel(awal)}
                             aria-pressed={panel === awal}
-                            className={`min-h-10 rounded-lg px-3.5 text-sm font-semibold ${
+                            className={`min-h-13 rounded-lg px-3.5 text-sm font-semibold ${
                                 panel === awal
                                     ? 'bg-primary text-primary-foreground'
                                     : 'border border-muted-foreground text-foreground'
@@ -477,7 +477,7 @@ export default function GrafikPertumbuhan({
                 melihat bahwa grafiknya ada dan yang kosong adalah ukurannya. */}
             {seri.length === 0 && (
                 <p
-                    className="mx-4 mt-3 rounded-lg bg-surface-subtle px-4 py-3 text-sm font-semibold sm:mx-5"
+                    className="mx-5 mt-3 rounded-lg bg-surface-subtle px-4 py-3 text-sm font-semibold sm:mx-6"
                     role="status"
                 >
                     Belum ada pengukuran {namaTampil(spek).toLowerCase()} untuk
@@ -491,7 +491,7 @@ export default function GrafikPertumbuhan({
                         halaman tidak pernah menggulir mendatar. `tabIndex`
                         membuat wadah bisa digeser dengan panah papan tombol. */}
                 <div
-                    className="mt-2 overflow-x-auto px-4 sm:px-5"
+                    className="mt-2 overflow-x-auto px-5 sm:px-6"
                     tabIndex={0}
                     role="region"
                     aria-label="Grafik pertumbuhan, dapat digeser mendatar"
@@ -862,7 +862,7 @@ export default function GrafikPertumbuhan({
 
                 {seri.length > 0 && dalamPanel.length === 0 && (
                     <p
-                        className="px-4 pt-2 text-sm text-muted-foreground sm:px-5"
+                        className="px-5 pt-2 text-sm text-muted-foreground sm:px-6"
                         role="status"
                     >
                         Belum ada pengukuran pada rentang {panel}–
@@ -870,7 +870,7 @@ export default function GrafikPertumbuhan({
                     </p>
                 )}
 
-                <ul className="flex flex-wrap gap-x-5 gap-y-1.5 px-4 pt-2 pb-3 text-sm sm:px-5">
+                <ul className="flex flex-wrap gap-x-5 gap-y-1.5 px-5 pt-2 pb-3 text-sm sm:px-6">
                     <Legenda warna={PITA_HIJAU_TUA} teks="−1 sampai +1 SD" />
                     <Legenda
                         warna={PITA_HIJAU_MUDA}
@@ -941,7 +941,7 @@ export default function GrafikPertumbuhan({
 
 function Sel({ judul, children }: { judul: string; children: ReactNode }) {
     return (
-        <div className="flex flex-col gap-0.5 border-l border-border px-4 py-3 first:border-l-0 max-lg:odd:border-l-0 sm:px-5">
+        <div className="flex flex-col gap-0.5 border-l border-border px-5 py-3 first:border-l-0 max-lg:odd:border-l-0 sm:px-6">
             <dt className="text-xs font-bold text-muted-foreground">{judul}</dt>
             <dd className="flex flex-col gap-0.5">{children}</dd>
         </div>

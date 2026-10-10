@@ -38,7 +38,7 @@ export default function Dialog({
             onClose={onTutup}
             className={`m-auto max-h-[calc(100dvh-2rem)] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-xl border-0 bg-card p-0 text-foreground shadow-[0_24px_48px_rgba(22,33,28,0.28)] backdrop:bg-foreground/45 open:flex ${lebar}`}
         >
-            <div className="shrink-0 border-b border-border bg-accent px-7 pt-3.5 pb-3">
+            <div className="shrink-0 border-b border-border bg-accent px-7 py-3.5">
                 <h2
                     id="judul-dialog"
                     className="text-xl leading-tight font-extrabold text-[#0b4f31]"

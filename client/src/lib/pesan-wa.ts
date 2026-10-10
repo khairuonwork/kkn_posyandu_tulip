@@ -11,13 +11,7 @@
  */
 
 import type { Pengukuran } from '../types/posyandu';
-import {
-    labelIndeks,
-    satuan,
-    tanggalPanjang,
-    umurPanjang,
-    zScore,
-} from './format.ts';
+import { satuan, tanggalPanjang, umurPanjang } from './format.ts';
 import { penilaianLayak } from './penilaian-utama.ts';
 
 export type Kesimpulan = 'sesuai' | 'dipantau' | 'diperiksa';
@@ -114,23 +108,21 @@ type Bahan = {
 function baris(
     nama: string,
     ukur: string | null,
-    kode: string,
     penilaian: ReturnType<typeof penilaianLayak>,
 ): string | null {
     if (ukur === null) {
         return null;
     }
 
-    const rincian = [
-        `${kode} ${zScore(penilaian?.z ?? null)} SD`,
-        penilaian?.kategori ?? null,
-    ];
+    // Kategori ditulis tanpa kode indeks dan z-score: orang tua tidak
+    // mengenal "BB/U" atau "SD"; angka lengkap ada di Lembar Hasil.
+    // "Berat badan normal" setelah "Berat badan 8,1 kg:" berulang.
+    const kategori = penilaian?.kategori?.replace(/^Berat badan /, '');
+    const isi = [nama, ukur].filter((s) => s !== '').join(' ');
 
-    return `• ${[nama, ukur].filter((s) => s !== '').join(' ')}${
-        penilaian === undefined
-            ? ''
-            : ` (${rincian.filter((r) => r !== null).join(', ')})`
-    }`;
+    return kategori == null
+        ? `• ${isi}`
+        : `• ${isi}: ${kategori.charAt(0).toLowerCase()}${kategori.slice(1)}`;
 }
 
 /**
@@ -151,31 +143,26 @@ export function susunPesan(b: Bahan): string {
         baris(
             'Berat badan',
             t.bbKg === null ? null : satuan(t.bbKg, 'kg'),
-            'BB/U',
             penilaianLayak(t.penilaian.BB_U),
         ),
         baris(
             berdiri ? 'Tinggi badan' : 'Panjang badan',
             t.tinggiCm === null ? null : satuan(t.tinggiCm, 'cm'),
-            labelIndeks('TB_U', b.umurBulan),
             penilaianLayak(t.penilaian.TB_U),
         ),
         baris(
             'Status gizi',
             penilaianLayak(t.penilaian.BB_TB) === undefined ? null : '',
-            labelIndeks('BB_TB', b.umurBulan),
             penilaianLayak(t.penilaian.BB_TB),
         ),
         baris(
             'Lingkar lengan atas',
             t.lilaCm === null ? null : satuan(t.lilaCm, 'cm'),
-            'LILA/U',
             penilaianLayak(t.penilaian.LILA_U),
         ),
         baris(
             'Lingkar kepala',
             t.likaCm === null ? null : satuan(t.likaCm, 'cm'),
-            'LIKA/U',
             penilaianLayak(t.penilaian.LIKA_U),
         ),
         selisih === null

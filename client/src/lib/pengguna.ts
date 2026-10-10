@@ -103,7 +103,8 @@ export function usePenggunaServer(aktif: boolean, onSesiBerakhir: () => void) {
             };
 
             return (
-                isi.galat ?? 'Perubahan tidak dapat disimpan. Silakan ulangi.'
+                isi.galat ??
+                'Perubahan tidak dapat disimpan. Silakan coba lagi.'
             );
         }
 

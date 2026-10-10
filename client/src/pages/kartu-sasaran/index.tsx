@@ -8,10 +8,11 @@
  * puluhan.
  */
 
-import { Check, ChevronDown, CreditCard, Printer, Search } from 'lucide-react';
+import { Baby, Check, CreditCard, Printer, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Halaman from '@/components/halaman';
 import KartuBalita, { LembarCetak } from '@/components/kartu-balita';
+import Pilih from '@/components/pilih';
 import { namaTampil, umurRingkas } from '@/lib/format';
 
 export type BalitaKartu = {
@@ -99,15 +100,15 @@ export default function KartuSasaran({
             ikon={CreditCard}
             penuh="lg"
             judul="Kartu Balita"
-            subjudul="Setiap anak di master Data Balita otomatis memiliki kartu. Pilih satu atau beberapa kartu untuk dicetak pada A4."
+            subjudul="Setiap balita di Data Balita otomatis memiliki kartu. Pilih satu atau beberapa kartu untuk dicetak di kertas A4."
         >
             <div className="grid gap-4.5 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_420px]">
                 <section className="kartu flex min-w-0 flex-col overflow-hidden lg:min-h-0">
-                    <div className="flex shrink-0 flex-wrap items-end gap-x-4.5 gap-y-3.5 border-b border-border px-4.5 pt-3.5 pb-4">
+                    <div className="flex shrink-0 flex-wrap items-end gap-x-4.5 gap-y-3.5 border-b border-border px-5.5 py-4">
                         <div className="min-w-56 flex-1">
                             <label
                                 htmlFor="cari-kartu"
-                                className="block text-sm font-semibold text-muted-foreground"
+                                className="block text-base font-semibold text-muted-foreground"
                             >
                                 Cari nama balita, ibu, atau kode
                             </label>
@@ -129,16 +130,15 @@ export default function KartuSasaran({
                         <div className="w-40">
                             <label
                                 htmlFor="rt-kartu"
-                                className="block text-sm font-semibold text-muted-foreground"
+                                className="block text-base font-semibold text-muted-foreground"
                             >
                                 RT
                             </label>
-                            <div className="relative mt-1.5">
-                                <select
+                            <div className="mt-1.5">
+                                <Pilih
                                     id="rt-kartu"
                                     value={rt}
-                                    onChange={(e) => setRt(e.target.value)}
-                                    className="isian w-full cursor-pointer appearance-none pr-11"
+                                    onChange={setRt}
                                 >
                                     <option value="">Semua RT</option>
                                     {wilayahRt.map((w) => (
@@ -146,42 +146,39 @@ export default function KartuSasaran({
                                             RT {w.padStart(2, '0')}
                                         </option>
                                     ))}
-                                </select>
-                                <ChevronDown
-                                    className="pointer-events-none absolute top-1/2 right-3.5 size-5 -translate-y-1/2 text-muted-foreground"
-                                    strokeWidth={2.5}
-                                    aria-hidden="true"
-                                />
+                                </Pilih>
                             </div>
                         </div>
-                        <label
-                            className={`inline-flex min-h-13 cursor-pointer items-center gap-2.5 rounded-lg border-2 px-4 text-base font-bold ${
+                        {/* Tombol saringan yang sama dengan Data Balita: menyala
+                            hijau solid saat aktif, bukan kotak centang. */}
+                        <button
+                            type="button"
+                            aria-pressed={hanyaAktif}
+                            aria-describedby="keterangan-aktif"
+                            onClick={() => setHanyaAktif((b) => !b)}
+                            className={
                                 hanyaAktif
-                                    ? 'border-primary bg-accent text-primary'
-                                    : 'border-border bg-surface'
-                            }`}
+                                    ? 'tombol-utama'
+                                    : 'tombol-kedua bg-surface'
+                            }
                         >
-                            <input
-                                type="checkbox"
-                                checked={hanyaAktif}
-                                onChange={(e) =>
-                                    setHanyaAktif(e.target.checked)
-                                }
-                                aria-describedby="keterangan-aktif"
-                                className="size-5 accent-primary"
+                            <Baby
+                                className="size-5"
+                                strokeWidth={2.5}
+                                aria-hidden="true"
                             />
                             Hanya balita aktif
-                        </label>
+                        </button>
                         <p
                             id="keterangan-aktif"
-                            className="-mt-1 basis-full text-right text-sm text-muted-foreground"
+                            className="-mt-1 basis-full text-sm text-muted-foreground"
                         >
                             Tidak termasuk balita yang sudah pindah atau berumur
                             5 tahun.
                         </p>
                     </div>
 
-                    <div className="flex shrink-0 flex-wrap items-center justify-between gap-3.5 border-b-2 border-border-strong bg-surface px-4.5 py-2">
+                    <div className="flex shrink-0 flex-wrap items-center justify-between gap-3.5 border-b-2 border-border-strong bg-surface px-5.5 py-2">
                         <p className="font-bold" aria-live="polite">
                             {terlihat.length} balita ·{' '}
                             <span className="text-primary">
@@ -217,9 +214,22 @@ export default function KartuSasaran({
                     </div>
 
                     {terlihat.length === 0 ? (
-                        <p className="px-6 py-10 text-center text-base">
-                            Tidak ada balita yang cocok dengan pencarian ini.
-                        </p>
+                        <div className="px-6 py-10 text-center lg:flex lg:flex-1 lg:flex-col lg:items-center lg:justify-center">
+                            <p className="text-base">
+                                Tidak ada balita yang cocok dengan pencarian
+                                ini.
+                            </p>
+                            {/* Sama dengan Data Balita: jalan keluar satu ketukan. */}
+                            {cari !== '' && (
+                                <button
+                                    type="button"
+                                    onClick={() => setCari('')}
+                                    className="tombol-kedua mt-4"
+                                >
+                                    Hapus pencarian
+                                </button>
+                            )}
+                        </div>
                     ) : (
                         <ul className="gulir-dalam max-h-[60vh] overflow-y-auto lg:max-h-none lg:min-h-0 lg:flex-1">
                             {terlihat.map((b) => {
@@ -228,7 +238,7 @@ export default function KartuSasaran({
                                 return (
                                     <li key={b.anakId}>
                                         <label
-                                            className={`flex min-h-16 cursor-pointer items-center gap-3.5 border-b border-rule px-4.5 py-2 ${
+                                            className={`flex min-h-16 cursor-pointer items-center gap-3.5 border-b border-rule px-5.5 py-2 ${
                                                 terpilih
                                                     ? 'bg-accent'
                                                     : 'hover:bg-surface-subtle'
@@ -266,7 +276,7 @@ export default function KartuSasaran({
                                                 {b.kode}
                                             </span>
                                             {terpilih && (
-                                                <span className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1 text-sm font-bold whitespace-nowrap text-primary-foreground">
+                                                <span className="inline-flex items-center gap-1.5 rounded-md bg-card px-3 py-1 text-sm font-bold whitespace-nowrap text-primary ring-1 ring-primary/35 ring-inset">
                                                     <Check
                                                         className="size-4"
                                                         strokeWidth={2.5}
@@ -307,28 +317,28 @@ export default function KartuSasaran({
                         </p>
                     ) : (
                         <>
-                            <div className="mt-3 flex justify-center overflow-hidden rounded-lg bg-surface-alt p-3.5">
+                            {/* Tidak boleh menyusut: kotak ini memotong kartunya. Di layar
+                                pendek jarak di sekitarnya yang dirapatkan. */}
+                            <div className="mt-3 flex shrink-0 justify-center overflow-hidden rounded-lg bg-surface-alt p-3.5 lg:pendek:mt-2 lg:pendek:p-2">
                                 <KartuBalita
                                     kartu={kartu[aktif]}
                                     lembaga={lembaga}
                                     skala={0.85}
                                 />
                             </div>
-                            <div className="mt-3.5">
+                            <div className="mt-3.5 lg:pendek:mt-2">
                                 <label
                                     htmlFor="pilih-kartu"
-                                    className="block text-sm font-semibold text-muted-foreground"
+                                    className="block text-base font-semibold text-muted-foreground"
                                 >
                                     Kartu yang ditampilkan
                                 </label>
-                                <div className="relative mt-1.5">
-                                    <select
+                                <div className="mt-1.5">
+                                    <Pilih
                                         id="pilih-kartu"
-                                        value={aktif}
-                                        onChange={(e) =>
-                                            setTampil(Number(e.target.value))
-                                        }
-                                        className="isian w-full cursor-pointer appearance-none bg-card pr-11 font-semibold"
+                                        value={String(aktif)}
+                                        onChange={(v) => setTampil(Number(v))}
+                                        className="bg-card font-semibold"
                                     >
                                         {dipilih.map((b, i) => (
                                             <option key={b.anakId} value={i}>
@@ -337,15 +347,10 @@ export default function KartuSasaran({
                                                     ` · RT ${b.rt.padStart(2, '0')}`}
                                             </option>
                                         ))}
-                                    </select>
-                                    <ChevronDown
-                                        className="pointer-events-none absolute top-1/2 right-3.5 size-5 -translate-y-1/2 text-muted-foreground"
-                                        strokeWidth={2.5}
-                                        aria-hidden="true"
-                                    />
+                                    </Pilih>
                                 </div>
                             </div>
-                            <p className="mt-3 text-sm text-muted-foreground">
+                            <p className="mt-3 text-sm text-muted-foreground lg:pendek:mt-2">
                                 <span className="font-bold text-foreground">
                                     {kartu.length} kartu · {lembar} lembar A4
                                 </span>
@@ -354,7 +359,7 @@ export default function KartuSasaran({
                         </>
                     )}
 
-                    <div className="mt-auto pt-3.5">
+                    <div className="mt-auto pt-3.5 lg:pendek:pt-2">
                         <button
                             type="button"
                             disabled={kartu.length === 0}

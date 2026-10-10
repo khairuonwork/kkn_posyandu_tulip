@@ -284,7 +284,7 @@ export default function KmsChart({
                         type="button"
                         onClick={() => gantiPanel(awal)}
                         aria-pressed={panel === awal}
-                        className={`min-h-10 rounded-lg px-3.5 text-sm font-semibold ${
+                        className={`min-h-13 rounded-lg px-3.5 text-sm font-semibold ${
                             panel === awal
                                 ? 'bg-primary text-primary-foreground'
                                 : 'border border-muted-foreground text-foreground'
@@ -696,8 +696,8 @@ export default function KmsChart({
             </ul>
 
             <p className="mt-2 text-sm text-muted-foreground">
-                Garis anak terputus pada bulan tanpa penimbangan. Pita mengikuti
-                standar WHO 2006 yang dipakai KMS Buku KIA.
+                Garis balita terputus pada bulan tanpa penimbangan. Pita
+                mengikuti standar WHO 2006 seperti KMS di Buku KIA.
             </p>
         </div>
     );

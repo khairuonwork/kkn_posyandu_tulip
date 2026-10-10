@@ -10,7 +10,13 @@
  * lembar kartu balita (aturan `.lembar-cetak` di app.css).
  */
 
-import { Clock, Download, ShieldCheck } from 'lucide-react';
+import {
+    Clock,
+    Download,
+    Loader2,
+    ShieldCheck,
+    TriangleAlert,
+} from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
@@ -19,6 +25,7 @@ import StatusGiziBadge from '@/components/status-gizi-badge';
 import { PENGATURAN_BAWAAN, standarLms } from '@/data/contoh/store';
 import {
     angka,
+    KOSONG,
     labelIndeks,
     satuan,
     tanggalPanjang,
@@ -72,7 +79,7 @@ export default function LembarHasil({ token }: { token: string }) {
                         <p className="text-base leading-tight font-extrabold">
                             SIMPATIK Posyandu
                         </p>
-                        <p className="text-[13px] font-semibold text-muted-foreground">
+                        <p className="text-sm font-semibold text-muted-foreground">
                             RW 18 Kelurahan Citeureup
                         </p>
                     </div>
@@ -81,19 +88,30 @@ export default function LembarHasil({ token }: { token: string }) {
 
             <main className="mx-auto max-w-xl px-4 pt-6 pb-10">
                 {lembar.status === 'memuat' && (
-                    <p
+                    // Susunannya sama dengan <Pesan>: ikon di kotak yang sama
+                    // tingginya, supaya halaman tidak melompat saat hasil gagal.
+                    <div
                         role="status"
-                        className="text-base text-muted-foreground"
+                        className="flex flex-col items-center gap-3.5 pt-12 text-center"
                     >
-                        Memuat hasil…
-                    </p>
+                        <div className="flex size-18 items-center justify-center text-primary">
+                            <Loader2
+                                className="size-9 animate-spin motion-reduce:[animation-duration:3s]"
+                                strokeWidth={2.5}
+                                aria-hidden="true"
+                            />
+                        </div>
+                        <p className="text-lg text-muted-foreground">
+                            Memuat hasil…
+                        </p>
+                    </div>
                 )}
                 {lembar.status === 'siap' && <Isi data={lembar.data} />}
                 {lembar.status === 'kedaluwarsa' && (
                     <Pesan judul="Tautan ini sudah tidak berlaku">
-                        Tautan hasil penimbangan hanya berlaku selama 20 hari.
-                        Untuk mendapatkan hasilnya lagi, silakan minta tautan
-                        baru kepada kader atau bidan Posyandu Tulip.
+                        Tautan hasil penimbangan hanya berlaku 20 hari. Untuk
+                        melihat hasilnya lagi, minta tautan baru ke kader atau
+                        bidan Posyandu Tulip.
                     </Pesan>
                 )}
                 {lembar.status === 'tidak-sah' && (
@@ -103,9 +121,9 @@ export default function LembarHasil({ token }: { token: string }) {
                     </Pesan>
                 )}
                 {lembar.status === 'galat' && (
-                    <Pesan judul="Hasil belum dapat dimuat">
+                    <Pesan judul="Hasil belum dapat dimuat" galat>
                         Terjadi gangguan saat memuat hasil. Silakan coba lagi
-                        beberapa saat lagi.
+                        nanti.
                     </Pesan>
                 )}
             </main>
@@ -113,15 +131,23 @@ export default function LembarHasil({ token }: { token: string }) {
     );
 }
 
-function Pesan({ judul, children }: { judul: string; children: ReactNode }) {
+function Pesan({
+    judul,
+    galat = false,
+    children,
+}: {
+    judul: string;
+    galat?: boolean;
+    children: ReactNode;
+}) {
+    const Ikon = galat ? TriangleAlert : Clock;
+
     return (
         <div className="flex flex-col items-center gap-3.5 pt-12 text-center">
-            <div className="flex size-18 items-center justify-center rounded-full bg-tone-amber-bg text-tone-amber">
-                <Clock
-                    className="size-9"
-                    strokeWidth={2.2}
-                    aria-hidden="true"
-                />
+            <div
+                className={`flex size-18 items-center justify-center rounded-full ${galat ? 'bg-tone-red-bg text-tone-red' : 'bg-tone-amber-bg text-tone-amber'}`}
+            >
+                <Ikon className="size-9" strokeWidth={2.2} aria-hidden="true" />
             </div>
             <h1 className="text-2xl leading-tight font-extrabold text-balance">
                 {judul}
@@ -235,7 +261,7 @@ function Isi({ data }: { data: LembarApi }) {
 
             {dinilai ? (
                 <section
-                    className={`rounded-2xl border p-4 ${nada.kartu}`}
+                    className={`rounded-xl border p-4 ${nada.kartu}`}
                     aria-labelledby="judul-kesimpulan"
                 >
                     <h2
@@ -249,14 +275,14 @@ function Isi({ data }: { data: LembarApi }) {
                     </p>
                 </section>
             ) : (
-                <p className="rounded-2xl bg-surface-subtle p-4 text-base">
+                <p className="rounded-xl bg-surface-subtle p-4 text-base">
                     Hasil ini belum dapat dinilai. Silakan tanyakan kepada kader
                     atau bidan Posyandu Tulip.
                 </p>
             )}
 
-            <section className="overflow-hidden rounded-2xl border border-border bg-card">
-                <h2 className="px-4 pt-3.5 pb-2.5 text-lg font-extrabold">
+            <section className="overflow-hidden rounded-xl border border-border bg-card">
+                <h2 className="px-4 pt-3.5 pb-3.5 text-lg font-extrabold">
                     Hasil ukur
                 </h2>
                 {terbaru.bbKg !== null && (
@@ -275,7 +301,7 @@ function Isi({ data }: { data: LembarApi }) {
                 )}
                 {kategori('BB_TB') !== null && (
                     <Baris
-                        label={`Status gizi (${labelIndeks('BB_TB', umur)})`}
+                        label="Status gizi"
                         nilai={null}
                         kategori={kategori('BB_TB')}
                     />
@@ -295,7 +321,7 @@ function Isi({ data }: { data: LembarApi }) {
                     />
                 )}
                 {selisih !== null && duaBulanLalu !== undefined && (
-                    <p className="border-t border-border px-4 py-3.5 text-[15px] text-muted-foreground">
+                    <p className="border-t border-border px-4 py-3.5 text-lg text-muted-foreground">
                         Berat badan{' '}
                         <b className="text-foreground">
                             {Math.abs(selisih) < 0.05
@@ -321,15 +347,15 @@ function Isi({ data }: { data: LembarApi }) {
                     />
                     Unduh hasil lengkap (PDF)
                 </button>
-                <p className="mt-2.5 text-center text-sm text-muted-foreground">
-                    Berkas 2 halaman berisi semua grafik pertumbuhan. Pada
-                    jendela yang terbuka, pilih{' '}
+                <p className="mt-2.5 text-center text-sm text-balance text-muted-foreground">
+                    PDF 2 halaman berisi semua grafik pertumbuhan. Di jendela
+                    cetak yang terbuka, pilih{' '}
                     <b className="text-foreground">Simpan sebagai PDF</b>.
                 </p>
             </section>
 
             {terbaru.bbKg !== null && (
-                <section className="rounded-2xl border border-border bg-card p-3.5">
+                <section className="rounded-xl border border-border bg-card p-4">
                     <h2 className="text-lg font-extrabold">
                         Grafik berat badan
                     </h2>
@@ -348,11 +374,11 @@ function Isi({ data }: { data: LembarApi }) {
                             teks={10.5}
                         />
                     </div>
-                    <Legenda />
+                    <Legenda className="mx-auto max-w-[420px] text-base" />
                 </section>
             )}
 
-            <section className="flex items-start gap-2.5 rounded-2xl bg-tone-green-bg p-4 text-[15px] leading-relaxed">
+            <section className="flex items-start gap-2.5 rounded-xl bg-tone-green-bg p-4 text-lg leading-relaxed">
                 <Clock
                     className="mt-0.5 size-5 shrink-0 text-tone-green"
                     strokeWidth={2.4}
@@ -365,12 +391,12 @@ function Isi({ data }: { data: LembarApi }) {
                 </p>
             </section>
 
-            <footer className="px-1 text-sm leading-relaxed text-muted-foreground">
+            <footer className="text-sm leading-relaxed text-muted-foreground">
                 <p>
                     Pertanyaan tentang hasil ini? Silakan tanyakan kepada kader
                     atau bidan Posyandu Tulip pada penimbangan berikutnya.
                 </p>
-                <p className="mt-2.5 text-[13px]">
+                <p className="mt-2.5">
                     Dihitung dengan Standar Pertumbuhan WHO 2006. Hasil ini
                     bukan pengganti pemeriksaan oleh tenaga kesehatan.
                 </p>
@@ -406,7 +432,7 @@ function Baris({
     return (
         <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3.5">
             <div>
-                <p className="text-[15px] font-semibold text-muted-foreground">
+                <p className="text-lg font-semibold text-muted-foreground">
                     {label}
                 </p>
                 {nilai !== null && (
@@ -418,7 +444,7 @@ function Baris({
     );
 }
 
-function Legenda() {
+function Legenda({ className = 'text-[13px]' }: { className?: string }) {
     const butir: [string, string][] = [
         ['#1E8C34', 'Baik'],
         ['#6FB63C', 'Cukup'],
@@ -427,7 +453,9 @@ function Legenda() {
     ];
 
     return (
-        <ul className="mt-2.5 flex flex-wrap gap-x-3.5 gap-y-1.5 text-[13px]">
+        <ul
+            className={`mt-2.5 flex flex-wrap gap-x-3.5 gap-y-1.5 ${className}`}
+        >
             {butir.map(([warna, teks]) => (
                 <li key={teks} className="flex items-center gap-1.5">
                     <span
@@ -565,7 +593,7 @@ function Dokumen({
 
     return (
         <div className="lembar-cetak" aria-hidden="true">
-            <section className="halaman-hasil flex flex-col gap-3.5 text-base">
+            <section className="halaman-hasil flex flex-col gap-3 text-base">
                 {kepala(1)}
                 <dl className="grid grid-cols-4 gap-3 text-sm">
                     {[
@@ -618,23 +646,24 @@ function Dokumen({
                                     key={b.indeks}
                                     className="border-t border-border"
                                 >
-                                    <td className="px-3 py-2">
+                                    <td className="px-3 py-1">
                                         <b>{b.nama}</b>
                                         <span className="block text-[13px] text-muted-foreground">
                                             {b.kode}
                                         </span>
                                     </td>
-                                    <td className="px-3 py-2 font-extrabold whitespace-nowrap">
-                                        {b.hasil === ''
-                                            ? (b.nilai?.kategori ?? '')
-                                            : b.hasil}
+                                    <td className="px-3 py-1 font-extrabold whitespace-nowrap">
+                                        {/* Status gizi dan IMT tanpa angka tidak
+                                            punya hasil ukur sendiri; kategorinya
+                                            sudah di kolom Status. */}
+                                        {b.hasil === '' ? KOSONG : b.hasil}
                                     </td>
-                                    <td className="px-3 py-2 text-right tabular-nums">
+                                    <td className="px-3 py-1 text-right tabular-nums">
                                         {b.nilai === undefined
                                             ? ''
                                             : zScore(b.nilai.z)}
                                     </td>
-                                    <td className="px-3 py-2 font-bold">
+                                    <td className="px-3 py-1 font-bold">
                                         {b.nilai?.kategori ??
                                             (b.nilai === undefined
                                                 ? ''

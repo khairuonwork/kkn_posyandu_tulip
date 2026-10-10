@@ -11,8 +11,8 @@ type Props = { label: string; children: ReactNode };
 
 export default function BarisDefinisi({ label, children }: Props) {
     return (
-        <div className="flex gap-3 border-b border-border py-2">
-            <dt className="w-40 shrink-0 text-sm font-semibold text-muted-foreground">
+        <div className="flex items-baseline gap-3 border-b border-rule py-2">
+            <dt className="w-40 shrink-0 text-base font-semibold text-muted-foreground">
                 {label}
             </dt>
             <dd className="text-base">{children}</dd>

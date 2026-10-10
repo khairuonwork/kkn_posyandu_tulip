@@ -58,6 +58,9 @@ const KOLOM: { kunci: Kolom; kode: string; arti: string }[] = [
     { kunci: 'bgm', kode: 'BGM', arti: 'Bawah garis merah' },
 ];
 
+/** Kolom yang keterangannya paling panjang, diberi ruang lebih. */
+const LEBAR_KETERANGAN = new Set<Kolom>(['o', 'b', 'bgm']);
+
 function nilaiKolom(r: BarisRekapRt, kunci: Kolom): number {
     switch (kunci) {
         case 'rt':
@@ -151,7 +154,7 @@ export default function Laporan({
                 <div
                     role="group"
                     aria-label="Rentang laporan"
-                    className="flex rounded-[16px] border border-border-strong bg-surface p-1"
+                    className="bilah-tab"
                 >
                     {(['bulanan', 'tahunan'] as const).map((t) => (
                         <button
@@ -159,11 +162,7 @@ export default function Laporan({
                             type="button"
                             aria-pressed={tab === t}
                             onClick={() => onGantiTab(t)}
-                            className={`min-h-13 rounded-[12px] px-4.5 text-base ${
-                                tab === t
-                                    ? 'bg-card font-extrabold text-primary shadow-[0_1px_4px_rgba(22,33,28,0.16)]'
-                                    : 'font-semibold'
-                            }`}
+                            className="tab"
                         >
                             {t === 'bulanan'
                                 ? periode.label
@@ -189,7 +188,7 @@ export default function Laporan({
                 </EmptyState>
             ) : (
                 <section className="kartu flex flex-col overflow-hidden lg:min-h-0">
-                    <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4.5 gap-y-3 border-b border-border px-5.5 py-3.5">
+                    <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4.5 gap-y-3 border-b border-border px-5.5 py-4">
                         <h2 className="text-xl leading-tight font-extrabold">
                             Rekap SKDN per RT, {judulRentang(tab, periode)}
                         </h2>
@@ -198,7 +197,7 @@ export default function Laporan({
                             <div
                                 role="group"
                                 aria-label="Pilih RT"
-                                className="flex flex-wrap gap-1.5"
+                                className="bilah-tab"
                             >
                                 {['', ...wilayahRt].map((w) => (
                                     <button
@@ -206,11 +205,7 @@ export default function Laporan({
                                         type="button"
                                         aria-pressed={rt === w}
                                         onClick={() => setRt(w)}
-                                        className={`min-h-13 rounded-lg px-3.5 text-base ${
-                                            rt === w
-                                                ? 'border-2 border-primary bg-accent font-extrabold text-primary'
-                                                : 'border border-border-strong bg-card font-semibold'
-                                        }`}
+                                        className="tab"
                                     >
                                         {w === ''
                                             ? 'Semua RT'
@@ -224,7 +219,23 @@ export default function Laporan({
                     <Table
                         aria-label={`Rekap SKDN per RT, ${judulRentang(tab, periode)}`}
                         containerClassName="lg:min-h-0 lg:flex-1"
+                        className="table-fixed"
                     >
+                        {/* Lebar tetap: tanpa ini kolom O, B, dan BGM melebar
+                            mengikuti keterangannya yang panjang, dan jarak
+                            antarangka jadi tidak rata. */}
+                        <colgroup>
+                            {KOLOM.map((k) => (
+                                <col
+                                    key={k.kunci}
+                                    className={
+                                        LEBAR_KETERANGAN.has(k.kunci)
+                                            ? 'w-[12.33%]'
+                                            : 'w-[9%]'
+                                    }
+                                />
+                            ))}
+                        </colgroup>
                         <TableHeader className="sticky top-0 z-10">
                             <TableRow>
                                 {KOLOM.map((k, i) => (
@@ -268,7 +279,7 @@ export default function Laporan({
                             ))}
                         </TableBody>
                         {rt === '' && (
-                            <TableFooter>
+                            <TableFooter className="border-t-0 [&_td]:sticky [&_td]:bottom-0 [&_td]:z-10 [&_td]:bg-surface [&_td]:shadow-[inset_0_2px_0_var(--border-strong)]">
                                 <TableRow className="border-b-0">
                                     <TableCell>Total</TableCell>
                                     {angka(total).map((n, i) => (

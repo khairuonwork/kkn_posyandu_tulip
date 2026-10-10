@@ -38,7 +38,9 @@ async function jsonLive<T>(
     }
 
     if (!res.ok) {
-        throw new Error(`Data live tidak dapat dimuat (HTTP ${res.status}).`);
+        throw new Error(
+            'Tidak dapat terhubung ke server. Periksa koneksi internet, lalu coba lagi.',
+        );
     }
 
     return (await res.json()) as T;
@@ -83,9 +85,11 @@ export function useBerandaServer(
                     if ((galat as Error).name !== 'AbortError') {
                         setStatusPeriode('galat');
                         setPesanGalat(
-                            galat instanceof Error
-                                ? galat.message
-                                : 'Periode tidak tersedia.',
+                            galat instanceof TypeError
+                                ? 'Tidak dapat terhubung ke server. Periksa koneksi internet, lalu coba lagi.'
+                                : galat instanceof Error
+                                  ? galat.message
+                                  : 'Periode tidak tersedia.',
                         );
                     }
                 });
@@ -131,9 +135,11 @@ export function useBerandaServer(
                         setPeriodeData(periodeId);
                         setStatus('galat');
                         setPesanGalat(
-                            galat instanceof Error
-                                ? galat.message
-                                : 'Beranda tidak tersedia.',
+                            galat instanceof TypeError
+                                ? 'Tidak dapat terhubung ke server. Periksa koneksi internet, lalu coba lagi.'
+                                : galat instanceof Error
+                                  ? galat.message
+                                  : 'Beranda tidak tersedia.',
                         );
                     }
                 });

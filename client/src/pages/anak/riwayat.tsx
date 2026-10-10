@@ -182,7 +182,7 @@ export default function RiwayatPenimbangan({
             }}
             subjudul={`${namaTampil(anak.nama)}${
                 umur === null ? '' : ` · ${umurRingkas(umur)}`
-            }. ${sumberLive ? 'Database live' : 'Data contoh'}.`}
+            }${sumberLive ? '' : '. Data contoh'}.`}
         >
             <section className="kartu flex flex-col overflow-hidden lg:min-h-0">
                 <div className="flex shrink-0 flex-wrap items-baseline justify-between gap-x-3.5 gap-y-1 border-b border-border px-5.5 py-3.5">

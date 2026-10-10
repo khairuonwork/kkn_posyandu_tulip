@@ -8,8 +8,11 @@
 
 import {
     Baby,
+    Loader2,
+    BookOpen,
     ChevronDown,
     ChevronRight,
+    CreditCard,
     Pencil,
     Search,
     TriangleAlert,
@@ -17,8 +20,10 @@ import {
     RefreshCw,
     Upload,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import type { ComponentType } from 'react';
 import Halaman from '@/components/halaman';
+import Pilih from '@/components/pilih';
 import StatusGiziBadge, { nadaKategori } from '@/components/status-gizi-badge';
 import {
     Table,
@@ -187,6 +192,198 @@ function Risiko({ baris }: { baris: BarisAnak }) {
     );
 }
 
+type Catatan = {
+    nada: 'oranye' | 'biru';
+    Ikon: ComponentType<{ className?: string; strokeWidth?: number }>;
+    label: string;
+    judul: string;
+    isi: string;
+};
+
+/**
+ * Catatan satu baris tabel, urut dari yang paling penting: alasan perhatian,
+ * NIK, lalu riwayat lahir. Teks `risikoLahir` berbeda antara server dan data
+ * contoh, jadi jenisnya dibaca dari kata kuncinya.
+ */
+function catatanBaris(baris: BarisAnak, bolehUbah: boolean): Catatan[] {
+    const hasil: Catatan[] = [];
+
+    if (
+        baris.perluPerhatian &&
+        baris.indeksPemicu !== null &&
+        baris.indeksPemicu !== 'BB_TB' &&
+        baris.kategoriPemicu !== null
+    ) {
+        const indeks = labelIndeks(baris.indeksPemicu, baris.umurBulan);
+
+        hasil.push({
+            nada: 'oranye',
+            Ikon: TriangleAlert,
+            label: indeks,
+            judul: `Ditandai: ${baris.kategoriPemicu} (${indeks})`,
+            isi:
+                baris.kategoriGizi === null
+                    ? 'BB/TB belum dapat dihitung, jadi status tertulis Belum dinilai.'
+                    : 'Status terakhir hanya dinilai dari BB/TB.',
+        });
+    }
+
+    if (!baris.nikLengkap) {
+        hasil.push({
+            nada: 'oranye',
+            Ikon: CreditCard,
+            label: 'NIK',
+            judul: 'NIK belum lengkap',
+            isi: bolehUbah
+                ? 'NIK balita belum 16 angka. Lengkapi lewat Ubah data.'
+                : 'NIK balita belum 16 angka.',
+        });
+    }
+
+    const risiko = baris.risikoLahir ?? '';
+    const bblr = risiko.includes('BBLR');
+    const kia = risiko.includes('KIA');
+
+    if (bblr && kia) {
+        hasil.push({
+            nada: 'biru',
+            Ikon: Baby,
+            label: 'BBLR · KIA',
+            judul: 'Riwayat BBLR, belum punya Buku KIA',
+            isi: 'Berat lahir di bawah 2,5 kg dan Buku KIA belum ada. Pantau lebih lama dan konfirmasi saat pendaftaran.',
+        });
+    } else if (bblr) {
+        hasil.push({
+            nada: 'biru',
+            Ikon: Baby,
+            label: 'BBLR',
+            judul: 'Riwayat BBLR',
+            isi: 'Berat lahir di bawah 2,5 kg. Tetap pantau lebih lama meski status gizinya baik.',
+        });
+    } else if (kia) {
+        hasil.push({
+            nada: 'biru',
+            Ikon: BookOpen,
+            label: 'Tanpa KIA',
+            judul: 'Belum punya Buku KIA',
+            isi: 'Konfirmasi saat pendaftaran.',
+        });
+    }
+
+    return hasil;
+}
+
+const NADA_CATATAN = {
+    oranye: 'bg-tone-amber-bg text-tone-amber ring-tone-amber/35',
+    biru: 'bg-tone-blue-bg text-tone-blue ring-tone-blue/30',
+};
+
+/**
+ * Satu lencana per baris: catatan terpenting ditambah hitungan sisanya. Isi
+ * lengkapnya di popup bawaan peramban (`popover`): disorot tetikus di laptop,
+ * diketuk di tablet, tertutup oleh Esc atau ketukan di luar. Popup duduk di
+ * lapisan teratas, jadi tidak terpotong wadah tabel yang menggulir.
+ */
+function LencanaCatatan({ id, catatan }: { id: string; catatan: Catatan[] }) {
+    const tombol = useRef<HTMLButtonElement>(null);
+    const popup = useRef<HTMLDivElement>(null);
+
+    if (catatan.length === 0) {
+        return null;
+    }
+
+    const [utama] = catatan;
+    const tetikus = () => matchMedia('(pointer: fine)').matches;
+    const terbuka = () => popup.current?.matches(':popover-open') ?? false;
+
+    // Di bawah lencana, atau di atasnya bila ruang di bawah tidak cukup.
+    const letakkan = () => {
+        const t = tombol.current?.getBoundingClientRect();
+        const p = popup.current;
+
+        if (t === undefined || p === null) {
+            return;
+        }
+
+        const bawah = t.bottom + 8 + p.offsetHeight <= innerHeight;
+        p.style.left = `${Math.max(8, Math.min(t.left, innerWidth - p.offsetWidth - 8))}px`;
+        p.style.top = `${bawah ? t.bottom + 8 : t.top - 8 - p.offsetHeight}px`;
+    };
+
+    return (
+        <>
+            <button
+                ref={tombol}
+                type="button"
+                popoverTarget={id}
+                aria-label={catatan.map((c) => c.judul).join('; ')}
+                onMouseEnter={() => {
+                    if (tetikus() && !terbuka()) {
+                        popup.current?.showPopover();
+                    }
+                }}
+                onMouseLeave={() => {
+                    if (tetikus() && terbuka()) {
+                        popup.current?.hidePopover();
+                    }
+                }}
+                // Dengan tetikus, popup sudah terbuka karena disorot; klik
+                // (atau Enter) hanya memastikan ia terbuka, tidak menutupnya.
+                onClick={(e) => {
+                    if (tetikus()) {
+                        e.preventDefault();
+
+                        if (!terbuka()) {
+                            popup.current?.showPopover();
+                        }
+                    }
+                }}
+                className="group -my-2 inline-flex min-h-11 items-center rounded-md focus-visible:outline-none"
+            >
+                <span
+                    className={`inline-flex min-h-7 items-center gap-1 rounded-md px-2 text-sm font-bold whitespace-nowrap ring-1 ring-inset group-focus-visible:outline-2 group-focus-visible:outline-offset-2 group-focus-visible:outline-ring ${NADA_CATATAN[utama.nada]}`}
+                >
+                    <utama.Ikon
+                        className="size-3.5"
+                        strokeWidth={2.5}
+                        aria-hidden="true"
+                    />
+                    {utama.label}
+                    {catatan.length > 1 && (
+                        <span className="ml-0.5 border-l border-current pl-1.5">
+                            +{catatan.length - 1}
+                        </span>
+                    )}
+                </span>
+            </button>
+            <div
+                ref={popup}
+                id={id}
+                popover="auto"
+                role="tooltip"
+                onToggle={(e) => {
+                    if (e.newState === 'open') {
+                        letakkan();
+                    }
+                }}
+                className="[inset:auto] m-0 w-70 rounded-xl bg-foreground px-3.5 py-3 text-sm leading-snug text-white shadow-[0_10px_24px_rgba(22,33,28,0.28)]"
+            >
+                {catatan.map((c) => (
+                    <p
+                        key={c.judul}
+                        className="border-white/20 not-first:mt-2 not-first:border-t not-first:pt-2"
+                    >
+                        <span className="block text-base font-bold">
+                            {c.judul}
+                        </span>
+                        <span className="text-white/80">{c.isi}</span>
+                    </p>
+                ))}
+            </div>
+        </>
+    );
+}
+
 type KolomUrut = 'nama' | 'umur' | 'rt' | 'tanggal' | 'status';
 
 /** Status riwayat paling mendesak di atas saat kolom diurutkan naik. */
@@ -330,12 +527,12 @@ export default function DaftarAnak({
             subjudul={
                 sumberData === 'live'
                     ? statusMuat === 'memuat'
-                        ? 'Mengambil seluruh data balita dari database…'
+                        ? 'Memuat data balita…'
                         : statusMuat === 'galat'
-                          ? 'Data live belum berhasil dimuat.'
+                          ? 'Data belum dapat dimuat.'
                           : rtTerkunci === null
-                            ? `${anak.length} balita terdaftar di RW ${rw} · Database live`
-                            : `${terlihat.length} balita di ${labelRt(rtTerkunci)}, wilayah binaan Anda · Database live`
+                            ? `${anak.length} balita terdaftar di RW ${rw}`
+                            : `${terlihat.length} balita di ${labelRt(rtTerkunci)}`
                     : `${
                           rtTerkunci === null
                               ? `${anak.length} balita terdaftar di RW ${rw}`
@@ -367,11 +564,11 @@ export default function DaftarAnak({
                 dalam kartu, dan jumlah baris di bilah bawah. Halamannya
                 sendiri tidak digulir dari 1024 px. */}
             <section className="kartu flex flex-col overflow-hidden lg:min-h-0 lg:flex-1">
-                <div className="flex shrink-0 flex-wrap items-end gap-x-4.5 gap-y-3.5 border-b border-border px-4.5 pt-3.5 pb-4">
-                    <div className="min-w-60 flex-1">
+                <div className="flex shrink-0 flex-wrap items-end gap-x-4.5 gap-y-3.5 border-b border-border px-5.5 py-4">
+                    <div className="min-w-52 flex-1">
                         <label
                             htmlFor="cari-anak"
-                            className="block text-sm font-semibold text-muted-foreground"
+                            className="block text-base font-semibold text-muted-foreground"
                         >
                             Cari nama balita atau nama ibu
                         </label>
@@ -387,6 +584,7 @@ export default function DaftarAnak({
                             <input
                                 id="cari-anak"
                                 type="search"
+                                placeholder="Ketik nama balita atau nama ibu"
                                 value={cari}
                                 onChange={(e) => setCari(e.target.value)}
                                 className="min-w-0 flex-1 self-stretch bg-transparent text-base outline-none"
@@ -404,7 +602,7 @@ export default function DaftarAnak({
                         <div className="w-44">
                             <label
                                 htmlFor="filter-rt"
-                                className="block text-sm font-semibold text-muted-foreground"
+                                className="block text-base font-semibold text-muted-foreground"
                             >
                                 RT
                             </label>
@@ -446,8 +644,8 @@ export default function DaftarAnak({
                             onClick={() => setHanyaPerhatian((b) => !b)}
                             className={
                                 hanyaPerhatian
-                                    ? 'tombol-utama min-h-14'
-                                    : 'tombol-kedua min-h-14 bg-surface'
+                                    ? 'tombol-utama'
+                                    : 'tombol-kedua bg-surface'
                             }
                         >
                             <TriangleAlert
@@ -463,8 +661,8 @@ export default function DaftarAnak({
                             onClick={() => setHanyaRisiko((b) => !b)}
                             className={
                                 hanyaRisiko
-                                    ? 'tombol-utama min-h-14'
-                                    : 'tombol-kedua min-h-14 bg-surface'
+                                    ? 'tombol-utama'
+                                    : 'tombol-kedua bg-surface'
                             }
                         >
                             <Baby
@@ -492,28 +690,33 @@ export default function DaftarAnak({
                 {statusMuat === 'memuat' && sumberData === 'live' ? (
                     <div className="flex flex-1 items-center justify-center px-6 py-14 text-center">
                         <div>
-                            <RefreshCw
-                                className="mx-auto size-7 animate-spin text-primary"
+                            <Loader2
+                                className="mx-auto size-7 animate-spin text-primary motion-reduce:[animation-duration:3s]"
+                                strokeWidth={2.5}
                                 aria-hidden="true"
                             />
                             <p className="mt-3 text-base font-bold">
-                                Memuat data balita
+                                Memuat data…
                             </p>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                                Portal sedang membaca seluruh halaman data dari
-                                database.
+                            <p className="mt-1 text-base text-muted-foreground">
+                                Mohon tunggu sebentar.
                             </p>
                         </div>
                     </div>
                 ) : statusMuat === 'galat' && sumberData === 'live' ? (
                     <div className="flex flex-1 items-center justify-center px-6 py-14 text-center">
                         <div className="max-w-lg">
-                            <p className="text-base font-bold">
-                                Data balita tidak dapat dimuat
+                            <TriangleAlert
+                                className="mx-auto mb-3 size-7 text-tone-red"
+                                strokeWidth={2.5}
+                                aria-hidden="true"
+                            />
+                            <p className="text-base font-bold text-tone-red">
+                                Data balita belum dapat dimuat
                             </p>
                             <p className="mt-1 text-base text-muted-foreground">
                                 {pesanGalat ??
-                                    'Periksa koneksi REST API, lalu coba kembali.'}
+                                    'Tidak dapat terhubung ke server. Periksa koneksi internet, lalu coba lagi.'}
                             </p>
                             <button
                                 type="button"
@@ -524,23 +727,22 @@ export default function DaftarAnak({
                                     className="size-5"
                                     aria-hidden="true"
                                 />
-                                Muat ulang data
+                                Coba lagi
                             </button>
                         </div>
                     </div>
                 ) : hasil.length === 0 ? (
-                    <div className="px-6 py-10 text-center lg:flex-1">
+                    <div className="px-6 py-10 text-center lg:flex lg:flex-1 lg:flex-col lg:items-center lg:justify-center">
                         {sumberData === 'live' &&
                         anak.length === 0 &&
                         !adaSaringan ? (
                             <>
                                 <p className="text-base font-bold">
-                                    Database live belum memiliki data balita
+                                    Belum ada data balita
                                 </p>
                                 <p className="mx-auto mt-1 max-w-xl text-base text-muted-foreground">
-                                    Akun dan wilayah sudah tersedia, tetapi
-                                    tabel anak masih kosong. Impor data sasaran
-                                    agar daftar dan kartu QR dapat dibuat.
+                                    Impor data sasaran untuk mengisi daftar
+                                    balita dan membuat kartu QR.
                                 </p>
                                 <Link
                                     href="/sasaran"
@@ -619,7 +821,6 @@ export default function DaftarAnak({
                                                     kategori={
                                                         baris.kategoriGizi
                                                     }
-                                                    tenang
                                                 />
                                                 {baris.tanggalUkurTerakhir !==
                                                     null && (
@@ -716,11 +917,6 @@ export default function DaftarAnak({
                                                         aria-hidden="true"
                                                     />
                                                 </Link>
-                                                {!baris.nikLengkap && (
-                                                    <span className="-mt-2 block pb-1 text-sm text-tone-amber">
-                                                        NIK belum lengkap
-                                                    </span>
-                                                )}
                                             </TableCell>
                                             <TableCell className="whitespace-nowrap">
                                                 {umurRingkas(baris.umurBulan)}
@@ -739,14 +935,20 @@ export default function DaftarAnak({
                                                 )}
                                             </TableCell>
                                             <TableCell>
-                                                <StatusGiziBadge
-                                                    kategori={
-                                                        baris.kategoriGizi
-                                                    }
-                                                    tenang
-                                                />
-                                                <Pemicu baris={baris} />
-                                                <Risiko baris={baris} />
+                                                <span className="flex flex-wrap items-center gap-2">
+                                                    <StatusGiziBadge
+                                                        kategori={
+                                                            baris.kategoriGizi
+                                                        }
+                                                    />
+                                                    <LencanaCatatan
+                                                        id={`catatan-${baris.anakId}`}
+                                                        catatan={catatanBaris(
+                                                            baris,
+                                                            bolehUbah,
+                                                        )}
+                                                    />
+                                                </span>
                                             </TableCell>
                                             {bolehUbah && (
                                                 <TableCell className="py-1 text-right">
@@ -829,9 +1031,9 @@ export default function DaftarAnak({
                     className="shrink-0 border-t border-border px-5.5 py-3 text-sm text-muted-foreground"
                 >
                     {statusMuat === 'memuat' && sumberData === 'live' ? (
-                        'Menunggu data dari database…'
+                        'Memuat data…'
                     ) : statusMuat === 'galat' && sumberData === 'live' ? (
-                        'Data belum tersedia karena pemuatan gagal.'
+                        'Data belum dapat ditampilkan.'
                     ) : (
                         <>
                             Menampilkan{' '}
@@ -864,8 +1066,8 @@ function Isian({
     const id = `isian-${label.toLowerCase().replace(/\s+/g, '-')}`;
 
     return (
-        <label htmlFor={id} className="flex flex-col gap-1.5">
-            <span className="text-sm font-semibold text-muted-foreground">
+        <label htmlFor={id} className="flex flex-col gap-2">
+            <span className="text-base font-semibold text-muted-foreground">
                 {label}
             </span>
             <input
@@ -895,8 +1097,8 @@ function IsianUkur({
     const id = `ukur-${satuan}`;
 
     return (
-        <label htmlFor={id} className="flex flex-col gap-1.5">
-            <span className="text-sm font-semibold text-muted-foreground">
+        <label htmlFor={id} className="flex flex-col gap-2">
+            <span className="text-base font-semibold text-muted-foreground">
                 {label}
             </span>
             <span className="isian flex items-stretch overflow-hidden p-0">
@@ -908,7 +1110,7 @@ function IsianUkur({
                     onChange={(e) => onGanti(e.target.value)}
                     className="min-w-0 flex-1 bg-transparent px-3.5 text-right text-lg font-bold outline-none"
                 />
-                <span className="flex items-center border-l-2 border-border bg-surface-subtle px-3 text-sm text-muted-foreground">
+                <span className="flex items-center border-l-2 border-border-strong bg-surface-subtle px-3 text-base text-muted-foreground">
                     {satuan}
                 </span>
             </span>
@@ -986,7 +1188,7 @@ function EditorBaris({
         /* Pita hijau menandai baris yang sedang dibuka; formulirnya sendiri
            berdiri di kartu putih di dalamnya — susunan artboard. Kotak isian
            berlatar --surface tidak terbaca langsung di atas hijau. */
-        <div className="border-t-2 border-border px-5 py-6 sm:px-6">
+        <div className="border-t-2 border-border px-5.5 py-5">
             <div className="kartu flex flex-col gap-6 p-5 sm:p-6">
                 <section className="flex flex-col gap-3.5">
                     <h3 className="text-base font-bold">Identitas</h3>
@@ -1008,23 +1210,18 @@ function EditorBaris({
                         />
                         <label
                             htmlFor="ubah-rt"
-                            className="flex flex-col gap-1.5"
+                            className="flex flex-col gap-2"
                         >
-                            <span className="text-sm font-semibold text-muted-foreground">
+                            <span className="text-base font-semibold text-muted-foreground">
                                 RT
                             </span>
-                            <select
-                                id="ubah-rt"
-                                value={rt}
-                                onChange={(e) => setRt(e.target.value)}
-                                className="isian w-full"
-                            >
+                            <Pilih id="ubah-rt" value={rt} onChange={setRt}>
                                 {wilayahRt.map((w) => (
                                     <option key={w} value={w}>
                                         {labelRt(w)}
                                     </option>
                                 ))}
-                            </select>
+                            </Pilih>
                         </label>
                     </div>
                 </section>
@@ -1094,10 +1291,9 @@ function EditorBaris({
 
                                 <p className="mt-3 text-sm text-pretty text-muted-foreground">
                                     Angka pratinjau. Saat disimpan, server
-                                    menghitung ulang dan nilainya itu yang
-                                    tercatat. Indeks mengikuti umur anak: BB/PB
-                                    di bawah 24 bulan, BB/TB untuk 24 bulan ke
-                                    atas.
+                                    menghitung ulang dan hasilnya yang tercatat.
+                                    BB/PB dipakai untuk usia di bawah 24 bulan,
+                                    BB/TB untuk 24 bulan ke atas.
                                 </p>
                             </div>
                         )}
@@ -1167,11 +1363,14 @@ function FormTambah({
     const lengkap = nama.trim() !== '' && tglLahir !== '';
 
     return (
-        <section className="shrink-0 border-b border-border bg-accent px-4.5 py-5">
-            <div className="kartu p-5 sm:p-6">
+        /* Di layar pendek (laptop 1230 × 572) form ini lebih tinggi dari
+           ruang di kartu: ia merapat, lalu menggulir sendiri supaya tombol
+           dan kaki kartu tidak terpotong. */
+        <section className="gulir-dalam min-h-0 overflow-y-auto border-b border-border bg-accent px-5.5 py-5 lg:pendek:py-2">
+            <div className="kartu p-5 sm:p-6 lg:pendek:p-4">
                 <h2 className="text-xl font-extrabold">Tambah balita baru</h2>
 
-                <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3 lg:pendek:mt-3">
                     <Isian
                         label="Nama balita"
                         nilai={nama}
@@ -1187,27 +1386,21 @@ function FormTambah({
                         onGanti={setTglLahir}
                         tipe="date"
                     />
-                    <label
-                        htmlFor="tambah-jk"
-                        className="flex flex-col gap-1.5"
-                    >
-                        <span className="text-sm font-semibold text-muted-foreground">
+                    <label htmlFor="tambah-jk" className="flex flex-col gap-2">
+                        <span className="text-base font-semibold text-muted-foreground">
                             Jenis kelamin
                         </span>
                         {/* v2 meminta mengetik "P atau L". Daftar pilihan menutup
                         satu sumber salah ketik yang membelokkan seluruh kurva
                         pertumbuhan anak: tabel WHO berbeda per jenis kelamin. */}
-                        <select
+                        <Pilih
                             id="tambah-jk"
                             value={jk}
-                            onChange={(e) =>
-                                setJk(e.target.value as JenisKelamin)
-                            }
-                            className="isian w-full"
+                            onChange={(v) => setJk(v as JenisKelamin)}
                         >
                             <option value="P">Perempuan</option>
                             <option value="L">Laki-laki</option>
-                        </select>
+                        </Pilih>
                     </label>
                     <Isian
                         label="Nama ibu"
@@ -1215,34 +1408,26 @@ function FormTambah({
                         onGanti={setNamaOrtu}
                         petunjuk="Nama lengkap ibu"
                     />
-                    <label
-                        htmlFor="tambah-rt"
-                        className="flex flex-col gap-1.5"
-                    >
-                        <span className="text-sm font-semibold text-muted-foreground">
+                    <label htmlFor="tambah-rt" className="flex flex-col gap-2">
+                        <span className="text-base font-semibold text-muted-foreground">
                             RT
                         </span>
-                        <select
-                            id="tambah-rt"
-                            value={rt}
-                            onChange={(e) => setRt(e.target.value)}
-                            className="isian w-full"
-                        >
+                        <Pilih id="tambah-rt" value={rt} onChange={setRt}>
                             {wilayahRt.map((w) => (
                                 <option key={w} value={w}>
                                     {labelRt(w)}
                                 </option>
                             ))}
-                        </select>
+                        </Pilih>
                     </label>
                 </div>
 
-                <p className="mt-4 max-w-[75ch] text-sm text-pretty text-muted-foreground">
-                    Anak baru belum punya pengukuran, jadi statusnya Belum
-                    dinilai sampai ditimbang. Sasaran S ikut bertambah.
+                <p className="mt-4 max-w-[75ch] text-sm text-pretty text-muted-foreground lg:pendek:mt-3">
+                    Balita baru berstatus Belum dinilai sampai ditimbang, dan
+                    langsung dihitung sebagai sasaran (S).
                 </p>
 
-                <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-5">
+                <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-5 lg:pendek:mt-3 lg:pendek:pt-3">
                     <button
                         type="button"
                         disabled={!lengkap}
@@ -1267,9 +1452,8 @@ function FormTambah({
                         Batal
                     </button>
                     {!lengkap && (
-                        <p className="text-sm text-muted-foreground">
-                            Nama balita dan tanggal lahir harus diisi — umurnya
-                            dihitung dari tanggal itu.
+                        <p className="text-base text-muted-foreground">
+                            Nama balita dan tanggal lahir wajib diisi.
                         </p>
                     )}
                 </div>

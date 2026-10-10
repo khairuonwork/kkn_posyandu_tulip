@@ -328,10 +328,12 @@
         @apply border-b-2 border-border bg-surface px-5 py-4 sm:px-6 sm:py-5;
     }
 
-    /* Tinggi kontrol v2 adalah 52px, naik dari 48px. Ditulis `min-h` supaya
-       label yang membungkus tidak terpotong. */
+    /* Tombol utama dan kedua setinggi `.isian` (49 px), supaya tombol di
+       samping atau di bawah kotak isian sama tinggi, dan pasangan Simpan/Batal
+       tetap sejajar. Ditulis `min-h` supaya label yang membungkus tidak
+       terpotong. `.tombol-ubah` di baris tabel tetap 45,5 px. */
     .tombol-utama {
-        @apply inline-flex min-h-13 items-center justify-center gap-2 rounded-lg bg-primary px-4.5 text-base font-bold text-primary-foreground shadow-[0_8px_18px_rgba(15,110,68,0.18)];
+        @apply inline-flex min-h-14 items-center justify-center gap-2 rounded-lg bg-primary px-4.5 text-base font-bold text-primary-foreground shadow-[0_8px_18px_rgba(15,110,68,0.18)];
     }
 
     /* Tombol Ubah di dalam baris tabel: kuning solid, dengan huruf setebal
@@ -347,14 +349,32 @@
     }
 
     .tombol-kedua {
-        @apply inline-flex min-h-13 items-center justify-center gap-2 rounded-lg border border-border-strong bg-card px-4.5 text-base font-semibold;
+        @apply inline-flex min-h-14 items-center justify-center gap-2 rounded-lg border border-border-strong bg-card px-4.5 text-base font-semibold;
     }
 
     /* `h-14`, bukan `h-13`: garis tepi 2 px memakan tinggi dari dalam, jadi
        kotak 45,5 px hanya menyisakan 42 px untuk <input> di dalamnya — 2 px di
-       bawah ambang sasaran sentuh. 49 px menyisakan 45 px. */
+       bawah ambang sasaran sentuh. 49 px menyisakan 45 px.
+
+       Garis --border-strong, bukan --border: #C2C9C0 di atas latar #EDEFEA
+       hanya sekitar 1,4 : 1, sehingga batas kotak hilang di tablet redup. */
     .isian {
-        @apply h-14 rounded-lg border-2 border-border bg-surface px-3.5 text-base text-foreground;
+        @apply h-14 rounded-lg border-2 border-border-strong bg-surface px-3.5 text-base text-foreground;
+    }
+
+    /* Tab dalam bilah putih; tab aktif hijau lembut. Tinggi 45,5 px, di atas
+       ambang sentuh 44 px. */
+    .bilah-tab {
+        @apply flex flex-wrap gap-1.5 rounded-lg border border-border bg-card p-1.5;
+    }
+
+    .tab {
+        @apply min-h-13 rounded-md px-4 text-base font-semibold text-muted-foreground transition-colors hover:bg-surface-subtle hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring;
+    }
+
+    .tab[aria-selected='true'],
+    .tab[aria-pressed='true'] {
+        @apply bg-accent font-bold text-primary;
     }
 
     /* Kotak bersegmen — ikon cari, satuan kg/cm/SD — membungkus <input> yang
@@ -460,6 +480,14 @@
     @page {
         size: A4;
         margin: 12mm;
+    }
+
+    /* Kertas putih walau "Grafis latar belakang" dinyalakan: latar abu
+       aplikasi tidak ikut tercetak. Pita hijau kartu tetap tercetak lewat
+       print-color-adjust di bawah. */
+    html,
+    body {
+        background: none;
     }
 
     body > :not(.lembar-cetak) {

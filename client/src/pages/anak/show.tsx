@@ -11,12 +11,10 @@
 
 import {
     ArrowRight,
-    ChevronDown,
     CircleCheck,
     CreditCard,
     Info,
     Mars,
-    MessageCircle,
     Pencil,
     Printer,
     Save,
@@ -32,8 +30,10 @@ import Dialog, { KakiDialog } from '@/components/dialog';
 import DialogKirimWa from '@/components/dialog-kirim-wa';
 import GrafikPertumbuhan from '@/components/grafik-pertumbuhan';
 import Halaman from '@/components/halaman';
+import IkonWhatsApp from '@/components/ikon-whatsapp';
 import KartuBalita, { LembarCetak } from '@/components/kartu-balita';
 import KmsChart from '@/components/kms-chart-sep24';
+import Pilih from '@/components/pilih';
 import { nadaKategori } from '@/components/status-gizi-badge';
 import {
     Table,
@@ -125,7 +125,7 @@ export type AmbangDetail = {
 type TabDetail = 'profil' | 'status' | 'kurva' | 'grafik' | 'riwayat';
 
 const TAB_DETAIL: { nilai: TabDetail; label: string }[] = [
-    { nilai: 'profil', label: 'Profil Anak' },
+    { nilai: 'profil', label: 'Profil Balita' },
     { nilai: 'status', label: 'Status Gizi' },
     { nilai: 'kurva', label: 'Kurva KMS' },
     { nilai: 'grafik', label: 'Grafik Pertumbuhan' },
@@ -330,7 +330,7 @@ export default function DetailAnak({
                 ? null
                 : (noWa ?? '').trim() === ''
                   ? 'Nomor WhatsApp orang tua belum diisi. Isi lewat Ubah data.'
-                  : 'Nomor WhatsApp orang tua tidak sah. Periksa lewat Ubah data.';
+                  : 'Nomor WhatsApp orang tua tidak valid. Periksa lewat Ubah data.';
 
     // Titik kurva hanya dari pengukuran yang punya umur dan berat sekaligus.
     const riwayatKurva = pengukuran
@@ -396,7 +396,7 @@ export default function DetailAnak({
                 anak.rt === null
                     ? 'RT belum tercatat'
                     : `RT ${anak.rt.padStart(2, '0')}`
-            }. ${sumberLive ? 'Database live' : 'Data contoh'}.`}
+            }${sumberLive ? '' : '. Data contoh'}.`}
             aksi={
                 <>
                     {bolehCetak && (
@@ -433,11 +433,7 @@ export default function DetailAnak({
                             onClick={() => setDialog('wa')}
                             className="tombol-utama"
                         >
-                            <MessageCircle
-                                className="size-5"
-                                strokeWidth={2.5}
-                                aria-hidden="true"
-                            />
+                            <IkonWhatsApp className="size-5" />
                             Kirim ke WhatsApp
                         </button>
                     )}
@@ -447,7 +443,7 @@ export default function DetailAnak({
             {alasanTanpaWa !== null && (
                 <p
                     role="status"
-                    className="mb-5 flex items-start gap-2.5 text-sm text-muted-foreground"
+                    className="mb-5 flex items-start gap-2.5 text-base text-muted-foreground"
                 >
                     <Info
                         className="mt-0.5 size-4 shrink-0"
@@ -462,34 +458,24 @@ export default function DetailAnak({
                 tampil pada satu waktu, tetapi semua bagian tetap dapat dicapai
                 dalam satu langkah. */}
             <div
-                className="mb-7 border-b border-border"
+                className="bilah-tab mb-7"
                 role="tablist"
-                aria-label="Kategori detail anak"
+                aria-label="Kategori detail balita"
             >
-                <div className="flex flex-wrap items-end gap-1">
-                    {TAB_DETAIL.map((tab) => {
-                        const aktif = tabAktif === tab.nilai;
-
-                        return (
-                            <button
-                                key={tab.nilai}
-                                id={`tab-${tab.nilai}`}
-                                type="button"
-                                role="tab"
-                                aria-selected={aktif}
-                                aria-controls={`panel-${tab.nilai}`}
-                                onClick={() => setTabAktif(tab.nilai)}
-                                className={`relative min-h-12 rounded-t-lg border px-4 text-base font-semibold transition-colors focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
-                                    aktif
-                                        ? 'z-10 -mb-px border-border bg-card text-foreground'
-                                        : 'border-transparent text-muted-foreground hover:border-border hover:bg-surface-subtle hover:text-foreground'
-                                }`}
-                            >
-                                {tab.label}
-                            </button>
-                        );
-                    })}
-                </div>
+                {TAB_DETAIL.map((tab) => (
+                    <button
+                        key={tab.nilai}
+                        id={`tab-${tab.nilai}`}
+                        type="button"
+                        role="tab"
+                        aria-selected={tabAktif === tab.nilai}
+                        aria-controls={`panel-${tab.nilai}`}
+                        onClick={() => setTabAktif(tab.nilai)}
+                        className="tab"
+                    >
+                        {tab.label}
+                    </button>
+                ))}
             </div>
 
             {/* Identitas memimpin halaman, seperti artboard Detail: satu
@@ -512,7 +498,9 @@ export default function DetailAnak({
                         {inisial || '—'}
                     </div>
                     <div className="min-w-0 flex-1">
-                        <h2 className="text-xl font-extrabold">Profil anak</h2>
+                        <h2 className="text-xl font-extrabold">
+                            Profil balita
+                        </h2>
                         <p className="mt-0.5 text-base text-primary-foreground/80">
                             {nama}
                         </p>
@@ -592,16 +580,15 @@ export default function DetailAnak({
                                 <div>
                                     <p className="font-bold">Imunisasi</p>
                                     <p className="mt-0.5 text-sm text-muted-foreground">
-                                        Belum dipastikan dari arsip ini.
-                                        Konfirmasi dan lengkapi saat daftar.
+                                        Belum tercatat. Konfirmasi saat
+                                        pendaftaran.
                                     </p>
                                 </div>
                             </div>
                         </div>
                         <p className="mt-3 max-w-[78ch] text-sm text-muted-foreground">
-                            Saat kartu sasaran dipindai, item yang belum lengkap
-                            ini muncul sebagai skrining awal sebelum anak
-                            dicatat hadir.
+                            Saat kartu dipindai, item yang belum lengkap muncul
+                            sebagai skrining awal sebelum balita dicatat hadir.
                         </p>
                     </div>
                 </div>
@@ -633,95 +620,97 @@ export default function DetailAnak({
                         role="tabpanel"
                         aria-labelledby="tab-status"
                         hidden={tabAktif !== 'status'}
+                        className="kartu overflow-hidden"
                     >
-                        <h2 className="text-xl font-extrabold">
+                        <h2 className="strip-kepala text-xl font-extrabold">
                             Status pengukuran{' '}
                             {tanggalPanjang(terbaru.tanggalUkur)}
                         </h2>
-
-                        {/* Tiga kartu indeks berdampingan, susunan artboard.
+                        <div className="p-5 sm:p-6">
+                            {/* Tiga kartu indeks berdampingan, susunan artboard.
                             Yang terberat tetap di depan: urutannya dihitung
                             dari nadanya, bukan dari urutan tulis — supaya mata
                             jatuh lebih dulu pada vonis yang menentukan. */}
-                        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                            {terurut.map((i) => (
-                                <KartuIndeks
-                                    key={i.label}
-                                    label={i.label}
-                                    nilai={i.nilai}
-                                />
-                            ))}
-                        </div>
+                            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                                {terurut.map((i) => (
+                                    <KartuIndeks
+                                        key={i.label}
+                                        label={i.label}
+                                        nilai={i.nilai}
+                                    />
+                                ))}
+                            </div>
 
-                        {indeksTidakWajar.length > 0 && (
-                            <p className="mt-4 rounded-xl bg-tone-amber-bg p-4 text-sm font-semibold text-tone-amber">
-                                {indeksTidakWajar.join(', ')} ditandai tidak
-                                wajar dalam arsip dan tidak dipakai untuk
-                                penilaian. Periksa ulang hasil ukur sebelum
-                                memberi arahan.
-                            </p>
-                        )}
+                            {indeksTidakWajar.length > 0 && (
+                                <p className="mt-4 rounded-xl bg-tone-amber-bg p-4 text-sm font-semibold text-tone-amber">
+                                    {indeksTidakWajar.join(', ')} ditandai tidak
+                                    wajar dan tidak dipakai untuk penilaian.
+                                    Periksa ulang hasil ukur sebelum memberi
+                                    arahan.
+                                </p>
+                            )}
 
-                        {/* Layar ini dulu tidak pernah menjawab pertanyaan yang
+                            {/* Layar ini dulu tidak pernah menjawab pertanyaan yang
                             jadi alasan keberadaannya: anak ini perlu
                             ditindaklanjuti atau tidak. */}
-                        <p className="mt-4 text-base font-bold">
-                            {indeksTidakWajar.length > 0
-                                ? 'Sebagian hasil perlu verifikasi ulang sebelum keputusan tindak lanjut.'
-                                : indeks.every((i) => i.nilai === undefined)
-                                  ? 'Belum dapat dinilai dari data periode ini.'
-                                  : perluTindakLanjut
-                                    ? 'Perlu tindak lanjut bulan ini.'
-                                    : 'Tidak perlu tindak lanjut bulan ini.'}
-                        </p>
-
-                        <div
-                            className={`mt-5 rounded-xl p-5 ${
-                                perluRujukan
-                                    ? 'bg-tone-red-bg text-tone-red'
-                                    : 'bg-surface-subtle text-foreground'
-                            }`}
-                        >
-                            <h3 className="text-base font-extrabold">
-                                Arahan untuk keluarga
-                            </h3>
-                            <p className="mt-1 max-w-[76ch] text-base text-pretty">
-                                {edukasiKms}
+                            <p className="mt-4 text-base font-bold">
+                                {indeksTidakWajar.length > 0
+                                    ? 'Sebagian hasil perlu verifikasi ulang sebelum keputusan tindak lanjut.'
+                                    : indeks.every((i) => i.nilai === undefined)
+                                      ? 'Belum dapat dinilai dari data periode ini.'
+                                      : perluTindakLanjut
+                                        ? 'Perlu tindak lanjut bulan ini.'
+                                        : 'Tidak perlu tindak lanjut bulan ini.'}
                             </p>
-                            {perluRujukan && (
-                                <p className="mt-2 text-sm font-semibold">
-                                    Ambang kerja rujukan: z-score ≤{' '}
-                                    {zScore(ambang.ambangRujukan)} SD. Perlu
-                                    pengesahan Puskesmas sebelum digunakan
-                                    sebagai aturan produksi.
+
+                            <div
+                                className={`mt-5 rounded-xl p-5 ${
+                                    perluRujukan
+                                        ? 'bg-tone-red-bg text-tone-red'
+                                        : 'bg-surface-subtle text-foreground'
+                                }`}
+                            >
+                                <h3 className="text-base font-extrabold">
+                                    Arahan untuk keluarga
+                                </h3>
+                                <p className="mt-1 max-w-[76ch] text-base text-pretty">
+                                    {edukasiKms}
                                 </p>
-                            )}
-                            {perluWaspada && !perluRujukan && (
-                                <p className="mt-2 text-sm font-semibold">
-                                    Zona waspada dimulai pada z-score ≤{' '}
-                                    {zScore(ambang.ambangWaspada)} SD.
+                                {perluRujukan && (
+                                    <p className="mt-2 text-sm font-semibold">
+                                        Ambang kerja rujukan: z-score ≤{' '}
+                                        {zScore(ambang.ambangRujukan)} SD. Perlu
+                                        pengesahan Puskesmas sebelum digunakan
+                                        sebagai aturan produksi.
+                                    </p>
+                                )}
+                                {perluWaspada && !perluRujukan && (
+                                    <p className="mt-2 text-sm font-semibold">
+                                        Zona waspada dimulai pada z-score ≤{' '}
+                                        {zScore(ambang.ambangWaspada)} SD.
+                                    </p>
+                                )}
+                            </div>
+
+                            <p className="mt-2 max-w-[80ch] text-sm text-pretty text-muted-foreground">
+                                Acuan: standar pertumbuhan WHO 2006 (sama dengan
+                                tabel Permenkes No. 2 Tahun 2020). BB/PB dipakai
+                                untuk usia di bawah 24 bulan, BB/TB untuk 24
+                                bulan ke atas.
+                            </p>
+
+                            {/* Asumsi sistem harus terlihat di antarmuka, bukan hanya
+                            di basis data (prinsip P4). */}
+                            {terbaru.catatanUkur?.jenisUkur !== undefined && (
+                                <p className="mt-2 max-w-[80ch] text-sm text-muted-foreground">
+                                    Cara ukur mengikuti umur (
+                                    {umur !== null && umur < 24
+                                        ? 'panjang badan, telentang'
+                                        : 'tinggi badan, berdiri'}
+                                    ) karena tidak tercatat di data.
                                 </p>
                             )}
                         </div>
-
-                        <p className="mt-2 max-w-[80ch] text-sm text-pretty text-muted-foreground">
-                            Acuan standar pertumbuhan WHO 2006, dihitung dari
-                            parameter LMS. Nilainya sama dengan tabel Permenkes
-                            No. 2 Tahun 2020. Indeks mengikuti umur anak: BB/PB
-                            di bawah 24 bulan, BB/TB untuk 24 bulan ke atas.
-                        </p>
-
-                        {/* Asumsi sistem harus terlihat di antarmuka, bukan hanya
-                            di basis data (prinsip P4). */}
-                        {terbaru.catatanUkur?.jenisUkur !== undefined && (
-                            <p className="mt-2 max-w-[80ch] text-sm text-muted-foreground">
-                                Cara ukur {terbaru.catatanUkur.jenisUkur}:{' '}
-                                {umur !== null && umur < 24
-                                    ? 'panjang badan, telentang'
-                                    : 'tinggi badan, berdiri'}
-                                . Berkas sumber tidak mencatatnya.
-                            </p>
-                        )}
                     </section>
                 )}
 
@@ -740,7 +729,7 @@ export default function DetailAnak({
                     ) : (
                         anak.jk !== null && (
                             <div className="overflow-hidden rounded-xl border border-border bg-card">
-                                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-surface-subtle px-4 py-3 sm:px-5">
+                                <div className="strip-kepala flex flex-wrap items-center justify-between gap-3">
                                     <div>
                                         <h2 className="text-xl font-extrabold">
                                             Kartu Menuju Sehat
@@ -753,7 +742,7 @@ export default function DetailAnak({
                                         {nama} · {umurPanjang(umur)}
                                     </p>
                                 </div>
-                                <div className="px-4 py-4 sm:px-5">
+                                <div className="px-5 py-4 sm:px-6">
                                     <p className="mb-3 text-sm text-muted-foreground">
                                         {terbaru === null
                                             ? `Kurva ini hanya menampilkan riwayat; belum ada pengukuran pada ${periode.label}.`
@@ -915,7 +904,7 @@ export default function DetailAnak({
                                                             p.umurBulan,
                                                         )
                                                     }
-                                                    className="inline-flex min-h-13 items-center rounded-lg px-3 font-semibold text-primary underline"
+                                                    className="-ml-3 inline-flex min-h-13 items-center rounded-lg px-3 font-semibold text-primary underline"
                                                 >
                                                     {tanggalRingkas(
                                                         p.tanggalUkur,
@@ -924,7 +913,7 @@ export default function DetailAnak({
                                                 {/* Baris kosong sekarang
                                                         menyebutkan sebabnya. */}
                                                 {sebab !== null && (
-                                                    <span className="block px-3 pb-1 text-sm text-muted-foreground">
+                                                    <span className="block pb-1 text-sm text-muted-foreground">
                                                         {sebab}
                                                     </span>
                                                 )}
@@ -1062,7 +1051,7 @@ function KartuIndeks({
 
     return (
         <div className="kartu p-5">
-            <p className="text-sm font-bold text-muted-foreground">{label}</p>
+            <p className="text-base font-bold text-muted-foreground">{label}</p>
             <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
                 <span
                     className={`text-3xl leading-none font-extrabold ${warna}`}
@@ -1187,10 +1176,10 @@ function DialogUbah({
                 onSubmit={simpan}
                 className="flex min-h-0 flex-1 flex-col"
             >
-                <div className="grid min-h-0 gap-y-5 overflow-y-auto px-7 pt-4.5 pb-5.5 md:grid-cols-2">
+                <div className="grid min-h-0 gap-y-5 overflow-y-auto px-7 py-4.5 md:grid-cols-2 lg:pendek:py-3">
                     <section
                         aria-labelledby="kolom-balita"
-                        className="flex min-w-0 flex-col gap-4 md:pr-7"
+                        className="flex min-w-0 flex-col gap-4 md:pr-7 lg:pendek:gap-3"
                     >
                         <h3
                             id="kolom-balita"
@@ -1212,10 +1201,10 @@ function DialogUbah({
                             />
                         </Kolom>
                         <fieldset className="min-w-0">
-                            <legend className="text-sm font-semibold text-muted-foreground">
+                            <legend className="text-base font-semibold text-muted-foreground">
                                 Jenis kelamin
                             </legend>
-                            <div className="mt-1.5 grid grid-cols-2 gap-4.5">
+                            <div className="mt-2 grid grid-cols-2 gap-4.5">
                                 <Pilihan
                                     nama="ubah-jk"
                                     terpilih={isi.jk === 'L'}
@@ -1305,40 +1294,30 @@ function DialogUbah({
                                         }
                                         className="min-w-0 grow bg-transparent px-3.5 text-right outline-none"
                                     />
-                                    <span className="flex items-center border-l-2 border-border bg-surface-alt px-3.5 text-sm text-muted-foreground">
+                                    <span className="flex items-center border-l-2 border-border-strong bg-surface-alt px-3.5 text-base text-muted-foreground">
                                         kg
                                     </span>
                                 </div>
                             </Kolom>
                             <Kolom id="ubah-rt" label="RT">
-                                <div className="relative">
-                                    <select
-                                        id="ubah-rt"
-                                        value={isi.rt}
-                                        onChange={(e) =>
-                                            ubah('rt', e.target.value)
-                                        }
-                                        className="isian w-full cursor-pointer appearance-none pr-11"
-                                    >
-                                        {wilayahRt.map((w) => (
-                                            <option key={w} value={w}>
-                                                RT {w.padStart(2, '0')}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <ChevronDown
-                                        className="pointer-events-none absolute top-1/2 right-3.5 size-5 -translate-y-1/2 text-muted-foreground"
-                                        strokeWidth={2.5}
-                                        aria-hidden="true"
-                                    />
-                                </div>
+                                <Pilih
+                                    id="ubah-rt"
+                                    value={isi.rt}
+                                    onChange={(v) => ubah('rt', v)}
+                                >
+                                    {wilayahRt.map((w) => (
+                                        <option key={w} value={w}>
+                                            RT {w.padStart(2, '0')}
+                                        </option>
+                                    ))}
+                                </Pilih>
                             </Kolom>
                         </div>
                     </section>
 
                     <section
                         aria-labelledby="kolom-ortu"
-                        className="flex min-w-0 flex-col gap-4 md:border-l md:border-border md:pl-7"
+                        className="flex min-w-0 flex-col gap-4 md:border-l md:border-border md:pl-7 lg:pendek:gap-3"
                     >
                         <h3
                             id="kolom-ortu"
@@ -1367,10 +1346,10 @@ function DialogUbah({
                             />
                         </Kolom>
                         <fieldset className="min-w-0">
-                            <legend className="text-sm font-semibold text-muted-foreground">
+                            <legend className="text-base font-semibold text-muted-foreground">
                                 Buku KIA
                             </legend>
-                            <div className="mt-1.5 grid grid-cols-2 gap-4.5">
+                            <div className="mt-2 grid grid-cols-2 gap-4.5">
                                 <Pilihan
                                     nama="ubah-kia"
                                     terpilih={isi.bukuKia}
@@ -1459,16 +1438,16 @@ function Kolom({
         <div className="min-w-0">
             <label
                 htmlFor={id}
-                className="block text-sm font-semibold text-muted-foreground"
+                className="block text-base font-semibold text-muted-foreground"
             >
                 {label}
                 {keterangan !== undefined && (
                     <span className="font-medium"> {keterangan}</span>
                 )}
             </label>
-            <div className="mt-1.5">{children}</div>
+            <div className="mt-2">{children}</div>
             {galat !== undefined && (
-                <p className="mt-1.5 text-sm font-semibold text-tone-red">
+                <p className="mt-1.5 text-base font-semibold text-tone-red">
                     {galat}
                 </p>
             )}
@@ -1493,7 +1472,7 @@ function Pilihan({
             className={`flex h-14 cursor-pointer items-center gap-2.5 rounded-lg border-2 px-3.5 text-base ${
                 terpilih
                     ? 'border-primary bg-accent font-bold text-primary'
-                    : 'border-border bg-surface font-semibold'
+                    : 'border-border-strong bg-surface font-semibold'
             }`}
         >
             <input
@@ -1539,7 +1518,7 @@ function DialogCetak({
                     <div className="flex justify-center rounded-lg bg-surface-alt p-5.5">
                         <KartuBalita kartu={kartu} lembaga={lembaga} />
                     </div>
-                    <figcaption className="mt-2 text-sm text-muted-foreground">
+                    <figcaption className="mt-2 text-base text-muted-foreground">
                         Ukuran asli 85,6 × 54 mm, seukuran KTP. Garis
                         putus-putus adalah garis potong.
                     </figcaption>
@@ -1550,7 +1529,7 @@ function DialogCetak({
                         <h3 className="text-base font-extrabold">
                             Ingin mencetak beberapa kartu sekaligus?
                         </h3>
-                        <p className="mt-1 text-sm text-muted-foreground">
+                        <p className="mt-1 text-base text-muted-foreground">
                             Satu lembar A4 memuat 8 kartu. Pilih balita lain di
                             halaman Kartu Balita agar kertas tidak terbuang.
                         </p>
@@ -1572,7 +1551,7 @@ function DialogCetak({
                             strokeWidth={2.5}
                             aria-hidden="true"
                         />
-                        <p className="text-sm">
+                        <p className="text-base">
                             Saat jendela cetak muncul, pilih kertas{' '}
                             <span className="font-bold">A4</span> dan skala{' '}
                             <span className="font-bold">100%</span> agar ukuran

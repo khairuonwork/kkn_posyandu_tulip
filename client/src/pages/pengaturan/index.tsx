@@ -27,6 +27,7 @@ import { useEffect, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import Dialog, { KakiDialog } from '@/components/dialog';
 import Halaman from '@/components/halaman';
+import Pilih from '@/components/pilih';
 import {
     Table,
     TableBody,
@@ -418,7 +419,7 @@ export default function Pengaturan({
                     aria-labelledby="judul-bagian"
                     className="flex min-w-0 flex-col lg:min-h-0"
                 >
-                    <div className="shrink-0 border-b border-border px-7 pt-4.5 pb-3.5">
+                    <div className="shrink-0 border-b border-border px-7 py-4">
                         <h2
                             id="judul-bagian"
                             className="text-xl leading-tight font-extrabold"
@@ -440,7 +441,7 @@ export default function Pengaturan({
                                     <h3 className="mb-2 text-base font-extrabold">
                                         Rentang wajar
                                     </h3>
-                                    <table className="w-full table-fixed">
+                                    <table className="w-full table-fixed text-base">
                                         <colgroup>
                                             <col className="w-[34%]" />
                                             <col />
@@ -518,7 +519,7 @@ export default function Pengaturan({
                                                         >
                                                             <td
                                                                 colSpan={3}
-                                                                className="pb-2 text-right text-sm font-semibold text-tone-red"
+                                                                className="pb-2 text-right text-base font-semibold text-tone-red"
                                                             >
                                                                 Batas maksimal
                                                                 harus lebih
@@ -716,7 +717,7 @@ export default function Pengaturan({
                                                     className={`flex cursor-pointer gap-3.5 rounded-lg border-2 px-4.5 py-3.5 ${
                                                         dipilih
                                                             ? 'border-primary bg-accent'
-                                                            : 'border-border bg-card hover:bg-surface'
+                                                            : 'border-border-strong bg-card hover:bg-surface'
                                                     }`}
                                                 >
                                                     <input
@@ -749,7 +750,7 @@ export default function Pengaturan({
                                             );
                                         })}
                                     </fieldset>
-                                    <label className="flex cursor-pointer gap-3.5 rounded-lg border-2 border-border bg-surface px-4.5 py-3.5">
+                                    <label className="flex cursor-pointer gap-3.5 rounded-lg border-2 border-border-strong bg-surface px-4.5 py-3.5">
                                         <input
                                             type="checkbox"
                                             checked={
@@ -872,7 +873,9 @@ export default function Pengaturan({
                         </>
                     )}
 
-                    {bagian !== 'riwayat' && (
+                    {/* Akun disimpan lewat dialognya sendiri; bilah Simpan pengaturan
+                        di bagian itu hanya membingungkan. */}
+                    {bagian !== 'riwayat' && bagian !== 'pengguna' && (
                         <BilahSimpan
                             perubahan={perubahan}
                             bisaSimpan={bisaSimpan}
@@ -887,7 +890,7 @@ export default function Pengaturan({
             {tujuan !== null && (
                 <Dialog
                     judul={`${perubahan.length} perubahan belum disimpan.`}
-                    keterangan="Perubahan ini hilang bila Anda pindah tanpa menyimpan."
+                    keterangan="Perubahan ini hilang bila pindah tanpa menyimpan."
                     lebar="w-[560px]"
                     onTutup={() => setTujuan(null)}
                 >
@@ -984,7 +987,7 @@ function IsianAngka({
             {berlabel && (
                 <label
                     htmlFor={id}
-                    className="mb-1.5 block text-sm font-semibold text-muted-foreground"
+                    className="mb-2 block text-base font-semibold text-muted-foreground"
                 >
                     {label}
                 </label>
@@ -1007,12 +1010,12 @@ function IsianAngka({
                     onChange={(e) => onGanti(kunci, e.target.value)}
                     className="min-w-0 flex-1 bg-transparent px-2.5 text-right font-bold outline-none"
                 />
-                <span className="flex w-14 shrink-0 items-center justify-center border-l-2 border-border bg-surface-alt text-sm text-muted-foreground">
+                <span className="flex w-14 shrink-0 items-center justify-center border-l-2 border-border-strong bg-surface-alt text-sm text-muted-foreground">
                     {satuan}
                 </span>
             </div>
             {rusak ? (
-                <p className="mt-1 text-sm font-semibold text-tone-red">
+                <p className="mt-1 text-base font-semibold text-tone-red">
                     Isi dengan angka.
                 </p>
             ) : (
@@ -1174,14 +1177,14 @@ function BagianPengguna({
                             Daftar akun tidak dapat dimuat
                         </p>
                         <p className="mt-0.5 text-sm">
-                            Periksa sambungan ke server, lalu ulangi.
+                            Periksa sambungan ke server, lalu coba lagi.
                         </p>
                         <button
                             type="button"
                             onClick={daftar.ulangi}
                             className="tombol-kedua mt-3 px-5.5"
                         >
-                            Ulangi
+                            Coba lagi
                         </button>
                     </div>
                 </div>
@@ -1226,22 +1229,13 @@ function BagianPengguna({
             >
                 <TableHeader className="sticky top-0 z-10">
                     <TableRow>
-                        <TableHead scope="col" className="bg-card first:pl-7">
+                        <TableHead scope="col" className="first:pl-7">
                             Nama dan nama pengguna
                         </TableHead>
-                        <TableHead scope="col" className="bg-card">
-                            Peran
-                        </TableHead>
-                        <TableHead scope="col" className="bg-card">
-                            RT binaan
-                        </TableHead>
-                        <TableHead scope="col" className="bg-card">
-                            Status
-                        </TableHead>
-                        <TableHead
-                            scope="col"
-                            className="bg-card text-right last:pr-7"
-                        >
+                        <TableHead scope="col">Peran</TableHead>
+                        <TableHead scope="col">RT binaan</TableHead>
+                        <TableHead scope="col">Status</TableHead>
+                        <TableHead scope="col" className="text-right last:pr-7">
                             Aksi
                         </TableHead>
                     </TableRow>
@@ -1378,9 +1372,11 @@ function DialogPengguna({
         usernameBersih !== '' && !POLA_USERNAME.test(usernameBersih);
     const galatUsername = bentrok
         ? 'Nama pengguna ini sudah dipakai akun lain.'
-        : dicoba && salahBentuk
-          ? ATURAN_USERNAME
-          : null;
+        : dicoba && usernameBersih === ''
+          ? 'Nama pengguna wajib diisi.'
+          : dicoba && salahBentuk
+            ? ATURAN_USERNAME
+            : null;
     const galatSandi =
         pengguna === null && kataSandi === ''
             ? 'Kata sandi awal wajib diisi.'
@@ -1427,7 +1423,7 @@ function DialogPengguna({
                     })
                         .catch(
                             () =>
-                                'Perubahan tidak dapat disimpan. Silakan ulangi.',
+                                'Perubahan tidak dapat disimpan. Silakan coba lagi.',
                         )
                         .then((galat) => {
                             setGalatServer(galat);
@@ -1436,14 +1432,23 @@ function DialogPengguna({
                 }}
                 className="flex min-h-0 flex-1 flex-col"
             >
-                <div className="grid min-h-0 gap-4 overflow-y-auto px-7 pt-4.5 pb-5.5 sm:grid-cols-2">
-                    <KolomPengguna id="pengguna-nama" label="Nama lengkap">
+                <div className="grid min-h-0 gap-4 overflow-y-auto px-7 py-4.5 sm:grid-cols-2 lg:pendek:gap-y-2.5 lg:pendek:py-3">
+                    <KolomPengguna
+                        id="pengguna-nama"
+                        label="Nama lengkap"
+                        galat={
+                            dicoba && nama.trim() === ''
+                                ? 'Nama lengkap wajib diisi.'
+                                : null
+                        }
+                    >
                         <input
                             id="pengguna-nama"
                             value={nama}
                             maxLength={120}
                             onChange={(e) => setNama(e.target.value)}
-                            className="isian w-full"
+                            aria-invalid={dicoba && nama.trim() === ''}
+                            className={`isian w-full ${dicoba && nama.trim() === '' ? 'border-tone-red' : ''}`}
                         />
                     </KolomPengguna>
                     <KolomPengguna
@@ -1467,46 +1472,46 @@ function DialogPengguna({
                             onChange={(e) => setUsername(e.target.value)}
                             aria-invalid={galatUsername !== null}
                             aria-describedby="pengguna-username-ket"
-                            className={`isian w-full ${galatUsername !== null ? 'border-tone-red' : ''}`}
+                            className={`isian w-full ${galatUsername !== null || (dicoba && usernameBersih === '') ? 'border-tone-red' : ''}`}
                         />
                         {galatUsername === null && (
                             <p
                                 id="pengguna-username-ket"
-                                className="mt-1.5 text-sm text-muted-foreground"
+                                className="mt-1.5 text-base text-muted-foreground"
                             >
                                 Dipakai untuk masuk. Contoh: kader01.
                             </p>
                         )}
                     </KolomPengguna>
                     <KolomPengguna id="pengguna-peran" label="Peran">
-                        <select
+                        <Pilih
                             id="pengguna-peran"
                             value={peran}
                             disabled={terkunci}
-                            onChange={(e) => setPeran(e.target.value as Peran)}
-                            className="isian w-full cursor-pointer font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                            onChange={(v) => setPeran(v as Peran)}
+                            className="font-semibold"
                         >
                             {URUTAN_PERAN.map((x) => (
                                 <option key={x} value={x}>
                                     {NAMA_PERAN[x]}
                                 </option>
                             ))}
-                        </select>
+                        </Pilih>
                     </KolomPengguna>
                     <KolomPengguna id="pengguna-rt" label="RT binaan">
                         {peran === 'kader' ? (
-                            <select
+                            <Pilih
                                 id="pengguna-rt"
                                 value={rt}
-                                onChange={(e) => setRt(e.target.value)}
-                                className="isian w-full cursor-pointer font-semibold"
+                                onChange={setRt}
+                                className="font-semibold"
                             >
                                 {wilayahRt.map((w) => (
                                     <option key={w} value={w}>
                                         {labelRt(w)}
                                     </option>
                                 ))}
-                            </select>
+                            </Pilih>
                         ) : (
                             /* Bidan dan admin melihat seluruh RW; kalimat ini
                                menjawab pertanyaannya langsung, tanpa kotak
@@ -1541,7 +1546,7 @@ function DialogPengguna({
                         {!(pengguna === null && sandiSalah) && (
                             <p
                                 id="pengguna-sandi-ket"
-                                className="mt-1.5 text-sm text-muted-foreground"
+                                className="mt-1.5 text-base text-muted-foreground"
                             >
                                 {pengguna === null
                                     ? `Minimal ${SANDI_MINIMAL} karakter.`
@@ -1564,20 +1569,15 @@ function DialogPengguna({
                         </label>
                     )}
                     {terkunci && (
-                        <p className="text-sm text-muted-foreground sm:col-span-2">
+                        <p className="text-base text-muted-foreground sm:col-span-2">
                             Admin aktif terakhir tidak bisa diturunkan perannya
                             maupun dinonaktifkan.
-                        </p>
-                    )}
-                    {dicoba && kosong && (
-                        <p className="text-sm font-semibold text-tone-red sm:col-span-2">
-                            Nama lengkap dan nama pengguna harus diisi.
                         </p>
                     )}
                     {galatServer !== null && (
                         <p
                             role="alert"
-                            className="text-sm font-semibold text-tone-red sm:col-span-2"
+                            className="text-base font-semibold text-tone-red sm:col-span-2"
                         >
                             {galatServer}
                         </p>
@@ -1628,13 +1628,13 @@ function KolomPengguna({
         <div className="min-w-0">
             <label
                 htmlFor={id}
-                className="block text-sm font-semibold text-muted-foreground"
+                className="block text-base font-semibold text-muted-foreground"
             >
                 {label}
             </label>
-            <div className="mt-1.5">{children}</div>
+            <div className="mt-2">{children}</div>
             {galat !== null && (
-                <p className="mt-1.5 text-sm font-semibold text-tone-red">
+                <p className="mt-1.5 text-base font-semibold text-tone-red">
                     {galat}
                 </p>
             )}

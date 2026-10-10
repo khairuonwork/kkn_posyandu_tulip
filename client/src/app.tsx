@@ -8,6 +8,7 @@
  * yang dipresentasikan tidak bisa berbeda dari apa yang dipakai.
  */
 
+import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { bacaRute, boleh, Cangkang, KartuAkun } from '@/app-shell';
@@ -55,7 +56,7 @@ function AplikasiPetugas() {
     }
 
     if (sesi.status === 'keluar') {
-        return <Login onMasuk={sesi.masuk} />;
+        return <Login onMasuk={sesi.masuk} sesiBerakhir={sesi.berakhir} />;
     }
 
     return (
@@ -72,7 +73,7 @@ function AplikasiPetugas() {
             }}
             // Sesi yang dicabut server berakhir di tempat: alamatnya tetap,
             // sehingga setelah masuk kembali pengguna berada di layar yang sama.
-            onSesiBerakhir={sesi.keluar}
+            onSesiBerakhir={sesi.akhiriSesi}
         />
     );
 }
@@ -85,7 +86,15 @@ function AplikasiPetugas() {
  */
 function Memeriksa() {
     return (
-        <div className="flex min-h-screen items-center justify-center">
+        <div
+            role="status"
+            className="flex min-h-screen flex-col items-center justify-center gap-3"
+        >
+            <Loader2
+                className="size-7 animate-spin text-primary motion-reduce:[animation-duration:3s]"
+                strokeWidth={2.5}
+                aria-hidden="true"
+            />
             <p className="text-base text-muted-foreground">Memeriksa sesi…</p>
         </div>
     );

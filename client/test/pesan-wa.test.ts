@@ -93,18 +93,12 @@ describe('susunPesan', () => {
         assert.match(pesan, /Posyandu Tulip RW 18$/);
     });
 
-    test('memuat angka, z-score, dan selisih 2 bulan', () => {
+    test('memuat angka, kategori tanpa kode, dan selisih 2 bulan', () => {
         const pesan = susunPesan(bahan());
 
-        assert.match(
-            pesan,
-            /• Berat badan 10,9 kg \(BB\/U −1,40 SD, Berat badan normal\)/,
-        );
-        assert.match(
-            pesan,
-            /• Tinggi badan 88,7 cm \(TB\/U −0,80 SD, Normal\)/,
-        );
-        assert.match(pesan, /• Status gizi \(BB\/TB −0,50 SD, Gizi baik\)/);
+        assert.match(pesan, /• Berat badan 10,9 kg: normal/);
+        assert.match(pesan, /• Tinggi badan 88,7 cm: normal/);
+        assert.match(pesan, /• Status gizi: gizi baik/);
         assert.match(pesan, /• Berat badan naik 0,3 kg dibanding 2 bulan lalu/);
     });
 
@@ -122,7 +116,7 @@ describe('susunPesan', () => {
     test('di bawah 24 bulan memakai panjang badan', () => {
         const pesan = susunPesan(bahan({ umurBulan: 10 }));
 
-        assert.match(pesan, /• Panjang badan 88,7 cm \(PB\/U/);
+        assert.match(pesan, /• Panjang badan 88,7 cm: normal/);
     });
 
     test('tiga kesimpulan menyebut nama depan dan tidak memakai kata sehat', () => {
@@ -175,13 +169,7 @@ describe('susunPesan', () => {
             }),
         );
 
-        assert.match(
-            pesan,
-            /• Lingkar lengan atas 15,2 cm \(LILA\/U \+0,50 SD\)/,
-        );
-        assert.match(
-            pesan,
-            /• Lingkar kepala 49,0 cm \(LIKA\/U −0,30 SD, Normal\)/,
-        );
+        assert.match(pesan, /• Lingkar lengan atas 15,2 cm$/m);
+        assert.match(pesan, /• Lingkar kepala 49,0 cm: normal/);
     });
 });

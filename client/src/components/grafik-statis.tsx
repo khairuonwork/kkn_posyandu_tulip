@@ -286,14 +286,17 @@ export default function GrafikStatis({
             ))}
             {titik.map((t, i) => {
                 const akhir = i === titik.length - 1;
+                // Label titik di tepi kiri dibaca ke kanan supaya tidak
+                // menimpa angka sumbu tegak.
+                const tepiKiri = x(t.umur) - kiri < teks * 2;
 
                 return (
                     <g key={`${t.umur}|${t.tanggal}|${i}`}>
                         {labelZ && t.z !== null && (
                             <text
-                                x={x(t.umur)}
+                                x={tepiKiri ? x(t.umur) - 4 : x(t.umur)}
                                 y={Math.max(atas + teks + 2, y(t.nilai) - 11)}
-                                textAnchor="middle"
+                                textAnchor={tepiKiri ? 'start' : 'middle'}
                                 fontSize={teks}
                                 fontWeight={700}
                                 fill={TINTA}

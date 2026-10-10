@@ -185,7 +185,7 @@ export function Cangkang({
                         // saat menu yang dipilih adalah layar yang sedang
                         // terbuka. Di sidebar, `close()` tidak berbuat apa-apa.
                         onClick={() => laci.current?.close()}
-                        className={`flex min-h-13 items-center gap-3.5 rounded-lg px-3.5 text-base pendek:pointer-fine:min-h-10 ${
+                        className={`flex min-h-14 items-center gap-3.5 rounded-lg px-3.5 text-base pendek:pointer-fine:min-h-10 ${
                             aktif
                                 ? 'bg-primary font-bold text-primary-foreground'
                                 : 'font-medium text-foreground'
@@ -258,13 +258,13 @@ export function Cangkang({
                 }}
                 className="fixed inset-y-0 left-0 m-0 h-full max-h-none w-[18rem] max-w-[calc(100vw-3rem)] border-0 border-r border-border bg-sidebar p-0 text-foreground shadow-[12px_0_28px_rgba(22,33,28,0.2)] backdrop:bg-foreground/45"
             >
-                <div className="flex h-full flex-col px-3.5 pt-4.5 pb-4.5">
+                <div className="flex h-full flex-col px-3.5 pt-2.5 pb-4.5">
                     <div className="flex items-center justify-between gap-2 pl-2">
                         <Merek />
                         <button
                             type="button"
                             onClick={() => laci.current?.close()}
-                            className="tombol-kedua shrink-0 px-3.5"
+                            className="tombol-kedua shrink-0 px-4"
                         >
                             <X
                                 className="size-5"

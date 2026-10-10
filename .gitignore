@@ -25,3 +25,8 @@ yarn-error.log
 # Konfigurasi dan laporan alat bantu pribadi (Claude Code, Impeccable).
 .claude/
 .impeccable/
+
+# Log dan skrip hasil Playwright MCP (bukan bagian kode)
+.playwright-mcp/
+# Output graphify (knowledge graph, bukan bagian kode)
+graphify-out/

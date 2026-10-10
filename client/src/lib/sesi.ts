@@ -24,7 +24,7 @@ export type StatusSesi = 'memeriksa' | 'masuk' | 'keluar';
 type Sesi =
     | { status: 'memeriksa'; pengguna: null }
     | { status: 'masuk'; pengguna: PenggunaSesi }
-    | { status: 'keluar'; pengguna: null };
+    | { status: 'keluar'; pengguna: null; berakhir?: boolean };
 
 async function ambilSaya(): Promise<PenggunaSesi | null> {
     const res = await fetch('/api/saya', { credentials: 'same-origin' });
@@ -90,7 +90,9 @@ export function useSesi() {
                     galat?: string;
                 };
 
-                return isi.galat ?? 'Tidak dapat masuk. Coba lagi.';
+                return (
+                    isi.galat ?? 'Tidak dapat masuk. Silakan coba lagi nanti.'
+                );
             }
 
             // Jawaban masuk memuat identitas, tetapi bentuknya berbeda dari
@@ -99,7 +101,7 @@ export function useSesi() {
             const pengguna = await ambilSaya();
 
             if (pengguna === null) {
-                return 'Sesi tidak terbentuk. Coba lagi.';
+                return 'Gagal masuk. Silakan coba lagi.';
             }
 
             setSesi({ status: 'masuk', pengguna });
@@ -119,5 +121,17 @@ export function useSesi() {
         setSesi({ status: 'keluar', pengguna: null });
     }, []);
 
-    return { ...sesi, masuk, keluar };
+    // Server menjawab 401 di tengah pemakaian: kembali ke layar Masuk dengan
+    // penjelasan, bukan diam-diam.
+    const akhiriSesi = useCallback((): void => {
+        void fetch('/api/keluar', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'content-type': 'application/json' },
+        }).catch(() => undefined);
+
+        setSesi({ status: 'keluar', pengguna: null, berakhir: true });
+    }, []);
+
+    return { ...sesi, masuk, keluar, akhiriSesi };
 }

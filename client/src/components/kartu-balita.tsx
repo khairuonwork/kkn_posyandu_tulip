@@ -43,7 +43,7 @@ export default function KartuBalita({ kartu, lembaga, skala = 1 }: Props) {
             role="img"
             aria-label={`Tampilan kartu balita ${kartu.nama ?? ''}, kode ${kartu.kode}`}
             style={{ zoom: skala }}
-            className="flex h-[270px] w-[428px] shrink-0 flex-col overflow-hidden rounded-[16px] border border-dashed border-border-strong bg-card leading-snug text-foreground shadow-[0_2px_8px_rgba(22,33,28,0.08)]"
+            className="flex h-[270px] w-[428px] shrink-0 flex-col overflow-hidden rounded-[16px] border border-dashed border-border-strong bg-card leading-snug text-foreground shadow-[0_2px_8px_rgba(22,33,28,0.08)] print:shadow-none"
         >
             <div className="flex h-11 shrink-0 items-center justify-between gap-3 bg-primary px-[18px] text-primary-foreground">
                 <span className="text-[13px] font-extrabold tracking-[0.08em]">

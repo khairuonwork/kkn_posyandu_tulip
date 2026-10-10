@@ -154,7 +154,9 @@ export function useAnakServer(onSesiBerakhir: () => void): DataAnakServer {
             }
 
             if (!res.ok) {
-                throw new Error(`Server menjawab HTTP ${res.status}.`);
+                throw new Error(
+                    'Tidak dapat terhubung ke server. Periksa koneksi internet, lalu coba lagi.',
+                );
             }
 
             return (await res.json()) as { items: AnakApi[]; total: number };
@@ -199,9 +201,11 @@ export function useAnakServer(onSesiBerakhir: () => void): DataAnakServer {
                         baris: [],
                         kartu: [],
                         pesanGalat:
-                            galat instanceof Error
-                                ? galat.message
-                                : 'Data balita tidak dapat dimuat.',
+                            galat instanceof TypeError
+                                ? 'Tidak dapat terhubung ke server. Periksa koneksi internet, lalu coba lagi.'
+                                : galat instanceof Error
+                                  ? galat.message
+                                  : 'Data balita tidak dapat dimuat.',
                     });
                 }
             });

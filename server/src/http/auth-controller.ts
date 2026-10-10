@@ -38,7 +38,7 @@ export function ruteAuth(pool: Pool): Router {
         if (tahan > 0) {
             res.set('Retry-After', String(tahan))
                 .status(429)
-                .json({ galat: `Terlalu banyak percobaan. Coba lagi dalam ${tahan} detik.` });
+                .json({ galat: `Terlalu banyak percobaan. Silakan coba lagi dalam ${tahan} detik.` });
 
             return;
         }
@@ -81,7 +81,7 @@ export function ruteAuth(pool: Pool): Router {
         const tahan = sisaTahanan(username, ip);
         if (tahan > 0) {
             res.set('Retry-After', String(tahan)).status(429).json({
-                galat: `Terlalu banyak percobaan. Coba lagi dalam ${tahan} detik.`,
+                galat: `Terlalu banyak percobaan. Silakan coba lagi dalam ${tahan} detik.`,
             });
             return;
         }

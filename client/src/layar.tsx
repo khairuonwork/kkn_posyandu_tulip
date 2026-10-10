@@ -8,6 +8,7 @@
  * di seluruh aplikasi, dan itu disengaja.
  */
 
+import { Loader2, TriangleAlert } from 'lucide-react';
 import type { Rute } from '@/app-shell';
 import {
     balitaKartu,
@@ -31,6 +32,7 @@ import {
 import type { DetailAnakServerState } from '@/lib/anak';
 import type { useBerandaServer } from '@/lib/beranda';
 import { umurBulanPada } from '@/lib/format';
+import { Link } from '@/lib/nav';
 import DaftarAnak from '@/pages/anak/index';
 import type { AnakBaru, BarisAnak, PatchAnak } from '@/pages/anak/index';
 import RiwayatPenimbangan from '@/pages/anak/riwayat';
@@ -349,7 +351,7 @@ export function Layar({
         }
 
         if (detailServer?.status === 'tidak-ada') {
-            return <TidakDitemukan />;
+            return <BalitaTidakDitemukan />;
         }
 
         const detail =
@@ -362,7 +364,7 @@ export function Layar({
                 : detailAnak(rute.id);
 
         if (detail === null) {
-            return <TidakDitemukan />;
+            return <BalitaTidakDitemukan />;
         }
 
         const anak = terapkanIdentitas(detail.anak, koreksi[rute.id]);
@@ -431,7 +433,15 @@ export function Layar({
     }
 
     if (rute.nama === 'sasaran') {
-        return <SasaranImpor />;
+        return (
+            <SasaranImpor
+                onImporBerhasil={(periode) => {
+                    berandaServer?.muatUlang();
+                    onMuatUlangAnakServer?.();
+                    onPindahPeriode(periode);
+                }}
+            />
+        );
     }
 
     if (rute.nama === 'kartu-sasaran') {
@@ -470,13 +480,31 @@ export function Layar({
 
 function TidakDitemukan() {
     return (
-        <div className="p-6">
-            <div className="rounded-lg border border-border bg-surface-subtle p-6">
+        <div className="px-4 py-6 sm:p-7">
+            <div className="rounded-xl border border-border bg-surface-subtle p-6">
                 <p className="text-base font-bold">Halaman tidak ditemukan</p>
                 <p className="mt-1 text-base text-muted-foreground">
-                    Alamat yang dibuka tidak dikenali. Pilih salah satu menu di
-                    samping.
+                    Halaman yang dicari tidak ditemukan. Silakan pilih menu
+                    lain.
                 </p>
+            </div>
+        </div>
+    );
+}
+
+function BalitaTidakDitemukan() {
+    return (
+        <div className="px-4 py-6 sm:p-7">
+            <div className="rounded-xl border border-border bg-surface-subtle p-6">
+                <p className="text-base font-bold">
+                    Data balita tidak ditemukan
+                </p>
+                <p className="mt-1 text-base text-muted-foreground">
+                    Balita yang dicari tidak tersedia.
+                </p>
+                <Link href="/balita" className="tombol-kedua mt-3.5">
+                    Kembali ke Data Balita
+                </Link>
             </div>
         </div>
     );
@@ -484,8 +512,16 @@ function TidakDitemukan() {
 
 function MemuatData() {
     return (
-        <div className="flex min-h-80 items-center justify-center p-6">
-            <p className="text-base text-muted-foreground">Memuat data anak…</p>
+        <div
+            role="status"
+            className="flex min-h-80 flex-1 flex-col items-center justify-center gap-3 p-6"
+        >
+            <Loader2
+                className="size-7 animate-spin text-primary motion-reduce:[animation-duration:3s]"
+                strokeWidth={2.5}
+                aria-hidden="true"
+            />
+            <p className="text-base text-muted-foreground">Memuat data…</p>
         </div>
     );
 }
@@ -500,11 +536,17 @@ function GalatData({
     return (
         <div
             role="alert"
-            className="m-6 rounded-xl border border-tone-amber bg-tone-amber-bg p-6"
+            className="mx-4 my-6 rounded-xl border border-tone-red bg-tone-red-bg p-6 text-center sm:m-7"
         >
-            <p className="font-bold">Data live belum dapat dimuat.</p>
-            <p className="mt-1 text-sm">
-                {pesan ?? 'Periksa sambungan API lalu coba lagi.'}
+            <TriangleAlert
+                className="mx-auto mb-3 size-7 text-tone-red"
+                strokeWidth={2.5}
+                aria-hidden="true"
+            />
+            <p className="font-bold">Data belum dapat dimuat.</p>
+            <p className="mt-1 text-base">
+                {pesan ??
+                    'Tidak dapat terhubung ke server. Periksa koneksi internet, lalu coba lagi.'}
             </p>
             <button
                 type="button"

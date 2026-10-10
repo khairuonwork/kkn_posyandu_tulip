@@ -174,7 +174,11 @@ function TableHeadUrut({
                     keterangan === undefined
                         ? 'flex min-h-13 items-center gap-1.5 font-bold whitespace-nowrap'
                         : 'block py-2',
-                    kanan && (keterangan === undefined ? 'justify-end' : 'text-right'),
+                    keterangan === undefined
+                        ? kanan && 'justify-end'
+                        : kanan
+                          ? 'text-right'
+                          : 'text-left',
                 )}
             >
                 {keterangan === undefined ? (

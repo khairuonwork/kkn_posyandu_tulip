@@ -215,12 +215,14 @@ function KartuPeran({
     onGanti: (peran: Peran) => void;
 }) {
     return (
-        <div className="flex flex-col gap-2">
+        // Satu baris dari 640 px: tiga kartu bertumpuk mendorong tombol Masuk
+        // ke bawah lipatan laptop 1536 × 730.
+        <div className="grid gap-2 sm:grid-cols-3">
             {URUTAN_PERAN.map((p) => (
                 <label
                     key={p}
                     htmlFor={`${nama}-${p}`}
-                    className={`flex min-h-16 cursor-pointer items-center gap-3 rounded-lg border-2 px-4 py-3 ${
+                    className={`grid cursor-pointer grid-cols-[auto_1fr] content-start items-center gap-x-3 gap-y-1 rounded-lg border-2 px-4 py-3 ${
                         peran === p
                             ? 'border-primary bg-tone-green-bg'
                             : 'border-border'
@@ -235,17 +237,15 @@ function KartuPeran({
                         onChange={() => onGanti(p)}
                         className="size-5 shrink-0 accent-primary"
                     />
-                    <span className="min-w-0">
-                        <span
-                            className={`block text-base font-bold ${
-                                peran === p ? 'text-primary' : ''
-                            }`}
-                        >
-                            {NAMA_PERAN[p]}
-                        </span>
-                        <span className="block text-sm text-muted-foreground">
-                            {KETERANGAN_PERAN[p]}
-                        </span>
+                    <span
+                        className={`text-base font-bold ${
+                            peran === p ? 'text-primary' : ''
+                        }`}
+                    >
+                        {NAMA_PERAN[p]}
+                    </span>
+                    <span className="col-span-2 text-sm text-muted-foreground">
+                        {KETERANGAN_PERAN[p]}
                     </span>
                 </label>
             ))}

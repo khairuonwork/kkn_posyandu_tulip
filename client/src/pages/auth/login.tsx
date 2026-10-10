@@ -8,7 +8,14 @@
  * Layar ini tidak tahu mana yang sedang berjalan, dan memang tidak perlu tahu.
  */
 
-import { Eye, EyeOff, Loader2, ShieldCheck, TriangleAlert } from 'lucide-react';
+import {
+    Eye,
+    EyeOff,
+    Info,
+    Loader2,
+    ShieldCheck,
+    TriangleAlert,
+} from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import ilustrasiPosyandu from '@/assets/login-posyandu-illustration-v1.png';
@@ -22,9 +29,19 @@ type Props = {
     /** Keterangan di bawah tombol, mis. penanda mode demo. */
     catatan?: ReactNode;
     awal?: { username: string; sandi: string };
+    /** Sesi habis di tengah pemakaian; layar Masuk menjelaskannya. */
+    sesiBerakhir?: boolean;
 };
 
-export default function Login({ onMasuk, pemilihPeran, catatan, awal }: Props) {
+const PESAN_KOSONG = 'Nama pengguna dan kata sandi wajib diisi.';
+
+export default function Login({
+    onMasuk,
+    pemilihPeran,
+    catatan,
+    awal,
+    sesiBerakhir = false,
+}: Props) {
     const [username, setUsername] = useState(awal?.username ?? '');
     const [sandi, setSandi] = useState(awal?.sandi ?? '');
     const [sandiTerbaca, setSandiTerbaca] = useState(false);
@@ -32,6 +49,12 @@ export default function Login({ onMasuk, pemilihPeran, catatan, awal }: Props) {
     const [galat, setGalat] = useState<string | null>(null);
 
     const kosong = username.trim() === '' || sandi === '';
+    // Galat "belum diisi" hanya menandai kotak yang memang kosong; galat lain
+    // (mis. sandi salah) menandai keduanya.
+    const galatKosong = galat === PESAN_KOSONG;
+    const merahNama =
+        galat !== null && (!galatKosong || username.trim() === '');
+    const merahSandi = galat !== null && (!galatKosong || sandi === '');
 
     const kirim = (peristiwa: FormEvent) => {
         peristiwa.preventDefault();
@@ -41,7 +64,7 @@ export default function Login({ onMasuk, pemilihPeran, catatan, awal }: Props) {
         }
 
         if (kosong) {
-            setGalat('Isi nama pengguna dan kata sandi terlebih dahulu.');
+            setGalat(PESAN_KOSONG);
 
             return;
         }
@@ -59,7 +82,9 @@ export default function Login({ onMasuk, pemilihPeran, catatan, awal }: Props) {
                 }
             })
             .catch(() => {
-                setGalat('Tidak dapat menghubungi server. Periksa sambungan.');
+                setGalat(
+                    'Tidak dapat terhubung ke server. Periksa koneksi internet.',
+                );
                 setMemuat(false);
             });
     };
@@ -94,13 +119,13 @@ export default function Login({ onMasuk, pemilihPeran, catatan, awal }: Props) {
                 menjadi #EDEFEA, `bg-background` membuat kedua panel berwarna
                 abu dan pembagian dua panelnya lenyap. Bagian 6.1 menetapkan
                 kiri #FFFFFF, kanan #F6F7F5. */}
-                <div className="flex w-full flex-col items-center justify-center bg-transparent px-6 py-12 sm:px-12 lg:w-[54%] xl:px-20">
+                <div className="flex w-full flex-col items-center justify-center bg-transparent px-6 py-6 sm:px-12 lg:w-[54%] xl:px-20">
                     {/* Blok maks 400 px sesuai bagian 6.1. Sebelumnya 560 px, yang
                     menarik baris isian jadi selebar tabel. */}
                     <div className="w-full max-w-[480px]">
                         <Merek />
 
-                        <h1 className="mt-10 text-4xl font-extrabold tracking-[-0.03em] lg:text-5xl">
+                        <h1 className="mt-9 text-4xl font-extrabold tracking-[-0.03em]">
                             Selamat datang
                         </h1>
 
@@ -110,13 +135,26 @@ export default function Login({ onMasuk, pemilihPeran, catatan, awal }: Props) {
                         </p>
 
                         <form onSubmit={kirim} className="mt-9">
+                            {sesiBerakhir && galat === null && (
+                                <div
+                                    role="status"
+                                    className="mb-7 flex items-start gap-2.5 rounded-lg border border-tone-blue bg-tone-blue-bg p-4 text-base font-semibold text-tone-blue"
+                                >
+                                    <Info
+                                        className="mt-0.5 size-5 shrink-0"
+                                        strokeWidth={2.5}
+                                        aria-hidden="true"
+                                    />
+                                    Sesi telah berakhir. Silakan masuk kembali.
+                                </div>
+                            )}
                             {galat !== null && (
                                 <div
                                     role="alert"
-                                    className="mb-4 flex items-start gap-2.5 rounded-lg border border-tone-red bg-tone-red-bg p-4 text-sm font-semibold text-tone-red"
+                                    className="mb-7 flex items-start gap-2.5 rounded-lg border border-tone-red bg-tone-red-bg p-4 text-base font-semibold text-tone-red"
                                 >
                                     <TriangleAlert
-                                        className="mt-0.5 size-4 shrink-0"
+                                        className="mt-0.5 size-5 shrink-0"
                                         strokeWidth={2.5}
                                         aria-hidden="true"
                                     />
@@ -124,7 +162,7 @@ export default function Login({ onMasuk, pemilihPeran, catatan, awal }: Props) {
                                 </div>
                             )}
 
-                            <div className="space-y-6">
+                            <div className="space-y-7">
                                 <div>
                                     <label
                                         htmlFor="username"
@@ -148,10 +186,8 @@ export default function Login({ onMasuk, pemilihPeran, catatan, awal }: Props) {
                                         onChange={(e) =>
                                             setUsername(e.target.value)
                                         }
-                                        className={`isian mt-1.5 w-full text-lg placeholder:text-lg disabled:opacity-60 ${
-                                            galat === null
-                                                ? ''
-                                                : 'border-tone-red'
+                                        className={`isian mt-2 w-full text-lg placeholder:text-lg disabled:opacity-60 ${
+                                            merahNama ? 'border-tone-red' : ''
                                         }`}
                                     />
                                 </div>
@@ -163,7 +199,7 @@ export default function Login({ onMasuk, pemilihPeran, catatan, awal }: Props) {
                                     >
                                         Kata sandi
                                     </label>
-                                    <div className="relative mt-1.5">
+                                    <div className="relative mt-2">
                                         <input
                                             id="sandi"
                                             type={
@@ -178,9 +214,9 @@ export default function Login({ onMasuk, pemilihPeran, catatan, awal }: Props) {
                                                 setSandi(e.target.value)
                                             }
                                             className={`isian w-full pr-13 text-lg placeholder:text-lg disabled:opacity-60 ${
-                                                galat === null
-                                                    ? ''
-                                                    : 'border-tone-red'
+                                                merahSandi
+                                                    ? 'border-tone-red'
+                                                    : ''
                                             }`}
                                         />
                                         <button
@@ -213,7 +249,7 @@ export default function Login({ onMasuk, pemilihPeran, catatan, awal }: Props) {
 
                             {pemilihPeran !== undefined && (
                                 <fieldset className="mt-7" disabled={memuat}>
-                                    <legend className="mb-1.5 text-base font-semibold text-muted-foreground">
+                                    <legend className="mb-2 text-base font-semibold text-muted-foreground">
                                         Masuk sebagai
                                     </legend>
                                     {pemilihPeran}
@@ -302,7 +338,7 @@ function Merek({ terang = false }: { terang?: boolean }) {
             </div>
 
             <p
-                className={`mt-2 text-sm font-medium ${
+                className={`mt-2 pl-10 text-sm font-medium ${
                     terang ? 'text-white/80' : 'text-muted-foreground'
                 }`}
             >
