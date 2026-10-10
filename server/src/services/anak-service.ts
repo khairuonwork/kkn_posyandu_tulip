@@ -305,7 +305,7 @@ export async function simpanPengukuran(
         );
     }
 
-    const id = await dalamTransaksi(
+    const hasil = await dalamTransaksi(
         pool,
         { pengguna: pengguna.id, sumber: "tablet" },
         (db) =>
@@ -323,16 +323,16 @@ export async function simpanPengukuran(
                 statusKehadiran: status,
             }),
     );
-    if (id === null)
+    if (hasil === null)
         throw new GalatAnak(
             404,
             "Anak tidak ditemukan atau berada di luar RT binaan.",
         );
-    await hitungDanSimpan(pool, id, undefined, {
+    await hitungDanSimpan(pool, hasil.id, undefined, {
         pengguna: pengguna.id,
         sumber: "tablet",
     });
-    return { id, idPengukuran };
+    return { id: hasil.id, idPengukuran, susulan: hasil.susulan };
 }
 
 export function sinkronisasi(pool: Pool, pengguna: PenggunaAktif) {

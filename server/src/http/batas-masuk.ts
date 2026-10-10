@@ -11,6 +11,8 @@
  */
 
 export const MAKS_GAGAL = 5;
+/** Batas tambahan per username+alamat bersama agar banyak tablet satu lokasi tetap bisa masuk. */
+export const MAKS_GAGAL_JARINGAN = 15;
 
 const JEDA_MS = 15 * 60 * 1000;
 
@@ -23,27 +25,37 @@ type Catatan = {
 const catatan = new Map<string, Catatan>();
 
 /**
- * Dihitung per pasangan nama pengguna dan alamat, bukan per alamat saja: satu jaringan
- * Posyandu dipakai bersama, dan satu kader yang salah ketik tidak boleh
- * mengunci kader lain di ruangan yang sama.
+ * Batas utama dipisah per perangkat agar satu tablet yang salah mengetik tidak
+ * mengunci tablet lain. Batas jaringan yang lebih longgar tetap menahan spam
+ * dari satu alamat bersama.
  */
-function kunci(username: string, ip: string): string {
-    return `${username.trim().toLowerCase()}|${ip}`;
+function kunci(username: string, ip: string, perangkat: string): string {
+    return `${username.trim().toLowerCase()}|${ip}|${perangkat}`;
 }
 
-/** Sisa detik sebelum boleh mencoba lagi; 0 bila tidak sedang ditahan. */
-export function sisaTahanan(username: string, ip: string, sekarang = Date.now()): number {
-    const c = catatan.get(kunci(username, ip));
+function kunciJaringan(username: string, ip: string): string {
+    return `${username.trim().toLowerCase()}|${ip}|*`;
+}
 
-    if (c === undefined || c.kedaluwarsa <= sekarang || c.gagal < MAKS_GAGAL) {
-        return 0;
-    }
-
+function sisaDari(c: Catatan | undefined, sekarang: number, batas: number): number {
+    if (c === undefined || c.kedaluwarsa <= sekarang || c.gagal < batas) return 0;
     return Math.ceil((c.kedaluwarsa - sekarang) / 1000);
 }
 
-export function catatGagal(username: string, ip: string, sekarang = Date.now()): void {
-    const k = kunci(username, ip);
+/** Sisa detik sebelum boleh mencoba lagi; 0 bila tidak sedang ditahan. */
+export function sisaTahanan(
+    username: string,
+    ip: string,
+    perangkat = "legacy",
+    sekarang = Date.now(),
+): number {
+    return Math.max(
+        sisaDari(catatan.get(kunci(username, ip, perangkat)), sekarang, MAKS_GAGAL),
+        sisaDari(catatan.get(kunciJaringan(username, ip)), sekarang, MAKS_GAGAL_JARINGAN),
+    );
+}
+
+function tambahGagal(k: string, sekarang: number, batas: number): void {
     const c = catatan.get(k);
 
     // Jendela baru: kegagalan pertama, atau jendela lama sudah lewat.
@@ -52,12 +64,22 @@ export function catatGagal(username: string, ip: string, sekarang = Date.now()):
     } else {
         c.gagal += 1;
 
-        if (c.gagal >= MAKS_GAGAL) {
+        if (c.gagal >= batas) {
             // Tahanan dihitung ulang dari kegagalan terakhir, bukan dari yang
             // pertama — mencoba terus tidak mempercepat berakhirnya.
             c.kedaluwarsa = sekarang + JEDA_MS;
         }
     }
+}
+
+export function catatGagal(
+    username: string,
+    ip: string,
+    perangkat = "legacy",
+    sekarang = Date.now(),
+): void {
+    tambahGagal(kunci(username, ip, perangkat), sekarang, MAKS_GAGAL);
+    tambahGagal(kunciJaringan(username, ip), sekarang, MAKS_GAGAL_JARINGAN);
 
     // Pembersihan malas: hanya saat ada kegagalan, dan hanya bila petanya sudah
     // cukup besar untuk pantas dibersihkan.
@@ -70,8 +92,9 @@ export function catatGagal(username: string, ip: string, sekarang = Date.now()):
     }
 }
 
-export function catatBerhasil(username: string, ip: string): void {
-    catatan.delete(kunci(username, ip));
+export function catatBerhasil(username: string, ip: string, perangkat = "legacy"): void {
+    catatan.delete(kunci(username, ip, perangkat));
+    catatan.delete(kunciJaringan(username, ip));
 }
 
 /** Hanya untuk pengujian. */

@@ -482,7 +482,7 @@ export async function upsertPengukuran(
     db: PoolClient,
     pengguna: PenggunaAktif,
     data: PengukuranLapangan,
-): Promise<number | null> {
+): Promise<{ id: number; susulan: boolean } | null> {
     const rt = batasRt(pengguna);
     const anak = await db.query<{ id: number; posyandu_id: number }>(
         `SELECT a.id, w.posyandu_id
@@ -530,12 +530,35 @@ export async function upsertPengukuran(
         ],
     );
 
+    const sasaranSebelum = await db.query<{
+        status: string;
+        catatan: string | null;
+        sesiDitutupPada: Date | string | null;
+    }>(
+        `SELECT s.status, s.catatan, p.sesi_ditutup_pada AS "sesiDitutupPada"
+           FROM sasaran s
+           JOIN periode p ON p.id=s.periode_id
+          WHERE s.periode_id=$1 AND s.anak_id=$2
+          FOR UPDATE OF s`,
+        [periode.rows[0].id, anak.rows[0].id],
+    );
+
     const lama = await db.query<{ id: number }>(
         `SELECT id FROM pengukuran
           WHERE id_sumber = $1 OR (anak_id = $2 AND periode_id = $3)
           ORDER BY (id_sumber = $1) DESC LIMIT 1 FOR UPDATE`,
         [data.idPengukuran, anak.rows[0].id, periode.rows[0].id],
     );
+    const catatanSebelumnya = sasaranSebelum.rows[0]?.catatan ?? "";
+    const sudahDitandaiSusulan = catatanSebelumnya.includes(
+        "Pendataan susulan setelah sesi ditutup.",
+    );
+    const susulan =
+        sudahDitandaiSusulan ||
+        (sasaranSebelum.rows[0]?.status === "tidak_hadir" &&
+            sasaranSebelum.rows[0]?.sesiDitutupPada !== null &&
+            sasaranSebelum.rows[0]?.sesiDitutupPada !== undefined &&
+            lama.rows[0] === undefined);
     const nilai = [
         periode.rows[0].id,
         pengguna.id,
@@ -579,16 +602,20 @@ export async function upsertPengukuran(
                     WHEN 'pindah' THEN 'pindah'
                     ELSE 'selesai'
                 END,
-                diselesaikan_pada=now(), diselesaikan_oleh=$3
+                diselesaikan_pada=now(), diselesaikan_oleh=$3,
+                catatan=CASE WHEN $5::boolean AND position('Pendataan susulan setelah sesi ditutup.' in coalesce(catatan,''))=0
+                    THEN concat_ws(chr(10), nullif(catatan,''), 'Pendataan susulan setelah sesi ditutup.')
+                    ELSE catatan END
           WHERE periode_id=$1 AND anak_id=$2`,
         [
             periode.rows[0].id,
             anak.rows[0].id,
             pengguna.id,
             data.statusKehadiran,
+            susulan,
         ],
     );
-    return pengukuranId;
+    return { id: pengukuranId, susulan };
 }
 
 /** Bentuk kompatibel dengan cache offline tablet versi 1.8. */
@@ -621,6 +648,7 @@ export async function paketSinkronisasi(pool: Pool, _pengguna: PenggunaAktif) {
         `SELECT a.id AS id_anak, a.id_publik AS id_anak_public,
                 o.id_keluarga AS id_keluarga, a.nik,
                 s.id AS id_sasaran, s.status AS status_sasaran,
+                s.catatan AS catatan_sasaran,
                 'SPT-' || lpad(a.id::text, 8, '0') AS kode_kartu,
                 a.nama AS nama_anak, to_char(a.tgl_lahir, 'YYYY-MM-DD') AS tgl_lahir,
                 a.jk, o.nama AS nama_ortu, o.nik AS nik_ortu, w.rt,
