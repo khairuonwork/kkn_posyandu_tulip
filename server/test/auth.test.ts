@@ -112,8 +112,8 @@ describe("pembatasan RT", () => {
         assert.ok(bolehAksesRt(kader("01"), "02"));
     });
 
-    test("bidan dan admin melihat seluruh RW", () => {
-        for (const peran of ["bidan", "admin"] as const) {
+    test("KMS, bidan dan admin melihat seluruh RT", () => {
+        for (const peran of ["kms", "bidan", "admin"] as const) {
             const p: PenggunaAktif = { id: 1, peran, rt: null, aktif: true };
 
             assert.equal(rtYangBolehDilihat(p), null);

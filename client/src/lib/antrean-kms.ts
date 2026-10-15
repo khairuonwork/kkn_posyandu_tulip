@@ -44,10 +44,10 @@ export async function ambilAntreanHariIni(
     };
 
     if (!res.ok) {
-throw new Error(
+        throw new Error(
             body.galat ?? `Antrean gagal dimuat (HTTP ${res.status}).`,
         );
-}
+    }
 
     return body.items ?? [];
 }

@@ -55,7 +55,7 @@ describe('aturan isian akun', () => {
 
     test('kader wajib punya RT; peran lain tidak menyimpan RT', () => {
         assert.deepEqual(bacaIsianAkun({ ...lengkap, rt: '' }), {
-            galat: 'Kader wajib punya RT binaan.',
+            galat: 'Kader wajib punya RT asal.',
         });
 
         const bidan = bacaIsianAkun({ ...lengkap, peran: 'bidan' });
@@ -279,7 +279,7 @@ describe(
 
             assert.deepEqual(await galat({ ...dasar, rt: '' }), {
                 status: 400,
-                galat: 'Kader wajib punya RT binaan.',
+                galat: 'Kader wajib punya RT asal.',
             });
             assert.deepEqual(await galat({ ...dasar, rt: '09' }), {
                 status: 400,

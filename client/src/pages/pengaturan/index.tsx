@@ -1490,7 +1490,7 @@ function DialogPengguna({
                             ))}
                         </select>
                     </KolomPengguna>
-                    <KolomPengguna id="pengguna-rt" label="RT penugasan">
+                    <KolomPengguna id="pengguna-rt" label={peran === 'kader' ? 'RT asal kader' : 'Cakupan akses'}>
                         {peran === 'kader' ? (
                             <select
                                 id="pengguna-rt"
@@ -1513,7 +1513,7 @@ function DialogPengguna({
                     </KolomPengguna>
                     {peran === 'kader' && (
                         <p className="-mt-3 text-sm text-muted-foreground sm:col-span-2">
-                            Semua kader dapat melihat sasaran dan antrean dari seluruh RT. RT penugasan hanya untuk informasi.
+                            Akses otomatis ke semua RT. RT asal hanya menunjukkan asal kader, bukan batas akses data.
                         </p>
                     )}
                     <KolomPengguna

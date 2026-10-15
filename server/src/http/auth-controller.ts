@@ -68,6 +68,7 @@ export function ruteAuth(pool: Pool): Router {
                 // akun yang dinonaktifkan menjadi sasaran tebakan tanpa batas.
                 catatGagal(username, ip, perangkat);
 
+                res.locals.diagnostikLogin = galat.diagnostik;
                 res.status(401).json({ galat: galat.message });
             });
     });
@@ -110,6 +111,7 @@ export function ruteAuth(pool: Pool): Router {
                 }
 
                 catatGagal(username, ip, perangkat);
+                res.locals.diagnostikLogin = galat.diagnostik;
                 res.status(401).json({ galat: galat.message });
             });
     });

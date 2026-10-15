@@ -80,7 +80,7 @@ try {
         -PassThru
 
     $web = Start-Process -FilePath $node `
-        -ArgumentList $viteArgumen, '--host', '0.0.0.0', '--port', $portWebArgumen, '--strictPort' `
+        -ArgumentList $viteArgumen, '--configLoader', 'native', '--host', '0.0.0.0', '--port', $portWebArgumen, '--strictPort' `
         -WorkingDirectory $clientDir `
         -WindowStyle Hidden `
         -RedirectStandardOutput (Join-Path $folderStatus 'web.log') `

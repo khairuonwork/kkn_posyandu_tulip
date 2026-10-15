@@ -90,7 +90,11 @@ export function bacaRute(alamat: string): Rute {
  */
 export function boleh(rute: Rute, peran: Peran): boolean {
     if (peran === 'kms') {
-        return rute.nama === 'kms' || rute.nama === 'detail' || rute.nama === 'riwayat';
+        return (
+            rute.nama === 'kms' ||
+            rute.nama === 'detail' ||
+            rute.nama === 'riwayat'
+        );
     }
 
     if (rute.nama === 'kms') {

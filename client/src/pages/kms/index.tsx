@@ -49,8 +49,8 @@ export default function PemeriksaanKms({ periodeId, onSesiBerakhir }: Props) {
         void ambilAntreanHariIni(periodeId, controller.signal, onSesiBerakhir)
             .then((data) => {
                 if (!hidup) {
-return;
-}
+                    return;
+                }
 
                 setItems(data);
                 setStatus('siap');
@@ -58,8 +58,8 @@ return;
             })
             .catch((error: unknown) => {
                 if (!hidup || (error as Error).name === 'AbortError') {
-return;
-}
+                    return;
+                }
 
                 setStatus('galat');
                 setGalat(
