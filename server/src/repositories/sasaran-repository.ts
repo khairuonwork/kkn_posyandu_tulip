@@ -62,8 +62,7 @@ export async function ringkasanResetPengukuranHariIni(
                 count(DISTINCT a.id)::int AS "jumlahAnak",
                 coalesce(array_agg(DISTINCT a.nama ORDER BY a.nama), ARRAY[]::text[]) AS "namaAnak",
                 (SELECT count(*)::int FROM antrean_layanan q
-                  WHERE q.periode_id=$1 AND q.tanggal=$2::date
-                    AND q.status <> 'cancelled') AS "jumlahAntrean"
+                  WHERE q.periode_id=$1 AND q.tanggal=$2::date) AS "jumlahAntrean"
            FROM pengukuran p
            JOIN sasaran s ON s.anak_id=p.anak_id AND s.periode_id=p.periode_id
            JOIN anak a ON a.id=p.anak_id
@@ -81,6 +80,9 @@ export async function resetPengukuranHariIni(
     jumlahDikonfirmasi: number,
     jumlahAntreanDikonfirmasi: number,
 ): Promise<RingkasanResetHarian | null> {
+    // Serialkan reset dengan check-in agar nomor pertama setelah reset adalah 1.
+    await db.query("SELECT pg_advisory_xact_lock($1::integer, $2::integer)",
+        [periodeId, Number(tanggal.replaceAll("-", ""))]);
     // Gunakan kunci yang sama dengan simpan_pengukuran_tablet untuk menahan
     // unggahan ukur anak pada periode ini selama reset sedang berlangsung.
     await db.query(
@@ -121,12 +123,11 @@ export async function resetPengukuranHariIni(
             )`,
         [periodeId, terkunci.rows.map((row) => row.anak_id)],
     );
-    // Batalkan status antrean di server agar perangkat yang sinkron mengambil
-    // keadaan baru dan anak dapat check-in kembali untuk sesi uji ulang.
+    // Hapus juga antrean yang sudah dibatalkan: max(nomor) harus kosong
+    // supaya check-in berikutnya mulai dari 1, tanpa bentrok nomor unik.
     await db.query(
-        `UPDATE antrean_layanan
-            SET status='cancelled', called_at=NULL, completed_at=NULL
-          WHERE periode_id=$1 AND tanggal=$2::date AND status <> 'cancelled'`,
+        `DELETE FROM antrean_layanan
+          WHERE periode_id=$1 AND tanggal=$2::date`,
         [periodeId, tanggal],
     );
     return dampak;
@@ -213,9 +214,9 @@ export async function tambahSasaranManual(
     const hasil = await db.query<{ id: number }>(
         `INSERT INTO sasaran
              (periode_id, anak_id, status, diselesaikan_pada, diselesaikan_oleh)
-         VALUES ($1, $2, $3,
-                 CASE WHEN $3 = 'selesai' THEN now() ELSE NULL END,
-                 CASE WHEN $3 = 'selesai' THEN $4 ELSE NULL END)
+         VALUES ($1, $2, $3::varchar,
+                 CASE WHEN $3::varchar = 'selesai' THEN now() ELSE NULL END,
+                 CASE WHEN $3::varchar = 'selesai' THEN $4::bigint ELSE NULL END)
          ON CONFLICT (periode_id, anak_id) DO NOTHING
          RETURNING id`,
         [periodeId, anakId, status, penggunaId],

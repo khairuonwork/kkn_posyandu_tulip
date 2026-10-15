@@ -394,7 +394,11 @@ export function Layar({
                 lembaga={LEMBAGA}
                 onSimpan={(patch) => onSimpanAnak(rute.id, patch)}
                 sumberLive={modeDataLive}
-                kembaliKe={peran === 'kms' ? { href: '/kms', label: 'Pemeriksaan KMS' } : undefined}
+                kembaliKe={
+                    peran === 'kms'
+                        ? { href: '/kms', label: 'Pemeriksaan KMS' }
+                        : undefined
+                }
             />
         );
     }
@@ -429,7 +433,12 @@ export function Layar({
     }
 
     if (rute.nama === 'kms') {
-        return <PemeriksaanKms periodeId={periodeId} onSesiBerakhir={onSesiBerakhir} />;
+        return (
+            <PemeriksaanKms
+                periodeId={periodeId}
+                onSesiBerakhir={onSesiBerakhir}
+            />
+        );
     }
 
     if (rute.nama === 'kartu-sasaran') {

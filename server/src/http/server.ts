@@ -43,6 +43,27 @@ export function buatApp(pool: Pool): Express {
     app.set("trust proxy", "loopback");
     app.disable("x-powered-by");
 
+    // Catat hasil login saja, tanpa password, token, cookie, atau badan permintaan.
+    app.use((req, res, next) => {
+        if (req.method === "POST" && ["/api/masuk", "/api/v1/masuk"].includes(req.path)) {
+            res.once("finish", () => {
+                const hasil: Record<number, string> = {
+                    200: "berhasil", 400: "isian_tidak_valid", 401: "ditolak",
+                    429: "terlalu_banyak_percobaan", 415: "format_bukan_json", 500: "galat_server",
+                };
+                console.log("[Login]", JSON.stringify({
+                    waktu: new Date().toISOString(), ip: req.ip, rute: req.path,
+                    username: typeof req.body?.username === "string" ? req.body.username.trim().slice(0, 32) : null,
+                    status: res.statusCode,
+                    sebab: res.locals.diagnostikLogin ?? hasil[res.statusCode] ?? "respons_lain",
+                    usernameTerisi: typeof req.body?.username === "string" && req.body.username.trim() !== "",
+                    kataSandiTerisi: typeof req.body?.kataSandi === "string" && req.body.kataSandi !== "",
+                }));
+            });
+        }
+        next();
+    });
+
     // Impor Excel dikirim sebagai base64 JSON agar tetap dilindungi aturan
     // Content-Type/CSRF yang sama. Parser menegakkan batas file 3 MB.
     app.use(express.json({ limit: "4mb" }));
@@ -57,7 +78,7 @@ export function buatApp(pool: Pool): Express {
             res.set("Vary", "Origin");
             res.set(
                 "Access-Control-Allow-Headers",
-                "Authorization, Content-Type, ngrok-skip-browser-warning",
+                "Authorization, Content-Type, ngrok-skip-browser-warning, X-SIMpatik-Device-Id",
             );
             res.set(
                 "Access-Control-Allow-Methods",

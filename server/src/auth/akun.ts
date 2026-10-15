@@ -73,7 +73,7 @@ export function bacaIsianAkun(badan: unknown, lama?: IsianAkun): HasilBacaAkun {
     // Aturan yang sama dengan CHECK di basis data, diperiksa lebih awal supaya
     // pesannya menyebut sebabnya, bukan nama constraint.
     if (peran === 'kader' && rt === null) {
-        return { galat: 'Kader wajib punya RT binaan.' };
+        return { galat: 'Kader wajib punya RT asal.' };
     }
 
     if (lama === undefined && kataSandi === null) {

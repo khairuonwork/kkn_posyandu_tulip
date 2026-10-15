@@ -1,5 +1,7 @@
-import { Tablet, Wifi, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Tablet, Wifi, CheckCircle2, AlertCircle, RefreshCw, X } from 'lucide-react';
+import { useEffect, useLayoutEffect, useRef, useState, useId } from 'react';
+import type { CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 
 interface TabletInfo {
     deviceId: string;
@@ -23,6 +25,49 @@ export default function StatusTablet() {
     const [bukaDetail, setBukaDetail] = useState(false);
     const [sedangMuat, setSedangMuat] = useState(true);
     const [gagalMemeriksa, setGagalMemeriksa] = useState(false);
+    const tombolRef = useRef<HTMLButtonElement>(null);
+    const panelRef = useRef<HTMLDivElement>(null);
+    const panelId = useId();
+    const [posisiPanel, setPosisiPanel] = useState<CSSProperties | null>(null);
+
+    useLayoutEffect(() => {
+        if (!bukaDetail) return;
+        const aturPosisi = () => {
+            const tombol = tombolRef.current;
+            if (!tombol) return;
+            const rect = tombol.getBoundingClientRect();
+            const width = Math.min(360, window.innerWidth - 24);
+            const ruangAtas = rect.top - 20;
+            setPosisiPanel({
+                width,
+                left: Math.max(12, Math.min(rect.left, window.innerWidth - width - 12)),
+                ...(ruangAtas >= 200
+                    ? { bottom: window.innerHeight - rect.top + 8, maxHeight: Math.min(480, ruangAtas) }
+                    : { top: 12, maxHeight: window.innerHeight - 24 }),
+            });
+        };
+        aturPosisi();
+        window.addEventListener('resize', aturPosisi);
+        window.addEventListener('scroll', aturPosisi, true);
+        return () => {
+            window.removeEventListener('resize', aturPosisi);
+            window.removeEventListener('scroll', aturPosisi, true);
+        };
+    }, [bukaDetail]);
+
+    useEffect(() => {
+        if (!bukaDetail) return;
+        panelRef.current?.focus();
+        const tutupDenganEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setBukaDetail(false);
+        };
+        window.addEventListener('keydown', tutupDenganEscape);
+        const tombol = tombolRef.current;
+        return () => {
+            window.removeEventListener('keydown', tutupDenganEscape);
+            tombol?.focus();
+        };
+    }, [bukaDetail]);
 
     const ambilStatus = async () => {
         setSedangMuat(true);
@@ -59,6 +104,7 @@ export default function StatusTablet() {
     return (
         <div className="relative">
             <button
+                ref={tombolRef}
                 type="button"
                 onClick={() => setBukaDetail((v) => !v)}
                 className={`flex w-full items-center gap-2.5 rounded-xl border px-3 py-2 text-left text-xs transition-all ${
@@ -68,6 +114,8 @@ export default function StatusTablet() {
                 }`}
                 title="Status koneksi Tablet Android & Jaringan Lokal"
                 aria-expanded={bukaDetail}
+                aria-controls={bukaDetail ? panelId : undefined}
+                aria-haspopup="dialog"
             >
                 <div className="relative flex size-2.5 items-center justify-center">
                     {adaTablet ? (
@@ -106,27 +154,45 @@ export default function StatusTablet() {
                 <Tablet className="size-4 shrink-0 text-muted-foreground" />
             </button>
 
-            {bukaDetail && (
+            {bukaDetail && posisiPanel && createPortal(
                 <>
                     <div
-                        className="fixed inset-0 z-40"
+                        className="fixed inset-0 z-[60]"
+                        aria-hidden="true"
                         onClick={() => setBukaDetail(false)}
                     />
-                            <div className="absolute bottom-full left-0 z-50 mb-2 w-72 rounded-2xl border border-border bg-popover p-4 text-popover-foreground shadow-xl">
+                    <div
+                        ref={panelRef}
+                        id={panelId}
+                        role="dialog"
+                        aria-labelledby={`${panelId}-judul`}
+                        tabIndex={-1}
+                        style={posisiPanel}
+                        className="fixed z-[61] overflow-y-auto overscroll-contain rounded-2xl bg-popover p-4 text-popover-foreground shadow-xl outline-none"
+                    >
                         <div className="flex items-center justify-between border-b border-border pb-2.5">
-                            <div className="flex items-center gap-2 font-bold text-sm">
-                                <Wifi className="size-4 text-primary" />
-                                <span>Koneksi Jaringan Lokal</span>
+                            <div className="flex min-w-0 flex-1 items-center gap-2 font-bold text-sm">
+                                <Wifi className="size-4 shrink-0 text-primary" />
+                                <span id={`${panelId}-judul`}>Koneksi Jaringan Lokal</span>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => void ambilStatus()}
-                                className="rounded-md p-1 hover:bg-muted text-muted-foreground"
+                                className="flex size-11 shrink-0 items-center justify-center rounded-md hover:bg-muted text-muted-foreground focus-visible:outline-2 focus-visible:outline-primary"
                                 title="Segarkan status"
+                                aria-label="Segarkan status perangkat"
                             >
                                 <RefreshCw
                                     className={`size-3.5 ${sedangMuat ? 'animate-spin' : ''}`}
                                 />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setBukaDetail(false)}
+                                aria-label="Tutup detail perangkat"
+                                className="flex size-11 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary"
+                            >
+                                <X className="size-4" aria-hidden="true" />
                             </button>
                         </div>
 
@@ -201,7 +267,8 @@ export default function StatusTablet() {
                             </div>
                         </div>
                     </div>
-                </>
+                </>,
+                document.body,
             )}
         </div>
     );

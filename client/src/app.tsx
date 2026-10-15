@@ -140,13 +140,17 @@ function Portal({
         onSesiBerakhir,
     );
 
-    // Alamat yang tidak boleh dibuka peran ini dikembalikan ke Beranda. Ini
+    // Akun KMS mulai dari antrean pemeriksaan; peran lain dari Beranda. Ini
     // kenyamanan; penolakan yang mengikat ada di server.
     useEffect(() => {
         if (!boleh(rute, peran)) {
-            navigate('/beranda');
+            navigate(peran === 'kms' ? '/kms' : '/beranda');
         }
     }, [peran, rute]);
+
+    if (!boleh(rute, peran)) {
+        return <Memeriksa />;
+    }
 
     return (
         <Cangkang

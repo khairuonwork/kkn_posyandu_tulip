@@ -18,13 +18,28 @@ export function ruteAntrean(pool: Pool): Router {
     const rute = Router();
 
     rute.get("/antrean", wajibBoleh("lihat-anak"), async (req, res, next) => {
-        const periodeId = Number(req.query.periodeId);
+        const periodeRaw = typeof req.query.periodeId === "string" ? req.query.periodeId : "";
+        const periodeBulan = /^\d{4}-(0[1-9]|1[0-2])$/.test(periodeRaw);
+        let periodeId = Number(periodeRaw);
         const tanggal = typeof req.query.tanggal === "string" ? req.query.tanggal : "";
-        if (!Number.isSafeInteger(periodeId) || periodeId < 1 || !TANGGAL.test(tanggal)) {
+        if ((!periodeBulan && (!Number.isSafeInteger(periodeId) || periodeId < 1)) || !TANGGAL.test(tanggal)) {
             gagal(res, 400, "Periode dan tanggal antrean tidak valid.");
             return;
         }
         try {
+            // Portal memakai YYYY-MM; tablet memakai primary key periode.
+            if (periodeBulan) {
+                const [tahun, bulan] = periodeRaw.split("-").map(Number);
+                const { rows } = await pool.query<{ id: number }>(
+                    "SELECT id FROM periode WHERE tahun=$1 AND bulan=$2",
+                    [tahun, bulan],
+                );
+                if (!rows[0]) {
+                    gagal(res, 404, "Periode antrean tidak ditemukan.");
+                    return;
+                }
+                periodeId = Number(rows[0].id);
+            }
             res.json({ items: await antreanRepo.daftar(pool, req.pengguna!, periodeId, tanggal) });
         } catch (error) { next(error); }
     });

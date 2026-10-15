@@ -327,7 +327,7 @@ export default function SasaranImpor() {
             const hasilReset = await resetPengukuranHariIni(sasaran.periode.id, pratinjauReset.jumlahPengukuran, pratinjauReset.jumlahAntrean);
             setPratinjauReset(null);
             setKonfirmasiReset('');
-            setPesanMutasi(`${hasilReset.jumlahPengukuran} hasil ukur dihapus dan ${hasilReset.jumlahAntrean} antrean hari ini dibatalkan. ${hasilReset.jumlahAnak} sasaran tanpa riwayat lain kembali ke status belum dilayani.`);
+            setPesanMutasi(`${hasilReset.jumlahPengukuran} hasil ukur dihapus dan ${hasilReset.jumlahAntrean} antrean hari ini dihapus. Nomor antrean berikutnya kembali ke 1. ${hasilReset.jumlahAnak} sasaran tanpa riwayat lain kembali ke status belum dilayani.`);
             await muat(sasaran.periode.periode);
         } catch (error) {
             setGalat(error instanceof Error ? error.message : 'Hasil ukur hari ini tidak dapat direset.');
@@ -1207,14 +1207,14 @@ export default function SasaranImpor() {
                             <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-tone-red-bg text-tone-red"><AlertTriangle className="size-6" aria-hidden="true" /></span>
                             <div className="min-w-0 flex-1">
                                 <h2 id="judul-reset-harian" className="text-xl font-extrabold">Reset data sesi hari ini?</h2>
-                            <p className="mt-2 text-sm leading-6 text-muted-foreground">Aksi admin ini akan menghapus <strong className="text-foreground">{pratinjauReset.jumlahPengukuran} catatan pengukuran</strong> bertanggal {pratinjauReset.tanggal} dari periode sasaran aktif beserta penilaian gizinya, lalu membatalkan <strong className="text-foreground">{pratinjauReset.jumlahAntrean} antrean hari ini</strong> agar anak dapat check-in lagi. Sasaran tanpa catatan ukur periode lain akan kembali ke “Belum dilayani”.</p>
+                            <p className="mt-2 text-sm leading-6 text-muted-foreground">Aksi admin ini akan menghapus <strong className="text-foreground">{pratinjauReset.jumlahPengukuran} catatan pengukuran</strong> bertanggal {pratinjauReset.tanggal} dari periode sasaran aktif beserta penilaian gizinya, lalu menghapus <strong className="text-foreground">{pratinjauReset.jumlahAntrean} antrean hari ini</strong> agar anak dapat check-in lagi dengan nomor antrean mulai dari 1. Sasaran tanpa catatan ukur periode lain akan kembali ke “Belum dilayani”.</p>
                             </div>
                             <button type="button" aria-label="Tutup" onClick={() => setPratinjauReset(null)} disabled={menjalankanReset} className="rounded-lg p-2 text-muted-foreground hover:bg-surface-subtle"><X className="size-5" aria-hidden="true" /></button>
                         </div>
                         {pratinjauReset.jumlahPengukuran + pratinjauReset.jumlahAntrean > 0 ? (
                             <>
                                 {pratinjauReset.namaAnak.length > 0 && <div className="mt-4 max-h-32 overflow-y-auto rounded-lg bg-surface-subtle p-3 text-sm">{pratinjauReset.namaAnak.join(' · ')}</div>}
-                                <p className="mt-4 text-sm font-semibold">Data master balita dan pengukuran tanggal lain tidak dihapus. Pastikan semua tablet sudah tersinkron; data lokal yang masih menunggu sinkronisasi dapat mengirim ulang hasil ukur. Antrean yang dibatalkan akan dihapus dari slot aktif pada sinkronisasi berikutnya.</p>
+                                <p className="mt-4 text-sm font-semibold">Data master balita dan pengukuran tanggal lain tidak dihapus. Pastikan semua tablet sudah tersinkron; data lokal yang masih menunggu sinkronisasi dapat mengirim ulang hasil ukur. Setelah reset, muat ulang antrean pada semua tablet sebelum check-in kembali.</p>
                                 <label className="mt-4 block text-sm font-semibold" htmlFor="konfirmasi-reset-harian">Ketik <code className="rounded bg-surface-subtle px-1.5 py-0.5">RESET HARI INI</code> untuk mengaktifkan reset.</label>
                                 <input id="konfirmasi-reset-harian" value={konfirmasiReset} onChange={(event) => setKonfirmasiReset(event.target.value)} autoComplete="off" className="mt-2 min-h-11 w-full rounded-lg border border-border-strong bg-surface px-3" />
                             </>

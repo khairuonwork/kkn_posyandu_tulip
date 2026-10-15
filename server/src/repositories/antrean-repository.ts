@@ -56,6 +56,9 @@ export async function checkIn(
     tanggal: string,
     catatan: string | null,
 ): Promise<BarisAntrean | null> {
+    // Kunci sebelum sasaran, sama dengan reset harian, agar tidak bersilangan.
+    const tanggalKunci = Number(tanggal.replaceAll("-", ""));
+    await db.query("SELECT pg_advisory_xact_lock($1::integer, $2::integer)", [periodeId, tanggalKunci]);
     // Semua kader yang berhak mencatat layanan dapat check-in sasaran lintas RT.
     const rt: string | null = null;
     const target = await db.query<{ rt: string | null }>(
@@ -72,8 +75,6 @@ export async function checkIn(
     if (!target.rows[0]) return null;
 
     // Kunci per periode/tanggal memastikan dua pemindaian serentak mendapat nomor unik.
-    const tanggalKunci = Number(tanggal.replaceAll("-", ""));
-    await db.query("SELECT pg_advisory_xact_lock($1::integer, $2::integer)", [periodeId, tanggalKunci]);
     const id = `antrean_${tanggal.replaceAll("-", "")}_${sasaranId}`;
     const existing = await db.query<{ status: StatusAntrean }>(
         `SELECT status FROM antrean_layanan
