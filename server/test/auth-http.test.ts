@@ -307,8 +307,10 @@ describe(
             try {
                 await pool.query("INSERT INTO sasaran (periode_id,anak_id) VALUES ($1,$2)",[period.rows[0].id,children.rows[0].id]);
                 const packet = await paketSinkronisasi(pool,{id:1,peran:'kader',rt:'07',aktif:true,posyanduIds:[idPosyandu],superAdmin:false});
-                assert.equal(packet.anak.length,2);
-                const baru = packet.anak.find((r: any)=>r.id_anak===children.rows[1].id);
+                assert.equal(packet.anak.length,1);
+                assert.equal(packet.masterAnak.length,2);
+                assert.equal(packet.sasaran!.ringkasan.total,1);
+                const baru = packet.masterAnak.find((r: any)=>r.id_anak===children.rows[1].id);
                 assert.ok(baru);assert.equal(baru.id_sasaran,null);
             } finally {
                 await pool.query('DELETE FROM sasaran WHERE periode_id=$1',[period.rows[0].id]);

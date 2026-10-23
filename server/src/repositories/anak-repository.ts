@@ -653,6 +653,7 @@ export async function paketSinkronisasi(pool: Pool, pengguna: PenggunaAktif) {
     if (aktif === null) {
         return {
             anak: [],
+            masterAnak: [],
             pengukuran: [],
             sasaran: null,
             waktuServer: new Date().toISOString(),
@@ -713,7 +714,8 @@ export async function paketSinkronisasi(pool: Pool, pengguna: PenggunaAktif) {
     };
 
     return {
-        anak: anak.rows,
+        anak: anak.rows.filter(baris => baris.id_sasaran != null),
+        masterAnak: anak.rows,
         pengukuran: pengukuran.rows,
         sasaran: {
             periodeId: aktif.id,

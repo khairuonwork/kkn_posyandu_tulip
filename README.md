@@ -233,4 +233,4 @@ Web dan REST API disiapkan untuk VM Ubuntu melalui systemd, dengan akses publik 
 
 Unduhan Excel memakai N/T/B, warna status konsisten, peringatan internal −1,96 SD, deskripsi LILA usia ≥6 bulan dan umur historis berdasarkan tanggal yang tersedia. [Aturan dan hasil pemeriksaan](docs/format-ekspor-laporan.md#revisi-komentar-bu-sri--23-oktober-2026). Pembaruan ini cukup memperbarui backend VM; APK dan frontend tidak perlu di-build ulang.
 
-Pembaruan sinkronisasi Android 1.12.6: paket REST `/sinkronisasi` mencakup master anak Posyandu termasuk anak baru yang belum menjadi sasaran periode aktif. Ringkasan sasaran tetap menghitung sasaran terdaftar. Diuji dengan skema database terisolasi.
+Pembaruan sinkronisasi Android 1.12.6: paket REST `/sinkronisasi` mengirim `anak` khusus sasaran periode aktif dan `masterAnak` untuk semua anak Posyandu, termasuk pendaftaran baru. Ringkasan sasaran tetap menghitung sasaran terdaftar. Diuji dengan skema database terisolasi.
