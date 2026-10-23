@@ -69,4 +69,3 @@ Riwayat arsip membandingkan nilai BB arsip yang ditampilkan; bila arsip tidak
 memiliki bulan sebelumnya, pengukuran bertanggal dapat menjadi pembanding.
 Rekap pengukuran memakai pengukuran bertanggal terlebih dahulu lalu arsip
 sebagai pelengkap. N/T hasil hitung tidak menimpa status 2T–6T resmi arsip.
-
