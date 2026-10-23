@@ -19,7 +19,7 @@ import { bacaIsianAkun } from '../src/auth/akun.ts';
 import { hashKataSandi } from '../src/auth/kata-sandi.ts';
 import '../src/db/pool.ts';
 import { kosongkanBatas } from '../src/http/batas-masuk.ts';
-import { buatApp } from '../src/http/server.ts';
+import { buatApp } from '../src/http/app.ts';
 
 describe('aturan isian akun', () => {
     const lengkap = {
@@ -38,6 +38,7 @@ describe('aturan isian akun', () => {
                 username: 'kader.baru',
                 peran: 'kader',
                 rt: '03',
+                posyanduId: null,
                 aktif: true,
             },
             kataSandi: 'rahasia-panjang',
@@ -79,6 +80,7 @@ describe('aturan isian akun', () => {
             username: 'kader01',
             peran: 'kader' as const,
             rt: '01',
+            posyanduId: null,
             aktif: true,
         };
 
@@ -109,6 +111,7 @@ describe(
         let pool: pg.Pool;
         let server: Server;
         let akar: string;
+        let idPosyandu: number;
         let idAdmin: number;
         let idBidan: number;
         let cookieAdmin: string;
@@ -136,6 +139,7 @@ describe(
                 [pos[0].id],
             );
 
+            idPosyandu = pos[0].id;
             const hash = await hashKataSandi(SANDI);
             const buat = async (nama: string, username: string, peran: string) =>
                 (
@@ -148,6 +152,7 @@ describe(
 
             idAdmin = await buat('Admin Uji', USERNAME_ADMIN, 'admin');
             idBidan = await buat('Bidan Uji', USERNAME_BIDAN, 'bidan');
+            await pool.query('INSERT INTO pengguna_posyandu(pengguna_id,posyandu_id) VALUES($1,$3),($2,$3)', [idAdmin,idBidan,idPosyandu]);
 
             server = buatApp(pool).listen(0);
             await new Promise((siap) => server.once('listening', siap));
@@ -187,7 +192,7 @@ describe(
             fetch(`${akar}${jalan}`, {
                 method: metode,
                 headers: { cookie, 'content-type': 'application/json' },
-                body: badan === undefined ? undefined : JSON.stringify(badan),
+                body: badan === undefined ? undefined : JSON.stringify(metode === 'POST' && jalan === '/api/pengguna' ? { posyanduId: idPosyandu, ...(badan as object) } : badan),
             });
 
         const saya = async (cookie: string) =>
@@ -225,14 +230,14 @@ describe(
 
             const isi = JSON.parse(teks) as {
                 pengguna: { username: string; peran: string }[];
-                wilayahRt: string[];
+                wilayahRt: {posyanduId:number;rt:string}[];
             };
 
             assert.deepEqual(
                 isi.pengguna.map((p) => p.username),
                 [USERNAME_ADMIN, USERNAME_BIDAN],
             );
-            assert.deepEqual(isi.wilayahRt, ['01']);
+            assert.deepEqual(isi.wilayahRt, [{posyanduId:idPosyandu,rt:'01'}]);
         });
 
         test('akun baru bisa langsung masuk dan tercatat di audit atas nama admin', async () => {

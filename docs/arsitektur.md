@@ -83,25 +83,18 @@ Pemeriksaan `p.aktif` dilakukan di SQL pada setiap permintaan, tanpa cache. Deng
 
 ```text
 server/
-  src/antropometri/   indeks, tabel-standar, z-score, kategori,
-                      penilaian-gizi, sumber-standar
-  src/auth/           peran (matriks izin), kata-sandi (scrypt), sesi,
-                      akun (aturan isian akun)
-  src/http/           server, middleware, auth-controller,
-                      pengguna-controller, cookie, batas-masuk, tipe.d.ts
-  src/repositories/   standar-lms, pengguna, sesi, penilaian-gizi
-  src/services/       auth-service, gizi-service, pengguna-service
-  src/db/pool.ts, src/db/transaksi.ts
-  db/migrations/      001_skema_awal.sql, 002_pengguna_dan_sesi.sql,
-                      003_updated_at_dan_nik_terhapus.sql, 004_audit.sql,
-                      005_audit_tanpa_hash_sandi.sql, 006_username.sql
-  db/data/who-lms.json        seed standar, di-commit
-  db/migrate.ts, db/seed-standar-lms.ts,
-                      db/seed-contoh.ts (wilayah dan akun contoh,
-                      khusus basis data lokal),
-                      db/buat-pengguna.ts, db/ganti-sandi.ts
-  test/               acuan-php.json + berkas *.test.ts
-  docker-compose.yml
+  src/http/           Express composition, middleware dan controller per domain
+  src/services/       use case per domain; laporan dipisah menjadi service,
+                      perhitungan murni, dan renderer Excel
+  src/repositories/   query PostgreSQL dan pemetaan hasil query
+  src/antropometri/   rumus domain, kategori, standar PMK dan tabel WHO
+  src/auth/           peran/izin, kata sandi, sesi, aturan akun
+  src/db/             pool koneksi dan transaksi/audit
+  db/migrations/      perubahan skema berurutan; hanya runner yang menerapkan
+  db/                 utilitas migrasi, verifikasi koneksi dan administrasi akun
+  test/               uji unit, integrasi, kontrak, dan acuan perhitungan
+  .env.example        nama variabel saja; tidak memuat kredensial
+  package.json        perintah server yang dapat dijalankan terpisah
 client/
   index.html                  entri aplikasi
   src/main.tsx, src/app.tsx   entri dan cangkang aplikasi
@@ -122,18 +115,22 @@ client/
 docs/
 ```
 
+Panduan penyerahan operasional dan batas tanggung jawab modul ada di
+[Panduan serah-terima server](panduan-serah-terima-server.md).
+
 Aplikasi dan demo berbagi seluruh `src/`; yang berbeda hanya entri, cara masuk, dan pemilih peran.
 
 ---
 
 ## Otorisasi
 
-Tiga peran operasional berjenjang (kader, bidan, admin); Petugas KMS adalah peran khusus yang tidak mewarisi hak kader.
+Hak akses ditentukan oleh dua hal: peran dan cluster Posyandu/RW pada akun. Kader, Bidan, Admin Posyandu, dan Petugas KMS bekerja hanya di Posyandu yang ditautkan ke akun. Superadmin Mirae dapat melihat seluruh cluster.
 
 | Aksi | Kader | Bidan | Admin | Petugas KMS |
 |---|:---:|:---:|:---:|:---:|
 | Lihat dashboard dan antrean layanan | ✅ | ✅ | ✅ | ✅ |
 | Cari & lihat data anak, status gizi, dan kurva KMS | ✅ | ✅ | ✅ | ✅ |
+| Catat diskusi tumbuh kembang (survei Buku KIA) | ✅ | ✅ | ✅ | ✅ |
 | Lihat rekap | ✅ | ✅ | ✅ | ❌ |
 | Ubah data profil anak | ✅* | ✅ | ✅ | ❌ |
 | Tambah data anak | ✅ | ✅ | ✅ | ❌ |
@@ -152,13 +149,13 @@ Penegakan berlapis:
 2. **`wajibBoleh(aksi)`** sebagai middleware per rute. Ini yang mengikat: ia yang menjawab 403.
 3. **Antarmuka** menyembunyikan menu yang tidak boleh dipakai — kenyamanan, **bukan** pengamanan.
 
-Ke-18 aksi diuji untuk setiap peran di `server/test/auth.test.ts`, ditambah invarian pewarisan untuk tiga peran operasional. Tabel harapan di berkas uji ditulis ulang dari dokumen ini, **tidak** diimpor dari kode yang diujinya.
+Ke-19 aksi diuji untuk setiap peran di `server/test/auth.test.ts`, ditambah invarian pewarisan untuk tiga peran operasional. Tabel harapan di berkas uji ditulis ulang dari dokumen ini, **tidak** diimpor dari kode yang diujinya.
 
-### Cakupan RT kader
+### Cakupan Posyandu/RW
 
-Semua kader yang masuk melihat seluruh data sasaran lintas RT: daftar master anak, profil dan riwayat, laporan, paket sinkronisasi tablet, serta antrean bersama. RT pada akun tetap dicatat sebagai informasi penugasan; nilai itu tidak membatasi akses. Penutupan sesi sasaran hanya dapat dilakukan admin.
+Setiap akun operasional terhubung ke satu cluster lewat `pengguna_posyandu`. Semua kader dapat melihat sasaran lintas RT **di dalam Posyandu/RW akun tersebut**; RT pada profil kader hanya menunjukkan penugasan. Admin Posyandu mengelola akun di cluster miliknya. Hanya superadmin yang dapat mengelola seluruh cluster. Mirae ditandai dengan `pengguna.super_admin`; akun dan hash kata sandinya tidak berubah.
 
-`rtYangBolehDilihat()` mengembalikan `null` untuk semua peran, yang berarti query tidak memasang filter RT. UI Pengaturan menampilkan “Semua RT” sebagai cakupan akses dan menyebut RT kader sebagai RT penugasan.
+Sesi memuat daftar id Posyandu dan penanda superadmin dari basis data. Query beranda, anak, sasaran, pengukuran, antrean, laporan, dan sinkronisasi tablet membatasi hasil ke daftar tersebut. Akun operasional tanpa keanggotaan cluster ditolak saat sesi diperiksa. Penutupan sesi sasaran tetap hanya dapat dilakukan Admin Posyandu dalam cluster terkait.
 
 Skema ikut menegakkannya lewat `CHECK ((peran = 'kader') = (wilayah_rt_id IS NOT NULL))`, sehingga keadaan itu tidak dapat tersimpan sejak awal.
 
@@ -173,9 +170,11 @@ Endpoint operasional mencakup:
 | POST | `/api/masuk` | masuk, memasang cookie sesi | — (terbuka) |
 | POST | `/api/keluar` | mencabut sesi | — (terbuka) |
 | GET | `/api/saya` | identitas pengguna yang sedang masuk | sudah masuk |
-| GET | `/api/pengguna` | daftar akun tanpa hash kata sandi, beserta pilihan RT binaan | admin (`kelola-akun`) |
-| POST | `/api/pengguna` | akun baru dengan kata sandi awal | admin (`kelola-akun`) |
-| PATCH | `/api/pengguna/:id` | ubah akun; kata sandi kosong berarti tidak diganti | admin (`kelola-akun`) |
+| GET | `/api/pengguna` | daftar akun tanpa hash kata sandi, pilihan Posyandu/RW dan RT cluster | Admin Posyandu (cluster sendiri), superadmin (semua cluster) |
+| POST | `/api/pengguna` | akun baru dengan kata sandi awal dan satu Posyandu/RW | Admin Posyandu (cluster sendiri), superadmin (semua cluster) |
+| PATCH | `/api/pengguna/:id` | ubah akun dalam cluster; kata sandi kosong berarti tidak diganti | Admin Posyandu (cluster sendiri), superadmin (semua cluster) |
+| GET | `/api/v1/anak/:id/pendampingan-kia` | panduan Buku KIA 2024 sesuai usia dan riwayat diskusi | kader, bidan, admin, KMS (`lihat-anak`) |
+| POST | `/api/v1/anak/:id/pendampingan-kia` | simpan atau perbarui catatan diskusi tumbuh kembang | kader, bidan, admin, KMS (`catat-survei-kia`) |
 | GET | `/api/v1/antrean?periodeId=&tanggal=` | antrean layanan pada tanggal itu | kader, bidan, admin, KMS (`lihat-anak`) |
 | POST | `/api/v1/antrean` | check-in sasaran ke antrean | kader, bidan, admin (`catat-pengukuran-lapangan`) |
 | PATCH | `/api/v1/antrean/:id` | panggil, mulai ukur, atau kirim ke tahap KMS | kader, bidan, admin (`catat-pengukuran-lapangan`) |
@@ -185,7 +184,7 @@ Status layanan bergerak `waiting → called → serving → kms_review → done`
 
 Seluruh rute berada di bawah `sesiMiddleware`, yang mengenali sesi tanpa menolak. Penolakan adalah tugas `wajibMasuk` dan `wajibBoleh(aksi)`, dipasang per rute. Permintaan yang mengubah data wajib berbadan `application/json` (`wajibJson`, 415 bila bukan) — berpasangan dengan `SameSite=Lax` untuk menutup CSRF tanpa token tersendiri.
 
-Aturan kelola akun ditegakkan di server (`src/auth/akun.ts` dan `src/services/pengguna-service.ts`); layar hanya memeriksanya lebih awal. Tidak ada `DELETE`: akun dinonaktifkan, bukan dihapus. Setiap perubahan berjalan dalam satu transaksi yang menyebut admin pelakunya, sehingga audit mencatatnya dengan sumber `aplikasi`. Mengganti kata sandi, mengubah peran, atau menonaktifkan akun mencabut seluruh sesinya di transaksi yang sama; admin yang hanya mengganti kata sandinya sendiri tetap masuk di sesi yang sedang dipakai. Admin aktif terakhir tidak bisa diturunkan atau dinonaktifkan. Seluruh admin aktif dikunci `FOR UPDATE` lebih dulu, supaya dua admin yang saling menurunkan pada saat bersamaan tidak sama-sama lolos.
+Aturan kelola akun ditegakkan di server (`src/auth/akun.ts` dan `src/services/pengguna-service.ts`); layar hanya memeriksanya lebih awal. Setiap akun operasional harus memiliki satu Posyandu/RW; RT kader dipilih dari Posyandu tersebut. Admin Posyandu tidak dapat melihat atau memindahkan akun ke cluster lain. Akun Mirae tetap global dan tidak dapat dibuat dari form biasa. Tidak ada `DELETE`: akun dinonaktifkan, bukan dihapus. Setiap perubahan berjalan dalam satu transaksi yang menyebut pelakunya, sehingga audit mencatatnya dengan sumber `aplikasi`.
 
 ---
 

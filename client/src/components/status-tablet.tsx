@@ -1,275 +1,478 @@
-import { Tablet, Wifi, CheckCircle2, AlertCircle, RefreshCw, X } from 'lucide-react';
-import { useEffect, useLayoutEffect, useRef, useState, useId } from 'react';
+import { Monitor, Tablet, RefreshCw, Search, X } from 'lucide-react';
+import {
+    useCallback,
+    useEffect,
+    useId,
+    useLayoutEffect,
+    useRef,
+    useState,
+} from 'react';
 import type { CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 
-interface TabletInfo {
+type Status = 'online' | 'idle' | 'offline';
+interface Perangkat {
+    id: string;
     deviceId: string;
     namaPerangkat: string;
-    versiAplikasi?: string;
-    ip: string;
-    baterai?: number | null;
-    antreanTertunda?: number;
+    jenisPerangkat: 'android' | 'web';
+    versiAplikasi: string | null;
+    namaPengguna: string;
+    username: string;
+    namaPosyandu: string | null;
+    rw: string | null;
+    posyanduId: number | null;
     terakhirAktif: string;
     detikLalu: number;
-    status: 'online' | 'idle';
+    status: Status;
+    modeKoneksi: string;
+    antreanTertunda: number;
+    akunAktif: boolean;
 }
-
-interface ResponsPerangkat {
-    serverIp: string[];
-    daftarTablet: TabletInfo[];
+interface Respons {
+    daftarTablet: Perangkat[];
+    cakupan: {
+        semuaPosyandu: boolean;
+        posyandu: { id: number; nama: string; rw: string | null }[];
+    };
+    waktuServer: string;
 }
+const LABEL: Record<Status, string> = {
+    online: 'Online',
+    idle: 'Siaga',
+    offline: 'Offline',
+};
+const WARNA: Record<Status, string> = {
+    online: 'bg-emerald-100 text-emerald-900',
+    idle: 'bg-amber-100 text-amber-950',
+    offline: 'bg-muted text-muted-foreground',
+};
+const waktu = (iso: string) =>
+    new Date(iso).toLocaleString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
 
 export default function StatusTablet() {
-    const [data, setData] = useState<ResponsPerangkat | null>(null);
-    const [bukaDetail, setBukaDetail] = useState(false);
-    const [sedangMuat, setSedangMuat] = useState(true);
-    const [gagalMemeriksa, setGagalMemeriksa] = useState(false);
-    const tombolRef = useRef<HTMLButtonElement>(null);
-    const panelRef = useRef<HTMLDivElement>(null);
-    const panelId = useId();
-    const [posisiPanel, setPosisiPanel] = useState<CSSProperties | null>(null);
+    const [data, setData] = useState<Respons | null>(null);
+    const [buka, setBuka] = useState(false);
+    const [membaca, setMembaca] = useState(true);
+    const [gagal, setGagal] = useState(false);
+    const [cari, setCari] = useState('');
+    const [filter, setFilter] = useState('semua');
+    const [posisi, setPosisi] = useState<CSSProperties | null>(null);
+    const tombol = useRef<HTMLButtonElement>(null);
+    const panel = useRef<HTMLDialogElement | null>(null);
+    const pasangPanel = useCallback((node: HTMLDialogElement | null) => {
+        if (!node) {
+            panel.current?.close();
+        }
 
-    useLayoutEffect(() => {
-        if (!bukaDetail) return;
-        const aturPosisi = () => {
-            const tombol = tombolRef.current;
-            if (!tombol) return;
-            const rect = tombol.getBoundingClientRect();
-            const width = Math.min(360, window.innerWidth - 24);
-            const ruangAtas = rect.top - 20;
-            setPosisiPanel({
-                width,
-                left: Math.max(12, Math.min(rect.left, window.innerWidth - width - 12)),
-                ...(ruangAtas >= 200
-                    ? { bottom: window.innerHeight - rect.top + 8, maxHeight: Math.min(480, ruangAtas) }
-                    : { top: 12, maxHeight: window.innerHeight - 24 }),
-            });
-        };
-        aturPosisi();
-        window.addEventListener('resize', aturPosisi);
-        window.addEventListener('scroll', aturPosisi, true);
-        return () => {
-            window.removeEventListener('resize', aturPosisi);
-            window.removeEventListener('scroll', aturPosisi, true);
-        };
-    }, [bukaDetail]);
+        panel.current = node;
 
-    useEffect(() => {
-        if (!bukaDetail) return;
-        panelRef.current?.focus();
-        const tutupDenganEscape = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') setBukaDetail(false);
-        };
-        window.addEventListener('keydown', tutupDenganEscape);
-        const tombol = tombolRef.current;
-        return () => {
-            window.removeEventListener('keydown', tutupDenganEscape);
-            tombol?.focus();
-        };
-    }, [bukaDetail]);
+        if (node && !node.open) {
+            node.showModal();
+            node.focus();
+        }
+    }, []);
+    const hidup = useRef(false);
+    const permintaan = useRef<AbortController | null>(null);
+    const id = useId();
 
-    const ambilStatus = async () => {
-        setSedangMuat(true);
+    const ambil = useCallback(async () => {
+        if (permintaan.current) {
+            return;
+        }
+
+        const kontrol = new AbortController();
+        permintaan.current = kontrol;
+        const batas = setTimeout(() => kontrol.abort(), 5000);
+
         try {
             const res = await fetch('/api/v1/perangkat-terhubung', {
                 cache: 'no-store',
+                signal: kontrol.signal,
             });
-            if (res.ok) {
-                const hasil = (await res.json()) as ResponsPerangkat;
+
+            if (!res.ok) {
+                throw Error('Status belum tersedia');
+            }
+
+            const hasil = (await res.json()) as Respons;
+
+            if (!hasil.cakupan || !Array.isArray(hasil.daftarTablet)) {
+                throw Error('Server perangkat perlu diperbarui');
+            }
+
+            if (hidup.current && permintaan.current === kontrol) {
                 setData(hasil);
-                setGagalMemeriksa(false);
-            } else {
-                setGagalMemeriksa(true);
+                setGagal(false);
             }
         } catch {
-            // Server offline atau tidak terjangkau
-            setGagalMemeriksa(true);
+            if (hidup.current && permintaan.current === kontrol) {
+                setGagal(true);
+            }
         } finally {
-            setSedangMuat(false);
+            clearTimeout(batas);
+
+            if (permintaan.current === kontrol) {
+                permintaan.current = null;
+
+                if (hidup.current) {
+                    setMembaca(false);
+                }
+            }
         }
-    };
-
-    useEffect(() => {
-        void ambilStatus();
-        const interval = setInterval(ambilStatus, 6000);
-        return () => clearInterval(interval);
     }, []);
+    useEffect(() => {
+        hidup.current = true;
+        const awal = setTimeout(() => void ambil(), 0);
+        const timer = setInterval(() => void ambil(), 6000);
 
-    const daftarTablet = gagalMemeriksa ? [] : (data?.daftarTablet ?? []);
-    const tabletOnline = daftarTablet.filter((t) => t.status === 'online');
-    const adaTablet = tabletOnline.length > 0;
-    const ipServerUtama = data?.serverIp?.[0] ?? '127.0.0.1';
+        return () => {
+            hidup.current = false;
+            clearTimeout(awal);
+            clearInterval(timer);
+            permintaan.current?.abort();
+            permintaan.current = null;
+        };
+    }, [ambil]);
+    useLayoutEffect(() => {
+        if (!buka) {
+            return;
+        }
+
+        const atur = () => {
+            const rect = tombol.current?.getBoundingClientRect();
+
+            if (!rect) {
+                return;
+            }
+
+            const lebar = Math.min(460, innerWidth - 24);
+            const atas = rect.top - 20;
+            const tinggi = window.visualViewport?.height ?? innerHeight;
+            setPosisi({
+                inset: 'auto',
+                margin: 0,
+                width: lebar,
+                left: Math.max(
+                    12,
+                    Math.min(rect.left, innerWidth - lebar - 12),
+                ),
+                ...(innerWidth >= 640 && atas > 260
+                    ? {
+                          bottom: innerHeight - rect.top + 8,
+                          maxHeight: Math.min(600, atas, tinggi - 24),
+                      }
+                    : { top: 12, maxHeight: tinggi - 24 }),
+            });
+        };
+        atur();
+        window.addEventListener('resize', atur);
+        window.visualViewport?.addEventListener('resize', atur);
+
+        return () => {
+            window.removeEventListener('resize', atur);
+            window.visualViewport?.removeEventListener('resize', atur);
+        };
+    }, [buka]);
+    useEffect(() => {
+        if (!buka) {
+            return;
+        }
+
+        panel.current?.focus();
+        const kembali = tombol.current;
+
+        return () => {
+            kembali?.focus();
+        };
+    }, [buka]);
+
+    const daftar = data?.daftarTablet ?? [];
+    const online = daftar.filter((p) => p.status === 'online').length;
+    const offline = daftar.filter((p) => p.status === 'offline').length;
+    const cakupan = data?.cakupan?.semuaPosyandu
+        ? 'Semua Posyandu'
+        : data?.cakupan?.posyandu
+              .map((p) => `${p.nama} · RW ${p.rw ?? '—'}`)
+              .join(', ') || 'Wilayah sesuai akun';
+    const hasil = daftar.filter(
+        (p) =>
+            (filter === 'semua' || p.status === filter) &&
+            `${p.namaPerangkat} ${p.namaPengguna} ${p.username} ${p.rw ?? ''} ${p.namaPosyandu ?? ''}`
+                .toLocaleLowerCase('id')
+                .includes(cari.toLocaleLowerCase('id')),
+    );
 
     return (
         <div className="relative">
             <button
-                ref={tombolRef}
+                ref={tombol}
                 type="button"
-                onClick={() => setBukaDetail((v) => !v)}
-                className={`flex w-full items-center gap-2.5 rounded-xl border px-3 py-2 text-left text-xs transition-all ${
-                    adaTablet && !gagalMemeriksa
-                        ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-950 hover:bg-emerald-500/15'
-                        : 'border-amber-500/30 bg-amber-500/10 text-amber-950 hover:bg-amber-500/15'
-                }`}
-                title="Status koneksi Tablet Android & Jaringan Lokal"
-                aria-expanded={bukaDetail}
-                aria-controls={bukaDetail ? panelId : undefined}
+                onClick={() => setBuka((v) => !v)}
+                aria-expanded={buka}
                 aria-haspopup="dialog"
+                aria-controls={buka ? id : undefined}
+                className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-border bg-background px-3 py-2 text-left focus-visible:outline-2 focus-visible:outline-primary"
             >
-                <div className="relative flex size-2.5 items-center justify-center">
-                    {adaTablet ? (
-                        <>
-                            <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                            <span className="relative inline-flex size-2 rounded-full bg-emerald-600" />
-                        </>
-                    ) : (
-                        <span className="inline-flex size-2 rounded-full bg-amber-500" />
-                    )}
-                </div>
-
-                <div className="min-w-0 flex-1">
-                    <p className="truncate font-bold">
-                        {gagalMemeriksa
-                            ? 'Status server tidak tersedia'
-                            : data === null && sedangMuat
-                            ? 'Mendeteksi tablet…'
-                            : adaTablet
-                              ? `${tabletOnline.length} tablet terhubung`
-                              : 'Belum ada tablet terhubung'}
-                    </p>
-                    <p className="truncate text-[10px] text-muted-foreground">
-                        {gagalMemeriksa
-                            ? 'Coba segarkan untuk memeriksa ulang'
-                            : adaTablet
-                            ? daftarTablet.length > tabletOnline.length
-                                ? `${daftarTablet.length - tabletOnline.length} siaga · ${tabletOnline[0]?.namaPerangkat ?? tabletOnline[0]?.ip}`
-                                : tabletOnline[0]?.namaPerangkat ?? tabletOnline[0]?.ip
-                            : data === null && sedangMuat
-                              ? 'Memeriksa koneksi ke server'
-                              : `Server: ${ipServerUtama}`}
-                    </p>
-                </div>
-
-                <Tablet className="size-4 shrink-0 text-muted-foreground" />
+                <Tablet
+                    className="size-5 shrink-0 text-primary"
+                    aria-hidden="true"
+                />
+                <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-bold">
+                        {gagal
+                            ? 'Status belum diperbarui'
+                            : data
+                              ? `${online} online · ${offline} offline`
+                              : 'Memeriksa perangkat…'}
+                    </span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                        {cakupan}
+                    </span>
+                </span>
             </button>
+            {buka &&
+                posisi &&
+                createPortal(
+                    <>
+                        <dialog
+                            ref={pasangPanel}
+                            id={id}
+                            role="dialog"
+                            onCancel={() => setBuka(false)}
+                            onClick={(e) => {
+                                if (e.target !== e.currentTarget) {
+                                    return;
+                                }
 
-            {bukaDetail && posisiPanel && createPortal(
-                <>
-                    <div
-                        className="fixed inset-0 z-[60]"
-                        aria-hidden="true"
-                        onClick={() => setBukaDetail(false)}
-                    />
-                    <div
-                        ref={panelRef}
-                        id={panelId}
-                        role="dialog"
-                        aria-labelledby={`${panelId}-judul`}
-                        tabIndex={-1}
-                        style={posisiPanel}
-                        className="fixed z-[61] overflow-y-auto overscroll-contain rounded-2xl bg-popover p-4 text-popover-foreground shadow-xl outline-none"
-                    >
-                        <div className="flex items-center justify-between border-b border-border pb-2.5">
-                            <div className="flex min-w-0 flex-1 items-center gap-2 font-bold text-sm">
-                                <Wifi className="size-4 shrink-0 text-primary" />
-                                <span id={`${panelId}-judul`}>Koneksi Jaringan Lokal</span>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => void ambilStatus()}
-                                className="flex size-11 shrink-0 items-center justify-center rounded-md hover:bg-muted text-muted-foreground focus-visible:outline-2 focus-visible:outline-primary"
-                                title="Segarkan status"
-                                aria-label="Segarkan status perangkat"
-                            >
-                                <RefreshCw
-                                    className={`size-3.5 ${sedangMuat ? 'animate-spin' : ''}`}
-                                />
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setBukaDetail(false)}
-                                aria-label="Tutup detail perangkat"
-                                className="flex size-11 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary"
-                            >
-                                <X className="size-4" aria-hidden="true" />
-                            </button>
-                        </div>
+                                const r =
+                                    e.currentTarget.getBoundingClientRect();
 
-                        <div className="mt-3 space-y-3 text-xs">
-                            {/* Info IP PC */}
-                            <div className="rounded-lg bg-muted/50 p-2.5">
-                                <p className="font-semibold text-muted-foreground text-[11px]">
-                                    Alamat IP Server PC saat ini:
-                                </p>
-                                <div className="mt-1 font-mono font-bold text-foreground">
-                                    {data?.serverIp && data.serverIp.length > 0 ? (
-                                        data.serverIp.map((ip) => (
-                                            <span
-                                                key={ip}
-                                                className="mr-1 inline-block rounded bg-background px-1.5 py-0.5 border"
-                                            >
-                                                {ip}:4321
-                                            </span>
-                                        ))
-                                    ) : (
-                                        <span>127.0.0.1:4321</span>
-                                    )}
+                                if (
+                                    e.clientX < r.left ||
+                                    e.clientX > r.right ||
+                                    e.clientY < r.top ||
+                                    e.clientY > r.bottom
+                                ) {
+                                    setBuka(false);
+                                }
+                            }}
+                            aria-labelledby={`${id}-judul`}
+                            tabIndex={-1}
+                            style={posisi}
+                            className="fixed z-[61] flex flex-col overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground outline-none backdrop:bg-foreground/15"
+                        >
+                            <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-3">
+                                <div className="min-w-0 flex-1">
+                                    <h2
+                                        id={`${id}-judul`}
+                                        className="text-base font-bold"
+                                    >
+                                        Perangkat Posyandu
+                                    </h2>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        {cakupan}
+                                    </p>
                                 </div>
-                                <p className="mt-1.5 text-[10px] text-muted-foreground leading-tight">
-                                    Auto-Discovery aktif. Tablet akan otomatis menemukan IP ini di Wi-Fi/Hotspot mana pun.
-                                </p>
+                                <button
+                                    type="button"
+                                    aria-label="Segarkan status perangkat"
+                                    disabled={membaca}
+                                    onClick={() => {
+                                        setMembaca(true);
+                                        void ambil();
+                                    }}
+                                    className="flex size-11 shrink-0 items-center justify-center rounded-lg hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50"
+                                >
+                                    <RefreshCw
+                                        className={`size-5 ${membaca ? 'animate-spin motion-reduce:animate-none' : ''}`}
+                                    />
+                                </button>
+                                <button
+                                    type="button"
+                                    aria-label="Tutup detail perangkat"
+                                    onClick={() => setBuka(false)}
+                                    className="flex size-11 shrink-0 items-center justify-center rounded-lg hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary"
+                                >
+                                    <X className="size-5" />
+                                </button>
                             </div>
-
-                            {/* Daftar Tablet */}
-                            <div>
-                                <p className="font-bold text-[11px] text-muted-foreground mb-1.5 uppercase tracking-wider">
-                                    Perangkat Tablet Terhubung
-                                </p>
-
-                                {daftarTablet.length === 0 ? (
-                                    <div className="flex items-center gap-2 rounded-lg border border-dashed border-border p-3 text-muted-foreground">
-                                        <AlertCircle className="size-4 shrink-0 text-amber-500" />
-                                        <p className="text-[11px] leading-tight">
-                                            {gagalMemeriksa
-                                                ? 'Server tidak dapat dihubungi saat ini. Segarkan status setelah koneksi kembali.'
-                                                : 'Belum ada tablet yang memberi sinyal koneksi. Buka aplikasi Android dan pastikan tersambung ke server.'}
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-1.5">
-                                        {daftarTablet.map((tablet) => (
-                                            <div
-                                                key={tablet.deviceId}
-                                                className="flex items-center justify-between rounded-lg border border-border bg-card p-2 text-card-foreground"
-                                            >
-                                                <div className="min-w-0 flex-1 pr-2">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <CheckCircle2 className={`size-3.5 shrink-0 ${tablet.status === 'online' ? 'text-emerald-600' : 'text-amber-600'}`} />
-                                                        <span className="font-bold truncate text-[11px]">
-                                                            {tablet.namaPerangkat}
-                                                        </span>
-                                                    </div>
-                                                    <p className="font-mono text-[10px] text-muted-foreground">
-                                                        IP: {tablet.ip}
-                                                    </p>
-                                                </div>
-                                                <div className="text-right text-[10px] shrink-0 text-muted-foreground">
-                                                    <span className={`font-semibold ${tablet.status === 'online' ? 'text-emerald-600' : 'text-amber-700'}`}>
-                                                        {tablet.status === 'online' ? 'Online' : 'Siaga'}
-                                                    </span>
-                                                    <p>{tablet.detikLalu}s lalu</p>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
+                            <div className="shrink-0 space-y-3 border-b border-border p-4">
+                                <label className="flex min-h-11 items-center gap-2 rounded-lg border border-input px-3">
+                                    <Search className="size-4 shrink-0 text-muted-foreground" />
+                                    <input
+                                        aria-label="Cari nama perangkat, akun atau RW"
+                                        value={cari}
+                                        onChange={(e) =>
+                                            setCari(e.target.value)
+                                        }
+                                        placeholder="Cari perangkat, akun, atau RW"
+                                        className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none"
+                                    />
+                                </label>
+                                <label className="flex items-center justify-between gap-3 text-sm font-semibold">
+                                    Tampilkan
+                                    <select
+                                        aria-label="Filter status perangkat"
+                                        value={filter}
+                                        onChange={(e) =>
+                                            setFilter(e.target.value)
+                                        }
+                                        className="min-h-11 rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                                    >
+                                        <option value="semua">
+                                            Semua ({daftar.length})
+                                        </option>
+                                        <option value="online">Online</option>
+                                        <option value="idle">Siaga</option>
+                                        <option value="offline">Offline</option>
+                                    </select>
+                                </label>
+                                {gagal && (
+                                    <p
+                                        role="status"
+                                        className="text-sm text-amber-950"
+                                    >
+                                        Server belum dapat dijangkau. Daftar ini
+                                        adalah laporan terakhir, bukan status
+                                        terkini.
+                                    </p>
                                 )}
                             </div>
-                        </div>
-                    </div>
-                </>,
-                document.body,
-            )}
+                            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                                {hasil.length === 0 ? (
+                                    <p className="p-5 text-sm text-muted-foreground">
+                                        {data === null && membaca
+                                            ? 'Memuat laporan perangkat…'
+                                            : daftar.length === 0
+                                              ? 'Belum ada perangkat yang melapor untuk wilayah akun ini. Perangkat akan muncul setelah login dan berhasil mengirim laporan ke server.'
+                                              : 'Tidak ada perangkat yang sesuai pencarian atau filter.'}
+                                    </p>
+                                ) : (
+                                    <ul className="divide-y divide-border">
+                                        {hasil.map((p) => {
+                                            const Ikon =
+                                                p.jenisPerangkat === 'web'
+                                                    ? Monitor
+                                                    : Tablet;
+
+                                            return (
+                                                <li
+                                                    key={p.id}
+                                                    className="px-4 py-4"
+                                                >
+                                                    <div className="flex items-start gap-3">
+                                                        <Ikon
+                                                            className="mt-1 size-5 shrink-0 text-muted-foreground"
+                                                            aria-hidden="true"
+                                                        />
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className="text-sm font-bold break-words">
+                                                                {
+                                                                    p.namaPerangkat
+                                                                }
+                                                            </p>
+                                                            <p className="mt-1 text-sm break-words">
+                                                                {p.namaPengguna}{' '}
+                                                                <span className="text-muted-foreground">
+                                                                    @
+                                                                    {p.username}
+                                                                </span>
+                                                            </p>
+                                                        </div>
+                                                        <span
+                                                            className={`shrink-0 rounded px-2 py-1 text-xs font-semibold ${gagal ? WARNA.offline : WARNA[p.status]}`}
+                                                        >
+                                                            {gagal
+                                                                ? 'Belum diketahui'
+                                                                : LABEL[
+                                                                      p.status
+                                                                  ]}
+                                                        </span>
+                                                    </div>
+                                                    <div className="mt-2 pl-8 text-xs leading-relaxed text-muted-foreground">
+                                                        <p>
+                                                            ID{' '}
+                                                            {p.deviceId
+                                                                .slice(-6)
+                                                                .toUpperCase()}
+                                                        </p>
+                                                        <p>
+                                                            {p.namaPosyandu
+                                                                ? `${p.namaPosyandu} · RW ${p.rw ?? '—'}`
+                                                                : 'Akun lintas Posyandu'}
+                                                        </p>
+                                                        <p>
+                                                            Laporan terakhir:{' '}
+                                                            <time
+                                                                dateTime={
+                                                                    p.terakhirAktif
+                                                                }
+                                                            >
+                                                                {waktu(
+                                                                    p.terakhirAktif,
+                                                                )}
+                                                            </time>
+                                                        </p>
+                                                        <p>
+                                                            {p.jenisPerangkat ===
+                                                            'web'
+                                                                ? 'Browser web'
+                                                                : 'Aplikasi Android'}{' '}
+                                                            ·{' '}
+                                                            {p.modeKoneksi ===
+                                                            'tailscale'
+                                                                ? 'Tailscale'
+                                                                : p.modeKoneksi ===
+                                                                    'tidak_diketahui'
+                                                                  ? 'Jalur belum dilaporkan'
+                                                                  : p.modeKoneksi ===
+                                                                      'lokal'
+                                                                    ? 'Jaringan lokal'
+                                                                    : 'Internet'}
+                                                            {p.versiAplikasi
+                                                                ? ` · ${p.versiAplikasi}`
+                                                                : ''}
+                                                        </p>
+                                                        {p.antreanTertunda >
+                                                            0 && (
+                                                            <p className="mt-1 font-semibold text-amber-950">
+                                                                {
+                                                                    p.antreanTertunda
+                                                                }{' '}
+                                                                data tertunda
+                                                                pada laporan
+                                                                terakhir
+                                                            </p>
+                                                        )}
+                                                        {!p.akunAktif && (
+                                                            <p>
+                                                                Akun sudah
+                                                                dinonaktifkan.
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                )}
+                            </div>
+                            <p className="shrink-0 border-t border-border px-4 py-3 text-xs leading-relaxed text-muted-foreground">
+                                Online: laporan ≤45 detik. Siaga: ≤2 menit.
+                                Offline: lebih dari 2 menit. Perangkat offline
+                                tetap tercatat; aktivitas tanpa jaringan baru
+                                diketahui setelah laporan terkirim kembali.
+                            </p>
+                        </dialog>
+                    </>,
+                    document.body,
+                )}
         </div>
     );
 }

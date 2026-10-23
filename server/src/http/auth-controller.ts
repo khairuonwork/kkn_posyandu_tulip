@@ -160,7 +160,13 @@ export function ruteAuth(pool: Pool): Router {
             return;
         }
 
-        res.json({ pengguna: { ...req.pengguna, nama: akun.nama, username: akun.username } });
+        res.json({ pengguna: {
+            ...req.pengguna,
+            nama: akun.nama,
+            username: akun.username,
+            posyanduNama: akun.posyanduNama,
+            rw: akun.rw,
+        } });
     });
 
     return rute;

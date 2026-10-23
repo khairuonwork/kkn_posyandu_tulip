@@ -184,6 +184,7 @@ export async function daftar(
         WHERE a.deleted_at IS NULL
           AND ($1::text IS NULL OR w.rt = $1)
           AND ($2 = '' OR a.nama_baku LIKE $3 OR a.nik LIKE $2)
+          AND ($6::boolean OR w.posyandu_id=ANY($7::bigint[]))
     `;
     const offset = (halaman - 1) * ukuran;
 
@@ -192,7 +193,7 @@ export async function daftar(
             `SELECT ${KOLOM_RINGKAS} ${dasar}
              ORDER BY a.nama_baku, a.id
              LIMIT $4 OFFSET $5`,
-            [rt, cari, pola, ukuran, offset],
+            [rt, cari, pola, ukuran, offset, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
         ),
         pool.query<{ total: number }>(
             `SELECT count(*)::int AS total
@@ -200,8 +201,9 @@ export async function daftar(
              LEFT JOIN wilayah_rt w ON w.id = a.wilayah_rt_id
              WHERE a.deleted_at IS NULL
                AND ($1::text IS NULL OR w.rt = $1)
-               AND ($2 = '' OR a.nama_baku LIKE $3 OR a.nik LIKE $2)`,
-            [rt, cari, pola],
+               AND ($2 = '' OR a.nama_baku LIKE $3 OR a.nik LIKE $2)
+               AND ($4::boolean OR w.posyandu_id=ANY($5::bigint[]))`,
+            [rt, cari, pola, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
         ),
     ]);
 
@@ -230,6 +232,7 @@ export async function ambil(
            LEFT JOIN pengukuran p ON p.anak_id = a.id
           WHERE a.id = $1
             AND a.deleted_at IS NULL
+            AND ($3::boolean OR w.posyandu_id=ANY($4::bigint[]))
             AND (
                 $2::text IS NULL
                 OR w.rt = $2
@@ -250,7 +253,7 @@ export async function ambil(
                 )
             )
           GROUP BY a.id, w.rt, o.id`,
-        [id, rt],
+        [id, rt, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
     );
 
     return rows[0] ?? null;
@@ -273,8 +276,9 @@ export async function ubahProfilAnak(
            FROM anak a LEFT JOIN wilayah_rt w ON w.id=a.wilayah_rt_id
           WHERE a.id=$1 AND a.deleted_at IS NULL
             AND ($2::text IS NULL OR w.rt=$2)
+            AND ($3::boolean OR w.posyandu_id=ANY($4::bigint[]))
           FOR UPDATE OF a`,
-        [anakId, rtSaatIni],
+        [anakId, rtSaatIni, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
     );
     const lama = anak.rows[0];
     if (lama === undefined) return "tidak_ada";
@@ -404,21 +408,28 @@ export async function garisSdBbU(pool: Pool): Promise<
 
 export async function upsertAnak(
     db: PoolClient,
+    pengguna: PenggunaAktif,
     data: AnakLapangan,
 ): Promise<{ id: number; nik: string }> {
     await db.query("SELECT pg_advisory_xact_lock(hashtext($1))", [data.nik]);
 
     const wilayah = await db.query<{ id: number }>(
-        "SELECT id FROM wilayah_rt WHERE rt = $1 ORDER BY id LIMIT 1",
-        [data.rt],
+        `SELECT id FROM wilayah_rt
+          WHERE rt=$1 AND ($2::boolean OR posyandu_id=ANY($3::bigint[]))
+          ORDER BY posyandu_id,id LIMIT 1`,
+        [data.rt, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
     );
     if (wilayah.rows[0] === undefined) {
         throw new Error(`RT ${data.rt} belum tersedia.`);
     }
 
     const lama = await db.query<{ id: number; orang_tua_id: number | null }>(
-        "SELECT id, orang_tua_id FROM anak WHERE nik = $1 AND deleted_at IS NULL FOR UPDATE",
-        [data.nik],
+        `SELECT a.id, a.orang_tua_id FROM anak a
+          LEFT JOIN wilayah_rt w ON w.id=a.wilayah_rt_id
+          WHERE a.nik=$1 AND a.deleted_at IS NULL
+            AND ($2::boolean OR w.posyandu_id=ANY($3::bigint[]))
+          FOR UPDATE OF a`,
+        [data.nik, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
     );
     let orangTuaId = lama.rows[0]?.orang_tua_id ?? null;
 
@@ -504,9 +515,10 @@ export async function upsertPengukuran(
                        AND target_periode.tahun=extract(year FROM $4::date)
                 )
             )
+            AND ($5::boolean OR w.posyandu_id=ANY($6::bigint[]))
           ORDER BY (a.id = $1) DESC
           LIMIT 1`,
-        [data.anakId, data.nik, rt, data.tanggalUkur],
+        [data.anakId, data.nik, rt, data.tanggalUkur, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
     );
     if (anak.rows[0] === undefined) {
         return null;
@@ -597,9 +609,9 @@ export async function upsertPengukuran(
 
     await db.query(
         `UPDATE sasaran
-            SET status = CASE $4
-                    WHEN 'tidak_hadir' THEN 'tidak_hadir'
-                    WHEN 'pindah' THEN 'pindah'
+            SET status = CASE WHEN $5::boolean THEN 'tidak_hadir'
+                    WHEN $4 = 'tidak_hadir' THEN 'tidak_hadir'
+                    WHEN $4 = 'pindah' THEN 'pindah'
                     ELSE 'selesai'
                 END,
                 diselesaikan_pada=now(), diselesaikan_oleh=$3,
@@ -619,7 +631,7 @@ export async function upsertPengukuran(
 }
 
 /** Bentuk kompatibel dengan cache offline tablet versi 1.8. */
-export async function paketSinkronisasi(pool: Pool, _pengguna: PenggunaAktif) {
+export async function paketSinkronisasi(pool: Pool, pengguna: PenggunaAktif) {
     const periode = await pool.query<{
         id: number;
         kode: string;
@@ -632,8 +644,10 @@ export async function paketSinkronisasi(pool: Pool, _pengguna: PenggunaAktif) {
                 p.sesi_ditutup_pada AS "sesiDitutupPada"
            FROM periode p
           WHERE EXISTS (SELECT 1 FROM sasaran s WHERE s.periode_id=p.id)
+            AND ($1::boolean OR p.posyandu_id=ANY($2::bigint[]))
           ORDER BY p.tahun DESC, p.bulan DESC
-          LIMIT 1`,
+        LIMIT 1`,
+        [pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
     );
     const aktif = periode.rows[0] ?? null;
     if (aktif === null) {

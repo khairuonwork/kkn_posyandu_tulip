@@ -21,6 +21,7 @@ export type Aksi =
     | "lihat-rekap"
     | "daftar-anak-lapangan"
     | "catat-pengukuran-lapangan"
+    | "catat-survei-kia"
     // Semua kader melihat sasaran lintas RT. RT pada akun kader hanya penugasan
     // administratif, bukan pembatasan data.
     | "ubah-anak"
@@ -54,6 +55,7 @@ const MINIMUM: Readonly<Record<Aksi, Peran>> = {
     "lihat-rekap": "kader",
     "daftar-anak-lapangan": "kader",
     "catat-pengukuran-lapangan": "kader",
+    "catat-survei-kia": "kader",
 
     "ubah-anak": "kader",
     "ubah-pengukuran": "bidan",
@@ -78,7 +80,7 @@ export function boleh(peran: Peran, aksi: Aksi): boolean {
     // Role KMS bersifat terfokus: dapat membaca analisa anak dan hanya KMS
     // yang berhak menutup tahap pemeriksaan. Ia tidak mewarisi hak input kader.
     if (peran === "kms") {
-        return ["lihat-dashboard", "lihat-anak", "lihat-kms", "konfirmasi-kms"].includes(aksi);
+        return ["lihat-dashboard", "lihat-anak", "lihat-kms", "konfirmasi-kms", "catat-survei-kia"].includes(aksi);
     }
     if (aksi === "konfirmasi-kms") return false;
     return TINGKAT[peran] >= TINGKAT[MINIMUM[aksi]];
@@ -95,6 +97,10 @@ export type PenggunaAktif = {
     /** Hanya berarti untuk kader; bidan dan admin melihat seluruh RW. */
     rt: string | null;
     aktif: boolean;
+    /** Cluster Posyandu yang ditugaskan kepada akun ini. */
+    posyanduIds?: number[];
+    /** Mirae memiliki akses portal lintas cluster. */
+    superAdmin?: boolean;
 };
 
 /**

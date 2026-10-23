@@ -138,7 +138,11 @@ export async function pratinjauResetHariIni(
         `/api/v1/sasaran/reset-hari-ini?periodeId=${encodeURIComponent(periodeId)}`,
         { credentials: 'same-origin' },
     );
-    if (!res.ok) throw await galatDari(res);
+
+    if (!res.ok) {
+throw await galatDari(res);
+}
+
     return (await res.json()) as RingkasanResetHariIni;
 }
 
@@ -153,7 +157,11 @@ export async function resetPengukuranHariIni(
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ periodeId, jumlahDikonfirmasi, jumlahAntreanDikonfirmasi, konfirmasi: true }),
     });
-    if (!res.ok) throw await galatDari(res);
+
+    if (!res.ok) {
+throw await galatDari(res);
+}
+
     return ((await res.json()) as { hasil: RingkasanResetHariIni }).hasil;
 }
 

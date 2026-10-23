@@ -27,6 +27,8 @@ export type IsianAkun = {
     peran: Peran;
     /** Hanya bermakna untuk kader; selain kader selalu null. */
     rt: string | null;
+    /** Satu akun operasional bekerja pada satu cluster Posyandu/RW. */
+    posyanduId?: number | null;
     aktif: boolean;
 };
 
@@ -51,6 +53,9 @@ export function bacaIsianAkun(badan: unknown, lama?: IsianAkun): HasilBacaAkun {
     const peran = typeof b.peran === 'string' ? b.peran : lama?.peran;
     const aktif = typeof b.aktif === 'boolean' ? b.aktif : (lama?.aktif ?? true);
     const rt = 'rt' in b ? (teks('rt') || null) : (lama?.rt ?? null);
+    const posyanduId = typeof b.posyanduId === 'number' && Number.isSafeInteger(b.posyanduId)
+        ? b.posyanduId
+        : (lama?.posyanduId ?? null);
     const kataSandi =
         typeof b.kataSandi === 'string' && b.kataSandi !== '' ? b.kataSandi : null;
 
@@ -91,6 +96,7 @@ export function bacaIsianAkun(badan: unknown, lama?: IsianAkun): HasilBacaAkun {
             peran: peran as Peran,
             // Bidan dan admin melihat seluruh RW; RT binaan tidak berarti apa-apa.
             rt: peran === 'kader' ? rt : null,
+            posyanduId,
             aktif,
         },
         kataSandi,

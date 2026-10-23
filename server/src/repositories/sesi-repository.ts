@@ -17,6 +17,8 @@ type BarisSesi = {
     peran: Peran;
     rt: string | null;
     aktif: boolean;
+    posyanduIds: number[];
+    superAdmin: boolean;
 };
 
 export async function simpan(
@@ -34,13 +36,19 @@ export async function simpan(
 /** Null bila sesi tidak ada, sudah kedaluwarsa, atau akunnya dinonaktifkan. */
 export async function cariAktif(pool: Pool, ringkasan: string): Promise<PenggunaAktif | null> {
     const { rows } = await pool.query<BarisSesi>(
-        `SELECT p.id, p.peran, p.aktif, w.rt
+        `SELECT p.id, p.peran, p.aktif, w.rt, p.super_admin AS "superAdmin",
+                coalesce(array_agg(up.posyandu_id::int) FILTER (WHERE up.posyandu_id IS NOT NULL), '{}') AS "posyanduIds"
          FROM sesi s
          JOIN pengguna p ON p.id = s.pengguna_id
          LEFT JOIN wilayah_rt w ON w.id = p.wilayah_rt_id
+         LEFT JOIN pengguna_posyandu up ON up.pengguna_id = p.id
          WHERE s.ringkasan = $1
            AND s.kedaluwarsa > now()
-           AND p.aktif`,
+           AND p.aktif
+           AND (p.super_admin OR EXISTS (
+               SELECT 1 FROM pengguna_posyandu cakupan WHERE cakupan.pengguna_id=p.id
+           ))
+         GROUP BY p.id, w.rt`,
         [ringkasan],
     );
 
@@ -50,7 +58,7 @@ export async function cariAktif(pool: Pool, ringkasan: string): Promise<Pengguna
 
     const b = rows[0];
 
-    return { id: b.id, peran: b.peran, rt: b.rt, aktif: b.aktif };
+    return { id: b.id, peran: b.peran, rt: b.rt, aktif: b.aktif, posyanduIds: b.posyanduIds, superAdmin: b.superAdmin };
 }
 
 export async function hapus(pool: Pool, ringkasan: string): Promise<void> {

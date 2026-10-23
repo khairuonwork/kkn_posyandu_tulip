@@ -18,7 +18,7 @@ test('KMS menerima periode portal dan mempertahankan ID tablet', async () => {
     } as unknown as Pool;
     const app = express();
     app.use((req, _res, next) => {
-        req.pengguna = { id: 1, peran: 'kms', rt: null, aktif: true };
+        req.pengguna = { id: 1, peran: 'kms', rt: null, aktif: true, posyanduIds: [7], superAdmin: false };
         next();
     });
     app.use(ruteAntrean(pool));
@@ -32,10 +32,10 @@ test('KMS menerima periode portal dan mempertahankan ID tablet', async () => {
         assert.equal(portal.status, 200);
         const body = await portal.json() as { items: { status: string }[] };
         assert.equal(body.items[0].status, 'kms_review');
-        assert.deepEqual(calls, [[2026, 10], [28, '2026-10-09', null]]);
+        assert.deepEqual(calls, [[2026, 10, false, [7]], [28, '2026-10-09', false, [7]]]);
         calls.length = 0;
         assert.equal((await fetch(`${url}?periodeId=28&tanggal=2026-10-09`)).status, 200);
-        assert.deepEqual(calls, [[28, '2026-10-09', null]]);
+        assert.deepEqual(calls, [[28, '2026-10-09', false, [7]]]);
         assert.equal((await fetch(`${url}?periodeId=2026-13&tanggal=2026-10-09`)).status, 400);
         assert.equal((await fetch(`${url}?periodeId=2026-11&tanggal=2026-10-09`)).status, 404);
     } finally {

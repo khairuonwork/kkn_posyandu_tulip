@@ -30,6 +30,11 @@ export type Pengguna = {
     peran: Peran;
     rt: string | null;
     aktif: boolean;
+    /** Cluster tunggal bagi akun operasional; null untuk superadmin global. */
+    posyanduId?: number | null;
+    posyanduNama?: string | null;
+    rw?: string | null;
+    superAdmin?: boolean;
 };
 
 /** Enam indeks antropometri, sama dengan App\Enums\Indeks. */

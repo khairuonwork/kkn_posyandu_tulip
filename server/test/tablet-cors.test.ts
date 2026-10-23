@@ -3,7 +3,7 @@ import { once } from 'node:events';
 import type { AddressInfo } from 'node:net';
 import { test } from 'node:test';
 import type { Pool } from 'pg';
-import { buatApp } from '../src/http/server.ts';
+import { buatApp } from '../src/http/app.ts';
 
 test('WebView tablet dapat mengirim header perangkat saat login; origin web lain tetap dibatasi', async () => {
     const pool = {

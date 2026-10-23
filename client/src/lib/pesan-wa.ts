@@ -11,13 +11,7 @@
  */
 
 import type { Pengukuran } from '../types/posyandu';
-import {
-    labelIndeks,
-    satuan,
-    tanggalPanjang,
-    umurPanjang,
-    zScore,
-} from './format.ts';
+import { satuan, tanggalPanjang, umurPanjang } from './format.ts';
 import { penilaianLayak } from './penilaian-utama.ts';
 
 export type Kesimpulan = 'sesuai' | 'dipantau' | 'diperiksa';
@@ -99,6 +93,19 @@ export function tautanWa(nomor: string, pesan: string): string {
     return `https://wa.me/${nomor}?text=${encodeURIComponent(pesan)}`;
 }
 
+export type DiskusiKiaWa = {
+    kelompokLabel: string;
+    ya: number;
+    tidak: number;
+    belum: number;
+    total: number;
+    arahan: string;
+    catatan?: string;
+    tindakLanjut?: string;
+    makan?: string[];
+    stimulasi?: string[];
+};
+
 type Bahan = {
     nama: string;
     umurBulan: number | null;
@@ -106,6 +113,8 @@ type Bahan = {
     /** Pengukuran tepat dua bulan sebelumnya, bila ada. */
     duaBulanLalu: Pengukuran | undefined;
     kesimpulan: Kesimpulan;
+    /** Ringkasan diskusi tumbuh kembang & rekomendasi Buku KIA 2024, bila tersedia. */
+    diskusiKia?: DiskusiKiaWa | null;
     /** Tautan Lembar Hasil; baris "Rincian lengkap" hilang bila null. */
     tautan?: string | null;
     lembaga: string;
@@ -114,23 +123,62 @@ type Bahan = {
 function baris(
     nama: string,
     ukur: string | null,
-    kode: string,
     penilaian: ReturnType<typeof penilaianLayak>,
 ): string | null {
     if (ukur === null) {
         return null;
     }
 
-    const rincian = [
-        `${kode} ${zScore(penilaian?.z ?? null)} SD`,
-        penilaian?.kategori ?? null,
+    // Orang tua menerima ringkasan sederhana. Kode indeks dan z-score tetap
+    // tersedia pada Lembar Hasil yang ditautkan, bukan di pesan singkat.
+    const kategori = penilaian?.kategori?.replace(/^Berat badan /, '');
+    const isi = [nama, ukur].filter((s) => s !== '').join(' ');
+
+    return kategori == null
+        ? `• ${isi}`
+        : `• ${isi}: ${kategori.charAt(0).toLowerCase()}${kategori.slice(1)}`;
+}
+
+function susunBagianKia(d: DiskusiKiaWa): string[] {
+    const bagian: string[] = [
+        '',
+        `*Hasil Diskusi Tumbuh Kembang (${d.kelompokLabel})*`,
     ];
 
-    return `• ${[nama, ukur].filter((s) => s !== '').join(' ')}${
-        penilaian === undefined
-            ? ''
-            : ` (${rincian.filter((r) => r !== null).join(', ')})`
-    }`;
+    if (d.ya + d.tidak > 0) {
+        bagian.push(
+            `• Pemantauan: ${d.ya} sesuai (Ya), ${d.tidak} perlu perhatian (Tidak)${
+                d.belum > 0 ? `, ${d.belum} belum diamati` : ''
+            } dari ${d.total} butir`,
+        );
+    }
+
+    if (d.arahan.trim() !== '') {
+        bagian.push(d.arahan.trim());
+    }
+
+    if (d.catatan && d.catatan.trim() !== '') {
+        bagian.push(`• Catatan pengamatan: ${d.catatan.trim()}`);
+    }
+
+    if (d.tindakLanjut && d.tindakLanjut.trim() !== '') {
+        bagian.push(`• Tindak lanjut disepakati: ${d.tindakLanjut.trim()}`);
+    }
+
+    const rekomendasi = [
+        ...(d.makan ?? []).slice(0, 2),
+        ...(d.stimulasi ?? []).slice(0, 2),
+    ];
+
+    if (rekomendasi.length > 0) {
+        bagian.push('', '*Rekomendasi perawatan & stimulasi di rumah:*');
+
+        for (const butir of rekomendasi) {
+            bagian.push(`• ${butir}`);
+        }
+    }
+
+    return bagian;
 }
 
 /**
@@ -151,31 +199,26 @@ export function susunPesan(b: Bahan): string {
         baris(
             'Berat badan',
             t.bbKg === null ? null : satuan(t.bbKg, 'kg'),
-            'BB/U',
             penilaianLayak(t.penilaian.BB_U),
         ),
         baris(
             berdiri ? 'Tinggi badan' : 'Panjang badan',
             t.tinggiCm === null ? null : satuan(t.tinggiCm, 'cm'),
-            labelIndeks('TB_U', b.umurBulan),
             penilaianLayak(t.penilaian.TB_U),
         ),
         baris(
             'Status gizi',
             penilaianLayak(t.penilaian.BB_TB) === undefined ? null : '',
-            labelIndeks('BB_TB', b.umurBulan),
             penilaianLayak(t.penilaian.BB_TB),
         ),
         baris(
             'Lingkar lengan atas',
             t.lilaCm === null ? null : satuan(t.lilaCm, 'cm'),
-            'LILA/U',
             penilaianLayak(t.penilaian.LILA_U),
         ),
         baris(
             'Lingkar kepala',
             t.likaCm === null ? null : satuan(t.likaCm, 'cm'),
-            'LIKA/U',
             penilaianLayak(t.penilaian.LIKA_U),
         ),
         selisih === null
@@ -187,6 +230,11 @@ export function susunPesan(b: Bahan): string {
               } dibanding 2 bulan lalu`,
     ].filter((l) => l !== null);
 
+    const bagianKia = b.diskusiKia ? susunBagianKia(b.diskusiKia) : [];
+    const labelTautan = b.diskusiKia
+        ? 'Ringkasan lengkap, panduan perawatan, dan grafik pertumbuhan (PDF)'
+        : 'Rincian lengkap dan grafik';
+
     return [
         `Yth. Ibu/Bapak dari ${nama},`,
         `Hasil penimbangan ${tanggalPanjang(t.tanggalUkur)} (umur ${umurPanjang(b.umurBulan)}):`,
@@ -194,7 +242,8 @@ export function susunPesan(b: Bahan): string {
         '',
         `*${kalimat.judul}*`,
         kalimat.anjuran,
-        ...(b.tautan ? ['', `Rincian lengkap dan grafik: ${b.tautan}`] : []),
+        ...bagianKia,
+        ...(b.tautan ? ['', `${labelTautan}: ${b.tautan}`] : []),
         '',
         b.lembaga,
     ].join('\n');

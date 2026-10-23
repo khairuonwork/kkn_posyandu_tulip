@@ -1,0 +1,25 @@
+[Unit]
+Description=Cloudflare Quick Tunnel publik untuk SIMPATIK
+Wants=network-online.target simpatik.service
+After=network-online.target simpatik.service
+
+[Service]
+Type=simple
+User=hafizh
+Group=hafizh
+ExecStart=/usr/local/bin/cloudflared tunnel --no-autoupdate --protocol http2 --url http://127.0.0.1:4321 --metrics 127.0.0.1:49312
+Restart=on-failure
+RestartSec=10
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

@@ -13,7 +13,7 @@
  * cukup satu blok JSX.
  */
 
-import { FileText } from 'lucide-react';
+import { Download, FileText, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 import EmptyState from '@/components/empty-state';
 import Halaman from '@/components/halaman';
@@ -27,6 +27,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { persenSaja } from '@/lib/format';
+import type { useLaporanServer } from '@/lib/laporan';
 import type { Periode } from '@/types/posyandu';
 
 export type BarisRekapRt = {
@@ -93,6 +94,8 @@ type Props = {
     kelurahan: string;
     periodeTerisi: Periode | null;
     onPindahPeriode?: (id: string) => void;
+    laporanLive?: ReturnType<typeof useLaporanServer>;
+    bolehUnduh?: boolean;
 };
 
 export default function Laporan({
@@ -106,6 +109,8 @@ export default function Laporan({
     kelurahan,
     periodeTerisi,
     onPindahPeriode,
+    laporanLive,
+    bolehUnduh = false,
 }: Props) {
     const [rt, setRt] = useState('');
     const [urut, setUrut] = useState<{ kolom: Kolom; naik: boolean }>({
@@ -128,6 +133,16 @@ export default function Laporan({
         urut.kolom === 'rt'
             ? `urut nomor RT${urut.naik ? '' : ', terbesar dulu'}`
             : `urut ${KOLOM.find((k) => k.kunci === urut.kolom)?.kode} ${urut.naik ? 'naik' : 'turun'}`;
+
+    if (laporanLive !== undefined) {
+        return (
+            <LaporanDataLive
+                periode={periode}
+                laporan={laporanLive}
+                bolehUnduh={bolehUnduh}
+            />
+        );
+    }
 
     const angka = (r: BarisRekapRt) => [
         r.s,
@@ -304,6 +319,378 @@ export default function Laporan({
                     </div>
                 </section>
             )}
+        </Halaman>
+    );
+}
+
+function umurUntukLaporan(umurLengkap: string): string {
+    const lengkap = /^(\d+)Thn(\d+)Bln(\d+)Hari$/.exec(umurLengkap ?? '');
+
+    if (lengkap !== null) {
+        return `${Number(lengkap[1])} thn ${Number(lengkap[2])} bln ${Number(lengkap[3])} hari`;
+    }
+
+    // Tetap terbaca bila API yang berjalan masih memakai keluaran antara.
+    const bulanHari = /^(\d+) bulan (\d+) hari$/.exec(umurLengkap ?? '');
+
+    if (bulanHari !== null) {
+        const bulan = Number(bulanHari[1]);
+
+        return `${Math.floor(bulan / 12)} thn ${bulan % 12} bln ${Number(bulanHari[2])} hari`;
+    }
+
+    const umurArsip = /^(\d+)Thn(\d+)Bln$/.exec(umurLengkap ?? '');
+
+    if (umurArsip) {
+        return `${umurArsip[1]} thn ${umurArsip[2]} bln`;
+    }
+
+    return umurLengkap || '—';
+}
+
+function LaporanDataLive({
+    periode,
+    laporan,
+    bolehUnduh,
+}: {
+    periode: Periode;
+    laporan: ReturnType<typeof useLaporanServer>;
+    bolehUnduh: boolean;
+}) {
+    const [tab, setTab] = useState<'zscore' | '2t'>('zscore');
+    const [indeks, setIndeks] = useState('BB_U');
+    const [standar, setStandar] = useState('PERMENKES-2-2020');
+    const [galatUnduh, setGalatUnduh] = useState<string | null>(null);
+    const data = laporan.data;
+    const daftarIndeks = [
+        ['BB_U', 'BB/U'],
+        ['TB_U', 'TB/U'],
+        ['BB_TB', 'BB/TB'],
+        ['IMT_U', 'IMT/U'],
+        ['LILA_U', 'LILA/U'],
+        ['LIKA_U', 'LIKA/U'],
+    ];
+    const baris =
+        tab === 'zscore' ? (data?.bulanan ?? []) : (data?.riwayat2T ?? []);
+
+    return (
+        <Halaman
+            ikon={FileText}
+            judul="Laporan"
+            subjudul={`Rekap live Posyandu · ${periode.label}. Data berasal dari catatan ukur dan penilaian tersimpan.`}
+            aksi={
+                <div className="flex flex-wrap items-center gap-2">
+                    <button
+                        type="button"
+                        className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-border-strong bg-card px-4 font-semibold"
+                        onClick={laporan.muatUlang}
+                    >
+                        <RefreshCw aria-hidden="true" /> Perbarui
+                    </button>
+                    {bolehUnduh && (
+                        <button
+                            type="button"
+                            className="tombol-utama"
+                            onClick={() =>
+                                void laporan
+                                    .unduh()
+                                    .catch((e: unknown) =>
+                                        setGalatUnduh(
+                                            e instanceof Error
+                                                ? e.message
+                                                : 'Unduhan gagal.',
+                                        ),
+                                    )
+                            }
+                        >
+                            <Download aria-hidden="true" /> Unduh Excel
+                        </button>
+                    )}
+                </div>
+            }
+        >
+            <div className="grid gap-3 sm:grid-cols-3">
+                <article className="kartu p-4">
+                    <p className="text-sm text-muted-foreground">
+                        Balita diukur
+                    </p>
+                    <p className="mt-1 text-2xl font-extrabold">
+                        {data?.ringkasan.anakDiukur ?? '—'}
+                    </p>
+                </article>
+                <article className="kartu p-4">
+                    <p className="text-sm text-muted-foreground">
+                        Mencapai 2T+
+                    </p>
+                    <p className="mt-1 text-2xl font-extrabold">
+                        {data &&
+                        data.ringkasan.denganDuaT === 0 &&
+                        (data.ringkasan.belumDapatDinilai ?? 0) > 0
+                            ? 'Belum cukup data'
+                            : (data?.ringkasan.denganDuaT ?? '—')}
+                    </p>
+                    {(data?.ringkasan.duaTDariArsip ?? 0) > 0 && (
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Termasuk {data!.ringkasan.duaTDariArsip} anak dari
+                            arsip petugas
+                        </p>
+                    )}
+                </article>
+                <article className="kartu p-4">
+                    <p className="text-sm text-muted-foreground">
+                        Standar tersedia
+                    </p>
+                    <p className="mt-1 text-lg font-extrabold">
+                        {data?.standar.join(', ') || '—'}
+                    </p>
+                </article>
+            </div>
+            <section className="kartu mt-4 overflow-hidden">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+                    <div
+                        className="flex flex-wrap gap-2"
+                        role="tablist"
+                        aria-label="Jenis laporan"
+                    >
+                        <button
+                            type="button"
+                            role="tab"
+                            aria-selected={tab === 'zscore'}
+                            onClick={() => setTab('zscore')}
+                            className={`min-h-11 rounded-xl px-4 ${tab === 'zscore' ? 'bg-primary font-bold text-white' : 'border border-border-strong'}`}
+                        >
+                            Rekap Z-score
+                        </button>
+                        <button
+                            type="button"
+                            role="tab"
+                            aria-selected={tab === '2t'}
+                            onClick={() => setTab('2t')}
+                            className={`min-h-11 rounded-xl px-4 ${tab === '2t' ? 'bg-primary font-bold text-white' : 'border border-border-strong'}`}
+                        >
+                            Riwayat 2T ke atas
+                        </button>
+                    </div>
+                    {tab === 'zscore' && (
+                        <div className="flex flex-wrap items-center gap-3">
+                            <label className="flex items-center gap-2 text-sm">
+                                Standar
+                                <select
+                                    className="min-h-11 rounded-lg border border-border-strong bg-card px-3"
+                                    value={standar}
+                                    onChange={(e) => setStandar(e.target.value)}
+                                >
+                                    {(data?.standar ?? [standar]).map(
+                                        (value) => (
+                                            <option key={value} value={value}>
+                                                {value === 'PERMENKES-2-2020'
+                                                    ? 'Permenkes 2/2020'
+                                                    : value}
+                                            </option>
+                                        ),
+                                    )}
+                                </select>
+                            </label>
+                            <label className="flex items-center gap-2 text-sm">
+                                Indeks
+                                <select
+                                    className="min-h-11 rounded-lg border border-border-strong bg-card px-3"
+                                    value={indeks}
+                                    onChange={(e) => setIndeks(e.target.value)}
+                                >
+                                    {daftarIndeks.map(([value, label]) => (
+                                        <option key={value} value={value}>
+                                            {label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                        </div>
+                    )}
+                </div>
+                {tab === '2t' && data?.keterangan2T && (
+                    <p className="border-b border-border bg-muted/30 px-5 py-3 text-sm text-muted-foreground">
+                        {data.keterangan2T}
+                    </p>
+                )}
+                {laporan.status === 'memuat' ? (
+                    <p className="p-6 text-muted-foreground">
+                        Memuat data laporan…
+                    </p>
+                ) : laporan.status === 'galat' ? (
+                    <div className="p-6">
+                        <p role="alert">{laporan.pesanGalat}</p>
+                        <button
+                            className="tombol-sekunder mt-3"
+                            onClick={laporan.muatUlang}
+                        >
+                            Coba lagi
+                        </button>
+                    </div>
+                ) : (
+                    <div
+                        className="gulir-dalam w-full overflow-x-auto"
+                        tabIndex={0}
+                        role="region"
+                        aria-label="Tabel laporan, geser ke samping untuk melihat semua kolom"
+                    >
+                        {baris.length === 0 ? (
+                            <p className="p-6 text-muted-foreground">
+                                {tab === 'zscore'
+                                    ? `Belum ada pengukuran hadir pada ${periode.label}.`
+                                    : (data?.ringkasan.belumDapatDinilai ?? 0) >
+                                        0
+                                      ? `Riwayat 2T+ ${periode.label} belum dapat ditentukan karena data pembanding belum lengkap.`
+                                      : `Tidak ada anak berstatus 2T+ pada ${periode.label}.`}
+                            </p>
+                        ) : (
+                            <table className="w-full min-w-[1050px] border-collapse text-left text-sm">
+                                <thead className="bg-muted/60">
+                                    <tr>
+                                        {(tab === 'zscore'
+                                            ? [
+                                                  'Nama',
+                                                  'RT',
+                                                  'Umur lengkap',
+                                                  'Tanggal ukur',
+                                                  'BB (kg)',
+                                                  'TB/PB (cm)',
+                                                  'Z-score',
+                                                  'Kategori',
+                                              ]
+                                            : [
+                                                  'Nama',
+                                                  'RT',
+                                                  'Periode',
+                                                  'Umur lengkap',
+                                                  'BB (kg)',
+                                                  'Kenaikan (g)',
+                                                  'KBM (g)',
+                                                  'N/T',
+                                                  'Status bulan laporan',
+                                                  'Sumber',
+                                              ]
+                                        ).map((h) => (
+                                            <th
+                                                key={h}
+                                                className="sticky top-0 px-4 py-3 font-bold whitespace-nowrap"
+                                            >
+                                                {h}
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {baris.map((row, index) => {
+                                        const assessment =
+                                            row.penilaian[standar]?.[indeks];
+
+                                        return (
+                                            <tr
+                                                key={`${row.anakId}-${row.periodeId}-${index}`}
+                                                className="border-t border-border"
+                                            >
+                                                <td className="px-4 py-3 font-semibold whitespace-nowrap">
+                                                    {row.nama}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    {row.rt
+                                                        ? `RT ${row.rt}`
+                                                        : '—'}
+                                                </td>
+                                                {tab === 'zscore' ? (
+                                                    <>
+                                                        <td className="px-4 py-3 whitespace-nowrap">
+                                                            {umurUntukLaporan(
+                                                                row.umurLengkap,
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-3 whitespace-nowrap">
+                                                            {row.tanggalUkur}
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            {row.bbKg ?? '—'}
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            {row.tinggiCm ??
+                                                                '—'}
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            {typeof assessment?.z ===
+                                                            'number'
+                                                                ? assessment.z.toFixed(
+                                                                      2,
+                                                                  )
+                                                                : '—'}
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            {assessment?.kategori ??
+                                                                'Belum dinilai'}
+                                                        </td>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <td className="px-4 py-3">
+                                                            {row.periodeId}
+                                                        </td>
+                                                        <td className="px-4 py-3 whitespace-nowrap">
+                                                            {umurUntukLaporan(
+                                                                row.umurLengkap,
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            {row.bbKg ?? '—'}
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            {row.kenaikanGram ??
+                                                                '—'}
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            {row.kbmGram ?? '—'}
+                                                        </td>
+                                                        <td className="px-4 py-3 font-bold">
+                                                            {row.nt ?? '—'}
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            {row.status2T ??
+                                                                (row.jumlahTBerturut
+                                                                    ? `${row.jumlahTBerturut}T`
+                                                                    : row.duaT
+                                                                      ? '2T+'
+                                                                      : '—')}
+                                                        </td>
+                                                        <td className="px-4 py-3 whitespace-nowrap">
+                                                            {row.sumberRiwayat ===
+                                                            'arsip'
+                                                                ? 'Arsip Bu Sri'
+                                                                : 'Pengukuran aplikasi'}
+                                                        </td>
+                                                    </>
+                                                )}
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+                )}
+                {galatUnduh && (
+                    <p
+                        className="border-t border-border px-5 py-3 text-sm text-destructive"
+                        role="alert"
+                    >
+                        {galatUnduh}
+                    </p>
+                )}
+                <p className="border-t border-border px-5 py-3 text-xs leading-relaxed text-muted-foreground">
+                    {data?.metodeUmur ??
+                        'Z-score laporan adalah estimasi umur hari yang diinterpolasi di antara titik standar bulanan, bukan pengganti penilaian resmi. '}
+                    KBM dan penetapan N/T tetap mengikuti kelompok umur pada
+                    KMS. Rekap N/T tidak menimpa catatan historis dan perlu
+                    ditinjau petugas.
+                </p>
+            </section>
         </Halaman>
     );
 }

@@ -179,6 +179,20 @@ Hanya kolom yang menuntut penjelasan. Kolom `id`, `created_at`, dan `updated_at`
 
 *Unique:* `(posyandu_id, rt, rw)`
 
+### `pengguna_posyandu`
+
+Keanggotaan akun ke cluster. Akun operasional memiliki satu baris untuk satu Posyandu/RW; Mirae sebagai superadmin global tidak memiliki baris keanggotaan.
+
+| Kolom | Tipe | Aturan |
+|---|---|---|
+| `pengguna_id` | FK → `pengguna` | Bagian dari primary key; dihapus saat akun dihapus. |
+| `posyandu_id` | FK → `posyandu` | Cluster akses akun. |
+| `created_at` | `timestamptz` | Waktu keanggotaan dibuat. |
+
+*Primary key:* `(pengguna_id, posyandu_id)` · *Index:* `(posyandu_id, pengguna_id)`
+
+`pengguna.super_admin` membedakan superadmin global dari Admin Posyandu. Hanya Mirae ditandai global melalui migrasi `021_super_admin_global.sql`; perubahan ini tidak mengubah kata sandi atau hash akun.
+
 ### `orang_tua`
 
 | Kolom | Tipe | Aturan |

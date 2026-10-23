@@ -9,7 +9,7 @@
 
 import { useEffect, useState } from 'react';
 
-import type { DaftarPengguna, IsianPengguna } from '@/pages/pengaturan/index';
+import type { DaftarPengguna, IsianPengguna, PosyanduAkun, WilayahRtAkun } from '@/pages/pengaturan/index';
 import type { Pengguna } from '@/types/posyandu';
 
 /**
@@ -47,7 +47,8 @@ export function usePenggunaServer(aktif: boolean, onSesiBerakhir: () => void) {
 
                 const isi = (await res.json()) as {
                     pengguna: Pengguna[];
-                    wilayahRt: string[];
+                    wilayahRt: WilayahRtAkun[];
+                    posyandu: PosyanduAkun[];
                 };
 
                 if (hidup) {

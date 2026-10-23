@@ -179,7 +179,7 @@ export default function Dashboard({
             <div
                 role="tablist"
                 aria-label="Tampilan Beranda"
-                className="mb-6 flex gap-1 border-b border-border"
+                className="bilah-tab mb-6"
             >
                 {(
                     [
@@ -224,7 +224,7 @@ export default function Dashboard({
                                 )
                                 ?.focus();
                         }}
-                        className={`-mb-px min-h-12 border-b-2 px-4 py-3 text-sm font-bold transition-colors sm:px-5 ${tabAktif === id ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:bg-surface-subtle hover:text-foreground'}`}
+                        className="tab"
                     >
                         {label}
                     </button>

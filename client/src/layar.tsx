@@ -31,6 +31,7 @@ import {
 import type { DetailAnakServerState } from '@/lib/anak';
 import type { useBerandaServer } from '@/lib/beranda';
 import { umurBulanPada } from '@/lib/format';
+import type { useLaporanServer } from '@/lib/laporan';
 import DaftarAnak from '@/pages/anak/index';
 import type { AnakBaru, BarisAnak, PatchAnak } from '@/pages/anak/index';
 import RiwayatPenimbangan from '@/pages/anak/riwayat';
@@ -38,6 +39,7 @@ import DetailAnak from '@/pages/anak/show';
 import Dashboard from '@/pages/dashboard';
 import KartuSasaran from '@/pages/kartu-sasaran/index';
 import type { BalitaKartu } from '@/pages/kartu-sasaran/index';
+import PemeriksaanKms from '@/pages/kms';
 import Laporan from '@/pages/laporan/index';
 import type { TabPeriode } from '@/pages/laporan/index';
 import Pengaturan from '@/pages/pengaturan/index';
@@ -48,7 +50,6 @@ import type {
     StandarisasiAntropometri,
 } from '@/pages/pengaturan/index';
 import SasaranImpor from '@/pages/sasaran/index';
-import PemeriksaanKms from '@/pages/kms';
 import type { Anak, Peran, Periode } from '@/types/posyandu';
 
 /**
@@ -167,6 +168,7 @@ export type LayarProps = {
     detailServer?: DetailAnakServerState;
     periodeServer?: Periode[];
     berandaServer?: ReturnType<typeof useBerandaServer>;
+    laporanServer?: ReturnType<typeof useLaporanServer>;
     onSesiBerakhir: () => void;
     tabLaporan: TabPeriode;
     onGantiTabLaporan: (tab: TabPeriode) => void;
@@ -200,6 +202,7 @@ export function Layar({
     detailServer,
     periodeServer,
     berandaServer,
+    laporanServer,
     onSesiBerakhir,
 }: LayarProps) {
     const periode = modeDataLive
@@ -424,6 +427,8 @@ export function Layar({
                 kelurahan={data.meta.kelurahan}
                 periodeTerisi={periodeTerakhirTerisi()}
                 onPindahPeriode={onPindahPeriode}
+                laporanLive={modeDataLive ? laporanServer : undefined}
+                bolehUnduh={peran === 'bidan' || peran === 'admin'}
             />
         );
     }

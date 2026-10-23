@@ -16,7 +16,6 @@ import {
     CreditCard,
     Info,
     Mars,
-    MessageCircle,
     Pencil,
     Printer,
     Save,
@@ -32,8 +31,10 @@ import Dialog, { KakiDialog } from '@/components/dialog';
 import DialogKirimWa from '@/components/dialog-kirim-wa';
 import GrafikPertumbuhan from '@/components/grafik-pertumbuhan';
 import Halaman from '@/components/halaman';
+import IkonWhatsApp from '@/components/ikon-whatsapp';
 import KartuBalita, { LembarCetak } from '@/components/kartu-balita';
 import KmsChart from '@/components/kms-chart-sep24';
+import PendampinganKia from '@/components/pendampingan-kia';
 import { nadaKategori } from '@/components/status-gizi-badge';
 import {
     Table,
@@ -65,6 +66,7 @@ import { buatTautanLembar } from '@/lib/lembar';
 import { Link } from '@/lib/nav';
 import { penilaianLayak, terbaruUntuk } from '@/lib/penilaian-utama';
 import { kalimatKesimpulan, nomorBaku, susunPesan } from '@/lib/pesan-wa';
+import type { DiskusiKiaWa } from '@/lib/pesan-wa';
 import type { BarisLms } from '@/lib/z-score';
 import type { PatchAnak } from '@/pages/anak/index';
 import type {
@@ -237,6 +239,7 @@ export default function DetailAnak({
         peran === 'kms' ? 'kurva' : 'profil',
     );
     const [dialog, setDialog] = useState<'ubah' | 'cetak' | 'wa' | null>(null);
+    const [infoKiaWa, setInfoKiaWa] = useState<DiskusiKiaWa | null>(null);
     const bolehUbah =
         peran !== 'kms' &&
         onSimpan !== undefined &&
@@ -323,9 +326,7 @@ export default function DetailAnak({
                       p.umurBulan === umurTerbaru - 2,
               );
 
-    // Tombol kirim tidak dirender bila tak ada yang dapat dikirim; sebabnya
-    // ditulis sebagai satu baris di bawah judul (docs/prd/feedback/F03).
-    const alasanTanpaWa =
+    const alasanTanpaDataWa =
         terbaru === null
             ? `Belum ada hasil pengukuran pada ${periode.label}, sehingga tidak ada yang dapat dikirim.${
                   hasilTerakhir === undefined
@@ -334,11 +335,17 @@ export default function DetailAnak({
               }`
             : indeksTidakWajar.length > 0
               ? 'Hasil periode ini ditandai tidak wajar. Verifikasi ulang sebelum dikirim ke orang tua.'
-              : nomorTujuan !== null
-                ? null
-                : (noWa ?? '').trim() === ''
-                  ? 'Nomor WhatsApp orang tua belum diisi. Isi lewat Ubah data.'
-                  : 'Nomor WhatsApp orang tua tidak sah. Periksa lewat Ubah data.';
+              : null;
+
+    // Tombol kirim tidak dirender bila tak ada yang dapat dikirim; sebabnya
+    // ditulis sebagai satu baris di bawah judul (docs/prd/feedback/F03).
+    const alasanTanpaWa =
+        alasanTanpaDataWa ??
+        (nomorTujuan !== null
+            ? null
+            : (noWa ?? '').trim() === ''
+              ? 'Nomor WhatsApp orang tua belum diisi. Isi lewat Ubah data, atau kirim dari bagian bawah tab Status Gizi.'
+              : 'Nomor WhatsApp orang tua tidak sah. Periksa lewat Ubah data.');
 
     // Titik kurva hanya dari pengukuran yang punya umur dan berat sekaligus.
     const riwayatKurva = pengukuran
@@ -441,11 +448,7 @@ export default function DetailAnak({
                             onClick={() => setDialog('wa')}
                             className="tombol-utama"
                         >
-                            <MessageCircle
-                                className="size-5"
-                                strokeWidth={2.5}
-                                aria-hidden="true"
-                            />
+                            <IkonWhatsApp className="size-5" />
                             Kirim ke WhatsApp
                         </button>
                     )}
@@ -470,11 +473,11 @@ export default function DetailAnak({
                 tampil pada satu waktu, tetapi semua bagian tetap dapat dicapai
                 dalam satu langkah. */}
             <div
-                className="mb-7 border-b border-border"
+                className="bilah-tab mb-7"
                 role="tablist"
                 aria-label="Kategori detail anak"
             >
-                <div className="flex flex-wrap items-end gap-1">
+                <div className="flex flex-wrap gap-1.5">
                     {TAB_DETAIL.map((tab) => {
                         const aktif = tabAktif === tab.nilai;
 
@@ -487,11 +490,7 @@ export default function DetailAnak({
                                 aria-selected={aktif}
                                 aria-controls={`panel-${tab.nilai}`}
                                 onClick={() => setTabAktif(tab.nilai)}
-                                className={`relative min-h-12 rounded-t-lg border px-4 text-base font-semibold transition-colors focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
-                                    aktif
-                                        ? 'z-10 -mb-px border-border bg-card text-foreground'
-                                        : 'border-transparent text-muted-foreground hover:border-border hover:bg-surface-subtle hover:text-foreground'
-                                }`}
+                                className="tab"
                             >
                                 {tab.label}
                             </button>
@@ -680,7 +679,7 @@ export default function DetailAnak({
                                   ? 'Belum dapat dinilai dari data periode ini.'
                                   : perluTindakLanjut
                                     ? 'Perlu tindak lanjut bulan ini.'
-                                    : 'Tidak perlu tindak lanjut bulan ini.'}
+                                    : 'Lanjutkan pemantauan bulanan dan diskusi perkembangan sesuai usia.'}
                         </p>
 
                         <div
@@ -691,7 +690,7 @@ export default function DetailAnak({
                             }`}
                         >
                             <h3 className="text-base font-extrabold">
-                                Arahan untuk keluarga
+                                Diskusikan hasil gizi dengan keluarga
                             </h3>
                             <p className="mt-1 max-w-[76ch] text-base text-pretty">
                                 {edukasiKms}
@@ -731,6 +730,26 @@ export default function DetailAnak({
                             </p>
                         )}
                     </section>
+                )}
+
+                {tabAktif === 'status' && (
+                    <PendampinganKia
+                        key={anak.id}
+                        anakId={anak.id}
+                        sumberLive={sumberLive ?? false}
+                        alasanTanpaWa={
+                            peran === 'kms' ? undefined : alasanTanpaDataWa
+                        }
+                        onInfoKiaChange={setInfoKiaWa}
+                        onKirimWa={
+                            peran === 'kms'
+                                ? undefined
+                                : (info) => {
+                                      setInfoKiaWa(info);
+                                      setDialog('wa');
+                                  }
+                        }
+                    />
                 )}
 
                 {/* Kurva dan riwayat adalah cerita yang sama, jadi jaraknya
@@ -1017,7 +1036,7 @@ export default function DetailAnak({
                     }}
                 />
             )}
-            {dialog === 'wa' && terbaru !== null && nomorTujuan !== null && (
+            {dialog === 'wa' && terbaru !== null && (
                 <DialogKirimWa
                     nama={nama}
                     nomor={nomorTujuan}
@@ -1029,6 +1048,7 @@ export default function DetailAnak({
                             terbaru,
                             duaBulanLalu,
                             kesimpulan: kesimpulanWa,
+                            diskusiKia: infoKiaWa,
                             tautan,
                             lembaga,
                         })
@@ -1173,6 +1193,7 @@ function DialogUbah({
 
         setMenyimpan(true);
         setGalatSimpan('');
+
         try {
             await onSimpan({
                 nama: isi.nama.trim(),

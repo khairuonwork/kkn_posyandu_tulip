@@ -241,7 +241,7 @@ export async function simpanAnak(
         pool,
         { pengguna: pengguna.id, sumber: "tablet" },
         (db) =>
-            anakRepo.upsertAnak(db, {
+            anakRepo.upsertAnak(db, pengguna, {
                 nik,
                 nama,
                 tglLahir,

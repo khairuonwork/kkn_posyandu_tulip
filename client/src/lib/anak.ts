@@ -249,6 +249,7 @@ export async function simpanProfilAnak(
     onSesiBerakhir: () => void,
 ): Promise<void> {
     let response: Response;
+
     try {
         response = await fetch(`/api/v1/anak/${anakId}`, {
             method: 'PATCH',
@@ -261,14 +262,18 @@ export async function simpanProfilAnak(
             'Tidak dapat terhubung ke server. Periksa sambungan lalu coba lagi.',
         );
     }
+
     if (response.status === 401) {
         onSesiBerakhir();
+
         throw new Error('Sesi telah berakhir. Silakan masuk kembali.');
     }
+
     if (!response.ok) {
         const isi = (await response.json().catch(() => ({}))) as {
             galat?: string;
         };
+
         throw new Error(isi.galat ?? 'Profil anak tidak dapat disimpan.');
     }
 }

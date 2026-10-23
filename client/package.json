@@ -8,7 +8,7 @@
         "preview": "vite preview",
         "demo": "vite --config vite.demo.config.ts",
         "demo:build": "vite build --config vite.demo.config.ts",
-        "test": "node --test \"test/**/*.test.ts\"",
+        "test": "node --experimental-strip-types --test \"test/**/*.test.ts\"",
         "types:check": "tsc --noEmit",
         "lint": "eslint . --fix",
         "lint:check": "eslint .",

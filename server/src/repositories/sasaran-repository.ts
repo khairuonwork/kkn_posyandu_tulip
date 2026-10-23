@@ -139,40 +139,37 @@ function namaBaku(nama: string): string {
 
 export async function calonSasaran(
     pool: Pool,
-    _pengguna: PenggunaAktif,
+    pengguna: PenggunaAktif,
     periodeId: number,
     cari: string,
 ): Promise<CalonSasaran[]> {
-    const posyanduId = await pool.query<{ id: number }>(
-        `SELECT id FROM posyandu
-          ORDER BY (slug = 'posyandu-tulip') DESC, id LIMIT 1`,
-    );
-    if (posyanduId.rows[0] === undefined) return [];
-
     const { rows } = await pool.query<CalonSasaran>(
         `SELECT a.id AS "anakId", a.nama, a.nik,
                 to_char(a.tgl_lahir, 'YYYY-MM-DD') AS "tglLahir", a.jk,
                 o.nama AS "namaOrtu", w.rt
            FROM anak a
            JOIN wilayah_rt w ON w.id = a.wilayah_rt_id
+           JOIN periode pe ON pe.id=$1
            LEFT JOIN orang_tua o ON o.id = a.orang_tua_id
           WHERE a.deleted_at IS NULL AND a.status = 'aktif'
-            AND w.posyandu_id = $1
+            AND w.posyandu_id=pe.posyandu_id
+            AND ($3::boolean OR pe.posyandu_id=ANY($4::bigint[]))
             AND NOT EXISTS (
                 SELECT 1 FROM sasaran s
-                 WHERE s.periode_id = $2 AND s.anak_id = a.id
+                 WHERE s.periode_id = pe.id AND s.anak_id = a.id
             )
-            AND (a.nama_baku ILIKE $3 OR coalesce(a.nik, '') ILIKE $3
-                 OR coalesce(o.nama, '') ILIKE $3)
+            AND (a.nama_baku ILIKE $2 OR coalesce(a.nik, '') ILIKE $2
+                 OR coalesce(o.nama, '') ILIKE $2)
           ORDER BY a.nama_baku, a.id
           LIMIT 30`,
-        [posyanduId.rows[0].id, periodeId, `%${cari}%`],
+        [periodeId, `%${cari}%`, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
     );
     return rows;
 }
 
 export async function tambahSasaranManual(
     db: PoolClient,
+    pengguna: PenggunaAktif,
     periodeId: number,
     anakId: number,
     penggunaId: number,
@@ -183,8 +180,9 @@ export async function tambahSasaranManual(
         sesi_ditutup_pada: Date | null;
     }>(
         `SELECT id, posyandu_id, sesi_ditutup_pada
-           FROM periode WHERE id = $1 FOR UPDATE`,
-        [periodeId],
+           FROM periode WHERE id = $1
+             AND ($2::boolean OR posyandu_id=ANY($3::bigint[])) FOR UPDATE`,
+        [periodeId, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
     );
     const dataPeriode = periode.rows[0];
     if (dataPeriode === undefined) return { status: "periode_tidak_ada" };
@@ -234,7 +232,7 @@ export async function ubahSasaran(
     sasaranId: number,
     status: StatusSasaran,
     catatan: string | null,
-    penggunaId: number,
+    pengguna: PenggunaAktif,
 ): Promise<"berhasil" | "periode_ditutup" | "tidak_ada"> {
     const selesai = status !== "menunggu";
     const hasil = await db.query(
@@ -245,21 +243,26 @@ export async function ubahSasaran(
            FROM periode p
           WHERE s.id = $1 AND p.id = s.periode_id
             AND p.sesi_ditutup_pada IS NULL
+            AND ($6::boolean OR p.posyandu_id=ANY($7::bigint[]))
           RETURNING s.id`,
-        [sasaranId, status, catatan, selesai, penggunaId],
+        [sasaranId, status, catatan, selesai, pengguna.id, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
     );
     if (hasil.rows.length > 0) return "berhasil";
     const ada = await db.query<{ ada: boolean; ditutup: boolean }>(
-        `SELECT EXISTS (SELECT 1 FROM sasaran WHERE id=$1) AS ada,
+        `SELECT EXISTS (SELECT 1 FROM sasaran s JOIN periode p ON p.id=s.periode_id
+                         WHERE s.id=$1 AND ($2::boolean OR p.posyandu_id=ANY($3::bigint[]))) AS ada,
                 EXISTS (SELECT 1 FROM sasaran s JOIN periode p ON p.id=s.periode_id
-                         WHERE s.id=$1 AND p.sesi_ditutup_pada IS NOT NULL) AS ditutup`,
-        [sasaranId],
+                         WHERE s.id=$1 AND p.sesi_ditutup_pada IS NOT NULL
+                           AND ($2::boolean OR p.posyandu_id=ANY($3::bigint[]))) AS ditutup`,
+        [sasaranId, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
     );
     if (!ada.rows[0]?.ada) return "tidak_ada";
     return ada.rows[0].ditutup ? "periode_ditutup" : "tidak_ada";
 }
 
-async function posyanduUtama(db: PoolClient): Promise<number> {
+async function posyanduUtama(db: PoolClient, pengguna: PenggunaAktif): Promise<number> {
+    const terpilih = pengguna.posyanduIds?.[0];
+    if (!pengguna.superAdmin && terpilih !== undefined) return terpilih;
     const { rows } = await db.query<{ id: number }>(
         `SELECT id FROM posyandu
           ORDER BY (slug = 'posyandu-tulip') DESC, id
@@ -400,7 +403,7 @@ export async function gantiSasaran(
     namaFile: string,
     sheet: SheetSasaran,
 ): Promise<RingkasanImpor> {
-    const posyanduId = await posyanduUtama(db);
+    const posyanduId = await posyanduUtama(db, pengguna);
     const [tahun, bulan] = sheet.periode.split("-").map(Number);
     const periode = await db.query<{ id: number }>(
         `INSERT INTO periode (posyandu_id, bulan, tahun)
@@ -552,15 +555,13 @@ export async function gantiSasaran(
 
 export async function daftarSasaran(
     pool: Pool,
-    _pengguna: PenggunaAktif,
+    pengguna: PenggunaAktif,
     kodePeriode?: string,
 ) {
-    const parameter: unknown[] = [];
-    let kondisi = "";
+    let tahun: number | null = null;
+    let bulan: number | null = null;
     if (kodePeriode !== undefined) {
-        const [tahun, bulan] = kodePeriode.split("-").map(Number);
-        parameter.push(tahun, bulan);
-        kondisi = "AND p.tahun=$1 AND p.bulan=$2";
+        [tahun, bulan] = kodePeriode.split("-").map(Number);
     }
     const periode = await pool.query<{
         id: number;
@@ -576,10 +577,11 @@ export async function daftarSasaran(
                 p.sesi_ditutup_pada AS "sesiDitutupPada"
            FROM periode p
           WHERE EXISTS (SELECT 1 FROM sasaran s WHERE s.periode_id=p.id)
-            ${kondisi}
+            AND ($1::int IS NULL OR (p.tahun=$1 AND p.bulan=$2))
+            AND ($3::boolean OR p.posyandu_id=ANY($4::bigint[]))
           ORDER BY p.tahun DESC, p.bulan DESC
           LIMIT 1`,
-        parameter,
+        [tahun, bulan, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
     );
     const aktif = periode.rows[0] ?? null;
     if (aktif === null) {
@@ -625,7 +627,7 @@ export async function daftarSasaran(
     };
 }
 
-export async function daftarPeriodeSasaran(pool: Pool) {
+export async function daftarPeriodeSasaran(pool: Pool, pengguna: PenggunaAktif) {
     const { rows } = await pool.query<{
         id: number;
         periode: string;
@@ -640,7 +642,9 @@ export async function daftarPeriodeSasaran(pool: Pool) {
                 p.sesi_ditutup_pada AS "sesiDitutupPada"
            FROM periode p
           WHERE EXISTS (SELECT 1 FROM sasaran s WHERE s.periode_id=p.id)
+            AND ($1::boolean OR p.posyandu_id=ANY($2::bigint[]))
           ORDER BY p.tahun DESC, p.bulan DESC`,
+        [pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
     );
     return rows;
 }
@@ -654,22 +658,25 @@ export async function tutupSesi(
         `UPDATE sasaran
             SET status='tidak_hadir', diselesaikan_pada=now(), diselesaikan_oleh=$2,
                 catatan=coalesce(catatan, 'Sesi ditutup: orang tua tidak hadir')
-          WHERE periode_id=$1 AND status='menunggu'`,
-        [periodeId, pengguna.id],
+          WHERE periode_id=$1 AND status='menunggu'
+            AND EXISTS (SELECT 1 FROM periode p WHERE p.id=$1
+                         AND ($3::boolean OR p.posyandu_id=ANY($4::bigint[])))`,
+        [periodeId, pengguna.id, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
     );
     const tersisa = await db.query<{ jumlah: number }>(
-        `SELECT count(*)::int AS jumlah FROM sasaran
-          WHERE periode_id=$1 AND status='menunggu'`,
-        [periodeId],
+        `SELECT count(*)::int AS jumlah FROM sasaran s JOIN periode p ON p.id=s.periode_id
+          WHERE s.periode_id=$1 AND s.status='menunggu'
+            AND ($2::boolean OR p.posyandu_id=ANY($3::bigint[]))`,
+        [periodeId, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
     );
     let ditutup: string | null = null;
     if ((tersisa.rows[0]?.jumlah ?? 0) === 0) {
         const periode = await db.query<{ sesiDitutupPada: string }>(
             `UPDATE periode SET sesi_ditutup_pada=coalesce(sesi_ditutup_pada, now()),
                                 sesi_ditutup_oleh=$2
-              WHERE id=$1
+              WHERE id=$1 AND ($3::boolean OR posyandu_id=ANY($4::bigint[]))
               RETURNING sesi_ditutup_pada AS "sesiDitutupPada"`,
-            [periodeId, pengguna.id],
+            [periodeId, pengguna.id, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
         );
         ditutup = periode.rows[0]?.sesiDitutupPada ?? null;
     }

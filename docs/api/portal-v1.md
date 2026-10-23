@@ -1,40 +1,55 @@
 # REST API Portal — v1
 
-REST API ini milik backend website SIMPATIK (`server/`). React web dan aplikasi
-Android akan menjadi klien dari kontrak yang sama; Supabase hanya menjadi
-PostgreSQL terkelola, bukan API publik yang dipanggil aplikasi.
+Kontrak HTTP aktual untuk website dan aplikasi Android. Keduanya memanggil API SIMPATIK; hanya server yang mengakses PostgreSQL. Implementasi route ada di `server/src/http/*-controller.ts`, izin di `server/src/auth/peran.ts`, dan peta operasional di [Panduan serah-terima server](../panduan-serah-terima-server.md).
 
-## Prinsip
+## Aturan umum
 
-- Seluruh resource berada di bawah `/api/v1`; rute `/api/masuk`, `/api/keluar`,
-  dan `/api/saya` tetap rute sesi website yang sudah ada.
-- Server menegakkan peran dan batas RT. Kader tidak bisa membaca anak di RT
-  lain, walaupun URL diketahui.
-- JSON selalu memakai envelope yang jelas; galat memakai `{ "galat": "…" }`.
-- Hasil hitung gizi dan perubahan pengukuran nanti ditulis oleh server dalam
-  transaksi, bukan dipercaya dari hasil hitung klien.
+- API tablet berada di `/api/v1`; sesi web dan manajemen akun menggunakan `/api`.
+- Android memakai `Authorization: Bearer <token>`; website memakai cookie sesi `httpOnly`.
+- Mutasi mengirim `Content-Type: application/json`. Jangan mengirim kredensial database dari klien.
+- Pemeriksaan izin dilakukan pada server. `401` berarti sesi tidak ada/kedaluwarsa, `403` berarti akun tidak memiliki izin, `400` berarti input tidak valid, `404` rute atau record tidak ditemukan, dan `500` galat internal generik.
+- Jangan mengandalkan isi stack trace atau error PostgreSQL dari respons; detail teknis harus tinggal di log server yang disanitasi.
 
-## Endpoint awal
+## Status, pengguna, laporan
 
-| Metode | Endpoint | Hak minimum | Fungsi |
+| Method | Path | Akses | Kegunaan |
 |---|---|---|---|
-| `GET` | `/api/v1/anak?cari=&halaman=1&ukuran=25` | `lihat-anak` | daftar sasaran berpaginasi |
-| `GET` | `/api/v1/anak/:id` | `lihat-anak` | profil lengkap seorang anak |
-| `GET` | `/api/v1/anak/:id/pengukuran` | `lihat-kms` | riwayat untuk KMS |
-| `POST` | `/api/v1/masuk` | publik | login tablet dan menghasilkan token Bearer |
-| `POST` | `/api/v1/keluar` | sesi aktif | mencabut token tablet |
-| `GET` | `/api/v1/sinkronisasi` | `lihat-anak` | paket sasaran dan pengukuran untuk cache offline |
-| `POST` | `/api/v1/anak` | `daftar-anak-lapangan` | upsert pendaftaran berdasarkan NIK |
-| `POST` | `/api/v1/pengukuran` | `catat-pengukuran-lapangan` | upsert pengukuran dan hitung gizi server |
+| `GET` | `/api/v1/kesehatan` | jaringan server | Health check API dan koneksi PostgreSQL; tidak mengembalikan secret |
+| `POST` | `/api/masuk` | publik | Login website, cookie sesi |
+| `POST` | `/api/keluar` | sesi web | Keluar dari website |
+| `GET` | `/api/saya` | sesi web | Identitas akun aktif |
+| `POST` | `/api/v1/masuk` | publik | Login Android, token Bearer |
+| `POST` | `/api/v1/keluar` | sesi aktif | Cabut sesi/token Android |
+| `GET` | `/api/pengguna` | admin | Daftar akun |
+| `POST` | `/api/pengguna` | admin | Buat akun |
+| `PATCH` | `/api/pengguna/:id` | admin | Ubah akun/peran/status |
+| `GET` | `/api/v1/periode` | kader, bidan, admin, KMS | Periode yang tersedia |
+| `GET` | `/api/v1/beranda?periodeId=` | kader, bidan, admin, KMS | Ringkasan beranda |
+| `GET` | `/api/v1/laporan?periode=YYYY-MM` | lihat-rekap | Rekap pengukuran, status N/T dan historis 2T+ |
+| `GET` | `/api/v1/laporan/unduh?periode=YYYY-MM` | unduh-rekap | Workbook Excel laporan |
 
-Respons daftar berbentuk `{ items, total, halaman, ukuran }`; respons detail
-berbentuk `{ anak }`; dan riwayat berbentuk `{ pengukuran }`.
+## Anak dan alur layanan
 
-## Tahap berikutnya
+| Method | Path | Akses | Kegunaan |
+|---|---|---|---|
+| `GET` | `/api/v1/anak` | lihat-anak | Cari/daftar anak |
+| `GET` | `/api/v1/anak/:id` | lihat-anak | Profil anak dan hasil penilaian |
+| `PATCH` | `/api/v1/anak/:id` | ubah-anak | Ubah profil |
+| `GET` | `/api/v1/anak/:id/pendampingan-kia` | lihat-anak | Panduan Buku KIA 2024 sesuai usia dan riwayat diskusi |
+| `POST` | `/api/v1/anak/:id/pendampingan-kia` | catat-survei-kia | Simpan atau perbarui catatan diskusi tumbuh kembang |
+| `GET` | `/api/v1/antrean?periodeId=&tanggal=` | lihat-anak | Antrean layanan |
+| `POST` | `/api/v1/antrean` | catat-pengukuran-lapangan | Check-in sasaran dari QR |
+| `PATCH` | `/api/v1/antrean/:id` | catat-pengukuran-lapangan | Panggil, mulai, atau lanjutkan tahap |
+| `POST` | `/api/v1/antrean/:id/konfirmasi-kms` | konfirmasi-kms | Selesaikan tahap penjelasan KMS |
+| `GET` | `/api/v1/sasaran` | lihat-anak | Daftar sasaran dan ringkasan |
+| `POST` | `/api/v1/sasaran/pratinjau` | admin | Validasi/pratinjau workbook sebelum impor |
+| `POST` | `/api/v1/sasaran/impor` | admin | Terbitkan sasaran periode |
+| `POST` | `/api/v1/sasaran/tutup-sesi` | admin | Tutup sesi dan tandai sasaran yang belum hadir |
 
-1. Endpoint periode, layanan, laporan, dan kartu sasaran.
-2. Sinkronisasi bertahap berbasis cursor untuk dataset besar.
-3. Rotasi token perangkat dan pencatatan identitas perangkat.
+Peran rinci dapat berbeda menurut aksi; controller merujuk ke matriks otorisasi, bukan daftar peran yang diketik ulang. KMS bersifat khusus dan tidak mewarisi hak kader.
 
-Secret Supabase tidak pernah masuk browser atau APK. Hanya `server/.env` yang
-boleh memegang Database URL/kredensial backend.
+## Bentuk dan perubahan kontrak
+
+Controller saat ini mengembalikan JSON yang disesuaikan per resource, dengan error `{ "galat": "pesan" }`. Sebelum menambah field, periksa konsumennya di `client/src/lib/` dan aplikasi Android; perubahan yang memengaruhi payload QR, autentikasi, status antrean, atau sinkronisasi perlu kompatibilitas lintas klien.
+
+Uji kontrak dan otorisasi ditempatkan di `server/test/`. Setiap perubahan endpoint harus menambah/memperbarui uji tersebut, `types:check`, dan catatan dokumen ini. Untuk deployment, lakukan health check serta smoke test baca/tulis di QA sebelum mengarahkan pengguna ke versi baru.

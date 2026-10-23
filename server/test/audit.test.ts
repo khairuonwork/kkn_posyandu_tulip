@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { after, before, describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
@@ -9,7 +9,7 @@ import pg from 'pg';
 
 import '../src/db/pool.ts';
 import { dalamTransaksi } from '../src/db/transaksi.ts';
-import { buatApp } from '../src/http/server.ts';
+import { buatApp } from '../src/http/app.ts';
 
 const adaDb = Boolean(process.env.DATABASE_URL);
 
@@ -295,6 +295,11 @@ describe('audit PostgreSQL', { skip: adaDb ? false : 'DATABASE_URL tidak diatur'
     });
 
     test('akun pertama lewat CLI dapat login, reset sandi mencabut sesi dan tercatat', async () => {
+        // Uji onboarding memakai kontrak akun dan sesi versi terkini.
+        const folder = new URL('../db/migrations/', import.meta.url);
+        for (const nama of readdirSync(folder).filter(n => n.endsWith('.sql') && n >= '007_').sort()) {
+            await pool.query(readFileSync(new URL(nama, folder), 'utf8'));
+        }
         const url = new URL(process.env.DATABASE_URL!);
         url.searchParams.set('options', `-c search_path=${skema}`);
         const cwd = fileURLToPath(new URL('..', import.meta.url));
@@ -312,6 +317,8 @@ describe('audit PostgreSQL', { skip: adaDb ? false : 'DATABASE_URL tidak diatur'
             { cwd, env },
         );
         assert.match(dibuat.stdout, /dibuat/);
+        const pos = await pool.query("INSERT INTO posyandu(nama,slug) VALUES('Onboarding','uji-onboarding') RETURNING id");
+        await pool.query('INSERT INTO pengguna_posyandu(pengguna_id,posyandu_id) SELECT id,$1 FROM pengguna WHERE username=$2', [pos.rows[0].id, username]);
         const server = buatApp(pool).listen(0, '127.0.0.1');
         try {
             await new Promise<void>((resolve, reject) => {

@@ -31,8 +31,11 @@ export function ruteAntrean(pool: Pool): Router {
             if (periodeBulan) {
                 const [tahun, bulan] = periodeRaw.split("-").map(Number);
                 const { rows } = await pool.query<{ id: number }>(
-                    "SELECT id FROM periode WHERE tahun=$1 AND bulan=$2",
-                    [tahun, bulan],
+                    `SELECT id FROM periode
+                      WHERE tahun=$1 AND bulan=$2
+                        AND ($3::boolean OR posyandu_id=ANY($4::bigint[]))
+                      ORDER BY posyandu_id LIMIT 1`,
+                    [tahun, bulan, req.pengguna!.superAdmin ?? false, req.pengguna!.posyanduIds ?? []],
                 );
                 if (!rows[0]) {
                     gagal(res, 404, "Periode antrean tidak ditemukan.");

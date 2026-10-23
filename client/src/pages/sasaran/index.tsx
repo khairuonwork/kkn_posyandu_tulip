@@ -74,6 +74,7 @@ function periodeJakartaSekarang(): string {
         timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit',
     }).formatToParts(new Date());
     const nilai = Object.fromEntries(bagian.map((item) => [item.type, item.value]));
+
     return `${nilai.year}-${nilai.month}`;
 }
 
@@ -210,6 +211,7 @@ export default function SasaranImpor() {
             );
             setHasil(selesai);
             setTahap('selesai');
+            setPeriodeDitampilkan(selesai.periode);
             await muat(selesai.periode);
         } catch (error) {
             setGalat(
@@ -306,7 +308,10 @@ export default function SasaranImpor() {
     };
 
     const bukaPratinjauReset = async () => {
-        if (!sasaran?.periode) return;
+        if (!sasaran?.periode) {
+return;
+}
+
         try {
             setGalat('');
             setMemuatPratinjauReset(true);
@@ -320,7 +325,10 @@ export default function SasaranImpor() {
     };
 
     const jalankanResetHariIni = async () => {
-        if (!sasaran?.periode || !pratinjauReset || konfirmasiReset !== 'RESET HARI INI') return;
+        if (!sasaran?.periode || !pratinjauReset || konfirmasiReset !== 'RESET HARI INI') {
+return;
+}
+
         try {
             setGalat('');
             setMenjalankanReset(true);
@@ -559,7 +567,7 @@ export default function SasaranImpor() {
                                             </span>
                                         </p>
                                         <ul className="mt-3 grid gap-2 border-t border-tone-amber/20 pt-3">
-                                            {sheetAktif.barisVerifikasi.map(
+                                            {(sheetAktif.barisVerifikasi ?? []).map(
                                                 (baris) => (
                                                     <li
                                                         key={baris.barisAsal}
@@ -573,7 +581,7 @@ export default function SasaranImpor() {
                                                                 ' — ditahan'}
                                                         </p>
                                                         <p className="mt-0.5 text-xs">
-                                                            {baris.masalah.join(
+                                                            {(baris.masalah ?? []).join(
                                                                 ' · ',
                                                             )}
                                                         </p>
@@ -777,8 +785,8 @@ export default function SasaranImpor() {
                         sasaran.periode !== null && (
                             <>
                                 <div className="grid border-b border-border sm:grid-cols-[1.3fr_repeat(4,minmax(110px,1fr))]">
-                                    <div className="p-5 sm:p-6">
-                                        <p className="text-sm font-semibold text-muted-foreground">
+                                    <div className="p-4 sm:p-6">
+                                        <p className="text-xs sm:text-sm font-semibold text-muted-foreground">
                                             Periode daftar
                                         </p>
                                         <select
@@ -787,9 +795,9 @@ export default function SasaranImpor() {
                                             onChange={(event) =>
                                                 void muat(event.target.value)
                                             }
-                                            className="mt-1 min-h-11 max-w-full rounded-lg border border-border-strong bg-surface px-3 text-lg font-bold capitalize"
+                                            className="mt-1 min-h-11 w-full max-w-full rounded-lg border border-border-strong bg-surface px-3 text-base sm:text-lg font-bold capitalize"
                                         >
-                                            {pilihanPeriode.map((item) => (
+                                            {(pilihanPeriode ?? []).map((item) => (
                                                 <option
                                                     key={item.id}
                                                     value={item.periode}
@@ -800,43 +808,45 @@ export default function SasaranImpor() {
                                                 </option>
                                             ))}
                                         </select>
-                                        <p className="mt-1 text-sm text-muted-foreground">
+                                        <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
                                             {sasaran?.periode
                                                 ?.sesiDitutupPada === null
                                                 ? 'Sesi masih terbuka'
                                                 : 'Sesi sudah ditutup'}
                                         </p>
                                     </div>
-                                    {[
-                                        [
-                                            'Total',
-                                            sasaran?.ringkasan.total ?? 0,
-                                        ],
-                                        [
-                                            'Belum dilayani',
-                                            sasaran?.ringkasan.menunggu ?? 0,
-                                        ],
-                                        [
-                                            'Selesai',
-                                            sasaran?.ringkasan.selesai ?? 0,
-                                        ],
-                                        [
-                                            'Tidak hadir',
-                                            sasaran?.ringkasan.tidakHadir ?? 0,
-                                        ],
-                                    ].map(([label, nilai]) => (
-                                        <div
-                                            key={String(label)}
-                                            className="border-t border-border p-5 sm:border-t-0 sm:border-l"
-                                        >
-                                            <p className="text-sm text-muted-foreground">
-                                                {label}
-                                            </p>
-                                            <p className="mt-1 text-2xl font-extrabold tabular-nums">
-                                                {nilai}
-                                            </p>
-                                        </div>
-                                    ))}
+                                    <div className="grid grid-cols-2 divide-x divide-y border-t border-border sm:col-span-4 sm:grid-cols-4 sm:divide-y-0 sm:border-t-0 sm:border-l">
+                                        {[
+                                            [
+                                                'Total',
+                                                sasaran?.ringkasan.total ?? 0,
+                                            ],
+                                            [
+                                                'Belum dilayani',
+                                                sasaran?.ringkasan.menunggu ?? 0,
+                                            ],
+                                            [
+                                                'Selesai',
+                                                sasaran?.ringkasan.selesai ?? 0,
+                                            ],
+                                            [
+                                                'Tidak hadir',
+                                                sasaran?.ringkasan.tidakHadir ?? 0,
+                                            ],
+                                        ].map(([label, nilai]) => (
+                                            <div
+                                                key={String(label)}
+                                                className="p-3.5 sm:p-5"
+                                            >
+                                                <p className="text-xs sm:text-sm font-medium text-muted-foreground">
+                                                    {label}
+                                                </p>
+                                                <p className="mt-1 text-xl sm:text-2xl font-extrabold tabular-nums">
+                                                    {nilai}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                                 {tambahTerbuka && (
                                     <div className="border-b border-border bg-surface-subtle/60 p-4 sm:px-6">
@@ -995,7 +1005,76 @@ export default function SasaranImpor() {
                                         />
                                     </label>
                                 </div>
-                                <div className="max-h-[430px] overflow-auto">
+                                {/* Tampilan Ponsel: Daftar Kartu Modern */}
+                                <div className="divide-y divide-border md:hidden">
+                                    {daftarTersaring.map((item) => (
+                                        <div
+                                            key={item.id}
+                                            className="space-y-3 p-4 transition-colors hover:bg-surface-subtle/50"
+                                        >
+                                            <div className="flex items-start justify-between gap-2">
+                                                <div className="min-w-0">
+                                                    <Link
+                                                        href={`/balita/${item.anakId}`}
+                                                        className="flex items-center gap-1.5 font-bold text-foreground underline-offset-4 hover:text-primary hover:underline"
+                                                    >
+                                                        <span className="truncate">{item.nama}</span>
+                                                        <span className="rounded bg-surface-subtle px-1.5 py-0.5 text-xs font-semibold text-muted-foreground">
+                                                            {item.jk}
+                                                        </span>
+                                                    </Link>
+                                                    <p className="mt-0.5 text-xs text-muted-foreground">
+                                                        {item.nik ? `NIK: ${item.nik}` : 'NIK perlu verifikasi'}
+                                                    </p>
+                                                </div>
+                                                <span
+                                                    className={`inline-flex shrink-0 rounded-full px-2.5 py-0.5 text-xs font-bold ${WARNA_STATUS[item.status]}`}
+                                                >
+                                                    {LABEL_STATUS[item.status]}
+                                                </span>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-2 rounded-lg bg-surface-subtle/40 p-2.5 text-xs text-muted-foreground">
+                                                <div>
+                                                    <span className="block font-medium text-foreground">Orang tua</span>
+                                                    <span className="truncate">{item.namaOrtu ?? 'Belum tercatat'}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="block font-medium text-foreground">Wilayah RT</span>
+                                                    <span>RT {item.rt ?? '—'}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="block font-medium text-foreground">Kode kartu</span>
+                                                    <span className="font-semibold text-foreground">{item.kodeKartu}</span>
+                                                </div>
+                                                <div className="flex items-end justify-end">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => mulaiEdit(item)}
+                                                        disabled={
+                                                            sasaran?.periode?.sesiDitutupPada !== null
+                                                        }
+                                                        className="tombol-kedua min-h-8 px-2.5 py-1 text-xs font-semibold"
+                                                        aria-label={`Edit sasaran ${item.nama}`}
+                                                    >
+                                                        <Pencil className="mr-1 size-3.5" aria-hidden="true" />
+                                                        Edit
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {item.catatan !== null && (
+                                                 <p className="flex items-start gap-1.5 rounded bg-tone-amber-bg/50 p-2 text-xs font-medium text-tone-amber">
+                                                     <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+                                                     <span>{item.catatan}</span>
+                                                 </p>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Tampilan Desktop & Tablet Lebar: Tabel Lengkap */}
+                                <div className="hidden md:block max-h-[460px] overflow-auto">
                                     <table className="w-full min-w-[760px] text-left text-sm">
                                         <thead className="sticky top-0 z-[1] bg-surface-subtle text-muted-foreground">
                                             <tr>
@@ -1092,13 +1171,13 @@ export default function SasaranImpor() {
                                             ))}
                                         </tbody>
                                     </table>
-                                    {daftarTersaring.length === 0 && (
-                                        <p className="p-8 text-center text-muted-foreground">
-                                            Tidak ada sasaran yang cocok dengan
-                                            pencarian.
-                                        </p>
-                                    )}
                                 </div>
+                                {daftarTersaring.length === 0 && (
+                                    <p className="p-8 text-center text-sm text-muted-foreground">
+                                        Tidak ada sasaran yang cocok dengan
+                                        pencarian.
+                                    </p>
+                                )}
                                 {editId !== null && (
                                     <div className="border-t border-border bg-surface-subtle/60 p-4 sm:px-6">
                                         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1201,7 +1280,11 @@ export default function SasaranImpor() {
                 </section>
             </div>
             {pratinjauReset !== null && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/55 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget && !menjalankanReset) setPratinjauReset(null); }}>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/55 p-4" onMouseDown={(event) => {
+ if (event.target === event.currentTarget && !menjalankanReset) {
+setPratinjauReset(null);
+}
+}}>
                     <section role="alertdialog" aria-modal="true" aria-labelledby="judul-reset-harian" className="my-auto w-full max-w-xl rounded-2xl border border-border bg-card p-6 shadow-2xl">
                         <div className="flex items-start gap-3">
                             <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-tone-red-bg text-tone-red"><AlertTriangle className="size-6" aria-hidden="true" /></span>

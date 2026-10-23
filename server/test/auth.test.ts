@@ -46,6 +46,7 @@ describe("matriks izin", () => {
         "lihat-rekap": { kader: true, bidan: true, admin: true, kms: false },
         "daftar-anak-lapangan": { kader: true, bidan: true, admin: true, kms: false },
         "catat-pengukuran-lapangan": { kader: true, bidan: true, admin: true, kms: false },
+        "catat-survei-kia": { kader: true, bidan: true, admin: true, kms: true },
         "selesaikan-sesi-lapangan": { kader: false, bidan: false, admin: true, kms: false },
         "konfirmasi-kms": { kader: false, bidan: false, admin: false, kms: true },
 
@@ -74,7 +75,7 @@ describe("matriks izin", () => {
 
     test("tidak ada aksi yang lupa didaftarkan", () => {
         assert.equal(SEMUA_AKSI.length, Object.keys(HARAPAN).length);
-        assert.equal(SEMUA_AKSI.length, 18);
+        assert.equal(SEMUA_AKSI.length, 19);
     });
 
     test("peran yang lebih tinggi mewarisi seluruh hak di bawahnya", () => {

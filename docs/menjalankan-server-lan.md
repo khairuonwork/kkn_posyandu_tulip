@@ -21,7 +21,7 @@ Buat `server/.env` secara lokal. Untuk database Supabase, jalankan helper dan
 masukkan password database saat diminta (input disembunyikan):
 
 ```powershell
-& ".\server\setup-supabase-env.ps1"
+node scripts\buat-env-supabase.cjs
 ```
 
 Jangan commit atau mengirim `server/.env`. Pastikan `DATABASE_URL` menunjuk ke
@@ -51,8 +51,11 @@ Hubungkan PC dan tablet ke Wi-Fi/hotspot yang sama, dan pastikan fitur AP/client
 isolation pada router tidak memblokir komunikasi antarperangkat. Dari akar repo:
 
 ```powershell
-.\mulai-qa-lan.ps1
+.\mulai-server.bat
 ```
+
+Di Windows, alternatifnya klik dua kali `mulai-server.bat` di akar repo. Launcher
+ini memeriksa prasyarat lokal lalu menjalankan skrip QA LAN yang sama.
 
 Skrip mencetak URL website, API, dan pemeriksaan kesehatan berdasarkan IP PC.
 Buka URL website yang dicetak di perangkat pada jaringan yang sama. Di Android,
@@ -73,7 +76,7 @@ Firewall meminta izin atau koneksi dari perangkat lain gagal:
 Untuk menghentikan proses yang dibuat skrip tersebut:
 
 ```powershell
-.\hentikan-qa-lan.ps1
+.\hentikan-server.bat
 ```
 
 Jika hanya perlu menguji aplikasi Android, API tetap harus hidup. Android

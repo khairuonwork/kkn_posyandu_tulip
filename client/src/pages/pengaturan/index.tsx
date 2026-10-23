@@ -72,13 +72,16 @@ export type BarisRiwayatPengaturan = {
  * Daftar akun beserta pilihan RT binaan. Aplikasi memuatnya dari server;
  * demo selalu `siap` dengan data contoh.
  */
+export type PosyanduAkun = { id: number; nama: string; rw: string };
+export type WilayahRtAkun = { posyanduId: number; rt: string };
+
 export type DaftarPengguna =
     | { status: 'memuat' }
     | { status: 'gagal'; ulangi: () => void }
-    | { status: 'siap'; pengguna: Pengguna[]; wilayahRt: string[] };
+    | { status: 'siap'; pengguna: Pengguna[]; wilayahRt: WilayahRtAkun[]; posyandu: PosyanduAkun[] };
 
 /** Isian dialog akun. Kata sandi kosong pada perubahan berarti tidak diganti. */
-export type IsianPengguna = Omit<Pengguna, 'id'> & { kataSandi: string };
+export type IsianPengguna = Omit<Pengguna, 'id'> & { kataSandi: string; posyanduId: number | null };
 
 type Props = {
     ambang: Ambang;
@@ -218,7 +221,7 @@ const AMBANG_Z = [
 const NAMA_PERAN: Record<Peran, string> = {
     kader: 'Kader',
     bidan: 'Bidan',
-    admin: 'Admin',
+    admin: 'Admin Posyandu',
     kms: 'Petugas KMS',
 };
 
@@ -1190,7 +1193,7 @@ function BagianPengguna({
         );
     }
 
-    const { pengguna, wilayahRt } = daftar;
+    const { pengguna, wilayahRt, posyandu } = daftar;
     const aktif = pengguna.filter((p) => p.aktif).length;
     const diubah =
         typeof dialog === 'number'
@@ -1234,7 +1237,7 @@ function BagianPengguna({
                             Peran
                         </TableHead>
                         <TableHead scope="col" className="bg-card">
-                            Cakupan akses
+                            Posyandu / RW
                         </TableHead>
                         <TableHead scope="col" className="bg-card">
                             Status
@@ -1262,7 +1265,13 @@ function BagianPengguna({
                             </TableCell>
                             <TableCell>{NAMA_PERAN[p.peran]}</TableCell>
                             <TableCell className="whitespace-nowrap">
-                                Semua RT
+                                {p.superAdmin ? (
+                                    <span className="font-semibold text-primary">Superadmin · semua RW</span>
+                                ) : p.posyanduNama ? (
+                                    <span>{p.posyanduNama} · RW {p.rw ?? '—'}</span>
+                                ) : (
+                                    <span className="text-tone-red">Belum ditetapkan</span>
+                                )}
                             </TableCell>
                             <TableCell>
                                 <span
@@ -1313,9 +1322,10 @@ function BagianPengguna({
                     pengguna={diubah}
                     terkunci={
                         diubah !== null &&
-                        adminAktifTerakhir(pengguna, diubah.id)
+                        (diubah.superAdmin === true || adminAktifTerakhir(pengguna, diubah.id))
                     }
                     wilayahRt={wilayahRt}
+                    posyandu={posyandu}
                     usernameTerpakai={pengguna
                         .filter((p) => p.id !== diubah?.id)
                         .map((p) => p.username)}
@@ -1343,6 +1353,7 @@ function DialogPengguna({
     pengguna,
     terkunci,
     wilayahRt,
+    posyandu,
     usernameTerpakai,
     onTutup,
     onSimpan,
@@ -1351,7 +1362,8 @@ function DialogPengguna({
     pengguna: Pengguna | null;
     /** Admin aktif terakhir: peran dan statusnya tidak bisa diubah. */
     terkunci: boolean;
-    wilayahRt: string[];
+    wilayahRt: WilayahRtAkun[];
+    posyandu: PosyanduAkun[];
     usernameTerpakai: string[];
     onTutup: () => void;
     /** Hasilnya null bila tersimpan, atau alasan penolakan dari server. */
@@ -1360,7 +1372,9 @@ function DialogPengguna({
     const [nama, setNama] = useState(pengguna?.nama ?? '');
     const [username, setUsername] = useState(pengguna?.username ?? '');
     const [peran, setPeran] = useState<Peran>(pengguna?.peran ?? 'kader');
-    const [rt, setRt] = useState(pengguna?.rt ?? wilayahRt[0] ?? '');
+    const [posyanduId, setPosyanduId] = useState<number | null>(pengguna?.posyanduId ?? posyandu[0]?.id ?? null);
+    const rtUntukPosyandu = wilayahRt.filter((w) => w.posyanduId === posyanduId);
+    const [rt, setRt] = useState(pengguna?.rt ?? rtUntukPosyandu[0]?.rt ?? '');
     const [aktif, setAktif] = useState(pengguna?.aktif ?? true);
     const [kataSandi, setKataSandi] = useState('');
     const [dicoba, setDicoba] = useState(false);
@@ -1370,6 +1384,7 @@ function DialogPengguna({
     // Huruf kecil dipaksakan, sama seperti di server: "Kader01" tetap kader01.
     const usernameBersih = username.trim().toLowerCase();
     const bentrok = usernameTerpakai.includes(usernameBersih);
+    const cakupanKosong = pengguna?.superAdmin !== true && posyanduId === null;
     const kosong = nama.trim() === '' || usernameBersih === '';
     const salahBentuk =
         usernameBersih !== '' && !POLA_USERNAME.test(usernameBersih);
@@ -1406,6 +1421,7 @@ function DialogPengguna({
                         bentrok ||
                         salahBentuk ||
                         galatSandi !== null ||
+                        cakupanKosong ||
                         menyimpan
                     ) {
                         return;
@@ -1419,6 +1435,7 @@ function DialogPengguna({
                         username: usernameBersih,
                         peran,
                         rt: peran === 'kader' ? rt : null,
+                        posyanduId,
                         aktif,
                         kataSandi,
                     })
@@ -1490,30 +1507,51 @@ function DialogPengguna({
                             ))}
                         </select>
                     </KolomPengguna>
-                    <KolomPengguna id="pengguna-rt" label={peran === 'kader' ? 'RT asal kader' : 'Cakupan akses'}>
+                    <KolomPengguna id="pengguna-posyandu" label="Posyandu / RW" galat={dicoba && cakupanKosong ? 'Pilih Posyandu/RW untuk akun ini.' : null}>
+                        {pengguna?.superAdmin ? (
+                            <p className="flex min-h-14 items-center font-semibold text-primary">Superadmin · semua Posyandu/RW</p>
+                        ) : (
+                            <select
+                                id="pengguna-posyandu"
+                                value={posyanduId ?? ''}
+                                onChange={(e) => {
+                                    const id = Number(e.target.value) || null;
+                                    setPosyanduId(id);
+                                    setRt(wilayahRt.find((w) => w.posyanduId === id)?.rt ?? '');
+                                }}
+                                className="isian w-full cursor-pointer font-semibold"
+                            >
+                                <option value="" disabled>Pilih Posyandu/RW</option>
+                                {posyandu.map((x) => (
+                                    <option key={x.id} value={x.id}>{x.nama} · RW {x.rw}</option>
+                                ))}
+                            </select>
+                        )}
+                    </KolomPengguna>
+                    <KolomPengguna id="pengguna-rt" label={peran === 'kader' ? 'RT asal kader' : 'Hak dalam Posyandu'}>
                         {peran === 'kader' ? (
                             <select
                                 id="pengguna-rt"
                                 value={rt}
                                 onChange={(e) => setRt(e.target.value)}
-                                className="isian w-full cursor-pointer font-semibold"
+                                disabled={rtUntukPosyandu.length === 0}
+                                className="isian w-full cursor-pointer font-semibold disabled:opacity-60"
                             >
-                                {wilayahRt.map((w) => (
-                                    <option key={w} value={w}>
-                                        {labelRt(w)}
+                                {rtUntukPosyandu.map((w) => (
+                                    <option key={w.rt} value={w.rt}>
+                                        {labelRt(w.rt)}
                                     </option>
                                 ))}
                             </select>
                         ) : (
-                            /* Peran lain tidak memiliki RT penugasan. */
-                            <p className="flex h-14 items-center text-base text-muted-foreground">
-                                Semua RT
+                            <p className="flex min-h-14 items-center text-base text-muted-foreground">
+                                {peran === 'admin' ? 'Admin Posyandu · kelola akun dan wilayah cluster' : peran === 'bidan' ? 'Bidan · KMS, pengukuran, dan verifikasi' : 'Petugas KMS · pemeriksaan dan edukasi'}
                             </p>
                         )}
                     </KolomPengguna>
                     {peran === 'kader' && (
                         <p className="-mt-3 text-sm text-muted-foreground sm:col-span-2">
-                            Akses otomatis ke semua RT. RT asal hanya menunjukkan asal kader, bukan batas akses data.
+                            Kader dapat melihat sasaran semua RT dalam Posyandu terpilih. RT asal hanya penugasan.
                         </p>
                     )}
                     <KolomPengguna
@@ -1565,8 +1603,9 @@ function DialogPengguna({
                     )}
                     {terkunci && (
                         <p className="text-sm text-muted-foreground sm:col-span-2">
-                            Admin aktif terakhir tidak bisa diturunkan perannya
-                            maupun dinonaktifkan.
+                            {pengguna?.superAdmin
+                                ? 'Akun superadmin global harus tetap aktif dengan peran Admin Posyandu.'
+                                : 'Admin aktif terakhir di Posyandu ini tidak bisa diturunkan perannya maupun dinonaktifkan.'}
                         </p>
                     )}
                     {dicoba && kosong && (

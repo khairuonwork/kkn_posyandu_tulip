@@ -19,8 +19,10 @@ import {
     useDetailAnakServer,
 } from '@/lib/anak';
 import { useBerandaServer } from '@/lib/beranda';
+import { useLaporanServer } from '@/lib/laporan';
 import { navigate, useAlamat } from '@/lib/nav';
 import { usePenggunaServer } from '@/lib/pengguna';
+import { mulaiHeartbeatWeb } from '@/lib/perangkat';
 import { useSesi } from '@/lib/sesi';
 import type { AnakBaru, PatchAnak } from '@/pages/anak/index';
 import Login from '@/pages/auth/login';
@@ -35,7 +37,7 @@ import type { Peran } from '@/types/posyandu';
 const NAMA_PERAN: Record<Peran, string> = {
     kader: 'Kader',
     bidan: 'Bidan',
-    admin: 'Admin',
+    admin: 'Admin Posyandu',
     kms: 'Petugas KMS',
 };
 
@@ -65,8 +67,12 @@ function AplikasiPetugas() {
 
     return (
         <Portal
+            key={sesi.pengguna.id}
             nama={sesi.pengguna.nama}
             peran={sesi.pengguna.peran}
+            superAdmin={sesi.pengguna.superAdmin}
+            posyanduNama={sesi.pengguna.posyanduNama}
+            rw={sesi.pengguna.rw}
             // Alamat baru diganti setelah server menjawab. Menggantinya lebih
             // dulu membuat permintaan keluar berlomba dengan perpindahan
             // halaman — dan permintaan yang batal berarti sesinya tetap hidup
@@ -98,14 +104,21 @@ function Memeriksa() {
 function Portal({
     nama,
     peran,
+    superAdmin,
+    posyanduNama,
+    rw,
     onKeluar,
     onSesiBerakhir,
 }: {
     nama: string;
     peran: Peran;
+    superAdmin: boolean;
+    posyanduNama: string | null;
+    rw: string | null;
     onKeluar: () => void;
     onSesiBerakhir: () => void;
 }) {
+    useEffect(() => mulaiHeartbeatWeb(), []);
     const [periodePilihan, setPeriodePilihan] = useState('');
     const [tabLaporan, setTabLaporan] = useState<TabPeriode>('bulanan');
     /*
@@ -139,6 +152,11 @@ function Portal({
         rute.nama === 'detail' || rute.nama === 'riwayat' ? rute.id : null,
         onSesiBerakhir,
     );
+    const laporanServer = useLaporanServer(
+        periodeId,
+        rute.nama === 'laporan',
+        onSesiBerakhir,
+    );
 
     // Akun KMS mulai dari antrean pemeriksaan; peran lain dari Beranda. Ini
     // kenyamanan; penolakan yang mengikat ada di server.
@@ -155,13 +173,14 @@ function Portal({
     return (
         <Cangkang
             peran={peran}
+            cakupanPosyandu={superAdmin ? 'Superadmin · seluruh Posyandu' : `${posyanduNama ?? 'Posyandu'} · RW ${rw ?? '—'}`}
             periodeId={periodeId}
             periode={berandaServer.periode}
             onPindahPeriode={setPeriodePilihan}
             kakiSidebar={
                 <KartuAkun
                     nama={nama}
-                    peran={NAMA_PERAN[peran]}
+                    peran={superAdmin ? 'Superadmin' : NAMA_PERAN[peran]}
                     onKeluar={onKeluar}
                 />
             }
@@ -203,6 +222,7 @@ function Portal({
                 detailServer={detailServer}
                 periodeServer={berandaServer.periode}
                 berandaServer={berandaServer}
+                laporanServer={laporanServer}
             />
         </Cangkang>
     );

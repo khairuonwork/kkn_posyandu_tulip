@@ -16,9 +16,12 @@ import type { Server } from 'node:http';
 import { after, before, beforeEach, describe, test } from 'node:test';
 
 import { hashKataSandi } from '../src/auth/kata-sandi.ts';
-import { dapatkanPool, tutupPool } from '../src/db/pool.ts';
+import pg from 'pg';
+import { randomUUID } from 'node:crypto';
+import { readdirSync, readFileSync } from 'node:fs';
+import '../src/db/pool.ts';
 import { kosongkanBatas, MAKS_GAGAL } from '../src/http/batas-masuk.ts';
-import { buatApp } from '../src/http/server.ts';
+import { buatApp } from '../src/http/app.ts';
 
 const adaDb = process.env.DATABASE_URL !== undefined && process.env.DATABASE_URL !== '';
 
@@ -32,13 +35,15 @@ describe(
     'autentikasi HTTP',
     { skip: adaDb ? false : 'DATABASE_URL tidak diatur — lihat server/.env.example' },
     () => {
+        const skema = 'uji_auth_http_' + randomUUID().replaceAll('-', '');
+        let induk: pg.Pool;
+        let pool: pg.Pool;
         let server: Server;
         let akar: string;
         let idPosyandu: number;
         let idRt: number;
 
         const bersihkan = async () => {
-            const pool = dapatkanPool();
 
             const { rows: pengguna } = await pool.query<{ id: number }>(
                 "SELECT id FROM pengguna WHERE username LIKE 'uji-http.%'",
@@ -61,7 +66,13 @@ describe(
         };
 
         before(async () => {
-            const pool = dapatkanPool();
+            induk = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+            await induk.query(`CREATE SCHEMA ${skema}`);
+            pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, options: `-c search_path=${skema}` });
+            const folder = new URL('../db/migrations/', import.meta.url);
+            for (const nama of readdirSync(folder).filter(n => n.endsWith('.sql')).sort()) {
+                await pool.query(readFileSync(new URL(nama, folder), 'utf8'));
+            }
 
             // Run yang terputus meninggalkan barisnya, dan run berikutnya mati
             // di unique constraint `slug` — 13 uji berhenti jalan tanpa satu
@@ -92,6 +103,7 @@ describe(
                 [USERNAME_KADER, hash, idRt],
             );
 
+            await pool.query(`INSERT INTO pengguna_posyandu (pengguna_id, posyandu_id) SELECT id, $1 FROM pengguna WHERE username IN ($2,$3)`, [idPosyandu, USERNAME_BIDAN, USERNAME_KADER]);
             server = buatApp(pool).listen(0);
             await new Promise((siap) => server.once('listening', siap));
 
@@ -103,7 +115,10 @@ describe(
         after(async () => {
             await bersihkan();
             await new Promise((selesai) => server.close(selesai));
-            await tutupPool();
+            await pool.end();
+            assert.match(skema, /^uji_auth_http_[a-f0-9]{32}$/);
+            await induk.query(`DROP SCHEMA ${skema} CASCADE`);
+            await induk.end();
         });
 
         beforeEach(() => {
@@ -205,7 +220,6 @@ describe(
             // Inilah alasan sesi disimpan di basis data dan bukan di dalam
             // token. Bila uji ini gagal, keputusan itu kehilangan seluruh
             // manfaatnya.
-            const pool = dapatkanPool();
             const cookie = ambilCookie(await kirimMasuk(USERNAME_KADER, SANDI));
 
             assert.equal((await fetch(`${akar}/api/saya`, { headers: { cookie } })).status, 200);
@@ -222,7 +236,6 @@ describe(
         });
 
         test('akun nonaktif tidak dapat masuk', async () => {
-            const pool = dapatkanPool();
 
             await pool.query('UPDATE pengguna SET aktif = false WHERE username = $1', [
                 USERNAME_BIDAN,

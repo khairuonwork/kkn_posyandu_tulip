@@ -1,5 +1,7 @@
 # SIMPATIK Posyandu
 
+Pembaruan 21 Oktober 2026: daftar perangkat memakai heartbeat bertoken yang tersimpan di PostgreSQL. Perangkat offline tetap tercatat; akun operasional melihat Posyandunya sendiri dan super admin melihat semua Posyandu. Panduan dan hasil uji ada di [status perangkat per Posyandu](docs/status-perangkat-posyandu.md). Migrasi baru: `022_status_perangkat_posyandu.sql`.
+
 | | |
 |---|---|
 | **Jenis** | Panduan — pengembangan lokal |
@@ -46,7 +48,7 @@ Proyek produksi memakai PostgreSQL Supabase. Pada Windows, buat `server/.env`
 tanpa menampilkan kata sandi di terminal:
 
 ```powershell
-.\server\setup-supabase-env.ps1
+node scripts\buat-env-supabase.cjs
 ```
 
 Masukkan **Database Password** proyek ketika diminta, lalu jalankan dari folder
@@ -104,43 +106,17 @@ npm run dev
 
 Buka http://localhost:5173 dan masuk, misalnya sebagai `admin`.
 
-### Website dan Android melalui domain ngrok tetap
-
-Alur operasional memakai satu domain HTTPS tetap untuk website dan REST API.
-Lakukan konfigurasi sekali saja:
-
-1. Pasang ngrok agent dan salin **development domain** yang diberikan pada
-   menu **Gateway › Domains**, misalnya `abc123.ngrok-free.dev`.
-2. Salin `.env.ngrok.example` menjadi `.env.ngrok`.
-3. Isi `NGROK_AUTHTOKEN` dan `NGROK_DOMAIN` pada berkas tersebut.
-4. Pastikan URL yang sama sudah dipasang sebagai `PORTAL_API_BAWAAN` pada
-   aplikasi Android, dengan akhiran `/api/v1`.
-
-Setelah itu, pada Windows cukup klik dua kali:
-
-```text
-mulai-ngrok.bat
-```
-
-File batch membuka Git Bash dan menjalankan seluruh proses secara otomatis.
-Alternatif dari Git Bash atau WSL:
-
-```bash
-./mulai-ngrok.sh
-```
-
-Skrip membangun website, menjalankan website dan REST API pada satu proses,
-membuka tunnel ngrok, lalu memeriksa jalur publik sampai database. Biarkan
-terminal tetap terbuka. Tekan `Ctrl+C` untuk menghentikan seluruh layanan.
-Authtoken disimpan hanya di `.env.ngrok` dan tidak ikut Git.
-
-### QA lokal website tanpa tunnel
+### Jalankan website dan tablet lokal
 
 Untuk uji website dan tablet sebelum hosting tersedia, jalankan dari akar repo:
 
 ```powershell
-.\mulai-qa-lan.ps1
+.\mulai-server.bat
 ```
+
+Atau klik dua kali [`mulai-server.bat`](mulai-server.bat) di Windows. File ini
+memeriksa Node.js, konfigurasi `.env`, dan dependensi terlebih dahulu, lalu
+menampilkan URL yang dapat dibuka dari tablet di jaringan yang sama.
 
 Skrip mendeteksi IPv4 PC, membuka React dan REST API pada jaringan lokal, lalu
 memeriksa jalur API sampai PostgreSQL. Gunakan alamat yang dicetak untuk membuka
@@ -149,14 +125,16 @@ website dari perangkat lain pada Wi-Fi yang sama.
 Panduan menyiapkan PC baru dari clone, termasuk dependensi, konfigurasi database,
 firewall, dan cara menjalankan/berhenti ada di
 [`docs/menjalankan-server-lan.md`](docs/menjalankan-server-lan.md).
+Untuk penyerahan pengelolaan API/host ke tim server, gunakan
+[`docs/panduan-serah-terima-server.md`](docs/panduan-serah-terima-server.md).
 
 ```powershell
-.\hentikan-qa-lan.ps1
+.\hentikan-server.bat
 ```
 
-Alur Android versi 1.10 ke atas memakai static domain ngrok dan tidak lagi
-menampilkan pengaturan IP pada halaman login. Mode LAN ini dipertahankan hanya
-untuk pemeriksaan website lokal.
+Untuk QA lokal, Android dapat menemukan server melalui jaringan Wi-Fi/hotspot
+yang sama setelah layanan lokal dijalankan. Hosting publik dan tunnel bukan
+bagian dari launcher lokal ini.
 
 Setelah `git pull`, jalankan `npm ci` di folder yang dependensinya berubah, lalu `npm run migrate` dari `server/`.
 
@@ -246,3 +224,7 @@ Tes server yang butuh database memakai `DATABASE_URL` dari `server/.env`, jadi d
 | `bash: :SANDI: command not found` | Perintah PowerShell dijalankan di Bash; pakai versi Bash |
 | Porta 4321 sudah dipakai | Isi `PORT=4322` di `server/.env`, lalu jalankan antarmuka dengan variabel lingkungan `API=http://127.0.0.1:4322` |
 | Lupa kata sandi | Minta admin menggantinya di Pengaturan, atau pakai `pengguna:sandi` seperti di atas |
+
+## Deployment VM (23 Oktober 2026)
+
+Web dan REST API disiapkan untuk VM Ubuntu melalui systemd, dengan akses publik HTTPS Cloudflare dan database Supabase yang sama. Lihat [lokasi konfigurasi, operasi, dan batas URL sementara](docs/deployment-vm-2026-10-23.md). Rahasia dan hasil cetak kartu anak tidak ikut Git.

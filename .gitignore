@@ -4,8 +4,7 @@ server/db/*.generated.sql
 server/.npm-cache/
 server/akun-live.txt
 .qa-lan/
-.ngrok-run/
-.env.ngrok
+.cloudflare-run/
 
 .env
 .env.local
@@ -27,3 +26,10 @@ yarn-error.log
 # Konfigurasi dan laporan alat bantu pribadi (Claude Code, Impeccable).
 .claude/
 .impeccable/
+
+# Pratinjau lokal berisi data laporan dan referensi pemeriksaan Excel.
+/output/excel-reference/
+/output/pdf/
+
+# Cadangan data kesehatan lokal; tidak boleh masuk Git.
+/.backup-data/

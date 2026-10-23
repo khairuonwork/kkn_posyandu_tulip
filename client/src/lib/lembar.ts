@@ -6,6 +6,47 @@
 import { useEffect, useState } from 'react';
 import type { Pengukuran } from '@/types/posyandu';
 
+export type EdukasiLembarKia = {
+    umurLabel: string | null;
+    kelompok: {
+        id: string;
+        label: string;
+        jenis: 'perawatan' | 'perkembangan';
+        halaman: string;
+        halamanPdf: number;
+        stimulasi: string[];
+    } | null;
+    makan: {
+        judul: string;
+        halaman: string;
+        halamanPdf: number;
+        isi: string[];
+    } | null;
+    layanan: string;
+    bahaya: { halaman: string; pesan: string };
+    sumber: { versi: string; judul: string; url: string };
+    diskusi: {
+        tanggal: string;
+        kelompokLabel: string;
+        halaman: string;
+        dibahas: boolean;
+        catatan: string;
+        tindakLanjut: string;
+        ringkasan: {
+            total: number;
+            ya: number;
+            tidak: number;
+            belum: number;
+            arahan: string;
+        };
+        butir: {
+            id: string;
+            teks: string;
+            jawaban: 'ya' | 'tidak' | null;
+        }[];
+    } | null;
+};
+
 export type LembarApi = {
     anak: { namaDepan: string; jk: 'L' | 'P' };
     periodeId: string;
@@ -23,6 +64,7 @@ export type LembarApi = {
         | 'statusKehadiran'
         | 'penilaian'
     >[];
+    edukasiKia?: EdukasiLembarKia;
 };
 
 export type StatusLembar =

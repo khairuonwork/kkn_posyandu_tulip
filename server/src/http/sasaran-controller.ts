@@ -31,9 +31,9 @@ export function ruteSasaran(pool: Pool): Router {
     rute.get(
         "/sasaran/periode",
         wajibBoleh("lihat-anak"),
-        async (_req, res, next) => {
+        async (req, res, next) => {
             try {
-                res.json(await daftarPeriode(pool));
+                res.json(await daftarPeriode(pool, req.pengguna!));
             } catch (galat) {
                 try {
                     jawabGalat(galat, res);
@@ -176,7 +176,7 @@ export function ruteSasaran(pool: Pool): Router {
         wajibBoleh("hapus-data"),
         async (req, res, next) => {
             try {
-                res.json(await pratinjauResetHariIni(pool, req.query.periodeId));
+                res.json(await pratinjauResetHariIni(pool, req.pengguna!, req.query.periodeId));
             } catch (galat) {
                 try {
                     jawabGalat(galat, res);

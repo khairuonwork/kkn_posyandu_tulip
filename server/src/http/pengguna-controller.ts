@@ -19,12 +19,12 @@ import { bacaCookie, NAMA_COOKIE_SESI } from './cookie.ts';
 import { wajibBoleh } from './middleware.ts';
 
 /** `wajibBoleh` sudah memastikan permintaan ini milik pengguna yang masuk. */
-function pelaku(req: Request): number {
+function pelaku(req: Request) {
     if (req.pengguna === undefined) {
         throw new Error('Rute kelola akun dipanggil tanpa wajibBoleh.');
     }
 
-    return req.pengguna.id;
+    return req.pengguna;
 }
 
 /** Galat aturan diteruskan apa adanya; selebihnya ke penangan galat umum. */
@@ -40,8 +40,8 @@ export function rutePengguna(pool: Pool): Router {
     const rute = Router();
     const khususAdmin = wajibBoleh('kelola-akun');
 
-    rute.get('/pengguna', khususAdmin, async (_req, res) => {
-        res.json(await daftarAkun(pool));
+    rute.get('/pengguna', khususAdmin, async (req, res) => {
+        res.json(await daftarAkun(pool, pelaku(req)));
     });
 
     rute.post('/pengguna', khususAdmin, async (req, res) => {

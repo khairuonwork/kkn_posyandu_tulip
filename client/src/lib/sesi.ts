@@ -17,6 +17,10 @@ export type PenggunaSesi = {
     peran: Peran;
     rt: string | null;
     aktif: boolean;
+    posyanduIds: number[];
+    posyanduNama: string | null;
+    rw: string | null;
+    superAdmin: boolean;
 };
 
 export type StatusSesi = 'memeriksa' | 'masuk' | 'keluar';

@@ -55,7 +55,7 @@ export async function tambahManual(
     const hasil = await dalamTransaksi(
         pool,
         { pengguna: pengguna.id, sumber: "web" },
-        (db) => sasaranRepo.tambahSasaranManual(db, periodeId, anakId, pengguna.id),
+        (db) => sasaranRepo.tambahSasaranManual(db, pengguna, periodeId, anakId, pengguna.id),
     );
     const pesan: Record<
         Exclude<sasaranRepo.HasilTambahSasaran["status"], "berhasil">,
@@ -100,7 +100,7 @@ export async function ubah(
             sasaranId,
             status as sasaranRepo.StatusSasaran,
             catatan,
-            pengguna.id,
+            pengguna,
         ),
     );
     if (hasil === "tidak_ada") throw new GalatSasaran(404, "Sasaran tidak ditemukan.");
@@ -188,8 +188,8 @@ export function daftar(pool: Pool, pengguna: PenggunaAktif, periode?: string) {
     return sasaranRepo.daftarSasaran(pool, pengguna, periode);
 }
 
-export function daftarPeriode(pool: Pool) {
-    return sasaranRepo.daftarPeriodeSasaran(pool);
+export function daftarPeriode(pool: Pool, pengguna: PenggunaAktif) {
+    return sasaranRepo.daftarPeriodeSasaran(pool, pengguna);
 }
 
 export async function tutupSesi(
@@ -228,13 +228,14 @@ function tanggalHariIniJakarta(): string {
     return `${nilai.year}-${nilai.month}-${nilai.day}`;
 }
 
-async function validasiPeriodeReset(pool: Pool, periodeRaw: unknown) {
+async function validasiPeriodeReset(pool: Pool, pengguna: PenggunaAktif, periodeRaw: unknown) {
     const periodeId = idPositif(periodeRaw, "Periode");
     const periode = await pool.query<{ kode: string; sesiDitutupPada: Date | null }>(
         `SELECT tahun::text || '-' || lpad(bulan::text, 2, '0') AS kode,
                 sesi_ditutup_pada AS "sesiDitutupPada"
-           FROM periode WHERE id=$1`,
-        [periodeId],
+           FROM periode WHERE id=$1
+             AND ($2::boolean OR posyandu_id=ANY($3::bigint[]))`,
+        [periodeId, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
     );
     if (!periode.rows[0]) throw new GalatSasaran(404, "Periode sasaran tidak ditemukan.");
     const tanggal = tanggalHariIniJakarta();
@@ -248,15 +249,15 @@ async function validasiPeriodeReset(pool: Pool, periodeRaw: unknown) {
 }
 
 /** Pratinjau dampak sebelum hasil pengukuran hari ini direset oleh admin. */
-export async function pratinjauResetHariIni(pool: Pool, periodeRaw: unknown) {
-    const { periodeId, tanggal } = await validasiPeriodeReset(pool, periodeRaw);
+export async function pratinjauResetHariIni(pool: Pool, pengguna: PenggunaAktif, periodeRaw: unknown) {
+    const { periodeId, tanggal } = await validasiPeriodeReset(pool, pengguna, periodeRaw);
     return sasaranRepo.ringkasanResetPengukuranHariIni(pool, periodeId, tanggal);
 }
 
 /** Reset bersifat eksplisit, dibatasi hari ini + periode aktif, dan memeriksa ulang hitungan. */
 export async function resetHariIni(pool: Pool, pengguna: PenggunaAktif, badan: unknown) {
     const data = objek(badan);
-    const { periodeId, tanggal } = await validasiPeriodeReset(pool, data.periodeId);
+    const { periodeId, tanggal } = await validasiPeriodeReset(pool, pengguna, data.periodeId);
     const jumlahDikonfirmasi = Number(data.jumlahDikonfirmasi);
     const jumlahAntreanDikonfirmasi = Number(data.jumlahAntreanDikonfirmasi);
     if (data.konfirmasi !== true || !Number.isSafeInteger(jumlahDikonfirmasi) || jumlahDikonfirmasi < 0 ||

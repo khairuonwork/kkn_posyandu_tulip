@@ -12,6 +12,7 @@ import type { Pool, PoolClient } from 'pg';
 import { bacaIsianAkun, SANDI_MINIMAL } from '../auth/akun.ts';
 import type { IsianAkun } from '../auth/akun.ts';
 import { hashKataSandi } from '../auth/kata-sandi.ts';
+import type { PenggunaAktif } from '../auth/peran.ts';
 import { dalamTransaksi } from '../db/transaksi.ts';
 import * as penggunaRepo from '../repositories/pengguna-repository.ts';
 import type { PenggunaPublik } from '../repositories/pengguna-repository.ts';
@@ -19,9 +20,9 @@ import * as sesiRepo from '../repositories/sesi-repository.ts';
 
 /** Galat yang pantas diteruskan ke pemanggil apa adanya. */
 export class GalatAkun extends Error {
-    readonly status: 400 | 404 | 409;
+    readonly status: 400 | 403 | 404 | 409;
 
-    constructor(status: 400 | 404 | 409, pesan: string) {
+    constructor(status: 400 | 403 | 404 | 409, pesan: string) {
         super(pesan);
         this.name = 'GalatAkun';
         this.status = status;
@@ -47,7 +48,10 @@ async function rtUntuk(klien: PoolClient, isian: IsianAkun): Promise<number | nu
         return null;
     }
 
-    const id = await penggunaRepo.cariRtId(klien, isian.rt);
+    if (isian.posyanduId == null) {
+        throw new GalatAkun(400, 'Pilih Posyandu/RW untuk akun ini.');
+    }
+    const id = await penggunaRepo.cariRtIdDiPosyandu(klien, isian.posyanduId, isian.rt);
 
     if (id === null) {
         throw new GalatAkun(400, `RT ${isian.rt} belum ada di data wilayah.`);
@@ -58,18 +62,30 @@ async function rtUntuk(klien: PoolClient, isian: IsianAkun): Promise<number | nu
 
 export async function daftarAkun(
     pool: Pool,
-): Promise<{ pengguna: PenggunaPublik[]; wilayahRt: string[] }> {
-    const [pengguna, wilayahRt] = await Promise.all([
-        penggunaRepo.daftar(pool),
-        penggunaRepo.daftarRt(pool),
+    pelaku: PenggunaAktif,
+): Promise<{ pengguna: PenggunaPublik[]; wilayahRt: {posyanduId:number;rt:string}[]; posyandu: penggunaRepo.PosyanduPublik[] }> {
+    const [pengguna, wilayahRt, posyandu] = await Promise.all([
+        penggunaRepo.daftar(pool, pelaku),
+        penggunaRepo.daftarRt(pool, pelaku.posyanduIds ?? [], pelaku.superAdmin ?? false),
+        penggunaRepo.daftarPosyandu(pool, pelaku),
     ]);
 
-    return { pengguna, wilayahRt };
+    return { pengguna, wilayahRt, posyandu };
+}
+
+function validasiCakupan(pelaku: PenggunaAktif, isian: IsianAkun, bolehGlobal = false): void {
+    if (isian.posyanduId == null) {
+        if (bolehGlobal) return;
+        throw new GalatAkun(400, 'Pilih Posyandu/RW untuk akun ini.');
+    }
+    if (!pelaku.superAdmin && !(pelaku.posyanduIds ?? []).includes(isian.posyanduId)) {
+        throw new GalatAkun(403, 'Akun hanya dapat dikelola pada Posyandu/RW Anda.');
+    }
 }
 
 export async function tambahAkun(
     pool: Pool,
-    pelaku: number,
+    pelaku: PenggunaAktif,
     badan: unknown,
 ): Promise<PenggunaPublik> {
     const hasil = bacaIsianAkun(badan);
@@ -77,13 +93,14 @@ export async function tambahAkun(
     if ('galat' in hasil) {
         throw new GalatAkun(400, hasil.galat);
     }
+    validasiCakupan(pelaku, hasil.isian);
 
     // Di luar transaksi: scrypt sengaja lambat, dan kunci baris tidak perlu
     // ditahan selama itu.
     const hash = await hashKataSandi(hasil.kataSandi ?? '');
 
     try {
-        const id = await dalamTransaksi(pool, { pengguna: pelaku, sumber: SUMBER }, async (klien) => {
+        const id = await dalamTransaksi(pool, { pengguna: pelaku.id, sumber: SUMBER }, async (klien) => {
             if (await penggunaRepo.usernameDipakai(klien, hasil.isian.username)) {
                 throw new GalatAkun(409, USERNAME_DIPAKAI);
             }
@@ -104,7 +121,7 @@ export async function tambahAkun(
  */
 export async function ubahAkun(
     pool: Pool,
-    pelaku: number,
+    pelaku: PenggunaAktif,
     id: number,
     badan: unknown,
     sesiPelaku: string | null,
@@ -124,7 +141,7 @@ export async function ubahAkun(
     const hash = typeof sandi === 'string' && sandi !== '' ? await hashKataSandi(sandi) : null;
 
     try {
-        await dalamTransaksi(pool, { pengguna: pelaku, sumber: SUMBER }, async (klien) => {
+        await dalamTransaksi(pool, { pengguna: pelaku.id, sumber: SUMBER }, async (klien) => {
             // Kunci admin dulu, baru akunnya: urutan yang sama di setiap
             // permintaan mencegah dua transaksi saling menunggu.
             const adminAktif = await penggunaRepo.kunciAdminAktif(klien);
@@ -132,6 +149,13 @@ export async function ubahAkun(
 
             if (lama === null) {
                 throw new GalatAkun(404, 'Pengguna tidak ditemukan.');
+            }
+            if (lama.superAdmin && !pelaku.superAdmin) {
+                throw new GalatAkun(403, 'Akun superadmin hanya dapat dikelola superadmin.');
+            }
+            if (!lama.superAdmin && !pelaku.superAdmin &&
+                (lama.posyanduId === null || !(pelaku.posyanduIds ?? []).includes(lama.posyanduId))) {
+                throw new GalatAkun(404, 'Pengguna tidak ditemukan pada Posyandu/RW Anda.');
             }
 
             const hasil = bacaIsianAkun(badan, lama);
@@ -141,6 +165,10 @@ export async function ubahAkun(
             }
 
             const baru = hasil.isian;
+            if (lama.superAdmin && (baru.peran !== 'admin' || !baru.aktif)) {
+                throw new GalatAkun(409, 'Akun superadmin Mirae harus tetap aktif dengan peran admin.');
+            }
+            validasiCakupan(pelaku, baru, lama.superAdmin && pelaku.superAdmin);
             const turun = lama.peran === 'admin' && lama.aktif && (baru.peran !== 'admin' || !baru.aktif);
 
             // Tanpa admin aktif, tidak ada seorang pun yang bisa membuka layar
@@ -168,7 +196,7 @@ export async function ubahAkun(
                 await sesiRepo.hapusMilikPenggunaKecuali(
                     klien,
                     id,
-                    id === pelaku && baru.aktif && !peranBerubah ? sesiPelaku : null,
+                    id === pelaku.id && baru.aktif && !peranBerubah ? sesiPelaku : null,
                 );
             }
         });
