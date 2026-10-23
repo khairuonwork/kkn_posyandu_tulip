@@ -112,9 +112,9 @@ export function useLaporanServer(
         return () => controller.abort();
     }, [aktif, periode, onSesiBerakhir, versi]);
 
-    const unduh = useCallback(async () => {
+    const unduh = useCallback(async (format: 'zscore' | 'f1' = 'zscore') => {
         const res = await fetch(
-            `/api/v1/laporan/unduh?periode=${encodeURIComponent(periode)}`,
+            `/api/v1/laporan/${format === 'f1' ? 'f1/' : ''}unduh?periode=${encodeURIComponent(periode)}`,
             {
                 credentials: 'same-origin',
                 cache: 'no-store',
@@ -138,13 +138,15 @@ export function useLaporanServer(
         }
 
         if (!res.ok) {
+            const pesan = await res.json().catch(() => null) as {galat?: string} | null;
+            if (pesan?.galat) throw new Error(pesan.galat);
             throw new Error(`Berkas tidak dapat dibuat (HTTP ${res.status}).`);
         }
 
         const url = URL.createObjectURL(await res.blob());
         const link = document.createElement('a');
         link.href = url;
-        link.download = `laporan-posyandu-${periode}.xlsx`;
+        link.download = `laporan-${format === 'f1' ? 'f1' : 'posyandu'}-${periode}.xlsx`;
         link.click();
         window.setTimeout(() => URL.revokeObjectURL(url), 0);
     }, [periode, onSesiBerakhir]);

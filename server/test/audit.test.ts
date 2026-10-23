@@ -313,7 +313,7 @@ describe('audit PostgreSQL', { skip: adaDb ? false : 'DATABASE_URL tidak diatur'
         const jalankan = promisify(execFile);
         const dibuat = await jalankan(
             process.execPath,
-            ['db/buat-pengguna.ts', 'Bidan Uji', username, 'bidan'],
+            ['--experimental-strip-types', 'db/buat-pengguna.ts', 'Bidan Uji', username, 'bidan'],
             { cwd, env },
         );
         assert.match(dibuat.stdout, /dibuat/);
@@ -339,7 +339,7 @@ describe('audit PostgreSQL', { skip: adaDb ? false : 'DATABASE_URL tidak diatur'
             const pengguna = ((await login.json()) as { pengguna: { id: number } }).pengguna;
             const cookie = login.headers.get('set-cookie')!.split(';')[0];
             assert.equal((await fetch(`${akar}/saya`, { headers: { cookie } })).status, 200);
-            await jalankan(process.execPath, ['db/ganti-sandi.ts', username], {
+            await jalankan(process.execPath, ['--experimental-strip-types', 'db/ganti-sandi.ts', username], {
                 cwd,
                 env: { ...env, SANDI: `${sandi}-baru` },
             });

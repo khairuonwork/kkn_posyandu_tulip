@@ -361,6 +361,7 @@ function LaporanDataLive({
     const [indeks, setIndeks] = useState('BB_U');
     const [standar, setStandar] = useState('PERMENKES-2-2020');
     const [galatUnduh, setGalatUnduh] = useState<string | null>(null);
+    const [mengunduhF1, setMengunduhF1] = useState(false);
     const data = laporan.data;
     const daftarIndeks = [
         ['BB_U', 'BB/U'],
@@ -403,7 +404,18 @@ function LaporanDataLive({
                                     )
                             }
                         >
-                            <Download aria-hidden="true" /> Unduh Excel
+                            <Download aria-hidden="true" /> Excel Z-score & 2T
+                        </button>
+                    )}
+                    {bolehUnduh && (
+                        <button type="button" className="tombol-utama" disabled={mengunduhF1}
+                            onClick={async () => {
+                                setMengunduhF1(true); setGalatUnduh(null);
+                                try { await laporan.unduh('f1'); }
+                                catch (e) { setGalatUnduh(e instanceof Error ? e.message : 'Unduhan F1 gagal.'); }
+                                finally { setMengunduhF1(false); }
+                            }}>
+                            <Download aria-hidden="true" /> {mengunduhF1 ? 'Menyiapkan F1…' : 'Unduh F1 Excel'}
                         </button>
                     )}
                 </div>
