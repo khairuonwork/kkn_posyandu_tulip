@@ -14,9 +14,11 @@
  */
 
 import { Download, FileText, RefreshCw } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import EmptyState from '@/components/empty-state';
 import Halaman from '@/components/halaman';
+import StatusGiziBadge from '@/components/status-gizi-badge';
+import { kesimpulanZScore } from '@/lib/kategori';
 import {
     Table,
     TableBody,
@@ -323,23 +325,28 @@ export default function Laporan({
     );
 }
 
-function umurUntukLaporan(umurLengkap: string): string {
-    const lengkap = /^(\d+)Thn(\d+)Bln(\d+)Hari$/.exec(umurLengkap ?? '');
+function umurUntukLaporan(umurLengkap: string, hanyaTahunBulan = false): string {
+    const lengkap = /^(\d+)Thn(\d+)Bln(?:(\d+)Hari)?$/.exec(umurLengkap ?? '');
 
     if (lengkap !== null) {
-        return `${Number(lengkap[1])} thn ${Number(lengkap[2])} bln ${Number(lengkap[3])} hari`;
+        if (hanyaTahunBulan) {
+            return `${Number(lengkap[1])} thn ${Number(lengkap[2])} bln`;
+        }
+        return `${Number(lengkap[1])} thn ${Number(lengkap[2])} bln${lengkap[3] ? ` ${Number(lengkap[3])} hari` : ''}`;
     }
 
     // Tetap terbaca bila API yang berjalan masih memakai keluaran antara.
-    const bulanHari = /^(\d+) bulan (\d+) hari$/.exec(umurLengkap ?? '');
+    const bulanHari = /^(\d+) bulan(?: (\d+) hari)?$/.exec(umurLengkap ?? '');
 
     if (bulanHari !== null) {
         const bulan = Number(bulanHari[1]);
-
-        return `${Math.floor(bulan / 12)} thn ${bulan % 12} bln ${Number(bulanHari[2])} hari`;
+        if (hanyaTahunBulan) {
+            return `${Math.floor(bulan / 12)} thn ${bulan % 12} bln`;
+        }
+        return `${Math.floor(bulan / 12)} thn ${bulan % 12} bln${bulanHari[2] ? ` ${Number(bulanHari[2])} hari` : ''}`;
     }
 
-    const umurArsip = /^(\d+)Thn(\d+)Bln$/.exec(umurLengkap ?? '');
+    const umurArsip = /^(\d+)Thn(\d+)Bln/.exec(umurLengkap ?? '');
 
     if (umurArsip) {
         return `${umurArsip[1]} thn ${umurArsip[2]} bln`;
@@ -371,8 +378,33 @@ function LaporanDataLive({
         ['LILA_U', 'LILA/U'],
         ['LIKA_U', 'LIKA/U'],
     ];
+
+    // Di website: tampilkan anak 2T+ serta anak 1T pada bulan laporan agar tabel tidak kosong
+    const daftarT = useMemo(() => {
+        const riwayat = data?.riwayat2T ?? [];
+        const anakRiwayat = new Set(riwayat.map((r) => r.anakId));
+        const anakSatuT = (data?.bulanan ?? [])
+            .filter((r) => !anakRiwayat.has(r.anakId) && (r.nt === 'T' || (r.jumlahTBerturut && r.jumlahTBerturut >= 1)))
+            .map((r) => ({
+                ...r,
+                status2T: r.status2T ?? (r.jumlahTBerturut ? `${r.jumlahTBerturut}T` : '1T'),
+                jumlahTBerturut: r.jumlahTBerturut ?? 1,
+                sumberRiwayat: r.sumberRiwayat ?? 'pengukuran',
+            }));
+        return [...riwayat, ...anakSatuT];
+    }, [data?.riwayat2T, data?.bulanan]);
+
+    const jumlahDuaT = data?.ringkasan.denganDuaT ?? 0;
+    const jumlahSatuT = useMemo(() => {
+        const anakRiwayat = new Set((data?.riwayat2T ?? []).map((r) => r.anakId));
+        return (data?.bulanan ?? []).filter(
+            (r) => !anakRiwayat.has(r.anakId) && (r.nt === 'T' || (r.jumlahTBerturut && r.jumlahTBerturut >= 1)),
+        ).length;
+    }, [data?.riwayat2T, data?.bulanan]);
+    const totalT = jumlahDuaT + jumlahSatuT;
+
     const baris =
-        tab === 'zscore' ? (data?.bulanan ?? []) : (data?.riwayat2T ?? []);
+        tab === 'zscore' ? (data?.bulanan ?? []) : daftarT;
 
     return (
         <Halaman
@@ -432,21 +464,29 @@ function LaporanDataLive({
                 </article>
                 <article className="kartu p-4">
                     <p className="text-sm text-muted-foreground">
-                        Mencapai 2T+
+                        Pemantauan 1T & 2T+
                     </p>
                     <p className="mt-1 text-2xl font-extrabold">
-                        {data &&
-                        data.ringkasan.denganDuaT === 0 &&
-                        (data.ringkasan.belumDapatDinilai ?? 0) > 0
-                            ? 'Belum cukup data'
-                            : (data?.ringkasan.denganDuaT ?? '—')}
+                        {totalT > 0 ? (
+                            <>
+                                <span>{jumlahDuaT} (2T+)</span>
+                                {jumlahSatuT > 0 && (
+                                    <span className="ml-1 text-base font-normal text-muted-foreground">
+                                        · {jumlahSatuT} (1T)
+                                    </span>
+                                )}
+                            </>
+                        ) : data && (data.ringkasan.belumDapatDinilai ?? 0) > 0 ? (
+                            'Belum cukup data'
+                        ) : (
+                            '0'
+                        )}
                     </p>
-                    {(data?.ringkasan.duaTDariArsip ?? 0) > 0 && (
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            Termasuk {data!.ringkasan.duaTDariArsip} anak dari
-                            arsip petugas
-                        </p>
-                    )}
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        {totalT > 0
+                            ? `${totalT} balita tidak naik (1T & 2T+) bulan ini`
+                            : 'Tidak ada balita tidak naik bulan ini'}
+                    </p>
                 </article>
                 <article className="kartu p-4">
                     <p className="text-sm text-muted-foreground">
@@ -480,7 +520,7 @@ function LaporanDataLive({
                             onClick={() => setTab('2t')}
                             className={`min-h-11 rounded-xl px-4 ${tab === '2t' ? 'bg-primary font-bold text-white' : 'border border-border-strong'}`}
                         >
-                            Riwayat 2T ke atas
+                            Riwayat 1T & 2T+
                         </button>
                     </div>
                     {tab === 'zscore' && (
@@ -552,8 +592,8 @@ function LaporanDataLive({
                                     ? `Belum ada pengukuran hadir pada ${periode.label}.`
                                     : (data?.ringkasan.belumDapatDinilai ?? 0) >
                                         0
-                                      ? `Riwayat 2T+ ${periode.label} belum dapat ditentukan karena data pembanding belum lengkap.`
-                                      : `Tidak ada anak berstatus 2T+ pada ${periode.label}.`}
+                                      ? `Riwayat 1T & 2T+ ${periode.label} belum dapat ditentukan karena data pembanding belum lengkap.`
+                                      : `Tidak ada anak berstatus 1T maupun 2T+ pada ${periode.label}.`}
                             </p>
                         ) : (
                             <table className="w-full min-w-[1050px] border-collapse text-left text-sm">
@@ -568,18 +608,18 @@ function LaporanDataLive({
                                                   'BB (kg)',
                                                   'TB/PB (cm)',
                                                   'Z-score',
-                                                  'Kategori',
+                                                  'Kesimpulan Status Gizi',
                                               ]
                                             : [
                                                   'Nama',
                                                   'RT',
                                                   'Periode',
-                                                  'Umur lengkap',
+                                                  'Umur',
                                                   'BB (kg)',
                                                   'Kenaikan (g)',
                                                   'KBM (g)',
                                                   'N/T',
-                                                  'Status bulan laporan',
+                                                  'Status tidak naik',
                                                   'Sumber',
                                               ]
                                         ).map((h) => (
@@ -635,9 +675,11 @@ function LaporanDataLive({
                                                                   )
                                                                 : '—'}
                                                         </td>
-                                                        <td className="px-4 py-3">
-                                                            {assessment?.kategori ??
-                                                                'Belum dinilai'}
+                                                        <td className="px-4 py-3 font-semibold">
+                                                            <StatusGiziBadge
+                                                                kategori={kesimpulanZScore(assessment?.kategori, assessment?.z)}
+                                                                rapat
+                                                            />
                                                         </td>
                                                     </>
                                                 ) : (
@@ -648,6 +690,7 @@ function LaporanDataLive({
                                                         <td className="px-4 py-3 whitespace-nowrap">
                                                             {umurUntukLaporan(
                                                                 row.umurLengkap,
+                                                                true,
                                                             )}
                                                         </td>
                                                         <td className="px-4 py-3">
@@ -663,13 +706,16 @@ function LaporanDataLive({
                                                         <td className="px-4 py-3 font-bold">
                                                             {row.nt ?? '—'}
                                                         </td>
-                                                        <td className="px-4 py-3">
-                                                            {row.status2T ??
-                                                                (row.jumlahTBerturut
-                                                                    ? `${row.jumlahTBerturut}T`
-                                                                    : row.duaT
-                                                                      ? '2T+'
-                                                                      : '—')}
+                                                        <td className="px-4 py-3 font-bold">
+                                                            <span
+                                                                className={`inline-flex items-center rounded-lg px-2 py-0.5 text-xs font-bold ${
+                                                                    (row.jumlahTBerturut ?? 0) >= 2 || row.duaT || (row.status2T && row.status2T !== '1T')
+                                                                        ? 'bg-tone-red-bg text-tone-red'
+                                                                        : 'bg-tone-amber-bg text-tone-amber'
+                                                                }`}
+                                                            >
+                                                                {row.status2T ?? (row.jumlahTBerturut ? `${row.jumlahTBerturut}T` : row.duaT ? '2T+' : '1T')}
+                                                            </span>
                                                         </td>
                                                         <td className="px-4 py-3 whitespace-nowrap">
                                                             {row.sumberRiwayat ===

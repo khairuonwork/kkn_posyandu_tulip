@@ -128,3 +128,51 @@ export function kbmKg(umurBulan: number | null): number | null {
 
     return umurBulan <= 6 ? tabel[umurBulan - 1] : umurBulan <= 10 ? 0.3 : 0.2;
 }
+
+/**
+ * Menyederhanakan kategori status gizi z-score menjadi informasi kesimpulan
+ * langsung yang mudah dipahami: Normal, Gemuk, atau Kurang (mengikuti format lama).
+ */
+export function kesimpulanZScore(
+    kategori: string | null | undefined,
+    z?: number | null,
+): string {
+    if (!kategori && (z === null || z === undefined)) {
+        return 'Belum dinilai';
+    }
+
+    if (typeof z === 'number') {
+        if (z < -2) return 'Kurang';
+        if (z > 1) return 'Gemuk';
+        return 'Normal';
+    }
+
+    if (!kategori) return 'Belum dinilai';
+
+    const k = kategori.trim().toLowerCase();
+
+    if (
+        k.includes('kurang') ||
+        k.includes('buruk') ||
+        k.includes('pendek') ||
+        k.includes('mikro') ||
+        k.includes('kurus')
+    ) {
+        return 'Kurang';
+    }
+
+    if (
+        k.includes('gemuk') ||
+        k.includes('lebih') ||
+        k.includes('obesitas') ||
+        k.includes('makro')
+    ) {
+        return 'Gemuk';
+    }
+
+    if (k.includes('normal') || k.includes('baik') || k === 'tinggi') {
+        return 'Normal';
+    }
+
+    return kategori;
+}

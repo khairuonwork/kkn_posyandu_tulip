@@ -12,6 +12,7 @@
  */
 
 import { CircleCheck, Info, OctagonAlert, TriangleAlert } from 'lucide-react';
+import { kesimpulanZScore } from '@/lib/kategori';
 
 type Nada = 'merah' | 'oranye' | 'hijau' | 'biru' | 'netral';
 
@@ -37,6 +38,10 @@ const NADA: Record<string, Nada> = {
     // LIKA/U
     Mikrosefali: 'oranye',
     Makrosefali: 'oranye',
+    // Kesimpulan langsung Z-score (format lama)
+    Gemuk: 'biru',
+    Kurang: 'oranye',
+    'Sangat Kurang': 'merah',
 };
 
 /**
@@ -68,7 +73,7 @@ export function nadaKategori(kategori: string | null): Nada {
         return 'netral';
     }
 
-    return NADA[kategori] ?? 'netral';
+    return NADA[kategori] ?? NADA[kesimpulanZScore(kategori)] ?? 'netral';
 }
 
 /**
@@ -86,6 +91,8 @@ export const PERLU_TINDAK_LANJUT = [
     'Gizi buruk',
     'Gizi kurang',
     'Obesitas',
+    'Kurang',
+    'Sangat Kurang',
 ];
 
 type Props = {
@@ -97,16 +104,19 @@ type Props = {
     tenang?: boolean;
     /** Tapak 2 × 8 untuk tabel yang rapat, mis. riwayat penimbangan. */
     rapat?: boolean;
+    /** Gunakan format teks asli alih-alih kesimpulan Normal/Gemuk/Kurang. */
+    formatAsli?: boolean;
 };
 
 export default function StatusGiziBadge({
     kategori,
     tenang = false,
     rapat = false,
+    formatAsli = false,
 }: Props) {
-    // Kategori kosong berarti belum bisa dinilai — LILA/U belum punya label
-    // (OI-04), atau nilai ukurnya tidak ada.
-    const nada = nadaKategori(kategori);
+    // Tampilkan informasi kesimpulan langsung (Normal, Gemuk, Kurang)
+    const teksTampil = formatAsli ? (kategori ?? 'Belum dinilai') : kesimpulanZScore(kategori);
+    const nada = nadaKategori(teksTampil);
     const Ikon = IKON[nada];
 
     if (tenang && nada === 'hijau') {
@@ -117,7 +127,7 @@ export default function StatusGiziBadge({
                     strokeWidth={2.25}
                     aria-hidden="true"
                 />
-                {kategori}
+                {teksTampil}
             </span>
         );
     }
@@ -136,7 +146,7 @@ export default function StatusGiziBadge({
                 strokeWidth={2.5}
                 aria-hidden="true"
             />
-            {kategori ?? 'Belum dinilai'}
+            {teksTampil ?? 'Belum dinilai'}
         </span>
     );
 }

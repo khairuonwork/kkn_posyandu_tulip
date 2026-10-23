@@ -60,7 +60,7 @@ import {
     zScore,
 } from '@/lib/format';
 import { kodeKartuSasaran } from '@/lib/kartu-sasaran';
-import { kbmKg } from '@/lib/kategori';
+import { kbmKg, kesimpulanZScore } from '@/lib/kategori';
 import { tandaGizi, tentukanKesimpulan } from '@/lib/kesimpulan-gizi';
 import { buatTautanLembar } from '@/lib/lembar';
 import { Link } from '@/lib/nav';
@@ -1086,7 +1086,8 @@ function KartuIndeks({
     label: string;
     nilai: PenilaianGizi | undefined;
 }) {
-    const warna = WARNA_NADA[nadaKategori(nilai?.kategori ?? null)];
+    const kesimpulan = kesimpulanZScore(nilai?.kategori, nilai?.z);
+    const warna = WARNA_NADA[nadaKategori(kesimpulan)];
 
     return (
         <div className="kartu p-5">
@@ -1100,7 +1101,7 @@ function KartuIndeks({
                 <span className="text-sm text-muted-foreground">SD</span>
             </p>
             <p className={`mt-1.5 text-base font-bold text-pretty ${warna}`}>
-                {nilai?.kategori ?? 'Belum dapat dinilai'}
+                {kesimpulan}
             </p>
         </div>
     );

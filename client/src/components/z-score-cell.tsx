@@ -9,6 +9,7 @@
 
 import { TriangleAlert } from 'lucide-react';
 import { KOSONG, zScore } from '@/lib/format';
+import { kesimpulanZScore } from '@/lib/kategori';
 import type { PenilaianGizi } from '@/types/posyandu';
 
 type Props = { nilai: PenilaianGizi | undefined };
@@ -17,6 +18,8 @@ export default function ZScoreCell({ nilai }: Props) {
     if (nilai === undefined) {
         return <span className="text-muted-foreground">{KOSONG}</span>;
     }
+
+    const kesimpulan = kesimpulanZScore(nilai.kategori, nilai.z);
 
     return (
         <span className="block">
@@ -30,12 +33,10 @@ export default function ZScoreCell({ nilai }: Props) {
                     />
                 )}
             </span>
-            {/* Kategorinya ikut. Dulu kolom ini angka telanjang, sehingga
-                membaca satu baris menuntut hafal ambang PMK 2/2020 - dan
-                -3,05 akibat salah ketik terbaca sebagai angka biasa. */}
-            {nilai.kategori !== null && (
-                <span className="block text-sm text-muted-foreground">
-                    {nilai.kategori}
+            {/* Informasi kesimpulan langsung z-score: Normal, Gemuk, atau Kurang */}
+            {kesimpulan !== null && (
+                <span className="block text-sm font-semibold text-muted-foreground">
+                    {kesimpulan}
                 </span>
             )}
         </span>
