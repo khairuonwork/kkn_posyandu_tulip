@@ -669,11 +669,12 @@ export async function paketSinkronisasi(pool: Pool, pengguna: PenggunaAktif) {
                 a.anak_ke, a.bb_lahir_kg::text AS bb_lahir,
                 a.pb_lahir_cm::text AS pb_lahir, a.buku_kia, a.imd,
                 EXISTS (SELECT 1 FROM layanan l WHERE l.anak_id=a.id AND l.jenis='imunisasi') AS imunisasi_lengkap
-           FROM sasaran s
-           JOIN anak a ON a.id=s.anak_id
+           FROM anak a
+           LEFT JOIN sasaran s ON s.anak_id=a.id AND s.periode_id=$1
            LEFT JOIN orang_tua o ON o.id=a.orang_tua_id
            LEFT JOIN wilayah_rt w ON w.id=a.wilayah_rt_id
-          WHERE s.periode_id=$1 AND s.status <> 'batal' AND a.deleted_at IS NULL
+          WHERE w.posyandu_id=(SELECT posyandu_id FROM periode WHERE id=$1)
+            AND (s.status IS NULL OR s.status <> 'batal') AND a.deleted_at IS NULL
           ORDER BY a.nama_baku, a.id`,
         [aktif.id],
     );
@@ -691,14 +692,14 @@ export async function paketSinkronisasi(pool: Pool, pengguna: PenggunaAktif) {
            JOIN anak a ON a.id=p.anak_id
           WHERE a.deleted_at IS NULL
             AND EXISTS (
-                SELECT 1 FROM sasaran s
-                 WHERE s.periode_id=$1 AND s.anak_id=a.id
+                SELECT 1 FROM wilayah_rt w WHERE w.id=a.wilayah_rt_id
+                  AND w.posyandu_id=(SELECT posyandu_id FROM periode WHERE id=$1)
             )
           ORDER BY p.tanggal_ukur, p.id`,
         [aktif.id],
     );
     const ringkasan = {
-        total: anak.rows.length,
+        total: anak.rows.filter(baris => baris.id_sasaran != null).length,
         menunggu: anak.rows.filter(
             (baris) => baris.status_sasaran === "menunggu",
         ).length,

@@ -1,3 +1,4 @@
+import {paketSinkronisasi} from '../src/repositories/anak-repository.ts';
 /**
  * Autentikasi lewat HTTP, diuji terhadap server dan basis data sungguhan.
  *
@@ -298,6 +299,22 @@ describe(
 
             assert.equal(res.status, 404);
             assert.match(res.headers.get('content-type') ?? '', /application\/json/);
+        });
+
+        test('paket tablet menyertakan anak baru meskipun belum terdaftar sebagai sasaran bulan aktif', async () => {
+            const period = await pool.query("INSERT INTO periode (posyandu_id,bulan,tahun) VALUES ($1,10,2026) RETURNING id",[idPosyandu]);
+            const children = await pool.query("INSERT INTO anak (wilayah_rt_id,nama,nama_baku,tgl_lahir,jk) VALUES ($1,'UJI TARGET','uji target','2024-01-01','L'),($1,'UJI BARU','uji baru','2024-02-01','P') RETURNING id",[idRt]);
+            try {
+                await pool.query("INSERT INTO sasaran (periode_id,anak_id) VALUES ($1,$2)",[period.rows[0].id,children.rows[0].id]);
+                const packet = await paketSinkronisasi(pool,{id:1,peran:'kader',rt:'07',aktif:true,posyanduIds:[idPosyandu],superAdmin:false});
+                assert.equal(packet.anak.length,2);
+                const baru = packet.anak.find((r: any)=>r.id_anak===children.rows[1].id);
+                assert.ok(baru);assert.equal(baru.id_sasaran,null);
+            } finally {
+                await pool.query('DELETE FROM sasaran WHERE periode_id=$1',[period.rows[0].id]);
+                await pool.query('DELETE FROM periode WHERE id=$1',[period.rows[0].id]);
+                await pool.query('DELETE FROM anak WHERE id=ANY($1::bigint[])',[children.rows.map((r:any)=>r.id)]);
+            }
         });
     },
 );
