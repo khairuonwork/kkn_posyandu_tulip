@@ -28,7 +28,7 @@ test("ekspor terserialisasi mempertahankan pasangan indeks, angka nol, umur, dan
         assert.equal(sheet.getCell(7, 11 + 4 * i).value, i === 4 ? null : i);
         assert.equal(sheet.getCell(7, 13 + 4 * i).value, i === 4 ? null : i + 0.1);
     }
-    assert.equal(sheet.getCell("E7").value, "2Thn8Bln4Hari");
+    assert.equal(sheet.getCell("E7").value, "2 Thn 8 Bln 4 Hari");
     assert.equal(sheet.getCell("H7").value, null);
     assert.equal(sheet.getCell("J7").value, "T");
     assert.equal(sheet.getCell("F7").numFmt, "0.00");
@@ -54,7 +54,7 @@ test("historis dikelompokkan berdasarkan ID anak meskipun namanya sama", async (
     assert.equal(sheet.getCell("A10").value, 2);
     assert.equal(sheet.getCell("C7").value, "SEPT'26");
     assert.equal(sheet.getCell("C8").value, "OKT'26");
-    assert.equal(sheet.getCell("G7").value, "2Thn8Bln4Hari");
+    assert.equal(sheet.getCell("G7").value, "2 Thn 8 Bln 4 Hari");
     assert.equal(sheet.getCell("L7").value, "T");
     assert.equal(sheet.pageSetup.printArea, "A1:AJ11");
 });

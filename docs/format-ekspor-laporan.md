@@ -84,3 +84,11 @@ Perubahan berada pada backend ekspor/laporan. Tidak ada perubahan APK atau bundl
 Pemeriksaan data September dalam transaksi READ ONLY: 92 anak pada Rekap, 28 anak pada Historis 2T+, 33 baris arsip bisa dilengkapi umur hari dari pengukuran yang cocok, 39 baris arsip belum memiliki tanggal yang memadai.
 
 Verifikasi revisi: 257 tes server dan pemeriksaan TypeScript lulus. Workbook berhasil diserialisasi/dibuka kembali, seluruh tiga sheet diperiksa secara visual, dan perubahan warna saat label/ambang diedit lulus pada mesin spreadsheet. Tidak ada data pasien atau hasil cetak yang dimasukkan ke Git.
+
+## Koreksi kompatibilitas Excel desktop — 23 Oktober 2026
+
+Pemeriksaan langsung unduhan Juni dengan Microsoft Excel menemukan differential fill hanya berisi fgColor: font putih aktif tetapi latar tetap putih. Fill kini menyimpan fgColor dan bgColor yang sama agar latar merah/merah muda/kuning terbaca Excel desktop. Conditional formatting tetap dinamis.
+
+Umur pada Rekap dan Historis tetap tahun–bulan–hari sesuai komentar asli Bu Sri, kini terbaca sebagai `2 Thn 8 Bln 4 Hari`; kolom diperlebar. Hari arsip yang tidak diketahui tetap ditandai, tidak dibuat menjadi nol.
+
+Validasi: 25 pengujian laporan lulus, TypeScript lulus, serta Microsoft Excel COM pada workbook uji memverifikasi warna seluruh indeks di kedua sheet, perubahan label kurang → lebih → normal, ambang −1,96 → −2, header N/T/B, dan umur kalender. File asli pengguna dibaca read-only dan tidak disimpan ulang.

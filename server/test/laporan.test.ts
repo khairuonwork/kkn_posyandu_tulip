@@ -241,7 +241,7 @@ test("berkas Excel mencakup petunjuk dan dua format laporan", async () => {
     const workbook = await workbookLaporan(result);
     assert.deepEqual(workbook.worksheets.map((sheet) => sheet.name), ["Rekap Z Score", "Historis 2T+", "Petunjuk"]);
     const sheet = workbook.getWorksheet("Rekap Z Score")!;
-    assert.equal(sheet.getCell("E7").value, "1Thn0Bln0Hari");
+    assert.equal(sheet.getCell("E7").value, "1 Thn 0 Bln 0 Hari");
     assert.equal(sheet.getCell("E6").value, "UMUR LENGKAP");
     assert.equal(sheet.getCell("K4").value, "BB/U");
     assert.equal(sheet.getCell("K5").value, "PERMENKES 2 2020");

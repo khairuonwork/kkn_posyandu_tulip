@@ -25,7 +25,9 @@ export function namaPeriode(periode: string): string {
 }
 
 export function warnaIsi(argb: string): ExcelJS.Fill {
-    return { type: "pattern", pattern: "solid", fgColor: { argb } };
+    // Excel desktop membaca bgColor pada differential fill (conditional formatting).
+    // fgColor saja membuat font putih aktif tetapi latarnya tetap putih.
+    return { type: "pattern", pattern: "solid", fgColor: { argb }, bgColor: { argb } };
 }
 
 export function tataLetak(historis: boolean) {
@@ -77,7 +79,7 @@ export function siapkanSheet(workbook: ExcelJS.Workbook, nama: string, periode: 
     const identity = historis
         ? ["NO", "STATUS", "BULAN", "NAMA LENGKAP", "RT", "JK", "UMUR LENGKAP"]
         : ["NO", "NAMA LENGKAP", "RT", "JK", "UMUR LENGKAP"];
-    const widths = historis ? [5, 8.18, 13, 33.73, 4.63, 4.73, 21] : [4.5, 33.73, 4.63, 4.73, 21];
+    const widths = historis ? [5, 8.18, 13, 33.73, 4.63, 4.73, 27] : [4.5, 33.73, 4.63, 4.73, 21];
     identity.forEach((text, i) => {
         selHeader(sheet, 6, i + 1, text);
         sheet.getColumn(i + 1).width = widths[i];

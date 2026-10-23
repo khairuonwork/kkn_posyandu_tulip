@@ -121,3 +121,15 @@ test('umur arsip lengkap bila pengukuran cocok, dan tidak dibuat-buat bila berbe
     assert.equal(beda.umurHari,null);
     assert.equal(beda.bbKg,7);
 });
+
+ test('warna latar terserialisasi untuk Excel desktop, dan umur lengkap tidak menjadi total hari', async () => {
+    const b = await ekspor(anak());
+    for (const [name, cell] of [['Rekap Z Score','E7'],['Historis 2T+','G7']]) {
+        const sh = b.getWorksheet(name)!;
+        assert.equal(sh.getCell(cell).value, '0 Thn 6 Bln 0 Hari');
+        const cf = (sh as any).conditionalFormattings;
+        for (const item of cf) for (const rule of item.rules) {
+            assert.equal(rule.style.fill.bgColor.argb, rule.style.fill.fgColor.argb);
+        }
+    }
+ });

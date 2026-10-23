@@ -82,13 +82,20 @@ function simpanDetail(sheet: ExcelJS.Worksheet, layout: TataLetak, r: number, ro
     }
 }
 
+function umurTampilan(value: string): string {
+    // Umur kalender lengkap, bukan total umurHari. Pertahankan penanda
+    // sumber yang belum mempunyai tanggal ukur agar tidak mengarang hari.
+    return value.replace(/(\d+)Thn(\d+)Bln(?:(\d+)Hari)?/g, (_, tahun, bulan, hari) =>
+        hari === undefined ? `${tahun} Thn ${bulan} Bln` : `${tahun} Thn ${bulan} Bln ${hari} Hari`);
+}
+
 function tambahRekap(workbook: ExcelJS.Workbook, data: DataLaporan) {
     const { sheet, layout } = siapkanSheet(workbook, "Rekap Z Score", data.periode, false, judulPengukuran(data));
     // Urutan contoh: laki-laki, perempuan; umur termuda dahulu di setiap kelompok.
     const rows = [...data.bulanan].sort((a, b) => a.jk.localeCompare(b.jk) || a.umurHari - b.umurHari || a.nama.localeCompare(b.nama, "id"));
     rows.forEach((row, i) => {
         const r = BARIS_DATA + i;
-        sheet.getRow(r).values = [i + 1, row.nama, row.rt, row.jk, row.umurLengkap, ...hasilUkur(row)];
+        sheet.getRow(r).values = [i + 1, row.nama, row.rt, row.jk, umurTampilan(row.umurLengkap), ...hasilUkur(row)];
         formatBaris(sheet, r, layout);
         simpanDetail(sheet, layout, r, row);
     });
@@ -107,7 +114,7 @@ function tambahHistoris(workbook: ExcelJS.Workbook, data: DataLaporan) {
         const status = latest.status2T ?? (latest.jumlahTBerturut > 0 ? latest.jumlahTBerturut + "T" : latest.nt);
         rows.forEach((row, i) => {
             sheet.getRow(r).values = [i === 0 ? group + 1 : null, i === 0 ? status : null,
-                labelBulan(row.periodeId), row.nama, row.rt, row.jk, row.umurLengkap, ...hasilUkur(row)];
+                labelBulan(row.periodeId), row.nama, row.rt, row.jk, umurTampilan(row.umurLengkap), ...hasilUkur(row)];
             formatBaris(sheet, r, layout);
             simpanDetail(sheet, layout, r, row);
             sheet.getCell(r, 2).font = { name: "Calibri", size: 11, bold: true, color: { argb: "FFFF0000" } };
@@ -128,7 +135,7 @@ function tambahPetunjuk(workbook: ExcelJS.Workbook, periode: string) {
         ["Format laporan", "Mengikuti SEPT_REKAP dan 2T-6T SEPT 2026 serta komentar Bu Sri. Kolom N/T/B disiapkan agar kode tidak tercampur saat dipakai untuk laporan F1."],
         ["Ambang peringatan internal (SD)", AMBANG_PERINGATAN_INTERNAL],
         ["Peringatan internal", "Sel Z-score berwarna kuning bila nilainya ≤ ambang di B3 (bawaan −1,96 SD). Ini peringatan internal, bukan pengganti batas klasifikasi gizi resmi. Nilai skor dan kategori resmi tidak diubah."],
-        ["Umur lengkap", "Tahun, bulan, dan sisa hari pada tanggal pengukuran: contoh 2Thn8Bln4Hari."],
+        ["Umur lengkap", "Tahun, bulan, dan sisa hari pada tanggal pengukuran: contoh 2 Thn 8 Bln 4 Hari."],
         ["Hasil pengukuran", "BB dalam kg; TB/PB, LILA, dan LIKA dalam cm. Angka kosong berarti belum tersedia; bukan nol."],
         ["Z-score", "Nilai dari layanan laporan saat diunduh. Umur kalender sampai ketelitian hari digunakan untuk interpolasi acuan bulanan. Angka ditampilkan dua desimal."],
         ["N/T/B", "N = naik; T = tidak naik; B = baru sesuai penandaan sumber. Kode hasil perbandingan BB/KBM diprioritaskan. Pembanding yang hilang tidak otomatis menjadi B atau TDK. Tanpa dasar penilaian/kode sumber, sel tetap kosong."],
