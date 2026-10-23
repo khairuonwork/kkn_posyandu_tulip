@@ -8,6 +8,9 @@ export type BarisRiwayat2T = Omit<BarisBertanda, 'tanggalUkur' | 'umurHari'> & {
     sumberRiwayat?: 'arsip' | 'pengukuran';
     sumberFile?: string;
     status2T?: string;
+    umurBulan?: number;
+    catatanNt?: string;
+    sumberUmur?: 'pengukuran' | 'arsip-bulanan';
 };
 
 /** A source-approved snapshot is a baseline for the next consecutive month.
@@ -22,12 +25,28 @@ export function titikArsip(row: BarisArsip2T): TitikPertumbuhan {
         bbKg: row.bbKg, hadir: true, zBbU: typeof value === 'number' ? value : null };
 }
 
-function dariArsip(row: BarisArsip2T, pembanding?: TitikPertumbuhan): BarisRiwayat2T {
+function dariArsip(row: BarisArsip2T, pembanding?: TitikPertumbuhan, pengukuran?: BarisBertanda): BarisRiwayat2T {
+    const perubahan = hitungPertumbuhan(titikArsip(row), pembanding);
+    // Umur hingga hari hanya dipinjam dari pengukuran bulan yang sama bila
+    // semua nilai ukur arsip yang tersedia cocok. Tanggal tidak diasumsikan.
+    const cocok = pengukuran !== undefined && row.bbKg !== null &&
+        (['bbKg', 'tinggiCm', 'lilaCm', 'likaCm'] as const).every(k =>
+            row[k] === null || (pengukuran[k] !== null && Math.abs(row[k]! - pengukuran[k]!) < 0.001));
     return {
-        ...row, tanggalUkur: null, umurHari: null,
-        umurLengkap: `${Math.floor(row.umurBulan / 12)}Thn${row.umurBulan % 12}Bln`,
+        ...row, tanggalUkur: cocok ? pengukuran.tanggalUkur : null,
+        umurHari: cocok ? pengukuran.umurHari : null,
+        umurLengkap: cocok ? pengukuran.umurLengkap : `${Math.floor(row.umurBulan / 12)}Thn${row.umurBulan % 12}Bln (hari tidak tercatat)`,
+        sumberUmur: cocok ? 'pengukuran' : 'arsip-bulanan',
         jenisUkur: null, ntobRaw: null, statusKehadiran: 'hadir',
-        ...hitungPertumbuhan(titikArsip(row), pembanding), duaT: true,
+        ...perubahan,
+        // Baris ini termasuk rangkaian T yang disahkan dalam snapshot arsip.
+        // Bila BB pembanding hilang, tampilkan status sumber tanpa membuat
+        // kenaikan/KBM fiktif. Hasil hitung yang tersedia tetap diutamakan.
+        nt: perubahan.nt ?? 'T',
+        catatanNt: perubahan.nt === null
+            ? `T mengikuti arsip ${row.jumlahT}T; BB pembanding bulanan tidak tersedia. Kenaikan dan KBM tidak diisi.`
+            : undefined,
+        duaT: true,
         jumlahTBerturut: row.jumlahT, status2T: `${row.jumlahT}T`,
         sumberRiwayat: 'arsip', sumberFile: row.sumberFile,
     };
@@ -44,12 +63,16 @@ export function gabungRiwayat2T(semua: BarisBertanda[], arsip: BarisArsip2T[], p
     }
     const rows: BarisRiwayat2T[] = [];
     const pengukuranTersedia = new Map(semua.map(r => [kunciTitik(r), titikPengukuran(r)]));
+    const detailPengukuran = new Map(semua.map(r => [kunciTitik(r), r]));
     let anakArsip = 0;
     for (const [anakId, current] of aktif) {
-        const latest = arsip.filter(r => r.anakId === anakId && r.periodeLaporan <= periode).at(-1)?.periodeLaporan;
+        const arsipAnak = arsip.filter(r => r.anakId === anakId && r.periodeLaporan <= periode)
+            .sort((a,b) => a.periodeLaporan.localeCompare(b.periodeLaporan));
+        const latest = arsipAnak.at(-1)?.periodeLaporan;
         const snapshot = current.snapshot ?? latest;
         const historical = snapshot ? arsip.filter(r => r.anakId === anakId && r.periodeLaporan === snapshot) : [];
         const titikHistoris = new Map(historical.map(r => [kunciTitik(r), titikArsip(r)]));
+        const pembandingArsipLain = new Map(arsipAnak.map(r => [kunciTitik(r), titikArsip(r)]));
         const live = semua.filter(r => r.anakId === anakId && r.periodeId <= periode).sort((a,b) => a.periodeId.localeCompare(b.periodeId));
         const periods = new Map<string, BarisRiwayat2T>();
         // A previous snapshot belongs only to the active chain, never a new
@@ -61,7 +84,7 @@ export function gabungRiwayat2T(semua: BarisBertanda[], arsip: BarisArsip2T[], p
             const key = `${anakId}:${bulanSebelumnya(row.periodeId)}`;
             // Compare the weights displayed in this archive first, and use a
             // dated observation when the source lacks the previous month.
-            periods.set(row.periodeId, dariArsip(row, titikHistoris.get(key) ?? pengukuranTersedia.get(key)));
+            periods.set(row.periodeId, dariArsip(row, titikHistoris.get(key) ?? pengukuranTersedia.get(key) ?? pembandingArsipLain.get(key), detailPengukuran.get(kunciTitik(row))));
         }
         for (const row of live.filter(r => inChain(r.periodeId) && !periods.has(r.periodeId))) {
             periods.set(row.periodeId, { ...row, sumberRiwayat: 'pengukuran' });

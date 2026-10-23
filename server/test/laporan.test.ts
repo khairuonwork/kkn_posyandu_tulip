@@ -64,7 +64,7 @@ test('arsip 2T resmi tampil tanpa tanggal fiktif dan tanpa menghitung ulang skor
     assert.equal(result.riwayat2T[0].umurHari,null);
     assert.equal(result.riwayat2T[0].status2T,'3T');
     assert.equal(result.riwayat2T[0].penilaian['WHO-2006'].BB_U.z,0);
-    assert.equal(result.riwayat2T[0].umurLengkap,'0Thn9Bln');
+    assert.equal(result.riwayat2T[0].umurLengkap,'0Thn9Bln (hari tidak tercatat)');
 });
 
 test('status arsip diteruskan ke bulan berikutnya bila tetap T, lalu berhenti saat naik atau ada jeda', async () => {
@@ -95,7 +95,8 @@ test('kenaikan September memakai Agustus dari arsip pada riwayat, rekap, dan Exc
     assert.equal(september.kenaikanGram,100);
     assert.equal(september.kbmGram,300);
     assert.equal(september.nt,'T');
-    assert.equal(september.tanggalUkur,null);
+    assert.equal(september.tanggalUkur,'2026-09-12');
+    assert.equal(september.umurLengkap, '0Thn11Bln2Hari');
     assert.equal(result.bulanan[0].kenaikanGram,100);
     assert.equal(result.bulanan[0].kbmGram,300);
     assert.equal(result.bulanan[0].nt,'T');
@@ -112,7 +113,8 @@ test('riwayat tidak mengasumsikan nol jika bulan pembanding hilang; nol asli dan
     const july=result.riwayat2T.find(r=>r.periodeId==='2026-07')!;
     assert.equal(july.kenaikanGram,null);
     assert.equal(july.kbmGram,null);
-    assert.equal(july.nt,null);
+    assert.equal(july.nt,'T');
+    assert.match(july.catatanNt ?? '', /T mengikuti arsip 3T/);
     assert.equal(result.riwayat2T.find(r=>r.periodeId==='2026-08')!.kenaikanGram,0);
     assert.equal(result.riwayat2T.find(r=>r.periodeId==='2026-08')!.nt,'T');
     assert.equal(result.riwayat2T.find(r=>r.periodeId==='2026-09')!.kenaikanGram,-200);
@@ -246,7 +248,7 @@ test("berkas Excel mencakup petunjuk dan dua format laporan", async () => {
     assert.equal(sheet.getCell("M5").value, "WHO - LMS");
     assert.equal(sheet.getCell("K7").value, result.bulanan[0].penilaian["PERMENKES-2-2020"].BB_U.z);
     assert.equal(sheet.getCell("M7").value, result.bulanan[0].penilaian["WHO-2006"].BB_U.z);
-    assert.equal(sheet.getCell("J5").value, "N/T");
+    assert.equal(sheet.getCell("J5").value, "N/T/B");
     assert.equal(sheet.getCell("K7").numFmt, "0.00");
     assert.equal(sheet.views[0].state, "frozen");
     assert.equal(sheet.pageSetup.printTitlesRow, "1:6");

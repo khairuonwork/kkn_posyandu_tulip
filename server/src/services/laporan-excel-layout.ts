@@ -70,6 +70,9 @@ export function siapkanSheet(workbook: ExcelJS.Workbook, nama: string, periode: 
         cell.font = { name: "Calibri", size: row === 1 ? 14 : 11, bold: true, color: { argb: historis && row === 1 ? "FFFF0000" : "FF0070C0" } };
         cell.alignment = { vertical: "middle" };
     }
+    const info = sheet.getCell(3, awalJudul);
+    info.value = 'Peringatan internal: sel Z kuning mengikuti ambang SD di Petunjuk. Kategori gizi mengikuti acuan.';
+    info.font = { name: 'Calibri', size: 10, color: { argb: 'FF9C6500' } };
     [18.5, 15, 18, 28, 18, 29].forEach((height, i) => { sheet.getRow(i + 1).height = height; });
     const identity = historis
         ? ["NO", "STATUS", "BULAN", "NAMA LENGKAP", "RT", "JK", "UMUR LENGKAP"]
@@ -80,11 +83,11 @@ export function siapkanSheet(workbook: ExcelJS.Workbook, nama: string, periode: 
         sheet.getColumn(i + 1).width = widths[i];
     });
     gabungHeader(sheet, 4, layout.ukur, layout.ukur + 4, judulUkur, PINK, 10);
-    ["BB", "TB/PB", "LILA", "LIKA", "N/T"].forEach((label, i) => {
+    ["BB", "TB/PB", "LILA", "LIKA", "N/T/B"].forEach((label, i) => {
         const col = layout.ukur + i;
         selHeader(sheet, 5, col, label, PINK);
         selHeader(sheet, 6, col, i === 0 ? "(kg)" : i < 4 ? "(cm)" : "", PINK, 10);
-        sheet.getColumn(col).width = i === 4 ? 6 : i === 0 ? 8 : 7.5;
+        sheet.getColumn(col).width = i === 4 ? 8 : i === 0 ? 8 : 7.5;
         if (i === 4) sheet.mergeCells(5, col, 6, col);
     });
     INDEKS_LAPORAN.forEach((index, i) => {
@@ -115,6 +118,10 @@ export function formatBaris(sheet: ExcelJS.Worksheet, row: number, layout: TataL
         if (col === layout.ukur || (col >= layout.indeks && (col - layout.indeks) % 2 === 0)) cell.numFmt = "0.00";
         else if (col > layout.ukur && col < layout.ukur + 4) cell.numFmt = "0.0";
         else if (col === layout.umur || col === layout.nama) cell.numFmt = "@";
+        if (col === layout.umur && String(cell.value ?? '').includes('hari tidak tercatat')) {
+            cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+            baris.height = 30;
+        }
     }
     if (String(sheet.getCell(row, layout.nama).value ?? "").length > 34) {
         sheet.getCell(row, layout.nama).alignment = { horizontal: "left", vertical: "middle", wrapText: true };
@@ -127,13 +134,21 @@ export function selesaikanSheet(sheet: ExcelJS.Worksheet, layout: TataLetak, akh
     const terakhir = Math.max(BARIS_DATA, akhir);
     sheet.autoFilter = { from: { row: BARIS_HEADER, column: layout.historis ? 3 : 1 }, to: { row: terakhir, column: layout.akhir } };
     sheet.pageSetup.printArea = `A1:${sheet.getColumn(layout.akhir).letter}${terakhir}`;
-    const merah = ["BB Kurang", "BB Sangat Kurang", "Pendek", "Sangat pendek", "K-Gizi Kurang", "Gizi Kurang", "Gizi Buruk", "Obesitas"];
-    const merahMuda = ["BB Lebih", "RGL-Resiko Gizi Lebih", "Berisiko Gizi Lebih", "GL-Gizi Lebih", "Gizi Lebih", "Gemuk", "Kurus", "Mikrosefali", "Makrosefali"];
+    const merah = ["BB Kurang", "BB Sangat Kurang", "Pendek", "Sangat pendek", "K-Gizi Kurang", "Gizi Kurang", "Gizi Buruk", "Obesitas", "Kurus", "Mikrosefali", "Di bawah −2 SD"];
+    const merahMuda = ["BB Lebih", "RGL-Resiko Gizi Lebih", "Berisiko Gizi Lebih", "GL-Gizi Lebih", "Gizi Lebih", "Gemuk", "Makrosefali", "Tinggi", "Di atas +2 SD"];
     for (let col = layout.indeks + 1; col <= layout.akhir; col += 2) {
         const letter = sheet.getColumn(col).letter;
         sheet.addConditionalFormatting({ ref: `${letter}${BARIS_DATA}:${letter}${terakhir}`, rules: [
             { type: "expression", priority: 1, formulae: [`OR(${merah.map((s) => `${letter}${BARIS_DATA}="${s}"`).join(",")})`], style: { fill: warnaIsi("FFFF0000"), font: { color: { argb: "FFFFFFFF" } } } },
             { type: "expression", priority: 2, formulae: [`OR(${merahMuda.map((s) => `${letter}${BARIS_DATA}="${s}"`).join(",")})`], style: { fill: warnaIsi("FFFFC7CE"), font: { color: { argb: "FF9C0006" } } } },
+        ] });
+    }
+    for (let col = layout.indeks; col <= layout.akhir; col += 2) {
+        const letter = sheet.getColumn(col).letter;
+        sheet.addConditionalFormatting({ ref: `${letter}${BARIS_DATA}:${letter}${terakhir}`, rules: [
+            { type: 'expression', priority: 3,
+                formulae: [`AND(ISNUMBER(${letter}${BARIS_DATA}),${letter}${BARIS_DATA}<=AmbangPeringatanInternal)`],
+                style: { fill: warnaIsi('FFFFF2CC'), font: { color: { argb: 'FF9C6500' } } } },
         ] });
     }
 }

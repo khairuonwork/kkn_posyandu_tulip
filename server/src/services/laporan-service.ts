@@ -23,7 +23,7 @@ export async function laporan(pool: Pool, pengguna: PenggunaAktif, periode: stri
 
     return {
         periode,
-        metodeUmur: "Pengukuran bertanggal menampilkan umur lengkap sebagai tahun, bulan, dan sisa hari. Z-score laporan menggunakan umur kalender dalam hari untuk menginterpolasi acuan bulanan. Baris arsip bulanan mempertahankan umur bulan dan Z-score file sumber; sisa hari yang tidak tercatat tidak diisi.",
+        metodeUmur: "Pengukuran bertanggal menampilkan umur lengkap sebagai tahun, bulan, dan sisa hari. Z-score laporan menggunakan umur kalender dalam hari untuk menginterpolasi acuan bulanan. Arsip memakai umur hingga hari bila ada pengukuran bulan yang sama dengan nilai ukur yang cocok; selain itu ditandai hari tidak tercatat. Skor arsip dipertahankan.",
         standar,
         ringkasan: {
             anakDiukur: bulanan.length,
@@ -36,7 +36,7 @@ export async function laporan(pool: Pool, pengguna: PenggunaAktif, periode: stri
         bulanan,
         riwayat2T: riwayat.rows,
         keterangan2T: riwayat.anakArsip > 0
-            ? `${riwayat.anakArsip} anak mengikuti status 2T–6T arsip Bu Sri bulan ini. Kenaikan, KBM, dan N/T dihitung dari BB bulan sebelumnya yang tersedia. Nilai ukur dan Z-score arsip tetap mengikuti sumber; tanggal dan sisa hari yang tidak tercatat dibiarkan kosong.`
+            ? `${riwayat.anakArsip} anak mengikuti status 2T–6T arsip Bu Sri bulan ini. Bila BB pembanding tersedia, N/T dihitung dari kenaikan/KBM. Bila pembanding awal hilang, T mengikuti status arsip dengan catatan sumber tanpa mengisi kenaikan/KBM fiktif. Umur hingga hari memakai pengukuran yang cocok bila tersedia; arsip lainnya ditandai hari tidak tercatat.`
             : belumDapatDinilai > 0
                 ? `${belumDapatDinilai} anak belum dapat dinilai N/T karena data pembanding bulanan belum lengkap. Tidak adanya riwayat 2T+ belum berarti semua anak naik berat badan.`
                 : 'Riwayat 2T+ mengikuti pengukuran bulanan berurutan. Status arsip bulan lalu diteruskan hanya jika bulan ini tetap T.',

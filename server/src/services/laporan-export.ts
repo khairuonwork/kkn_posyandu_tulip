@@ -1,6 +1,8 @@
 import ExcelJS from "exceljs";
 import type { BarisBertanda } from "./laporan-perhitungan.ts";
 import type { BarisRiwayat2T } from './laporan-riwayat-2t.ts';
+import { umurBulan } from './laporan-perhitungan.ts';
+import { AMBANG_PERINGATAN_INTERNAL, deskripsiSdLila, kodeNtb } from './laporan-tampilan.ts';
 import { BARIS_DATA, INDEKS_LAPORAN, STANDAR_LAPORAN, formatBaris, namaPeriode, selesaikanSheet, siapkanSheet, type TataLetak } from "./laporan-excel-layout.ts";
 
 type DataLaporan = { periode: string; standar: string[]; bulanan: BarisBertanda[]; riwayat2T: BarisRiwayat2T[] };
@@ -33,10 +35,19 @@ function labelKategori(index: string, kategori: unknown): string | null {
 }
 
 function hasilUkur(row: BarisRiwayat2T): ExcelJS.CellValue[] {
-    const values: ExcelJS.CellValue[] = [row.bbKg, row.tinggiCm, row.lilaCm, row.likaCm, row.nt];
+    const values: ExcelJS.CellValue[] = [row.bbKg, row.tinggiCm, row.lilaCm, row.likaCm, kodeNtb(row)];
+    const bulan = row.tanggalUkur === null ? row.umurBulan : umurBulan(row.tglLahir, row.tanggalUkur);
     for (const index of INDEKS_LAPORAN) for (const standard of STANDAR_LAPORAN) {
         const score = row.penilaian[standard]?.[index.id];
-        values.push(nilaiZ(row, standard, index.id), labelKategori(index.id, score?.kategori));
+        const z = nilaiZ(row, standard, index.id);
+        if (index.id === 'LILA_U') {
+            // Permintaan program: tampil mulai 6 bulan, dengan deskripsi SD
+            // yang disetujui pengguna. Bukan kategori gizi akut/diagnosis baru.
+            const tampil = bulan !== undefined && bulan >= 6 && bulan <= 60 && row.lilaCm !== null && row.lilaCm > 0;
+            values.push(tampil ? z : null, tampil ? deskripsiSdLila(z) : null);
+        } else {
+            values.push(z, labelKategori(index.id, score?.kategori));
+        }
     }
     return values;
 }
@@ -50,10 +61,12 @@ function judulPengukuran(data: DataLaporan): string {
 
 function simpanDetail(sheet: ExcelJS.Worksheet, layout: TataLetak, r: number, row: BarisRiwayat2T) {
     // Tetap tersedia untuk penelusuran, di luar area cetak format Puskesmas.
-    const headers = ["ID ANAK", "NIK", "TANGGAL LAHIR", "IBU/ORTU", "TANGGAL UKUR", "UMUR HARI", "N/T ARSIP", "KENAIKAN (g)", "KBM (g)", "SUMBER RIWAYAT"];
+    const headers = ["ID ANAK", "NIK", "TANGGAL LAHIR", "IBU/ORTU", "TANGGAL UKUR", "UMUR HARI", "N/T/B ARSIP", "KENAIKAN (g)", "KBM (g)", "SUMBER RIWAYAT", "DASAR N/T/B", "SUMBER UMUR"];
     const values: ExcelJS.CellValue[] = [row.anakId, row.nik, new Date(row.tglLahir + "T00:00:00Z"), row.namaOrtu,
         row.tanggalUkur === null ? null : new Date(row.tanggalUkur + "T00:00:00Z"), row.umurHari, row.ntobRaw, row.kenaikanGram, row.kbmGram,
-        row.sumberRiwayat === 'arsip' ? row.sumberFile ?? 'Arsip bulanan' : 'Pengukuran aplikasi'];
+        row.sumberRiwayat === 'arsip' ? row.sumberFile ?? 'Arsip bulanan' : 'Pengukuran aplikasi',
+        row.catatanNt ?? (row.nt === null && kodeNtb(row) !== null ? 'Penandaan dari sumber N/T/B arsip.' : row.nt === null ? 'BB pembanding atau penandaan sumber belum tersedia.' : 'Perbandingan BB bulanan berurutan dan KBM.'),
+        row.sumberUmur === 'arsip-bulanan' ? 'Umur bulan arsip; hari tidak tercatat.' : 'Tanggal lahir dan tanggal pengukuran yang tersedia.'];
     headers.forEach((label, i) => {
         const col = layout.akhir + 1 + i;
         sheet.getCell(6, col).value = label;
@@ -63,6 +76,10 @@ function simpanDetail(sheet: ExcelJS.Worksheet, layout: TataLetak, r: number, ro
         cell.value = values[i];
         cell.numFmt = i === 2 || i === 4 ? "yyyy-mm-dd" : i === 1 ? "@" : "General";
     });
+    if (row.catatanNt) sheet.getCell(r, layout.ukur + 4).note = row.catatanNt;
+    if (row.sumberUmur === 'arsip-bulanan') {
+        sheet.getCell(r, layout.umur).note = 'Arsip hanya memuat umur bulan. Sisa hari tidak diasumsikan dari tanggal acara atau akhir bulan.';
+    }
 }
 
 function tambahRekap(workbook: ExcelJS.Workbook, data: DataLaporan) {
@@ -108,15 +125,19 @@ function tambahPetunjuk(workbook: ExcelJS.Workbook, periode: string) {
     const sheet = workbook.addWorksheet("Petunjuk");
     sheet.addRows([
         ["Laporan Posyandu Tulip", namaPeriode(periode)],
-        ["Format laporan", "Mengikuti SEPT_REKAP dan 2T-6T SEPT 2026 dari contoh Posyandu. Umur lengkap dan kolom N/T mengikuti permintaan terbaru."],
+        ["Format laporan", "Mengikuti SEPT_REKAP dan 2T-6T SEPT 2026 serta komentar Bu Sri. Kolom N/T/B disiapkan agar kode tidak tercampur saat dipakai untuk laporan F1."],
+        ["Ambang peringatan internal (SD)", AMBANG_PERINGATAN_INTERNAL],
+        ["Peringatan internal", "Sel Z-score berwarna kuning bila nilainya ≤ ambang di B3 (bawaan −1,96 SD). Ini peringatan internal, bukan pengganti batas klasifikasi gizi resmi. Nilai skor dan kategori resmi tidak diubah."],
         ["Umur lengkap", "Tahun, bulan, dan sisa hari pada tanggal pengukuran: contoh 2Thn8Bln4Hari."],
         ["Hasil pengukuran", "BB dalam kg; TB/PB, LILA, dan LIKA dalam cm. Angka kosong berarti belum tersedia; bukan nol."],
         ["Z-score", "Nilai dari layanan laporan saat diunduh. Umur kalender sampai ketelitian hari digunakan untuk interpolasi acuan bulanan. Angka ditampilkan dua desimal."],
-        ["N/T", "Hasil perbandingan pengukuran bulanan berurutan mengikuti perhitungan KMS aplikasi. Kosong bila belum dapat dinilai."],
-        ["Historis 2T+", "Status 2T+ bulan terpilih berasal dari pengukuran berurutan atau arsip bulanan petugas. Baris arsip mempertahankan Z-score file sumber dan umur bulan; tanggal dan sisa hari yang tidak tercatat dikosongkan. Sumber tiap baris tersedia pada kolom tersembunyi."],
-        ["Status gizi", "Singkatan mengikuti contoh laporan. Sel merah atau merah muda mengikuti kategori yang dihitung layanan laporan. Kategori yang belum tersedia dibiarkan kosong."],
+        ["N/T/B", "N = naik; T = tidak naik; B = baru sesuai penandaan sumber. Kode hasil perbandingan BB/KBM diprioritaskan. Pembanding yang hilang tidak otomatis menjadi B atau TDK. Tanpa dasar penilaian/kode sumber, sel tetap kosong."],
+        ["Historis 2T+", "Status 2T+ berasal dari pengukuran berurutan atau arsip petugas. Jika pembanding awal hilang, T mengikuti rangkaian T pada arsip dan kenaikan/KBM tetap kosong; catatan sel menjelaskan sumbernya. Skor dan nilai ukur arsip dipertahankan."],
+        ["Umur arsip", "Umur lengkap hingga hari dipakai bila tersedia pengukuran bulan yang sama dengan nilai ukur yang cocok. Jika hanya umur bulan yang tercatat, ditulis 'hari tidak tercatat'; tidak dibuat tanggal atau sisa hari fiktif."],
+        ["Status dan warna", "Status rendah/kurang berwarna merah dengan teks putih; status tinggi/lebih berwarna merah muda dengan teks merah tua. Aturan yang sama berlaku pada Rekap dan Historis 2T+. Warna bergantung pada isi sel dan berubah bila label diedit di Excel."],
+        ["LILA/U usia ≥6 bulan", "Deskripsi posisi SD: di bawah −2 SD, −2 s.d. +2 SD (termasuk batas), atau di atas +2 SD. Bukan diagnosis gizi akut maupun kategori resmi Permenkes. Kosong sebelum 6 bulan atau bila skor tidak tersedia."],
         ["Pembaruan", "Unduh ulang setelah data aplikasi diperbarui. Berkas adalah rekap pada saat unduh; mengedit hasil ukur di Excel tidak menghitung ulang Z-score."],
-        ["Detail sumber", "ID anak, NIK, tanggal lahir, tanggal ukur, umur hari, N/T arsip, kenaikan BB, dan KBM tersedia pada kolom tersembunyi setelah tabel. Tampilkan kembali kolom bila perlu ditelusuri."],
+        ["Detail sumber", "ID anak, NIK, tanggal lahir, tanggal ukur, umur hari, N/T/B arsip, kenaikan BB, KBM, sumber riwayat, dasar N/T/B dan sumber umur tersedia pada kolom tersembunyi setelah tabel."],
     ]);
     sheet.getColumn(1).width = 25;
     sheet.getColumn(2).width = 110;
@@ -126,6 +147,9 @@ function tambahPetunjuk(workbook: ExcelJS.Workbook, periode: string) {
         row.height = i === 1 ? 25 : 42;
         row.getCell(1).font = { name: "Calibri", size: 11, bold: true };
     });
+    sheet.getCell('B3').numFmt = '0.00';
+    sheet.getRow(3).height = 30;
+    workbook.definedNames.add("'Petunjuk'!$B$3", 'AmbangPeringatanInternal');
 }
 
 /** Workbook presentation only: does not write to the database or recalculate clinical scores. */

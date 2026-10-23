@@ -30,7 +30,7 @@ function tambahBulan(tanggal: string, jumlahBulan: number): string {
     return `${tahunTujuan}-${String(bulanTujuan + 1).padStart(2, "0")}-${String(hariTujuan).padStart(2, "0")}`;
 }
 
-function umurBulan(tglLahir: string, tanggalUkur: string): number {
+export function umurBulan(tglLahir: string, tanggalUkur: string): number {
     const [tl, bl, hl] = tglLahir.split("-").map(Number);
     const [tu, bu, hu] = tanggalUkur.split("-").map(Number);
     return (tu - tl) * 12 + bu - bl - (hu < hl ? 1 : 0);

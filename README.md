@@ -228,3 +228,7 @@ Tes server yang butuh database memakai `DATABASE_URL` dari `server/.env`, jadi d
 ## Deployment VM (23 Oktober 2026)
 
 Web dan REST API disiapkan untuk VM Ubuntu melalui systemd, dengan akses publik HTTPS Cloudflare dan database Supabase yang sama. Lihat [lokasi konfigurasi, operasi, dan batas URL sementara](docs/deployment-vm-2026-10-23.md). Rahasia dan hasil cetak kartu anak tidak ikut Git.
+
+### Revisi ekspor laporan Bu Sri (23 Oktober 2026)
+
+Unduhan Excel memakai N/T/B, warna status konsisten, peringatan internal −1,96 SD, deskripsi LILA usia ≥6 bulan dan umur historis berdasarkan tanggal yang tersedia. [Aturan dan hasil pemeriksaan](docs/format-ekspor-laporan.md#revisi-komentar-bu-sri--23-oktober-2026). Pembaruan ini cukup memperbarui backend VM; APK dan frontend tidak perlu di-build ulang.

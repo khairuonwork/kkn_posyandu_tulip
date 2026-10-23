@@ -25,7 +25,7 @@ test("ekspor terserialisasi mempertahankan pasangan indeks, angka nol, umur, dan
     await reopened.xlsx.load(await workbook.xlsx.writeBuffer());
     const sheet = reopened.getWorksheet("Rekap Z Score")!;
     for (let i = 0; i < 6; i++) {
-        assert.equal(sheet.getCell(7, 11 + 4 * i).value, i);
+        assert.equal(sheet.getCell(7, 11 + 4 * i).value, i === 4 ? null : i);
         assert.equal(sheet.getCell(7, 13 + 4 * i).value, i === 4 ? null : i + 0.1);
     }
     assert.equal(sheet.getCell("E7").value, "2Thn8Bln4Hari");
