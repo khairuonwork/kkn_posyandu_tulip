@@ -1,4 +1,5 @@
 import ExcelJS from "exceljs";
+import { kategoriDari } from "../antropometri/kategori.ts";
 import type { BarisBertanda } from "./laporan-perhitungan.ts";
 import type { BarisRiwayat2T } from './laporan-riwayat-2t.ts';
 import { umurBulan } from './laporan-perhitungan.ts';
@@ -14,8 +15,9 @@ function labelBulan(periode: string): string {
 }
 
 function nilaiZ(row: BarisRiwayat2T, standard: string, index: string): number | null {
-    const value = row.penilaian[standard]?.[index]?.z;
-    const numeric = typeof value === "number" ? value : value == null ? null : Number(value);
+    const value: unknown = row.penilaian[standard]?.[index]?.z;
+    const numeric = typeof value === "number" ? value :
+        typeof value === "string" && value.trim() !== "" ? Number(value) : null;
     return numeric !== null && Number.isFinite(numeric) ? numeric : null;
 }
 
@@ -38,15 +40,17 @@ function hasilUkur(row: BarisRiwayat2T): ExcelJS.CellValue[] {
     const values: ExcelJS.CellValue[] = [row.bbKg, row.tinggiCm, row.lilaCm, row.likaCm, kodeNtb(row)];
     const bulan = row.tanggalUkur === null ? row.umurBulan : umurBulan(row.tglLahir, row.tanggalUkur);
     for (const index of INDEKS_LAPORAN) for (const standard of STANDAR_LAPORAN) {
-        const score = row.penilaian[standard]?.[index.id];
         const z = nilaiZ(row, standard, index.id);
         if (index.id === 'LILA_U') {
             // Permintaan program: tampil mulai 6 bulan, dengan deskripsi SD
             // yang disetujui pengguna. Bukan kategori gizi akut/diagnosis baru.
             const tampil = bulan !== undefined && bulan >= 6 && bulan <= 60 && row.lilaCm !== null && row.lilaCm > 0;
-            values.push(tampil ? z : null, tampil ? deskripsiSdLila(z) : null);
+            values.push(tampil ? z : null, tampil ? (deskripsiSdLila(z) ?? 'Belum dapat dinilai') :
+                bulan !== undefined && (bulan < 6 || bulan > 60) ? 'Di luar usia acuan' : 'Belum diukur');
         } else {
-            values.push(z, labelKategori(index.id, score?.kategori));
+            // Arsip dapat memiliki skor tanpa label, atau label lama yang tidak sesuai skor.
+            // Gunakan skor asli (sebelum pembulatan tampilan) dan aturan aplikasi yang sama.
+            values.push(z, z === null ? 'Belum dapat dinilai' : labelKategori(index.id, kategoriDari(index.id, z)));
         }
     }
     return values;
@@ -141,8 +145,8 @@ function tambahPetunjuk(workbook: ExcelJS.Workbook, periode: string) {
         ["N/T/B", "N = naik; T = tidak naik; B = baru sesuai penandaan sumber. Kode hasil perbandingan BB/KBM diprioritaskan. Pembanding yang hilang tidak otomatis menjadi B atau TDK. Tanpa dasar penilaian/kode sumber, sel tetap kosong."],
         ["Historis 2T+", "Status 2T+ berasal dari pengukuran berurutan atau arsip petugas. Jika pembanding awal hilang, T mengikuti rangkaian T pada arsip dan kenaikan/KBM tetap kosong; catatan sel menjelaskan sumbernya. Skor dan nilai ukur arsip dipertahankan."],
         ["Umur arsip", "Umur lengkap hingga hari dipakai bila tersedia pengukuran bulan yang sama dengan nilai ukur yang cocok. Jika hanya umur bulan yang tercatat, ditulis 'hari tidak tercatat'; tidak dibuat tanggal atau sisa hari fiktif."],
-        ["Status dan warna", "Status rendah/kurang berwarna merah dengan teks putih; status tinggi/lebih berwarna merah muda dengan teks merah tua. Aturan yang sama berlaku pada Rekap dan Historis 2T+. Warna bergantung pada isi sel dan berubah bila label diedit di Excel."],
-        ["LILA/U usia ≥6 bulan", "Deskripsi posisi SD: di bawah −2 SD, −2 s.d. +2 SD (termasuk batas), atau di atas +2 SD. Bukan diagnosis gizi akut maupun kategori resmi Permenkes. Kosong sebelum 6 bulan atau bila skor tidak tersedia."],
+        ["Status dan warna", "Kesimpulan diisi langsung dari Z-score asli dengan aturan kategori aplikasi, termasuk arsip yang labelnya kosong. Tanpa skor ditulis Belum dapat dinilai. Status rendah/kurang berwarna merah dengan teks putih; status tinggi/lebih berwarna merah muda dengan teks merah tua. Aturan yang sama berlaku pada Rekap dan Historis 2T+. Warna bergantung pada isi sel dan berubah bila label diedit di Excel."],
+        ["LILA/U usia ≥6 bulan", "Deskripsi posisi SD: di bawah −2 SD, −2 s.d. +2 SD (termasuk batas), atau di atas +2 SD. Bukan diagnosis gizi akut maupun kategori resmi Permenkes. Ditandai di luar usia acuan sebelum 6 bulan atau setelah 60 bulan; belum diukur bila LILA tidak tersedia."],
         ["Pembaruan", "Unduh ulang setelah data aplikasi diperbarui. Berkas adalah rekap pada saat unduh; mengedit hasil ukur di Excel tidak menghitung ulang Z-score."],
         ["Detail sumber", "ID anak, NIK, tanggal lahir, tanggal ukur, umur hari, N/T/B arsip, kenaikan BB, KBM, sumber riwayat, dasar N/T/B dan sumber umur tersedia pada kolom tersembunyi setelah tabel."],
     ]);

@@ -242,9 +242,7 @@ async function validasiPeriodeReset(pool: Pool, pengguna: PenggunaAktif, periode
     if (periode.rows[0].kode !== tanggal.slice(0, 7)) {
         throw new GalatSasaran(409, "Reset hanya tersedia untuk periode sasaran yang sedang berlangsung.");
     }
-    if (periode.rows[0].sesiDitutupPada !== null) {
-        throw new GalatSasaran(409, "Sesi periode sudah ditutup; reset data hari ini tidak dapat dilakukan.");
-    }
+    // Pengecekan sesi ditutup dilepas untuk mode demo
     return { periodeId, tanggal };
 }
 

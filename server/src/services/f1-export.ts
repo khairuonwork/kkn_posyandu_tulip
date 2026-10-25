@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs';
-import { fileURLToPath } from 'node:url';
+import { formatF1, gayaF1, layoutF1 } from './f1-layout.ts';
 import { namaPeriode } from './laporan-excel-layout.ts';
 import type { AnakF1, DataF1, KelompokF1 } from './f1-service.ts';
 
@@ -12,92 +12,84 @@ const q=(s:string)=>`'${s.replaceAll("'","''")}'`;
 const fmt='#,##0;[Red](#,##0);"-"';
 const editable=(c:ExcelJS.Cell)=>{c.fill=fill('FFFFF2CC');c.font={name:'Arial',size:10,color:{argb:'FF000000'}};};
 
-function raw(w:ExcelJS.Workbook,name:string,g:KelompokF1,periode:string,rows:AnakF1[],origin?:{name:string;indices:number[]}) {
-    const s=w.addWorksheet(name,{properties:{tabColor:{argb:origin?'FFCCFF33':'FF66FFFF'}},views:[{state:'frozen',ySplit:5,xSplit:2}]});
-    s.mergeCells('A1:H1');s.mergeCells('A2:H2');s.mergeCells('A3:H3');
-    text(s,'A1','DATA BALITA HASIL BULAN PENIMBANGAN BALITA (BPB)');
-    text(s,'A2',`${namaPeriode(periode)} · POSYANDU ${g.nama} · RW ${g.rw}`);
-    text(s,'A3',`KELURAHAN ${g.kelurahan}`);
-    const headers=['NO','NAMA BALITA','UMUR (bln)','L/P','NTOB','MAMPU','TDK MAMPU','RT',
-        'DITIMBANG','KMS','2T+','STATUS BB/U','BB (kg)','ASI EXCL?'];
-    headers.forEach((v,i)=>text(s,col(i+1)+'5',v));
-    const metadata=['ID ANAK','DESIL','SUMBER G/NG','PERIODE G/NG','TANGGAL ACUAN UMUR','TIDAK HADIR SAAT SESI'];
-    metadata.forEach((v,i)=>text(s,col(29+i)+'5',v));
-    for(const [i,a] of rows.entries()) {
-        const r=6+i;
-        const values:ExcelJS.CellValue[]=[i+1,a.nama,a.umur,a.jk,a.ntob,a.gng==='NG'?'NG':null,a.gng==='G'?'G':null,a.rt,
-            a.diukur?1:0,1,a.duaT===null?null:a.duaT?1:0,a.kategori,a.bb,a.asi===null?null:a.asi?'Y':'T'];
-        values.forEach((v,j)=>{
-            const cell=s.getCell(r,j+1);
-            cell.value=origin?{formula:`IF(${q(origin.name)}!${col(j+1)}${origin.indices[i]+6}="","",${q(origin.name)}!${col(j+1)}${origin.indices[i]+6})`,result:v as string|number??''}:v;
-            cell.border={top:border,bottom:border,left:border,right:border};
-            cell.alignment={vertical:'middle',horizontal:j===1?'left':'center'};
+function raw(w:ExcelJS.Workbook,name:string,g:KelompokF1,periode:string,rows:AnakF1[],origin?:{name:string;indices:number[]},combined=false) {
+    const reference=!origin?'RAW DATA FOR F1_ALL':combined?'RAW DATA FOR F1 RT3-RT7':/RT1(?: |$)/.test(name)?'RAW DATA FOR F1 RT1':'RAW DATA FOR F1 RT2';
+    const s=w.addWorksheet(name);formatF1(s,reference);
+    const right=reference==='RAW DATA FOR F1 RT1'?15:16;
+    const lookup=new Map(rows.map((a,i)=>[a.anakId,origin?.indices[i]]));
+    const blocks=combined&&rows.length?[...new Set(rows.map(a=>a.rt))].sort().map(rt=>rows.filter(a=>a.rt===rt)):[rows];
+    let base=6;
+    for(const block of blocks) {
+        const title=base-5,header=base-1;
+        for(let r=title;r<=header;r++)s.getRow(r).height=layoutF1(reference).rows[r-title]?.height ?? 15;
+        for(let i=0;i<3;i++)s.mergeCells(title+i,1,title+i,4);
+        text(s,'A'+title,'DATA BALITA HASIL BULAN PENIMBANGAN BALITA (BPB)');
+        const [year,month]=periode.split('-');
+        text(s,'A'+(title+1),'BULAN '+namaPeriode(periode).replace(' '+year,'')+' TAHUN '+year+' DI POSYANDU " '+g.nama.toUpperCase()+' " RW '+g.rw);
+        text(s,'A'+(title+2),'KELURAHAN '+g.kelurahan.toUpperCase()+' PUSKESMAS '+g.kelurahan.toUpperCase());
+        for(let i=0;i<3;i++)s.getCell(title+i,1).style=gayaF1(reference,'A'+(i+1));
+        text(s,col(right)+(title+1),origin?'RT'+Number(block[0]?.rt??0):'ALL');
+        const headers=['NO','NAMA BALITA','UMUR  (bln)','"L/P"','NTOB','MAMPU','TDK MAMPU','RT','DITIMBANG','KMS','2T+','STATUS BB/U','BB (kg)','ASI EXCL?.'];
+        headers.forEach((v,i)=>{text(s,col(i+1)+header,v);s.getCell(header,i+1).style=gayaF1(reference,col(i+1)+'5');});
+        block.forEach((a,i)=>{
+            const r=base+i;s.getRow(r).height=layoutF1(reference).rows[5]?.height ?? 15;
+            const values:ExcelJS.CellValue[]=[i+1,a.nama,a.umur,a.jk,a.ntob,a.gng==='NG'?'NG':null,a.gng==='G'?'G':null,a.rt,a.diukur?1:0,1,a.duaT===null?null:a.duaT?1:0,a.kategori,a.bb,a.asi===null?null:a.asi?'Y':'T'];
+            values.forEach((v,j)=>{
+                const c=s.getCell(r,j+1);c.style=gayaF1(reference,col(j+1)+(a.jk==='P'?({'RAW DATA FOR F1_ALL':50,'RAW DATA FOR F1 RT1':25,'RAW DATA FOR F1 RT2':15,'RAW DATA FOR F1 RT3-RT7':9}[reference]):6));
+                const from=(lookup.get(a.anakId)??0)+6;
+                c.value=origin?{formula:'IF('+q(origin.name)+'!'+col(j+1)+from+'="","",'+q(origin.name)+'!'+col(j+1)+from+')',result:(v??'') as string|number}:v;
+            });
+            // NG uses the green source style; the other economic column stays white.
+            s.getCell('F'+r).style=gayaF1(reference,a.gng==='NG'?'F7':'F6');
+            s.getCell('G'+r).style=gayaF1(reference,'G6');
+            if(!origin)for(const [c,list] of [['E','N,T,O,B'],['F','NG'],['G','G'],['N','Y,T']])s.getCell(c+r).dataValidation={type:'list',allowBlank:true,formulae:['"'+list+'"']};
+            [a.anakId,a.desil,a.sumberEkonomi,a.periodeEkonomi,a.tanggal,a.tidakHadir?'Ya':null].forEach((v,j)=>text(s,col(29+j)+r,v));
         });
-        [a.anakId,a.desil,a.sumberEkonomi,a.periodeEkonomi,a.tanggal,a.tidakHadir?'Ya':null].forEach((v,j)=>text(s,col(29+j)+r,v));
-        for(const c of ['D','E'])s.getCell(c+r).fill=fill(a.jk==='L'?'FF66FFFF':'FFFFCCFF');
-        if(!origin) {
-            for(const c of ['E','F','G','N'])editable(s.getCell(c+r));
-            s.getCell('E'+r).dataValidation={type:'list',allowBlank:true,formulae:['"N,T,O,B"']};
-            s.getCell('F'+r).dataValidation={type:'list',allowBlank:true,formulae:['"NG"']};
-            s.getCell('G'+r).dataValidation={type:'list',allowBlank:true,formulae:['"G"']};
-            s.getCell('N'+r).dataValidation={type:'list',allowBlank:true,formulae:['"Y,T"']};
-        }
-    }
-    const end=Math.max(6,rows.length+5);
-    // N/T/O/B, G/NG, jenis kelamin dan umur dihitung dari tabel di kiri.
-    let sr=4;
-    for(const jk of ['L','P']) {
-        text(s,'P'+sr,jk==='L'?'LAKI-LAKI':'PEREMPUAN');
-        for(const [i,k] of ['N','T','O','B','TOTAL'].entries()) {s.mergeCells(sr,17+i*2,sr,18+i*2);text(s,col(17+i*2)+sr,k);}
-        text(s,'P'+(sr+1),'UMUR');
-        for(let c=17;c<=26;c++)text(s,col(c)+(sr+1),c%2?'NG':'G');
-        const ages=[...new Set(rows.filter(a=>a.jk===jk&&a.umur!==null).map(a=>a.umur!))].sort((a,b)=>a-b);
-        for(const [i,age] of ages.entries()) {
-            const r=sr+2+i;text(s,'P'+r,age);
-            for(let c=17;c<=24;c++) {
-                const code=['N','T','O','B'][Math.floor((c-17)/2)],eco=c%2?'NG':'G',ec=eco==='NG'?'F':'G';
-                const count=rows.filter(a=>a.jk===jk&&a.umur===age&&a.diukur&&a.ntob===code&&a.gng===eco).length;
-                form(s,col(c)+r,`COUNTIFS($C$6:$C$${end},$P${r},$D$6:$D$${end},"${jk}",$E$6:$E$${end},"${code}",$${ec}$6:$${ec}$${end},"${eco}",$I$6:$I$${end},1)`,count);
+        const end=Math.max(base,base+block.length-1);
+        let sr=base-2;
+        for(const jk of ['L','P']) {
+            text(s,col(right)+sr,jk==='L'?'LAKI-LAKI':'PEREMPUAN');
+            for(const [i,k] of ['N','T','B','TOTAL'].entries()){
+                s.mergeCells(sr,right+1+i*2,sr,right+2+i*2);text(s,col(right+1+i*2)+sr,k);
             }
-            form(s,'Y'+r,`SUM(Q${r},S${r},U${r},W${r})`,rows.filter(a=>a.jk===jk&&a.umur===age&&a.diukur&&a.gng==='NG'&&a.ntob).length);
-            form(s,'Z'+r,`SUM(R${r},T${r},V${r},X${r})`,rows.filter(a=>a.jk===jk&&a.umur===age&&a.diukur&&a.gng==='G'&&a.ntob).length);
+            text(s,col(right)+(sr+1),'UMUR');
+            for(let c=right+1;c<=right+8;c++)text(s,col(c)+(sr+1),(c-right)%2?'NG':'G');
+            const ages=[...new Set(block.filter(a=>a.jk===jk&&a.umur!==null).map(a=>a.umur!))].sort((a,b)=>a-b);
+            for(const [i,age] of ages.entries()) {
+                const r=sr+2+i;text(s,col(right)+r,age);
+                for(let offset=1;offset<=8;offset++) {
+                    const c=right+offset,eco=offset%2?'NG':'G',ec=eco==='NG'?'F':'G',code=['N','T','B'][Math.floor((offset-1)/2)];
+                    const total=offset>6;
+                    const count=block.filter(a=>a.jk===jk&&a.umur===age&&a.diukur&&a.gng===eco&&(total||a.ntob===code)).length;
+                    form(s,col(c)+r,'COUNTIFS($C$'+base+':$C$'+end+',$'+col(right)+r+',$D$'+base+':$D$'+end+',"'+jk+'",$'+ec+'$'+base+':$'+ec+'$'+end+',"'+eco+'",$I$'+base+':$I$'+end+',1'+(total?'':',$E$'+base+':$E$'+end+',"'+code+'"')+')',count);
+                }
+            }
+            const totalRow=sr+2+ages.length;
+            for(let c=right+1;c<=right+8;c++)form(s,col(c)+totalRow,ages.length?'SUM('+col(c)+(sr+2)+':'+col(c)+(totalRow-1)+')':'0',ages.reduce((n,_,i)=>n+Number(s.getCell(sr+2+i,c).result??0),0));
+            for(let r=sr;r<=totalRow;r++)for(let c=right;c<=right+8;c++){
+                const refCol=col(16+c-right);
+                const refRow=r===totalRow?38:jk==='P'?(r===sr?50:r===sr+1?51:52):(r===sr?4:r===sr+1?5:6);
+                s.getCell(r,c).style=gayaF1('RAW DATA FOR F1_ALL',refCol+refRow);
+            }
+            sr=Math.max(totalRow+3,base+block.filter(a=>a.jk==='L').length);
         }
-        const totalRow=sr+2+ages.length;text(s,'P'+totalRow,'TOTAL');
-        for(let c=17;c<=26;c++){
-            const sum=ages.reduce((n,_,i)=>n+Number(s.getCell(sr+2+i,c).result??0),0);
-            form(s,col(c)+totalRow,ages.length?`SUM(${col(c)}${sr+2}:${col(c)}${totalRow-1})`:'0',sum);
-        }
-        for(let r=sr;r<=totalRow;r++)for(let c=16;c<=26;c++){
-            const x=s.getCell(r,c);x.border={top:border,bottom:border,left:border,right:border};x.alignment={horizontal:'center',vertical:'middle'};x.numFmt=fmt;
-            if(r===sr||c>=25)x.fill=fill(jk==='L'?'FF66FFFF':'FFFFCCFF');
-            if(r===sr+1)x.fill=fill('FFFFFF00');
-            if(r===totalRow){x.fill=fill('FF000000');x.font={name:'Arial',size:10,color:{argb:'FFFFFFFF'},bold:true};}
-        }
-        sr=totalRow+3;
+        base=Math.max(end+7,sr+5);
     }
-    s.getColumn(1).width=6;s.getColumn(2).width=40;
-    for(let c=3;c<=14;c++)s.getColumn(c).width=c===12?26:c===3?12:10;
-    s.getColumn(15).width=3;s.getColumn(16).width=13;
-    for(let c=17;c<=26;c++)s.getColumn(c).width=7;
-    for(let c=29;c<=34;c++){s.getColumn(c).width=24;s.getColumn(c).hidden=true;}
     for(let c=9;c<=13;c++)s.getColumn(c).hidden=true;
-    s.getRow(5).height=34;
-    for(let c=1;c<=14;c++){s.getCell(5,c).font={name:'Arial',bold:true,size:10};s.getCell(5,c).alignment={wrapText:true,vertical:'middle',horizontal:'center'};}
-    s.autoFilter=`A5:N${end}`;
-    s.pageSetup={orientation:'landscape',paperSize:9,fitToPage:true,fitToWidth:1,fitToHeight:0,printTitlesRow:'1:5',printArea:`A1:Z${Math.max(end,sr)}`};
+    for(let c=29;c<=34;c++)s.getColumn(c).hidden=true;
+    // The reference's raw print area only covers its heading. Extend vertically
+    // to include the generated data, while preserving widths and column order.
+    s.pageSetup={...structuredClone(layoutF1(reference).pageSetup),printArea:'A1:'+col(right+8)+(base-5)};
     return s;
 }
 
 async function utama(w:ExcelJS.Workbook,name:string,g:KelompokF1,periode:string,rawName:string) {
-    const template=new ExcelJS.Workbook();
-    await template.xlsx.readFile(fileURLToPath(new URL('./templates/f1.xlsx',import.meta.url)));
-    const source=template.worksheets[0];const s=w.addWorksheet(name);
-    s.model={...source.model,id:s.id,name};
-    s.properties.tabColor={argb:'FFCC0000'};
-    text(s,'A1',`(F1 / F2 / GIZI / ${periode.slice(0,4)})`);
-    text(s,'E3',': '+g.kelurahan);text(s,'E4',': '+namaPeriode(periode));text(s,'E5',g.tanggal?': '+g.tanggal:null);
-    text(s,'E7',`: ${g.nama} / ${g.rw}`);
-    for(const cell of ['E5','E8','E9','E10','E11','F47','G47','F48','G48','D60','D61','D62','D63','D64'])editable(s.getCell(cell));
+    const s=w.addWorksheet(name);
+    formatF1(s,'F1_SEPTEMBER 2026',true);
+    text(s,'A1',`(FI / FII / GIZI / ${periode.slice(0,4)})`);
+    text(s,'E3',': '+g.kelurahan.toUpperCase());text(s,'E4',': '+namaPeriode(periode).replace(/ \d{4}$/,''));text(s,'E5',g.tanggal?': '+g.tanggal.split('-').reverse().map(Number).join('/'):null);
+    text(s,'E7',`: ${g.nama.toUpperCase()} / ${g.rw.padStart(3,'0')}`);
+    for(const cell of ['E8','E9','E10','E11','F47','G47','F48','G48','D60','D61','D62','D63','D64'])text(s,cell,null);
     const end=Math.max(6,g.anak.length+5),ref=(c:string)=>`${q(rawName)}!$${c}$6:$${c}$${end}`;
     const rows=[15,17,19,21,23,25,27,29,31,33,35,37];
     const groups=[[0,5],[6,11],[12,23],[24,35],[36,59]];
@@ -122,10 +114,10 @@ async function utama(w:ExcelJS.Workbook,name:string,g:KelompokF1,periode:string,
             }
             const missing=eligible.some(unknown);
             const count=classified.filter(predicate).length;
-            if(r0===31){text(s,c+r,null);editable(s.getCell(c+r));continue;}
+            if(r0===31){text(s,c+r,null);continue;}
             if(r0===27){
                 const cells=[19,21,23,25].map(n=>c+(n+sex));
-                form(s,c+r,`IF(COUNT(${cells.join(',')})=4,SUM(${cells.join(',')}),"Lengkapi")`,eligible.some(a=>a.gng===null||(a.diukur&&a.ntob===null))?'Lengkapi':classified.filter(a=>a.diukur).length);
+                form(s,c+r,`IF(COUNT(${cells.join(',')})=4,SUM(${cells.join(',')}),"?")`,eligible.some(a=>a.gng===null||(a.diukur&&a.ntob===null))?'?':classified.filter(a=>a.diukur).length);
                 continue;
             }
             // Blank category must never disappear into a reassuring zero. Excel
@@ -134,16 +126,16 @@ async function utama(w:ExcelJS.Workbook,name:string,g:KelompokF1,periode:string,
             if([19,21,23,25].includes(r0))guard+=`+COUNTIFS(${base},${ref('I')},1,${ref('E')},"")`;
             if(r0===33)guard+=`+COUNTIFS(${base},${ref('I')},1,${ref('K')},"")`;
             if([35,37].includes(r0))guard+=`+COUNTIFS(${base},${ref('I')},1,${ref('L')},"")`;
-            form(s,c+r,`IF(${guard}>0,"Lengkapi",COUNTIFS(${base},${ref(ec)},"${eco}"${suffix}))`,missing?'Lengkapi':count);
+            form(s,c+r,`IF(${guard}>0,"?",COUNTIFS(${base},${ref(ec)},"${eco}"${suffix}))`,missing?'?':count);
         }
         for(const [c,cs] of [['Q',['G','I','K','M','O']],['R',['H','J','L','N','P']]] as const){
             const cells=cs.map(c=>c+r);const vals=cells.map(c=>s.getCell(c).result);
-            form(s,c+r,`IF(COUNT(${cells.join(',')})=5,SUM(${cells.join(',')}),"Lengkapi")`,vals.every(v=>typeof v==='number')?vals.reduce((a,b)=>Number(a)+Number(b),0) as number:'Lengkapi');
+            form(s,c+r,`IF(COUNT(${cells.join(',')})=5,SUM(${cells.join(',')}),"?")`,vals.every(v=>typeof v==='number')?vals.reduce((a,b)=>Number(a)+Number(b),0) as number:'?');
         }
     }
     for(const r of rows) {
         const vals=[s.getCell('Q'+r).result,s.getCell('R'+r).result,s.getCell('Q'+(r+1)).result,s.getCell('R'+(r+1)).result];
-        form(s,'S'+r,`IF(COUNT(Q${r}:R${r+1})=4,SUM(Q${r}:R${r+1}),"Lengkapi")`,vals.every(v=>typeof v==='number')?vals.reduce((a,b)=>Number(a)+Number(b),0) as number:'Lengkapi');
+        form(s,'S'+r,`IF(COUNT(Q${r}:R${r+1})=4,SUM(Q${r}:R${r+1}),"?")`,vals.every(v=>typeof v==='number')?vals.reduce((a,b)=>Number(a)+Number(b),0) as number:'?');
     }
     for(const [i,jk] of ['L','P'].entries())for(const r of [41,44]){
         const count=g.anak.filter(a=>a.diukur&&a.umur===36&&a.jk===jk&&(r===41||(a.bb!==null&&a.bb>=11.5))).length;
@@ -155,30 +147,25 @@ async function utama(w:ExcelJS.Workbook,name:string,g:KelompokF1,periode:string,
             const children=g.anak.filter(a=>a.umur===age&&a.jk===jk);
             const base=`${ref('C')},${age},${ref('D')},"${jk}"`;
             form(s,c+(52+i),`COUNTIFS(${base})`,children.length);
-            form(s,c+(57+i),`IF(COUNTIFS(${base},${ref('N')},"")>0,"Lengkapi",COUNTIFS(${base},${ref('N')},"Y"))`,children.some(a=>a.asi===null)?'Lengkapi':children.filter(a=>a.asi).length);
+            form(s,c+(57+i),`IF(COUNTIFS(${base},${ref('N')},"")>0,"?",COUNTIFS(${base},${ref('N')},"Y"))`,children.some(a=>a.asi===null)?'?':children.filter(a=>a.asi).length);
         }
     }
     for(const r of [52,53,57,58]){
         const vals=Array.from({length:7},(_,i)=>s.getCell(r,6+i).result);
-        form(s,'M'+r,`IF(COUNT(F${r}:L${r})=7,SUM(F${r}:L${r}),"Lengkapi")`,vals.every(v=>typeof v==='number')?vals.reduce((a,b)=>Number(a)+Number(b),0) as number:'Lengkapi');
+        form(s,'M'+r,`IF(COUNT(F${r}:L${r})=7,SUM(F${r}:L${r}),"?")`,vals.every(v=>typeof v==='number')?vals.reduce((a,b)=>Number(a)+Number(b),0) as number:'?');
     }
-    text(s,'O6',`SASARAN ${g.anak.length} ANAK`);
-    text(s,'O7',`USIA ≥60 BLN: ${g.anak.filter(a=>a.umur!==null&&a.umur>=60).length}`);
-    text(s,'O8',`UMUR BELUM LENGKAP: ${g.anak.filter(a=>a.umur===null).length}`);
-    // Notes stay in the print area; missing source inputs are visible before submission.
+    text(s,'O6','SASARAN '+namaPeriode(periode).replace(/ \d{4}$/,'')+' = '+g.anak.length);
+    text(s,'O7',null);text(s,'O8','BARU='+g.anak.filter(a=>a.ntob==='B').length);
+    // Keep the official printed form at A1:S64. Explanations sit outside it.
     const notes=[
-        'Kuning = isian petugas. Lengkapi = sumber belum cukup; bukan nol.',
-        'G = desil 1–4; NG = desil 5–10. Tanpa desil, pakai kategori G/NG sumber terakhir.',
-        'S/K mengikuti sasaran terdaftar dengan KMS elektronik. Kelompok utama mengikuti template: usia 0–59 bulan.',
-        'D = N+T+O+B. Tidak ditimbang = K−D; penanda tidak hadir saat sesi tetap disimpan pada detail sumber.',
-        'BGM diisi petugas dari KMS. Kategori BB/U mengikuti hasil penilaian tersimpan; ambang internal −1,96 tidak dipakai untuk klasifikasi.',
-        'ASI hanya mengikuti sumber bulan laporan. Lengkapi ASI, NTOB, dan G/NG pada RAW DATA FOR F1_ALL bila kosong.',
+        'Isian kosong di bagian umum, BGM, vitamin A, ibu hamil/nifas dan IMD diisi petugas.',
+        '? berarti sumber belum cukup, bukan nol. Perbaiki G/NG, NTOB atau ASI pada RAW DATA FOR F1_ALL.',
+        'G = desil 1–4; NG = desil 5–10. Tanpa desil, kategori mengikuti sumber terakhir.',
+        'Kelompok umur F1 mengikuti contoh: 0–59 bulan. Detail tetap mencakup semua sasaran.',
+        'Kolom O tetap dihitung pada F1 utama. TOTAL ringkasan kanan mencakup semua yang ditimbang, termasuk O.',
+        'K memakai KMS elektronik sasaran terdaftar. Penanda tidak hadir saat sesi tetap tersimpan pada detail.',
     ];
-    notes.forEach((n,i)=>{s.mergeCells(67+i,1,67+i,19);text(s,'A'+(67+i),n);s.getRow(67+i).height=28;s.getCell('A'+(67+i)).alignment={wrapText:true,vertical:'middle'};});
-    s.getColumn(19).width=13;
-    for(let r=15;r<=38;r++)for(let c=7;c<=19;c++){s.getCell(r,c).numFmt=fmt;s.getCell(r,c).alignment={horizontal:'center',vertical:'middle',wrapText:true};}
-    s.addConditionalFormatting({ref:'G15:S38',rules:[{type:'containsText',operator:'containsText',text:'Lengkapi',priority:1,style:{fill:fill('FFFFF2CC'),font:{color:{argb:'FF9C0006'}}}}]});
-    s.pageSetup={orientation:'portrait',paperSize:9,fitToPage:true,fitToWidth:1,fitToHeight:2,printArea:'A1:S72',printTitlesRow:'13:14'};
+    notes.forEach((n,i)=>{text(s,'U'+(67+i),n);});
     return s;
 }
 
@@ -188,11 +175,17 @@ export async function workbookF1(data:DataF1) {
     for(const g of data.kelompok){
         const suffix=data.kelompok.length>1?` P${g.id}`:'';
         const rawName='RAW DATA FOR F1_ALL'+suffix;
-        await utama(w,`F1_${data.periode}${suffix}`,g,data.periode,rawName);
+        await utama(w,'F1_'+namaPeriode(data.periode)+suffix,g,data.periode,rawName);
         raw(w,rawName,g,data.periode,g.anak);
-        for(const rt of [...new Set(g.anak.map(a=>a.rt))].sort()){
+        for(const rt of ['1','2']) {
+            const indices=g.anak.map((a,i)=>Number(a.rt)===Number(rt)?i:-1).filter(i=>i>=0);
+            raw(w,'RAW DATA FOR F1 RT'+rt+suffix,g,data.periode,indices.map(i=>g.anak[i]),{name:rawName,indices});
+        }
+        const indices=g.anak.map((a,i)=>Number(a.rt)>=3&&Number(a.rt)<=7?i:-1).filter(i=>i>=0);
+        raw(w,'RAW DATA FOR F1 RT3-RT7'+suffix,g,data.periode,indices.map(i=>g.anak[i]),{name:rawName,indices},true);
+        for(const rt of [...new Set(g.anak.filter(a=>Number(a.rt)>7).map(a=>a.rt))]){
             const indices=g.anak.map((a,i)=>a.rt===rt?i:-1).filter(i=>i>=0);
-            raw(w,`RAW DATA F1 RT${rt}${suffix}`,g,data.periode,indices.map(i=>g.anak[i]),{name:rawName,indices});
+            raw(w,'RAW DATA FOR F1 RT'+rt+suffix,g,data.periode,indices.map(i=>g.anak[i]),{name:rawName,indices});
         }
     }
     return w;

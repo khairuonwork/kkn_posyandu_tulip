@@ -62,11 +62,11 @@ export async function ringkasanResetPengukuranHariIni(
                 count(DISTINCT a.id)::int AS "jumlahAnak",
                 coalesce(array_agg(DISTINCT a.nama ORDER BY a.nama), ARRAY[]::text[]) AS "namaAnak",
                 (SELECT count(*)::int FROM antrean_layanan q
-                  WHERE q.periode_id=$1 AND q.tanggal=$2::date) AS "jumlahAntrean"
+                  WHERE q.periode_id=$1 AND (q.tanggal=$2::date OR (q.created_at AT TIME ZONE 'Asia/Jakarta')::date=$2::date)) AS "jumlahAntrean"
            FROM pengukuran p
            JOIN sasaran s ON s.anak_id=p.anak_id AND s.periode_id=p.periode_id
            JOIN anak a ON a.id=p.anak_id
-          WHERE p.periode_id=$1 AND p.tanggal_ukur=$2::date`,
+          WHERE p.periode_id=$1 AND (p.tanggal_ukur=$2::date OR (p.created_at AT TIME ZONE 'Asia/Jakarta')::date=$2::date)`,
         [periodeId, tanggal],
     );
     return rows[0];
@@ -100,7 +100,7 @@ export async function resetPengukuranHariIni(
     const terkunci = await db.query<{ id: number; anak_id: number }>(
         `SELECT p.id, p.anak_id FROM pengukuran p
           JOIN sasaran s ON s.anak_id=p.anak_id AND s.periode_id=p.periode_id
-         WHERE p.periode_id=$1 AND p.tanggal_ukur=$2::date
+         WHERE p.periode_id=$1 AND (p.tanggal_ukur=$2::date OR (p.created_at AT TIME ZONE 'Asia/Jakarta')::date=$2::date)
          FOR UPDATE OF p`,
         [periodeId, tanggal],
     );
@@ -110,7 +110,7 @@ export async function resetPengukuranHariIni(
         `DELETE FROM pengukuran p
           USING sasaran s
          WHERE s.anak_id=p.anak_id AND s.periode_id=p.periode_id
-           AND p.periode_id=$1 AND p.tanggal_ukur=$2::date`,
+           AND p.periode_id=$1 AND (p.tanggal_ukur=$2::date OR (p.created_at AT TIME ZONE 'Asia/Jakarta')::date=$2::date)`,
         [periodeId, tanggal],
     );
     await db.query(
@@ -127,8 +127,13 @@ export async function resetPengukuranHariIni(
     // supaya check-in berikutnya mulai dari 1, tanpa bentrok nomor unik.
     await db.query(
         `DELETE FROM antrean_layanan
-          WHERE periode_id=$1 AND tanggal=$2::date`,
+          WHERE periode_id=$1 AND (tanggal=$2::date OR (created_at AT TIME ZONE 'Asia/Jakarta')::date=$2::date)`,
         [periodeId, tanggal],
+    );
+    // Buka kembali sesi bila ditutup
+    await db.query(
+        `UPDATE periode SET sesi_ditutup_pada=NULL, sesi_ditutup_oleh=NULL WHERE id=$1`,
+        [periodeId],
     );
     return dampak;
 }

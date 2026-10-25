@@ -92,3 +92,8 @@ Pemeriksaan langsung unduhan Juni dengan Microsoft Excel menemukan differential 
 Umur pada Rekap dan Historis tetap tahun–bulan–hari sesuai komentar asli Bu Sri, kini terbaca sebagai `2 Thn 8 Bln 4 Hari`; kolom diperlebar. Hari arsip yang tidak diketahui tetap ditandai, tidak dibuat menjadi nol.
 
 Validasi: 25 pengujian laporan lulus, TypeScript lulus, serta Microsoft Excel COM pada workbook uji memverifikasi warna seluruh indeks di kedua sheet, perubahan label kurang → lebih → normal, ambang −1,96 → −2, header N/T/B, dan umur kalender. File asli pengguna dibaca read-only dan tidak disimpan ulang.
+
+
+### Kesimpulan status saat ekspor
+
+Rekap Z Score dan Historis 2T+ mengisi seluruh pasangan status Permenkes/WHO dari Z-score asli dengan fungsi kategori aplikasi, termasuk arsip yang labelnya kosong atau tidak konsisten. LILA/U tetap menggunakan deskripsi SD yang disetujui program, mulai usia 6 sampai 60 bulan. Skor tidak tersedia ditandai “Belum dapat dinilai”; LILA yang belum diukur atau di luar usia acuan dijelaskan secara eksplisit. Tidak ada perubahan pada skor atau data sumber tersimpan.

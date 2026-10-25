@@ -150,6 +150,15 @@ export async function ubahStatus(
         [id, status, catatan === undefined ? null : catatan, nextOrder ?? null, pengguna.id],
     );
     if (!rows[0]) return null;
+    if (status === "done" && current.rows[0]) {
+        await db.query(
+            `UPDATE sasaran SET status='selesai', diselesaikan_pada=coalesce(diselesaikan_pada, now()),
+                    diselesaikan_oleh=$2
+              WHERE id=(SELECT sasaran_id FROM antrean_layanan WHERE id=$1)
+                AND periode_id=$3 AND status='menunggu'`,
+            [id, pengguna.id, current.rows[0].periodeId],
+        );
+    }
     const refreshed = await db.query<BarisAntrean>(`${PILIH} WHERE q.id=$1`, [id]);
     return refreshed.rows[0] ?? null;
 }
@@ -170,7 +179,11 @@ export async function konfirmasiKms(
          RETURNING q.id, q.sasaran_id AS "sasaranId", q.periode_id AS "periodeId"`,
         [id, pengguna.id, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
     );
-    if (!rows[0]) return null;
+    if (!rows[0]) {
+        // Idempoten: bila sudah berstatus 'done', kembalikan baris yang ada
+        const existing = await db.query<BarisAntrean>(`${PILIH} WHERE q.id=$1 AND q.status='done'`, [id]);
+        return existing.rows[0] ?? null;
+    }
     await db.query(
         `UPDATE sasaran SET status='selesai', diselesaikan_pada=coalesce(diselesaikan_pada, now()),
                 diselesaikan_oleh=$2
@@ -179,4 +192,33 @@ export async function konfirmasiKms(
     );
     const hasil = await db.query<BarisAntrean>(`${PILIH} WHERE q.id=$1`, [id]);
     return hasil.rows[0] ?? null;
+}
+
+/** Konfirmasi seluruh antrean yang sedang menunggu review KMS sekaligus. */
+export async function konfirmasiSemuaKms(
+    db: PoolClient,
+    pengguna: PenggunaAktif,
+    periodeId: number,
+    tanggal: string,
+): Promise<number> {
+    const { rows } = await db.query<{ id: string; sasaranId: number }>(
+        `UPDATE antrean_layanan q
+            SET status='done', completed_at=now(), updated_by=$2
+          FROM periode p
+         WHERE q.periode_id=$3 AND q.tanggal=$4::date
+           AND p.id=q.periode_id AND p.sesi_ditutup_pada IS NULL
+           AND ($5::boolean OR p.posyandu_id=ANY($6::bigint[]))
+           AND q.status='kms_review'
+         RETURNING q.id, q.sasaran_id AS "sasaranId"`,
+        [tanggal, pengguna.id, periodeId, tanggal, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
+    );
+    for (const r of rows) {
+        await db.query(
+            `UPDATE sasaran SET status='selesai', diselesaikan_pada=coalesce(diselesaikan_pada, now()),
+                    diselesaikan_oleh=$2
+              WHERE id=$1 AND periode_id=$3 AND status='menunggu'`,
+            [r.sasaranId, pengguna.id, periodeId],
+        );
+    }
+    return rows.length;
 }

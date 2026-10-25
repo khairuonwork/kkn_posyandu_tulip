@@ -56,12 +56,13 @@ test('deskripsi LILA menyertakan nol dan kedua batas tanpa mengarang diagnosis',
     assert.equal(kategoriDari('LILA_U',0), null);
 });
 
-test('ekspor LILA tampil pada enam bulan tepat, kosong sebelumnya atau tanpa nilai ukur', async () => {
+test('ekspor LILA tampil pada enam bulan tepat dan menjelaskan data yang tidak bisa dinilai', async () => {
     const cukup = await ekspor(anak());
     for (const col of ['AB','AD']) assert.equal(cukup.getWorksheet('Rekap Z Score')!.getCell(col+'7').value, '−2 s.d. +2 SD');
     for (const row of [anak('2026-09-09'), {...anak(),lilaCm:null}]) {
         const book = await ekspor(row);
-        for (const col of ['AA','AB','AC','AD']) assert.equal(book.getWorksheet('Rekap Z Score')!.getCell(col+'7').value, null);
+        for (const col of ['AA','AC']) assert.equal(book.getWorksheet('Rekap Z Score')!.getCell(col+'7').value, null);
+        for (const col of ['AB','AD']) assert.equal(book.getWorksheet('Rekap Z Score')!.getCell(col+'7').value, row.lilaCm === null ? 'Belum diukur' : 'Di luar usia acuan');
     }
 });
 
@@ -133,3 +134,30 @@ test('umur arsip lengkap bila pengukuran cocok, dan tidak dibuat-buat bila berbe
         }
     }
  });
+
+ test('semua segmen status terisi dari skor asli meskipun label arsip kosong atau kedaluwarsa', async () => {
+    const row = anak();
+    const indices = ['BB_U','TB_U','BB_TB','IMT_U','LILA_U','LIKA_U'];
+    const scores = [-2.5,-3.1,0,3.1,2.1,2.1];
+    for (const standard of ['PERMENKES-2-2020','WHO-2006']) indices.forEach((id,i) => {
+        row.penilaian[standard][id] = {z:scores[i],kategori:standard === 'WHO-2006' ? null : 'Normal'};
+    });
+    const before = JSON.stringify(row.penilaian);
+    const book = await ekspor(row);
+    assert.equal(JSON.stringify(row.penilaian),before);
+    const labels = ['BB Kurang','Sangat pendek','B-Gizi Baik','Obesitas','Di atas +2 SD','Makrosefali'];
+    for (const [name,offset] of [['Rekap Z Score',0],['Historis 2T+',2]] as const) {
+        for(let i=0;i<6;i++) for(let j=0;j<2;j++) {
+            assert.equal(book.getWorksheet(name)!.getCell(7,12+offset+i*4+j*2).value,labels[i]);
+        }
+    }
+});
+
+test('skor tidak tersedia tidak menghasilkan status normal palsu', async () => {
+    const row = anak();
+    row.penilaian = {};
+    const book = await ekspor(row);
+    for (const [name,offset] of [['Rekap Z Score',0],['Historis 2T+',2]] as const) {
+        for(let i=0;i<12;i++) assert.equal(book.getWorksheet(name)!.getCell(7,12+offset+i*2).value,'Belum dapat dinilai');
+    }
+});

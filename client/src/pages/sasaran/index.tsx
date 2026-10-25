@@ -659,7 +659,7 @@ return;
                             <button
                                 type="button"
                                 onClick={() => void bukaPratinjauReset()}
-                                disabled={memuatPratinjauReset || sasaran?.periode?.sesiDitutupPada !== null || sasaran?.periode?.periode !== periodeJakartaSekarang()}
+                                disabled={memuatPratinjauReset || sasaran?.periode?.periode !== periodeJakartaSekarang()}
                                 className="tombol-kedua text-tone-red"
                                 title="Khusus admin · hanya hasil ukur bertanggal hari ini pada periode aktif"
                             >
@@ -673,15 +673,7 @@ return;
                                     setCalon([]);
                                     setGalat('');
                                 }}
-                                disabled={
-                                    sasaran?.periode?.sesiDitutupPada !== null
-                                }
                                 className="tombol-utama"
-                                title={
-                                    sasaran?.periode?.sesiDitutupPada !== null
-                                        ? 'Sesi periode sudah ditutup'
-                                        : undefined
-                                }
                             >
                                 <UserRoundPlus
                                     className="size-4"
@@ -1051,9 +1043,6 @@ return;
                                                     <button
                                                         type="button"
                                                         onClick={() => mulaiEdit(item)}
-                                                        disabled={
-                                                            sasaran?.periode?.sesiDitutupPada !== null
-                                                        }
                                                         className="tombol-kedua min-h-8 px-2.5 py-1 text-xs font-semibold"
                                                         aria-label={`Edit sasaran ${item.nama}`}
                                                     >
@@ -1151,11 +1140,6 @@ return;
                                                             type="button"
                                                             onClick={() =>
                                                                 mulaiEdit(item)
-                                                            }
-                                                            disabled={
-                                                                sasaran?.periode
-                                                                    ?.sesiDitutupPada !==
-                                                                null
                                                             }
                                                             className="tombol-kedua min-h-9 px-3"
                                                             aria-label={`Edit sasaran ${item.nama}`}

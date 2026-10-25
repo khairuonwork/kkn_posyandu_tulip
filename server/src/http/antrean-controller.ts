@@ -7,7 +7,7 @@ import * as antreanRepo from "../repositories/antrean-repository.ts";
 import { dalamTransaksi } from "../db/transaksi.ts";
 import { wajibBoleh } from "./middleware.ts";
 
-const STATUS: readonly StatusAntrean[] = ["waiting", "called", "serving", "kms_review", "cancelled"];
+const STATUS: readonly StatusAntrean[] = ["waiting", "called", "serving", "kms_review", "done", "cancelled"];
 const TANGGAL = /^\d{4}-\d{2}-\d{2}$/;
 
 function gagal(res: Response, status: number, pesan: string) {
@@ -85,7 +85,7 @@ export function ruteAntrean(pool: Pool): Router {
         } catch (error) { next(error); }
     });
 
-    rute.post("/antrean/:id/konfirmasi-kms", wajibBoleh("konfirmasi-kms"), async (req, res, next) => {
+    rute.post("/antrean/:id/konfirmasi-kms", wajibBoleh(["konfirmasi-kms", "catat-pengukuran-lapangan"]), async (req, res, next) => {
         const id = typeof req.params.id === "string" ? req.params.id : "";
         if (!/^antrean_\d{8}_\d+$/.test(id)) {
             gagal(res, 400, "ID antrean tidak valid.");
@@ -96,6 +96,21 @@ export function ruteAntrean(pool: Pool): Router {
                 antreanRepo.konfirmasiKms(db, req.pengguna!, id));
             if (!item) { gagal(res, 409, "Antrean belum menunggu pemeriksaan KMS atau sesi sudah ditutup."); return; }
             res.json({ item });
+        } catch (error) { next(error); }
+    });
+
+    rute.post("/antrean/konfirmasi-semua-kms", wajibBoleh(["konfirmasi-kms", "catat-pengukuran-lapangan"]), async (req, res, next) => {
+        const periodeRaw = req.body?.periodeId;
+        const periodeId = Number(periodeRaw);
+        const tanggal = typeof req.body?.tanggal === "string" ? req.body.tanggal : "";
+        if (!Number.isSafeInteger(periodeId) || periodeId < 1 || !TANGGAL.test(tanggal)) {
+            gagal(res, 400, "Periode dan tanggal antrean tidak valid.");
+            return;
+        }
+        try {
+            const jumlah = await dalamTransaksi(pool, { pengguna: req.pengguna!.id, sumber: "tablet" }, db =>
+                antreanRepo.konfirmasiSemuaKms(db, req.pengguna!, periodeId, tanggal));
+            res.json({ ok: true, jumlah });
         } catch (error) { next(error); }
     });
     return rute;
