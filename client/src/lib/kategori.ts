@@ -5,7 +5,7 @@
  * pratinjau langsung di editor baris Data Anak. Di mana-mana selain itu,
  * kategori datang jadi dari server bersama pengukurannya.
  *
- * Metode hitungnya WHO LMS, tetapi ambang pembacaannya Permenkes — keduanya
+ * Metode hitungnya WHO LMS, tetapi ambang pembacaannya Permenkes â€” keduanya
  * memang memakai ambang yang sama, sehingga label di layar cocok dengan yang
  * diharapkan Puskesmas.
  *
@@ -112,10 +112,10 @@ export function kategoriDariZ(indeks: Indeks, z: number): string | null {
 }
 
 /**
- * KBM — kenaikan berat badan minimal — untuk umur dalam bulan penuh, dalam kg.
+ * KBM â€” kenaikan berat badan minimal â€” untuk umur dalam bulan penuh, dalam kg.
  * Tabel docs/rujukan/antropometri.md bagian 10.2; umur 0 tidak punya KBM.
  *
- * Dipakai hanya sebagai keterangan "kurang dari … kg" di samping status
+ * Dipakai hanya sebagai keterangan "kurang dari â€¦ kg" di samping status
  * `T` dari arsip. Status N/T sendiri tetap nilai arsip apa adanya sampai
  * OI-01 dijawab (docs/pertanyaan-terbuka.md).
  */
@@ -127,4 +127,34 @@ export function kbmKg(umurBulan: number | null): number | null {
     const tabel = [0.8, 0.9, 0.6, 0.6, 0.5, 0.4];
 
     return umurBulan <= 6 ? tabel[umurBulan - 1] : umurBulan <= 10 ? 0.3 : 0.2;
+}
+
+/** Kategori khusus indeks; jangan memakai ambang tunggal untuk semua indeks. */
+export function kesimpulanZScore(
+    kategori: string | null | undefined,
+    z?: number | null,
+): string {
+    if (z != null && !Number.isFinite(z)) {
+        return 'Belum dinilai';
+    }
+
+    return kategori ? labelKategoriGizi(kategori) : 'Belum dinilai';
+}
+
+/** Label program; kategori rinci dan skor yang tersimpan tidak diubah. */
+export function labelKategoriGizi(kategori: string): string {
+    const label: Record<string, string> = {
+        'Berat badan sangat kurang': 'BB Sangat Kurang',
+        'Berat badan kurang': 'BB Kurang',
+        'Berat badan normal': 'BB Normal',
+        'Risiko berat badan lebih': 'BB Lebih',
+        'Sangat pendek': 'Pendek',
+        'Gizi buruk': 'Gizi Buruk',
+        'Gizi kurang': 'Gizi Kurang',
+        'Gizi baik': 'Gizi Baik',
+        'Berisiko gizi lebih': 'Risiko Gizi Lebih',
+        'Gizi lebih': 'Gizi Lebih',
+    };
+
+    return label[kategori] ?? kategori;
 }

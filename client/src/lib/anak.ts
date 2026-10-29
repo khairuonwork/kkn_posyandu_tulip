@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { umurBulanPada } from '@/lib/format';
 import { kodeKartuSasaran } from '@/lib/kartu-sasaran';
 import type { BarisAnak } from '@/pages/anak';
+import type { PatchAnak } from '@/pages/anak';
 import type { BalitaKartu } from '@/pages/kartu-sasaran';
 import type {
     Anak,
@@ -20,6 +21,8 @@ type AnakApi = {
     rt: string | null;
     namaOrtu: string | null;
     status: string;
+    aktifPeriode?: boolean;
+    tanggalAcuan?: string;
     pengukuranTerakhir: string | null;
     bbKg: number | null;
     tinggiCm: number | null;
@@ -40,11 +43,14 @@ export type DataAnakServer = {
 
 type AnakDetailApi = AnakApi & {
     nikOrtu: string | null;
+    noWa: string | null;
     anakKe: number | null;
     bbLahirKg: number | null;
     pbLahirCm: number | null;
     bukuKia: boolean;
     imd: boolean;
+    kbIbu: boolean | null;
+    desil?: number | null;
 };
 
 type PengukuranApi = {
@@ -92,7 +98,10 @@ function keBaris(a: AnakApi): BarisAnak {
         nik: a.nik,
         nikLengkap: a.nik?.length === 16,
         jk: a.jk,
-        umurBulan: umurBulan(a.tglLahir),
+        umurBulan: a.tanggalAcuan
+            ? umurBulanPada(a.tglLahir, a.tanggalAcuan)
+            : umurBulan(a.tglLahir),
+        aktifPeriode: a.aktifPeriode,
         rt: a.rt,
         namaOrtu: a.namaOrtu,
         tanggalUkurTerakhir: a.pengukuranTerakhir?.slice(0, 10) ?? null,
@@ -122,8 +131,13 @@ function keKartu(a: AnakApi): BalitaKartu {
     };
 }
 
-export function useAnakServer(onSesiBerakhir: () => void): DataAnakServer {
+export function useAnakServer(
+    onSesiBerakhir: () => void,
+    aktif = true,
+    periodeId = '',
+): DataAnakServer {
     const [versi, setVersi] = useState(0);
+    const [periodeData, setPeriodeData] = useState('');
     const [state, setState] = useState<Omit<DataAnakServer, 'muatUlang'>>({
         status: 'memuat',
         baris: [],
@@ -136,11 +150,15 @@ export function useAnakServer(onSesiBerakhir: () => void): DataAnakServer {
     }, []);
 
     useEffect(() => {
+        if (!aktif) {
+            return;
+        }
+
         const controller = new AbortController();
 
         const ambilHalaman = async (halaman: number) => {
             const res = await fetch(
-                `/api/v1/anak?halaman=${halaman}&ukuran=100`,
+                `/api/v1/anak?halaman=${halaman}&ukuran=100${periodeId ? `&periode=${encodeURIComponent(periodeId)}` : ''}`,
                 {
                     credentials: 'same-origin',
                     signal: controller.signal,
@@ -185,7 +203,8 @@ export function useAnakServer(onSesiBerakhir: () => void): DataAnakServer {
                 );
             })
             .then((items) => {
-                if (items !== null) {
+                if (items !== null && !controller.signal.aborted) {
+                    setPeriodeData(periodeId);
                     setState({
                         status: 'siap',
                         baris: items.map(keBaris),
@@ -196,6 +215,7 @@ export function useAnakServer(onSesiBerakhir: () => void): DataAnakServer {
             })
             .catch((galat: unknown) => {
                 if ((galat as { name?: string }).name !== 'AbortError') {
+                    setPeriodeData(periodeId);
                     setState({
                         status: 'galat',
                         baris: [],
@@ -211,9 +231,17 @@ export function useAnakServer(onSesiBerakhir: () => void): DataAnakServer {
             });
 
         return () => controller.abort();
-    }, [onSesiBerakhir, versi]);
+    }, [aktif, onSesiBerakhir, versi, periodeId]);
 
-    return { ...state, muatUlang };
+    return periodeData === periodeId
+        ? { ...state, muatUlang }
+        : {
+              status: 'memuat',
+              baris: [],
+              kartu: [],
+              pesanGalat: null,
+              muatUlang,
+          };
 }
 
 function keDetail(a: AnakDetailApi): Anak {
@@ -230,11 +258,49 @@ function keDetail(a: AnakDetailApi): Anak {
         pbLahirCm: a.pbLahirCm,
         bukuKia: a.bukuKia,
         imd: a.imd,
+        kbIbu: a.kbIbu,
+        desil: a.desil ?? null,
         rt: a.rt,
         rw: '18',
         namaOrtu: a.namaOrtu,
         nikOrtu: a.nikOrtu,
+        noWa: a.noWa,
     };
+}
+
+export async function simpanProfilAnak(
+    anakId: number,
+    patch: PatchAnak,
+    onSesiBerakhir: () => void,
+): Promise<void> {
+    let response: Response;
+
+    try {
+        response = await fetch(`/api/v1/anak/${anakId}`, {
+            method: 'PATCH',
+            credentials: 'same-origin',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(patch),
+        });
+    } catch {
+        throw new Error(
+            'Tidak dapat terhubung ke server. Periksa sambungan lalu coba lagi.',
+        );
+    }
+
+    if (response.status === 401) {
+        onSesiBerakhir();
+
+        throw new Error('Sesi telah berakhir. Silakan masuk kembali.');
+    }
+
+    if (!response.ok) {
+        const isi = (await response.json().catch(() => ({}))) as {
+            galat?: string;
+        };
+
+        throw new Error(isi.galat ?? 'Profil anak tidak dapat disimpan.');
+    }
 }
 
 function kePengukuran(anak: Anak, p: PengukuranApi): Pengukuran {
@@ -257,6 +323,7 @@ function kePengukuran(anak: Anak, p: PengukuranApi): Pengukuran {
 export function useDetailAnakServer(
     anakId: number | null,
     onSesiBerakhir: () => void,
+    periodeId = '',
 ): DetailAnakServerState {
     const [state, setState] = useState<DetailAnakServerState>({
         status: 'memuat',
@@ -276,10 +343,13 @@ export function useDetailAnakServer(
             }
         });
         Promise.all([
-            fetch(`/api/v1/anak/${anakId}`, {
-                credentials: 'same-origin',
-                signal: controller.signal,
-            }),
+            fetch(
+                `/api/v1/anak/${anakId}${periodeId ? `?periode=${encodeURIComponent(periodeId)}` : ''}`,
+                {
+                    credentials: 'same-origin',
+                    signal: controller.signal,
+                },
+            ),
             fetch(`/api/v1/anak/${anakId}/pengukuran`, {
                 credentials: 'same-origin',
                 signal: controller.signal,
@@ -311,7 +381,7 @@ export function useDetailAnakServer(
                 return { tidakAda: false, detail, riwayat } as const;
             })
             .then((hasil) => {
-                if (hasil === null) {
+                if (!aktif || hasil === null) {
                     return;
                 }
 
@@ -341,7 +411,7 @@ export function useDetailAnakServer(
             aktif = false;
             controller.abort();
         };
-    }, [anakId, onSesiBerakhir]);
+    }, [anakId, onSesiBerakhir, periodeId]);
 
     return state;
 }

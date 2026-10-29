@@ -46,12 +46,14 @@ const NAMA_PERAN: Record<Peran, string> = {
     kader: 'Kader',
     bidan: 'Bidan',
     admin: 'Admin',
+    kms: 'Petugas KMS',
 };
 
 const KETERANGAN_PERAN: Record<Peran, string> = {
     kader: 'Mencatat penimbangan di RT binaannya',
     bidan: 'Melihat semua RT, mengoreksi data',
     admin: 'Mengubah batas dan mengelola pengguna',
+    kms: 'Membaca analisis dan menyelesaikan tahap penjelasan KMS',
 };
 
 const URUTAN_PERAN: Peran[] = ['kader', 'bidan', 'admin'];
@@ -122,7 +124,14 @@ function PortalDemo({
     const [ambang, setAmbang] = useState<Ambang>(PENGATURAN_BAWAAN);
     const [standarisasi, setStandarisasi] =
         useState<StandarisasiAntropometri>(STANDARISASI_BAWAAN);
-    const [pengguna, setPengguna] = useState<Pengguna[]>(PENGGUNA_CONTOH);
+    const [pengguna, setPengguna] = useState<Pengguna[]>(
+        PENGGUNA_CONTOH.map((akun) => ({
+            ...akun,
+            posyanduId: 1,
+            posyanduNama: 'Posyandu Tulip',
+            rw: '18',
+        })),
+    );
 
     const alamat = useAlamat();
     const rute = bacaRute(alamat);
@@ -151,6 +160,7 @@ function PortalDemo({
             <Layar
                 rute={rute}
                 peran={peran}
+                onSesiBerakhir={() => undefined}
                 periodeId={periodeId}
                 onPindahPeriode={setPeriodeId}
                 tabLaporan={tabLaporan}
@@ -176,7 +186,12 @@ function PortalDemo({
                 onSimpanAmbang={setAmbang}
                 standarisasi={standarisasi}
                 onSimpanStandarisasi={setStandarisasi}
-                pengguna={{ status: 'siap', pengguna, wilayahRt: daftarRt() }}
+                pengguna={{
+                    status: 'siap',
+                    pengguna,
+                    wilayahRt: daftarRt().map((rt) => ({ posyanduId: 1, rt })),
+                    posyandu: [{ id: 1, nama: 'Posyandu Tulip', rw: '18' }],
+                }}
                 /* Demo tidak punya server: aturan akun cukup diperiksa dialog,
                    dan kata sandinya tidak disimpan ke mana pun. */
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- sengaja dibuang

@@ -17,36 +17,45 @@ import { TabelStandar } from '../antropometri/tabel-standar.ts';
 
 export const VERSI_DEFAULT = 'WHO-2006';
 
-const tersimpan = new Map<string, TabelStandar>();
+let tersimpan = new WeakMap<Pool, Map<string, Promise<TabelStandar>>>();
 
 export async function muatTabelStandar(
     pool: Pool,
     versi: string = VERSI_DEFAULT,
 ): Promise<TabelStandar> {
-    const sudah = tersimpan.get(versi);
+    let perPool = tersimpan.get(pool);
+    if (perPool === undefined) {
+        perPool = new Map();
+        tersimpan.set(pool, perPool);
+    }
+    const sudah = perPool.get(versi);
 
     if (sudah !== undefined) {
         return sudah;
     }
 
-    const { rows } = await pool.query<BarisStandar>(
+    const pemuatan = pool.query<BarisStandar>(
         'SELECT indeks, jk, kunci, l, m, s FROM standar_lms WHERE versi = $1 ORDER BY indeks, jk, kunci',
         [versi],
-    );
+    ).then(({ rows }) => {
+        if (rows.length === 0) {
+            throw new Error(
+                `Tabel standar ${versi} kosong. Jalankan: node --env-file=.env db/seed-standar-lms.ts`,
+            );
+        }
 
-    if (rows.length === 0) {
-        throw new Error(
-            `Tabel standar ${versi} kosong. Jalankan: node --env-file=.env db/seed-standar-lms.ts`,
-        );
+        return new TabelStandar(rows, versi);
+    });
+    perPool.set(versi, pemuatan);
+    try {
+        return await pemuatan;
+    } catch (galat) {
+        perPool.delete(versi);
+        throw galat;
     }
-
-    const tabel = new TabelStandar(rows, versi);
-    tersimpan.set(versi, tabel);
-
-    return tabel;
 }
 
 /** Dipakai pengujian yang mengganti isi tabel di tengah proses. */
 export function lupakanTabelTersimpan(): void {
-    tersimpan.clear();
+    tersimpan = new WeakMap();
 }

@@ -1,7 +1,6 @@
 import type { Pool, PoolClient } from "pg";
 
 import type { PenggunaAktif } from "../auth/peran.ts";
-import { rtYangBolehDilihat } from "../auth/peran.ts";
 import type {
     BarisSasaranExcel,
     SheetSasaran,
@@ -18,11 +17,257 @@ export type RingkasanImpor = {
     perluVerifikasi: number;
 };
 
+export type CalonSasaran = {
+    anakId: number;
+    nama: string;
+    nik: string | null;
+    tglLahir: string;
+    jk: "L" | "P";
+    namaOrtu: string | null;
+    rt: string;
+};
+
+export type HasilTambahSasaran =
+    | { status: "berhasil"; sasaranId: number; sudahDiukur: boolean }
+    | { status: "periode_tidak_ada" | "sesi_ditutup" | "anak_tidak_ada" | "anak_tidak_aktif" | "di_luar_posyandu" | "sudah_ada" };
+
+const STATUS_SASARAN = [
+    "menunggu",
+    "selesai",
+    "tidak_hadir",
+    "pindah",
+    "batal",
+] as const;
+
+export type StatusSasaran = (typeof STATUS_SASARAN)[number];
+
+export type RingkasanResetHarian = {
+    periodeId: number;
+    tanggal: string;
+    jumlahPengukuran: number;
+    jumlahAnak: number;
+    jumlahAntrean: number;
+    namaAnak: string[];
+};
+
+/** Hitung dulu dampak reset; hanya tanggal dan periode sasaran yang diminta. */
+export async function ringkasanResetPengukuranHariIni(
+    db: Pool | PoolClient,
+    periodeId: number,
+    tanggal: string,
+): Promise<RingkasanResetHarian> {
+    const { rows } = await db.query<RingkasanResetHarian>(
+        `SELECT $1::bigint AS "periodeId", $2::date::text AS tanggal,
+                count(p.id)::int AS "jumlahPengukuran",
+                count(DISTINCT a.id)::int AS "jumlahAnak",
+                coalesce(array_agg(DISTINCT a.nama ORDER BY a.nama), ARRAY[]::text[]) AS "namaAnak",
+                (SELECT count(*)::int FROM antrean_layanan q
+                  WHERE q.periode_id=$1 AND (q.tanggal=$2::date OR (q.created_at AT TIME ZONE 'Asia/Jakarta')::date=$2::date)) AS "jumlahAntrean"
+           FROM pengukuran p
+           JOIN sasaran s ON s.anak_id=p.anak_id AND s.periode_id=p.periode_id
+           JOIN anak a ON a.id=p.anak_id
+          WHERE p.periode_id=$1 AND (p.tanggal_ukur=$2::date OR (p.created_at AT TIME ZONE 'Asia/Jakarta')::date=$2::date)`,
+        [periodeId, tanggal],
+    );
+    return rows[0];
+}
+
+/** Hapus hanya hasil ukur tanggal ini dan buka kembali sasaran tanpa ukur lain. */
+export async function resetPengukuranHariIni(
+    db: PoolClient,
+    periodeId: number,
+    tanggal: string,
+    jumlahDikonfirmasi: number,
+    jumlahAntreanDikonfirmasi: number,
+): Promise<RingkasanResetHarian | null> {
+    // Serialkan reset dengan check-in agar nomor pertama setelah reset adalah 1.
+    await db.query("SELECT pg_advisory_xact_lock($1::integer, $2::integer)",
+        [periodeId, Number(tanggal.replaceAll("-", ""))]);
+    // Gunakan kunci yang sama dengan simpan_pengukuran_tablet untuk menahan
+    // unggahan ukur anak pada periode ini selama reset sedang berlangsung.
+    await db.query(
+        `SELECT pg_advisory_xact_lock(hashtext(a.nik || ':' || to_char($2::date, 'YYYY-MM')))
+           FROM sasaran s JOIN anak a ON a.id=s.anak_id
+          WHERE s.periode_id=$1 AND a.nik IS NOT NULL
+          ORDER BY hashtext(a.nik || ':' || to_char($2::date, 'YYYY-MM'))`,
+        [periodeId, tanggal],
+    );
+    const dampak = await ringkasanResetPengukuranHariIni(db, periodeId, tanggal);
+    if (dampak.jumlahPengukuran !== jumlahDikonfirmasi || dampak.jumlahAntrean !== jumlahAntreanDikonfirmasi) return null;
+
+    // Kunci baris ukur sampai transaksi selesai agar pratinjau tidak kedaluwarsa
+    // diam-diam bila ada tablet yang menyimpan tepat pada saat tombol ditekan.
+    const terkunci = await db.query<{ id: number; anak_id: number }>(
+        `SELECT p.id, p.anak_id FROM pengukuran p
+          JOIN sasaran s ON s.anak_id=p.anak_id AND s.periode_id=p.periode_id
+         WHERE p.periode_id=$1 AND (p.tanggal_ukur=$2::date OR (p.created_at AT TIME ZONE 'Asia/Jakarta')::date=$2::date)
+         FOR UPDATE OF p`,
+        [periodeId, tanggal],
+    );
+    if (terkunci.rows.length !== jumlahDikonfirmasi) return null;
+
+    await db.query(
+        `DELETE FROM pengukuran p
+          USING sasaran s
+         WHERE s.anak_id=p.anak_id AND s.periode_id=p.periode_id
+           AND p.periode_id=$1 AND (p.tanggal_ukur=$2::date OR (p.created_at AT TIME ZONE 'Asia/Jakarta')::date=$2::date)`,
+        [periodeId, tanggal],
+    );
+    await db.query(
+        `UPDATE sasaran s
+            SET status='menunggu', diselesaikan_pada=NULL, diselesaikan_oleh=NULL
+          WHERE s.periode_id=$1 AND s.anak_id=ANY($2::bigint[])
+            AND NOT EXISTS (
+                SELECT 1 FROM pengukuran p
+                 WHERE p.periode_id=s.periode_id AND p.anak_id=s.anak_id
+            )`,
+        [periodeId, terkunci.rows.map((row) => row.anak_id)],
+    );
+    // Hapus juga antrean yang sudah dibatalkan: max(nomor) harus kosong
+    // supaya check-in berikutnya mulai dari 1, tanpa bentrok nomor unik.
+    await db.query(
+        `DELETE FROM antrean_layanan
+          WHERE periode_id=$1 AND (tanggal=$2::date OR (created_at AT TIME ZONE 'Asia/Jakarta')::date=$2::date)`,
+        [periodeId, tanggal],
+    );
+    // Buka kembali sesi bila ditutup
+    await db.query(
+        `UPDATE periode SET sesi_ditutup_pada=NULL, sesi_ditutup_oleh=NULL WHERE id=$1`,
+        [periodeId],
+    );
+    return dampak;
+}
+
 function namaBaku(nama: string): string {
     return nama.trim().replace(/\s+/g, " ").toLocaleLowerCase("id-ID");
 }
 
-async function posyanduUtama(db: PoolClient): Promise<number> {
+export async function calonSasaran(
+    pool: Pool,
+    pengguna: PenggunaAktif,
+    periodeId: number,
+    cari: string,
+): Promise<CalonSasaran[]> {
+    const { rows } = await pool.query<CalonSasaran>(
+        `SELECT a.id AS "anakId", a.nama, a.nik,
+                to_char(a.tgl_lahir, 'YYYY-MM-DD') AS "tglLahir", a.jk,
+                o.nama AS "namaOrtu", w.rt
+           FROM anak a
+           JOIN wilayah_rt w ON w.id = a.wilayah_rt_id
+           JOIN periode pe ON pe.id=$1
+           LEFT JOIN orang_tua o ON o.id = a.orang_tua_id
+          WHERE a.deleted_at IS NULL AND a.status = 'aktif'
+            AND w.posyandu_id=pe.posyandu_id
+            AND ($3::boolean OR pe.posyandu_id=ANY($4::bigint[]))
+            AND NOT EXISTS (
+                SELECT 1 FROM sasaran s
+                 WHERE s.periode_id = pe.id AND s.anak_id = a.id
+            )
+            AND (a.nama_baku ILIKE $2 OR coalesce(a.nik, '') ILIKE $2
+                 OR coalesce(o.nama, '') ILIKE $2)
+          ORDER BY a.nama_baku, a.id
+          LIMIT 30`,
+        [periodeId, `%${cari}%`, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
+    );
+    return rows;
+}
+
+export async function tambahSasaranManual(
+    db: PoolClient,
+    pengguna: PenggunaAktif,
+    periodeId: number,
+    anakId: number,
+    penggunaId: number,
+): Promise<HasilTambahSasaran> {
+    const periode = await db.query<{
+        id: number;
+        posyandu_id: number;
+        sesi_ditutup_pada: Date | null;
+    }>(
+        `SELECT id, posyandu_id, sesi_ditutup_pada
+           FROM periode WHERE id = $1
+             AND ($2::boolean OR posyandu_id=ANY($3::bigint[])) FOR UPDATE`,
+        [periodeId, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
+    );
+    const dataPeriode = periode.rows[0];
+    if (dataPeriode === undefined) return { status: "periode_tidak_ada" };
+    if (dataPeriode.sesi_ditutup_pada !== null)
+        return { status: "sesi_ditutup" };
+
+    const anak = await db.query<{ status: string; posyandu_id: number | null }>(
+        `SELECT a.status, w.posyandu_id
+           FROM anak a
+           LEFT JOIN wilayah_rt w ON w.id = a.wilayah_rt_id
+          WHERE a.id = $1 AND a.deleted_at IS NULL`,
+        [anakId],
+    );
+    const dataAnak = anak.rows[0];
+    if (dataAnak === undefined) return { status: "anak_tidak_ada" };
+    if (dataAnak.status !== "aktif") return { status: "anak_tidak_aktif" };
+    if (dataAnak.posyandu_id !== dataPeriode.posyandu_id)
+        return { status: "di_luar_posyandu" };
+
+    const sudahDiukur = await db.query<{ ada: boolean }>(
+        `SELECT EXISTS (
+            SELECT 1 FROM pengukuran WHERE periode_id = $1 AND anak_id = $2
+         ) AS ada`,
+        [periodeId, anakId],
+    );
+    const status = sudahDiukur.rows[0].ada ? "selesai" : "menunggu";
+    const hasil = await db.query<{ id: number }>(
+        `INSERT INTO sasaran
+             (periode_id, anak_id, status, diselesaikan_pada, diselesaikan_oleh)
+         VALUES ($1, $2, $3::varchar,
+                 CASE WHEN $3::varchar = 'selesai' THEN now() ELSE NULL END,
+                 CASE WHEN $3::varchar = 'selesai' THEN $4::bigint ELSE NULL END)
+         ON CONFLICT (periode_id, anak_id) DO NOTHING
+         RETURNING id`,
+        [periodeId, anakId, status, penggunaId],
+    );
+    if (hasil.rows[0] === undefined) return { status: "sudah_ada" };
+    return {
+        status: "berhasil",
+        sasaranId: hasil.rows[0].id,
+        sudahDiukur: sudahDiukur.rows[0].ada,
+    };
+}
+
+export async function ubahSasaran(
+    db: PoolClient,
+    sasaranId: number,
+    status: StatusSasaran,
+    catatan: string | null,
+    pengguna: PenggunaAktif,
+): Promise<"berhasil" | "periode_ditutup" | "tidak_ada"> {
+    const selesai = status !== "menunggu";
+    const hasil = await db.query(
+        `UPDATE sasaran s
+            SET status = $2, catatan = $3,
+                diselesaikan_pada = CASE WHEN $4 THEN coalesce(diselesaikan_pada, now()) ELSE NULL END,
+                diselesaikan_oleh = CASE WHEN $4 THEN $5 ELSE NULL END
+           FROM periode p
+          WHERE s.id = $1 AND p.id = s.periode_id
+            AND p.sesi_ditutup_pada IS NULL
+            AND ($6::boolean OR p.posyandu_id=ANY($7::bigint[]))
+          RETURNING s.id`,
+        [sasaranId, status, catatan, selesai, pengguna.id, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
+    );
+    if (hasil.rows.length > 0) return "berhasil";
+    const ada = await db.query<{ ada: boolean; ditutup: boolean }>(
+        `SELECT EXISTS (SELECT 1 FROM sasaran s JOIN periode p ON p.id=s.periode_id
+                         WHERE s.id=$1 AND ($2::boolean OR p.posyandu_id=ANY($3::bigint[]))) AS ada,
+                EXISTS (SELECT 1 FROM sasaran s JOIN periode p ON p.id=s.periode_id
+                         WHERE s.id=$1 AND p.sesi_ditutup_pada IS NOT NULL
+                           AND ($2::boolean OR p.posyandu_id=ANY($3::bigint[]))) AS ditutup`,
+        [sasaranId, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
+    );
+    if (!ada.rows[0]?.ada) return "tidak_ada";
+    return ada.rows[0].ditutup ? "periode_ditutup" : "tidak_ada";
+}
+
+async function posyanduUtama(db: PoolClient, pengguna: PenggunaAktif): Promise<number> {
+    const terpilih = pengguna.posyanduIds?.[0];
+    if (!pengguna.superAdmin && terpilih !== undefined) return terpilih;
     const { rows } = await db.query<{ id: number }>(
         `SELECT id FROM posyandu
           ORDER BY (slug = 'posyandu-tulip') DESC, id
@@ -84,32 +329,42 @@ async function simpanAnakImpor(
     if (wilayahId === null) return null;
 
     const baku = namaBaku(data.nama);
-    const ditemukan =
-        data.nik !== null
-            ? await db.query<{ id: number; orang_tua_id: number | null }>(
-                  `SELECT id, orang_tua_id FROM anak
-                WHERE nik = $1 AND deleted_at IS NULL
-                FOR UPDATE`,
-                  [data.nik],
-              )
-            : await db.query<{ id: number; orang_tua_id: number | null }>(
-                  `SELECT id, orang_tua_id FROM anak
-                WHERE nik IS NULL AND nama_baku = $1 AND tgl_lahir = $2
-                  AND jk = $3 AND wilayah_rt_id = $4 AND deleted_at IS NULL
-                ORDER BY id LIMIT 2 FOR UPDATE`,
-                  [baku, data.tglLahir, data.jk, wilayahId],
-              );
+    type AnakTersimpan = {
+        id: number;
+        orang_tua_id: number | null;
+        nik: string | null;
+    };
+    let lama: AnakTersimpan | undefined;
+    if (data.nik !== null) {
+        const ditemukan = await db.query<AnakTersimpan>(
+            `SELECT id, orang_tua_id, nik FROM anak
+              WHERE nik = $1 AND deleted_at IS NULL
+              FOR UPDATE`,
+            [data.nik],
+        );
+        lama = ditemukan.rows[0];
+    } else {
+        const ditemukan = await db.query<AnakTersimpan>(
+            `SELECT id, orang_tua_id, nik FROM anak
+              WHERE nama_baku = $1 AND tgl_lahir = $2
+                AND jk = $3 AND wilayah_rt_id = $4 AND deleted_at IS NULL
+              ORDER BY id LIMIT 2 FOR UPDATE`,
+            [baku, data.tglLahir, data.jk, wilayahId],
+        );
 
-    // Dua profil tanpa NIK yang sama tidak boleh disatukan diam-diam.
-    if (data.nik === null && ditemukan.rows.length > 1) return null;
-    const lama = ditemukan.rows[0];
+        // Nama + tanggal lahir + jenis kelamin + RT harus unik. Saat NIK
+        // tidak ada di Excel, pertahankan NIK tersimpan jika identitas ini
+        // cocok tepat pada satu profil, bukan menggantinya dengan EPPGBM/null.
+        if (ditemukan.rows.length > 1) return null;
+        lama = ditemukan.rows[0];
+    }
     const orangTuaId = await simpanOrangTua(
         db,
         data,
         lama?.orang_tua_id ?? null,
     );
     const nilai = [
-        data.nik,
+        data.nik ?? lama?.nik ?? null,
         orangTuaId,
         wilayahId,
         data.nama,
@@ -153,7 +408,7 @@ export async function gantiSasaran(
     namaFile: string,
     sheet: SheetSasaran,
 ): Promise<RingkasanImpor> {
-    const posyanduId = await posyanduUtama(db);
+    const posyanduId = await posyanduUtama(db, pengguna);
     const [tahun, bulan] = sheet.periode.split("-").map(Number);
     const periode = await db.query<{ id: number }>(
         `INSERT INTO periode (posyandu_id, bulan, tahun)
@@ -179,8 +434,22 @@ export async function gantiSasaran(
     let perluVerifikasi = 0;
 
     for (const data of sheet.baris) {
-        const anak = await simpanAnakImpor(db, posyanduId, data);
         const masalah = [...data.masalah];
+
+        // Konflik NIK diketahui sebelum menyentuh tabel anak. Kedua/semua
+        // baris yang berbagi NIK ditahan agar tidak saling menimpa profil.
+        if (data.identitasDuplikat) {
+            perluVerifikasi++;
+            await db.query(
+                `INSERT INTO import_konflik
+                     (import_batch_id, baris_asal, jenis, payload)
+                 VALUES ($1, $2, 'perlu_verifikasi', $3::jsonb)`,
+                [batchId, data.barisAsal, JSON.stringify({ masalah, data })],
+            );
+            continue;
+        }
+
+        const anak = await simpanAnakImpor(db, posyanduId, data);
         if (anak === null)
             masalah.push(
                 `RT ${data.rt} tidak tersedia atau identitas tidak unik`,
@@ -214,9 +483,24 @@ export async function gantiSasaran(
         }
     }
 
-    // Penggantian berlaku hanya pada tabel keanggotaan sasaran periode ini.
-    // Master anak dan pengukuran periode yang sudah ada tidak disentuh.
-    await db.query("DELETE FROM sasaran WHERE periode_id = $1", [periodeId]);
+    // Pertahankan ID sasaran yang sudah ada. Antrean layanan merujuk ke ID ini;
+    // menghapus lalu memasukkan ulang sasaran akan menghapus antrean lewat FK.
+    // Baris yang tidak lagi ada di Excel dinonaktifkan secara lunak jika belum
+    // punya pengukuran atau check-in, sehingga riwayat operasional tetap utuh.
+    await db.query(
+        `UPDATE sasaran s
+            SET status='batal', diselesaikan_pada=now(), diselesaikan_oleh=$3
+          WHERE s.periode_id=$1 AND s.status='menunggu'
+            AND NOT (s.anak_id = ANY($2::bigint[]))
+            AND NOT EXISTS (
+                SELECT 1 FROM pengukuran p
+                 WHERE p.periode_id=s.periode_id AND p.anak_id=s.anak_id
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM antrean_layanan q WHERE q.sasaran_id=s.id
+            )`,
+        [periodeId, [...siap.keys()], pengguna.id],
+    );
     for (const item of siap.values()) {
         const sudahDiukur = await db.query<{ ada: boolean }>(
             "SELECT EXISTS (SELECT 1 FROM pengukuran WHERE periode_id=$1 AND anak_id=$2) AS ada",
@@ -232,7 +516,24 @@ export async function gantiSasaran(
             `INSERT INTO sasaran
                  (periode_id, anak_id, import_batch_id, status, diselesaikan_pada)
              VALUES ($1, $2, $3, $4::varchar(16),
-                     CASE WHEN $4::text='selesai' THEN now() ELSE NULL END)`,
+                     CASE WHEN $4::text='selesai' THEN now() ELSE NULL END)
+             ON CONFLICT (periode_id, anak_id) DO UPDATE
+                SET import_batch_id=EXCLUDED.import_batch_id,
+                    status=CASE
+                        WHEN EXCLUDED.status='pindah' THEN 'pindah'
+                        WHEN sasaran.status IN ('selesai','tidak_hadir') THEN sasaran.status
+                        ELSE EXCLUDED.status
+                    END,
+                    diselesaikan_pada=CASE
+                        WHEN EXCLUDED.status='pindah' THEN coalesce(sasaran.diselesaikan_pada, now())
+                        WHEN sasaran.status IN ('selesai','tidak_hadir') THEN sasaran.diselesaikan_pada
+                        WHEN EXCLUDED.status='selesai' THEN coalesce(sasaran.diselesaikan_pada, now())
+                        ELSE NULL
+                    END,
+                    diselesaikan_oleh=CASE
+                        WHEN sasaran.status IN ('selesai','tidak_hadir') THEN sasaran.diselesaikan_oleh
+                        ELSE NULL
+                    END`,
             [periodeId, item.anakId, batchId, status],
         );
     }
@@ -262,13 +563,10 @@ export async function daftarSasaran(
     pengguna: PenggunaAktif,
     kodePeriode?: string,
 ) {
-    const rt = rtYangBolehDilihat(pengguna);
-    const parameter: unknown[] = [];
-    let kondisi = "";
+    let tahun: number | null = null;
+    let bulan: number | null = null;
     if (kodePeriode !== undefined) {
-        const [tahun, bulan] = kodePeriode.split("-").map(Number);
-        parameter.push(tahun, bulan);
-        kondisi = "AND p.tahun=$1 AND p.bulan=$2";
+        [tahun, bulan] = kodePeriode.split("-").map(Number);
     }
     const periode = await pool.query<{
         id: number;
@@ -284,10 +582,11 @@ export async function daftarSasaran(
                 p.sesi_ditutup_pada AS "sesiDitutupPada"
            FROM periode p
           WHERE EXISTS (SELECT 1 FROM sasaran s WHERE s.periode_id=p.id)
-            ${kondisi}
+            AND ($1::int IS NULL OR (p.tahun=$1 AND p.bulan=$2))
+            AND ($3::boolean OR p.posyandu_id=ANY($4::bigint[]))
           ORDER BY p.tahun DESC, p.bulan DESC
           LIMIT 1`,
-        parameter,
+        [tahun, bulan, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
     );
     const aktif = periode.rows[0] ?? null;
     if (aktif === null) {
@@ -314,9 +613,9 @@ export async function daftarSasaran(
            JOIN anak a ON a.id=s.anak_id AND a.deleted_at IS NULL
            LEFT JOIN orang_tua o ON o.id=a.orang_tua_id
            LEFT JOIN wilayah_rt w ON w.id=a.wilayah_rt_id
-          WHERE s.periode_id=$1 AND ($2::text IS NULL OR w.rt=$2)
+          WHERE s.periode_id=$1
           ORDER BY a.nama_baku, a.id`,
-        [aktif.id, rt],
+        [aktif.id],
     );
     const hitung = (status: string) =>
         rows.filter((baris) => baris.status === status).length;
@@ -333,35 +632,56 @@ export async function daftarSasaran(
     };
 }
 
+export async function daftarPeriodeSasaran(pool: Pool, pengguna: PenggunaAktif) {
+    const { rows } = await pool.query<{
+        id: number;
+        periode: string;
+        label: string;
+        tanggalKegiatan: string | null;
+        sesiDitutupPada: string | null;
+    }>(
+        `SELECT p.id,
+                p.tahun || '-' || lpad(p.bulan::text, 2, '0') AS periode,
+                to_char(make_date(p.tahun, p.bulan, 1), 'TMMonth YYYY') AS label,
+                to_char(p.tanggal_kegiatan, 'YYYY-MM-DD') AS "tanggalKegiatan",
+                p.sesi_ditutup_pada AS "sesiDitutupPada"
+           FROM periode p
+          WHERE EXISTS (SELECT 1 FROM sasaran s WHERE s.periode_id=p.id)
+            AND ($1::boolean OR p.posyandu_id=ANY($2::bigint[]))
+          ORDER BY p.tahun DESC, p.bulan DESC`,
+        [pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
+    );
+    return rows;
+}
+
 export async function tutupSesi(
     db: PoolClient,
     pengguna: PenggunaAktif,
     periodeId: number,
 ): Promise<{ ditandaiTidakHadir: number; sesiDitutupPada: string | null }> {
-    const rt = rtYangBolehDilihat(pengguna);
     const hasil = await db.query(
-        `UPDATE sasaran s
+        `UPDATE sasaran
             SET status='tidak_hadir', diselesaikan_pada=now(), diselesaikan_oleh=$2,
                 catatan=coalesce(catatan, 'Sesi ditutup: orang tua tidak hadir')
-           FROM anak a
-           LEFT JOIN wilayah_rt w ON w.id=a.wilayah_rt_id
-          WHERE s.anak_id=a.id AND s.periode_id=$1 AND s.status='menunggu'
-            AND ($3::text IS NULL OR w.rt=$3)`,
-        [periodeId, pengguna.id, rt],
+          WHERE periode_id=$1 AND status='menunggu'
+            AND EXISTS (SELECT 1 FROM periode p WHERE p.id=$1
+                         AND ($3::boolean OR p.posyandu_id=ANY($4::bigint[])))`,
+        [periodeId, pengguna.id, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
     );
     const tersisa = await db.query<{ jumlah: number }>(
-        `SELECT count(*)::int AS jumlah FROM sasaran
-          WHERE periode_id=$1 AND status='menunggu'`,
-        [periodeId],
+        `SELECT count(*)::int AS jumlah FROM sasaran s JOIN periode p ON p.id=s.periode_id
+          WHERE s.periode_id=$1 AND s.status='menunggu'
+            AND ($2::boolean OR p.posyandu_id=ANY($3::bigint[]))`,
+        [periodeId, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
     );
     let ditutup: string | null = null;
     if ((tersisa.rows[0]?.jumlah ?? 0) === 0) {
         const periode = await db.query<{ sesiDitutupPada: string }>(
             `UPDATE periode SET sesi_ditutup_pada=coalesce(sesi_ditutup_pada, now()),
                                 sesi_ditutup_oleh=$2
-              WHERE id=$1
+              WHERE id=$1 AND ($3::boolean OR posyandu_id=ANY($4::bigint[]))
               RETURNING sesi_ditutup_pada AS "sesiDitutupPada"`,
-            [periodeId, pengguna.id],
+            [periodeId, pengguna.id, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
         );
         ditutup = periode.rows[0]?.sesiDitutupPada ?? null;
     }

@@ -93,12 +93,13 @@ describe('susunPesan', () => {
         assert.match(pesan, /Posyandu Tulip RW 18$/);
     });
 
-    test('memuat angka, kategori tanpa kode, dan selisih 2 bulan', () => {
+    test('memuat angka, kategori yang mudah dipahami, dan selisih 2 bulan', () => {
         const pesan = susunPesan(bahan());
 
         assert.match(pesan, /• Berat badan 10,9 kg: normal/);
         assert.match(pesan, /• Tinggi badan 88,7 cm: normal/);
         assert.match(pesan, /• Status gizi: gizi baik/);
+        assert.doesNotMatch(pesan, /BB\/U|TB\/U|SD/);
         assert.match(pesan, /• Berat badan naik 0,3 kg dibanding 2 bulan lalu/);
     });
 
@@ -169,7 +170,50 @@ describe('susunPesan', () => {
             }),
         );
 
-        assert.match(pesan, /• Lingkar lengan atas 15,2 cm$/m);
+        assert.match(pesan, /• Lingkar lengan atas 15,2 cm/);
         assert.match(pesan, /• Lingkar kepala 49,0 cm: normal/);
+    });
+
+    test('menyertakan hasil diskusi tumbuh kembang, rekomendasi rumah, dan tautan PDF bila tersedia', () => {
+        const pesan = susunPesan(
+            bahan({
+                tautan: 'http://localhost:5173/#/hasil/token-uji',
+                diskusiKia: {
+                    kelompokLabel: '24–35 bulan (2–3 tahun)',
+                    ya: 7,
+                    tidak: 1,
+                    belum: 0,
+                    total: 8,
+                    arahan: 'Segera konsultasikan ke Puskesmas untuk pemeriksaan perkembangan.',
+                    catatan: 'Anak aktif bermain bola bersama kakak.',
+                    tindakLanjut: 'Kunjungan ulang minggu depan.',
+                    makan: ['Makan makanan keluarga 3 kali sehari.'],
+                    stimulasi: ['Ajak anak bercerita dan menyebut nama benda.'],
+                },
+            }),
+        );
+
+        assert.match(
+            pesan,
+            /\*Hasil Diskusi Tumbuh Kembang \(24–35 bulan \(2–3 tahun\)\)\*/,
+        );
+        assert.match(
+            pesan,
+            /• Pemantauan: 7 sesuai \(Ya\), 1 perlu perhatian \(Tidak\) dari 8 butir/,
+        );
+        assert.match(
+            pesan,
+            /• Catatan pengamatan: Anak aktif bermain bola bersama kakak\./,
+        );
+        assert.match(
+            pesan,
+            /• Tindak lanjut disepakati: Kunjungan ulang minggu depan\./,
+        );
+        assert.match(pesan, /\*Rekomendasi perawatan & stimulasi di rumah:\*/);
+        assert.match(pesan, /• Makan makanan keluarga 3 kali sehari\./);
+        assert.match(
+            pesan,
+            /Ringkasan lengkap, panduan perawatan, dan grafik pertumbuhan \(PDF\): http:\/\/localhost:5173\/#\/hasil\/token-uji/,
+        );
     });
 });

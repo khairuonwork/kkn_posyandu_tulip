@@ -9,14 +9,14 @@
 
 export type JenisKelamin = 'L' | 'P';
 
-export type Peran = 'kader' | 'bidan' | 'admin';
+export type Peran = 'kader' | 'bidan' | 'admin' | 'kms';
 
 /**
  * Akun yang boleh masuk ke Portal.
  *
- * Dikelola Admin lewat kartu Kelola pengguna di Pengaturan. `rt` hanya berarti
- * untuk kader — bidan dan admin melihat seluruh RW, jadi RT binaan tidak punya
- * arti bagi keduanya dan disimpan null.
+ * Dikelola Admin lewat kartu Kelola pengguna di Pengaturan. `rt` untuk kader
+ * hanya mencatat penugasan; semua kader tetap dapat melihat seluruh RT.
+ * Bidan dan admin tidak memiliki RT penugasan dan nilainya disimpan null.
  *
  * Dinonaktifkan, bukan dihapus: laporan Posyandu mencatat siapa yang mengubah
  * apa, dan baris audit yang menunjuk akun yang sudah lenyap tidak bisa dibaca
@@ -30,6 +30,11 @@ export type Pengguna = {
     peran: Peran;
     rt: string | null;
     aktif: boolean;
+    /** Cluster tunggal bagi akun operasional; null untuk superadmin global. */
+    posyanduId?: number | null;
+    posyanduNama?: string | null;
+    rw?: string | null;
+    superAdmin?: boolean;
 };
 
 /** Enam indeks antropometri, sama dengan App\Enums\Indeks. */
@@ -60,11 +65,14 @@ export type Anak = {
     bbLahirMeragukan: boolean;
     pbLahirCm: number | null;
     bukuKia: boolean;
+    kbIbu?: boolean | null;
+    desil?: number | null;
     imd: boolean;
     rt: string | null;
     rw: string;
     namaOrtu: string | null;
     nikOrtu: string | null;
+    noWa: string | null;
 };
 
 export type PenilaianGizi = {

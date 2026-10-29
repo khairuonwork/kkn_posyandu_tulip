@@ -29,6 +29,8 @@ Bertemu istilah asing — SKDN, KBM, NTOB, D/S? Semuanya ada di **[Glosarium](gl
 
 Cara menjalankan aplikasinya ada di [`README.md`](../README.md) di akar repo.
 
+Tim yang menerima pengelolaan host/API dapat mulai dari [Panduan serah-terima server](panduan-serah-terima-server.md), lalu [Panduan menjalankan server LAN](menjalankan-server-lan.md) untuk prosedur koneksi lokal.
+
 ---
 
 ## Sedang mengerjakan sesuatu?

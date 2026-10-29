@@ -6,6 +6,7 @@
  */
 
 import { Router } from 'express';
+import type { Request } from 'express';
 import type { Pool } from 'pg';
 
 import * as penggunaRepo from '../repositories/pengguna-repository.ts';
@@ -16,6 +17,11 @@ import { tokenPermintaan, wajibMasuk } from './middleware.ts';
 
 function alamat(ip: string | undefined): string {
     return ip ?? 'tidak-diketahui';
+}
+
+function idPerangkat(req: Request): string {
+    const id = req.get('x-simpatik-device-id')?.trim() ?? '';
+    return /^[A-Za-z0-9_-]{8,96}$/.test(id) ? id : 'legacy';
 }
 
 export function ruteAuth(pool: Pool): Router {
@@ -33,7 +39,8 @@ export function ruteAuth(pool: Pool): Router {
         }
 
         const ip = alamat(req.ip);
-        const tahan = sisaTahanan(username, ip);
+        const perangkat = idPerangkat(req);
+        const tahan = sisaTahanan(username, ip, perangkat);
 
         if (tahan > 0) {
             res.set('Retry-After', String(tahan))
@@ -45,7 +52,7 @@ export function ruteAuth(pool: Pool): Router {
 
         masuk(pool, username, kataSandi)
             .then((hasil) => {
-                catatBerhasil(username, ip);
+                catatBerhasil(username, ip, perangkat);
                 pasangCookieSesi(res, hasil.token);
 
                 res.json({ pengguna: hasil.pengguna });
@@ -59,8 +66,9 @@ export function ruteAuth(pool: Pool): Router {
 
                 // Akun nonaktif ikut dihitung sebagai kegagalan: tanpa itu,
                 // akun yang dinonaktifkan menjadi sasaran tebakan tanpa batas.
-                catatGagal(username, ip);
+                catatGagal(username, ip, perangkat);
 
+                res.locals.diagnostikLogin = galat.diagnostik;
                 res.status(401).json({ galat: galat.message });
             });
     });
@@ -78,7 +86,8 @@ export function ruteAuth(pool: Pool): Router {
         }
 
         const ip = alamat(req.ip);
-        const tahan = sisaTahanan(username, ip);
+        const perangkat = idPerangkat(req);
+        const tahan = sisaTahanan(username, ip, perangkat);
         if (tahan > 0) {
             res.set('Retry-After', String(tahan)).status(429).json({
                 galat: `Terlalu banyak percobaan. Silakan coba lagi dalam ${tahan} detik.`,
@@ -88,7 +97,7 @@ export function ruteAuth(pool: Pool): Router {
 
         masuk(pool, username, kataSandi)
             .then((hasil) => {
-                catatBerhasil(username, ip);
+                catatBerhasil(username, ip, perangkat);
                 res.json({
                     token: hasil.token,
                     kedaluwarsa: hasil.kedaluwarsa.toISOString(),
@@ -101,7 +110,8 @@ export function ruteAuth(pool: Pool): Router {
                     return;
                 }
 
-                catatGagal(username, ip);
+                catatGagal(username, ip, perangkat);
+                res.locals.diagnostikLogin = galat.diagnostik;
                 res.status(401).json({ galat: galat.message });
             });
     });
@@ -150,7 +160,13 @@ export function ruteAuth(pool: Pool): Router {
             return;
         }
 
-        res.json({ pengguna: { ...req.pengguna, nama: akun.nama, username: akun.username } });
+        res.json({ pengguna: {
+            ...req.pengguna,
+            nama: akun.nama,
+            username: akun.username,
+            posyanduNama: akun.posyanduNama,
+            rw: akun.rw,
+        } });
     });
 
     return rute;

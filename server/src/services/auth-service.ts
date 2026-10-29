@@ -24,11 +24,13 @@ export type SebabGagal = 'kredensial' | 'nonaktif';
 
 export class GalatMasuk extends Error {
     readonly sebab: SebabGagal;
+    readonly diagnostik: string;
 
-    constructor(sebab: SebabGagal) {
-        super(sebab === 'nonaktif' ? 'Akun tidak aktif. Hubungi admin.' : 'Nama pengguna atau kata sandi tidak cocok. Periksa kembali, lalu coba lagi.');
+    constructor(sebab: SebabGagal, diagnostik: string = sebab) {
+        super(sebab === 'nonaktif' ? 'Akun dinonaktifkan' : 'Nama pengguna atau kata sandi tidak cocok. Periksa kembali, lalu ulangi.');
         this.name = 'GalatMasuk';
         this.sebab = sebab;
+        this.diagnostik = diagnostik;
     }
 }
 
@@ -45,11 +47,11 @@ export async function masuk(pool: Pool, username: string, kataSandi: string): Pr
     if (pengguna === null) {
         await verifikasiKataSandi(kataSandi, HASH_UMPAN);
 
-        throw new GalatMasuk('kredensial');
+        throw new GalatMasuk('kredensial', 'username_tidak_ditemukan');
     }
 
     if (!(await verifikasiKataSandi(kataSandi, pengguna.kataSandiHash))) {
-        throw new GalatMasuk('kredensial');
+        throw new GalatMasuk('kredensial', 'password_tidak_cocok');
     }
 
     // Diperiksa setelah kata sandi, bukan sebelum: pesan "akun dinonaktifkan"

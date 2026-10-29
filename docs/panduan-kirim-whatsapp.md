@@ -66,7 +66,7 @@ Aturan penulisan:
 
 - Nomor uji ditulis `62` di depan, tanpa `+`, spasi, atau tanda hubung.
 - Alamat portal ditulis lengkap dengan `http://` dan nomor porta, **tanpa garis miring di akhir**.
-- Pada jaringan lokal, isi alamat dengan alamat IP komputer server. Skrip `mulai-qa-lan.ps1` mencetak alamat itu saat dijalankan.
+- Pada jaringan lokal, isi alamat dengan alamat IP komputer server. Skrip `mulai-server.bat` mencetak alamat itu saat dijalankan.
 - Alamat IP bisa berganti saat Wi-Fi berpindah atau komputer dinyalakan ulang. Jika tautan tiba-tiba tidak terbuka, periksa dulu apakah alamat ini masih sama.
 
 Berkas `.env.local` tidak ikut Git.
@@ -78,11 +78,11 @@ Server API dan server klien harus dimulai ulang agar membaca isian baru. Pengatu
 Jika memakai mode QA satu Wi-Fi, hentikan lalu jalankan lagi:
 
 ```powershell
-.\hentikan-qa-lan.ps1
+.\hentikan-server.bat
 ```
 
 ```powershell
-.\mulai-qa-lan.ps1
+.\mulai-server.bat
 ```
 
 ## Langkah 4 — Izinkan ponsel menjangkau komputer

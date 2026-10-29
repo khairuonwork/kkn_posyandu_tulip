@@ -31,7 +31,17 @@ export function dapatkanPool(): pg.Pool {
         throw new Error('DATABASE_URL belum diatur. Salin .env.example menjadi .env.');
     }
 
-    pool = new pg.Pool({ connectionString: url });
+    const maksimum = Number(process.env.DB_POOL_MAX ?? 3);
+    if (!Number.isSafeInteger(maksimum) || maksimum < 1 || maksimum > 50) {
+        throw new Error('DB_POOL_MAX harus berupa bilangan bulat antara 1 dan 50.');
+    }
+    // Sisakan kapasitas Supabase untuk server lain dan pekerjaan administrasi.
+    pool = new pg.Pool({
+        connectionString: url,
+        max: maksimum,
+        connectionTimeoutMillis: 10_000,
+        application_name: 'simpatik',
+    });
 
     return pool;
 }

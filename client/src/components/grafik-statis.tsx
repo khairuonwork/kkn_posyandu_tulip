@@ -8,6 +8,7 @@
  */
 
 import { angka, zScore } from '@/lib/format';
+import { periodeGrafikBersambung } from '@/lib/grafik-acuan';
 import { nilaiPadaZ } from '@/lib/z-score';
 import type { TabelLms } from '@/lib/z-score';
 import type { JenisKelamin, Pengukuran } from '@/types/posyandu';
@@ -130,7 +131,13 @@ export default function GrafikStatis({
     for (const t of titik) {
         const akhir = segmen[segmen.length - 1];
 
-        if (akhir === undefined || t.umur - akhir[akhir.length - 1].umur > 1) {
+        if (
+            akhir === undefined ||
+            !periodeGrafikBersambung(
+                akhir[akhir.length - 1].periodeId,
+                t.periodeId,
+            )
+        ) {
             segmen.push([t]);
         } else {
             akhir.push(t);

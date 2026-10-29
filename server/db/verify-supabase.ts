@@ -62,7 +62,7 @@ try {
     );
 
     if (
-        migrasi.rowCount !== 9 ||
+        migrasi.rowCount !== 11 ||
         standar.rows[0].jumlah !== 906 ||
         objek.rowCount !== 2 ||
         fungsi.rowCount !== 2 ||

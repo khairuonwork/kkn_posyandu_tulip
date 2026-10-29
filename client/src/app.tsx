@@ -14,10 +14,16 @@ import { useEffect, useState } from 'react';
 import { bacaRute, boleh, Cangkang, KartuAkun } from '@/app-shell';
 import { PENGATURAN_BAWAAN, STANDARISASI_BAWAAN } from '@/data/contoh/store';
 import { Layar } from '@/layar';
-import { useAnakServer, useDetailAnakServer } from '@/lib/anak';
+import {
+    simpanProfilAnak,
+    useAnakServer,
+    useDetailAnakServer,
+} from '@/lib/anak';
 import { useBerandaServer } from '@/lib/beranda';
+import { useLaporanServer } from '@/lib/laporan';
 import { navigate, useAlamat } from '@/lib/nav';
 import { usePenggunaServer } from '@/lib/pengguna';
+import { mulaiHeartbeatWeb } from '@/lib/perangkat';
 import { useSesi } from '@/lib/sesi';
 import type { AnakBaru, PatchAnak } from '@/pages/anak/index';
 import Login from '@/pages/auth/login';
@@ -32,7 +38,8 @@ import type { Peran } from '@/types/posyandu';
 const NAMA_PERAN: Record<Peran, string> = {
     kader: 'Kader',
     bidan: 'Bidan',
-    admin: 'Admin',
+    admin: 'Admin Posyandu',
+    kms: 'Petugas KMS',
 };
 
 export default function App() {
@@ -61,9 +68,12 @@ function AplikasiPetugas() {
 
     return (
         <Portal
+            key={sesi.pengguna.id}
             nama={sesi.pengguna.nama}
             peran={sesi.pengguna.peran}
-            rt={sesi.pengguna.rt}
+            superAdmin={sesi.pengguna.superAdmin}
+            posyanduNama={sesi.pengguna.posyanduNama}
+            rw={sesi.pengguna.rw}
             // Alamat baru diganti setelah server menjawab. Menggantinya lebih
             // dulu membuat permintaan keluar berlomba dengan perpindahan
             // halaman — dan permintaan yang batal berarti sesinya tetap hidup
@@ -103,16 +113,21 @@ function Memeriksa() {
 function Portal({
     nama,
     peran,
-    rt,
+    superAdmin,
+    posyanduNama,
+    rw,
     onKeluar,
     onSesiBerakhir,
 }: {
     nama: string;
     peran: Peran;
-    rt: string | null;
+    superAdmin: boolean;
+    posyanduNama: string | null;
+    rw: string | null;
     onKeluar: () => void;
     onSesiBerakhir: () => void;
 }) {
+    useEffect(() => mulaiHeartbeatWeb(), []);
     const [periodePilihan, setPeriodePilihan] = useState('');
     const [tabLaporan, setTabLaporan] = useState<TabPeriode>('bulanan');
     /*
@@ -130,7 +145,7 @@ function Portal({
     const rute = bacaRute(alamat);
     const berandaServer = useBerandaServer(
         periodePilihan,
-        rute.nama === 'beranda',
+        rute.nama === 'beranda' || rute.nama === 'kms',
         onSesiBerakhir,
     );
     const periodeId = berandaServer.periodeAktif;
@@ -138,30 +153,49 @@ function Portal({
         peran === 'admin' && rute.nama === 'pengaturan',
         onSesiBerakhir,
     );
-    const anakServer = useAnakServer(onSesiBerakhir);
+    const anakServer = useAnakServer(
+        onSesiBerakhir,
+        rute.nama === 'balita' || rute.nama === 'kartu-sasaran',
+        rute.nama === 'balita' ? periodeId : '',
+    );
     const detailServer = useDetailAnakServer(
         rute.nama === 'detail' || rute.nama === 'riwayat' ? rute.id : null,
         onSesiBerakhir,
+        periodeId,
+    );
+    const laporanServer = useLaporanServer(
+        periodeId,
+        rute.nama === 'laporan',
+        onSesiBerakhir,
     );
 
-    // Alamat yang tidak boleh dibuka peran ini dikembalikan ke Beranda. Ini
+    // Akun KMS mulai dari antrean pemeriksaan; peran lain dari Beranda. Ini
     // kenyamanan; penolakan yang mengikat ada di server.
     useEffect(() => {
         if (!boleh(rute, peran)) {
-            navigate('/beranda');
+            navigate(peran === 'kms' ? '/kms' : '/beranda');
         }
     }, [peran, rute]);
+
+    if (!boleh(rute, peran)) {
+        return <Memeriksa />;
+    }
 
     return (
         <Cangkang
             peran={peran}
+            cakupanPosyandu={
+                superAdmin
+                    ? 'Superadmin · seluruh Posyandu'
+                    : `${posyanduNama ?? 'Posyandu'} · RW ${rw ?? '—'}`
+            }
             periodeId={periodeId}
             periode={berandaServer.periode}
             onPindahPeriode={setPeriodePilihan}
             kakiSidebar={
                 <KartuAkun
                     nama={nama}
-                    peran={NAMA_PERAN[peran]}
+                    peran={superAdmin ? 'Superadmin' : NAMA_PERAN[peran]}
                     onKeluar={onKeluar}
                 />
             }
@@ -169,7 +203,7 @@ function Portal({
             <Layar
                 rute={rute}
                 peran={peran}
-                rtPengguna={rt}
+                onSesiBerakhir={onSesiBerakhir}
                 periodeId={periodeId}
                 onPindahPeriode={setPeriodePilihan}
                 tabLaporan={tabLaporan}
@@ -177,14 +211,16 @@ function Portal({
                 koreksi={koreksi}
                 tambahan={tambahan}
                 onCobaKirim={() => undefined}
-                onSimpanAnak={(anakId, patch) =>
+                onSimpanAnak={async (anakId, patch) => {
+                    await simpanProfilAnak(anakId, patch, onSesiBerakhir);
                     setKoreksi((k) => ({
                         ...k,
                         // Dialog Ubah data dan editor baris mengisi kolom
                         // yang berbeda; keduanya ditumpuk, bukan saling ganti.
                         [anakId]: { ...k[anakId], ...patch },
-                    }))
-                }
+                    }));
+                    anakServer.muatUlang();
+                }}
                 onTambahAnak={(baru) => setTambahan((t) => [...t, baru])}
                 ambang={ambang}
                 onSimpanAmbang={setAmbang}
@@ -201,6 +237,7 @@ function Portal({
                 detailServer={detailServer}
                 periodeServer={berandaServer.periode}
                 berandaServer={berandaServer}
+                laporanServer={laporanServer}
             />
         </Cangkang>
     );

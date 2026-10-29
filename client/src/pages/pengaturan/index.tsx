@@ -27,7 +27,6 @@ import { useEffect, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import Dialog, { KakiDialog } from '@/components/dialog';
 import Halaman from '@/components/halaman';
-import Pilih from '@/components/pilih';
 import {
     Table,
     TableBody,
@@ -73,13 +72,16 @@ export type BarisRiwayatPengaturan = {
  * Daftar akun beserta pilihan RT binaan. Aplikasi memuatnya dari server;
  * demo selalu `siap` dengan data contoh.
  */
+export type PosyanduAkun = { id: number; nama: string; rw: string };
+export type WilayahRtAkun = { posyanduId: number; rt: string };
+
 export type DaftarPengguna =
     | { status: 'memuat' }
     | { status: 'gagal'; ulangi: () => void }
-    | { status: 'siap'; pengguna: Pengguna[]; wilayahRt: string[] };
+    | { status: 'siap'; pengguna: Pengguna[]; wilayahRt: WilayahRtAkun[]; posyandu: PosyanduAkun[] };
 
 /** Isian dialog akun. Kata sandi kosong pada perubahan berarti tidak diganti. */
-export type IsianPengguna = Omit<Pengguna, 'id'> & { kataSandi: string };
+export type IsianPengguna = Omit<Pengguna, 'id'> & { kataSandi: string; posyanduId: number | null };
 
 type Props = {
     ambang: Ambang;
@@ -127,7 +129,7 @@ const BAGIAN: {
         kunci: 'pengguna',
         label: 'Pengguna dan peran',
         ikon: Users,
-        keterangan: 'Akun yang bisa masuk, beserta peran dan RT binaannya.',
+        keterangan: 'Akun yang bisa masuk, beserta peran dan cakupan aksesnya.',
     },
     {
         kunci: 'standar',
@@ -219,10 +221,11 @@ const AMBANG_Z = [
 const NAMA_PERAN: Record<Peran, string> = {
     kader: 'Kader',
     bidan: 'Bidan',
-    admin: 'Admin',
+    admin: 'Admin Posyandu',
+    kms: 'Petugas KMS',
 };
 
-const URUTAN_PERAN: Peran[] = ['kader', 'bidan', 'admin'];
+const URUTAN_PERAN: Peran[] = ['kader', 'bidan', 'admin', 'kms'];
 
 /** Sama dengan `SANDI_MINIMAL` di server/src/auth/akun.ts. */
 const SANDI_MINIMAL = 8;
@@ -419,7 +422,7 @@ export default function Pengaturan({
                     aria-labelledby="judul-bagian"
                     className="flex min-w-0 flex-col lg:min-h-0"
                 >
-                    <div className="shrink-0 border-b border-border px-7 py-4">
+                    <div className="shrink-0 border-b border-border px-7 pt-4.5 pb-3.5">
                         <h2
                             id="judul-bagian"
                             className="text-xl leading-tight font-extrabold"
@@ -441,7 +444,7 @@ export default function Pengaturan({
                                     <h3 className="mb-2 text-base font-extrabold">
                                         Rentang wajar
                                     </h3>
-                                    <table className="w-full table-fixed text-base">
+                                    <table className="w-full table-fixed">
                                         <colgroup>
                                             <col className="w-[34%]" />
                                             <col />
@@ -519,7 +522,7 @@ export default function Pengaturan({
                                                         >
                                                             <td
                                                                 colSpan={3}
-                                                                className="pb-2 text-right text-base font-semibold text-tone-red"
+                                                                className="pb-2 text-right text-sm font-semibold text-tone-red"
                                                             >
                                                                 Batas maksimal
                                                                 harus lebih
@@ -717,7 +720,7 @@ export default function Pengaturan({
                                                     className={`flex cursor-pointer gap-3.5 rounded-lg border-2 px-4.5 py-3.5 ${
                                                         dipilih
                                                             ? 'border-primary bg-accent'
-                                                            : 'border-border-strong bg-card hover:bg-surface'
+                                                            : 'border-border bg-card hover:bg-surface'
                                                     }`}
                                                 >
                                                     <input
@@ -750,7 +753,7 @@ export default function Pengaturan({
                                             );
                                         })}
                                     </fieldset>
-                                    <label className="flex cursor-pointer gap-3.5 rounded-lg border-2 border-border-strong bg-surface px-4.5 py-3.5">
+                                    <label className="flex cursor-pointer gap-3.5 rounded-lg border-2 border-border bg-surface px-4.5 py-3.5">
                                         <input
                                             type="checkbox"
                                             checked={
@@ -873,9 +876,7 @@ export default function Pengaturan({
                         </>
                     )}
 
-                    {/* Akun disimpan lewat dialognya sendiri; bilah Simpan pengaturan
-                        di bagian itu hanya membingungkan. */}
-                    {bagian !== 'riwayat' && bagian !== 'pengguna' && (
+                    {bagian !== 'riwayat' && (
                         <BilahSimpan
                             perubahan={perubahan}
                             bisaSimpan={bisaSimpan}
@@ -890,7 +891,7 @@ export default function Pengaturan({
             {tujuan !== null && (
                 <Dialog
                     judul={`${perubahan.length} perubahan belum disimpan.`}
-                    keterangan="Perubahan ini hilang bila pindah tanpa menyimpan."
+                    keterangan="Perubahan ini hilang bila Anda pindah tanpa menyimpan."
                     lebar="w-[560px]"
                     onTutup={() => setTujuan(null)}
                 >
@@ -987,7 +988,7 @@ function IsianAngka({
             {berlabel && (
                 <label
                     htmlFor={id}
-                    className="mb-2 block text-base font-semibold text-muted-foreground"
+                    className="mb-1.5 block text-sm font-semibold text-muted-foreground"
                 >
                     {label}
                 </label>
@@ -1010,12 +1011,12 @@ function IsianAngka({
                     onChange={(e) => onGanti(kunci, e.target.value)}
                     className="min-w-0 flex-1 bg-transparent px-2.5 text-right font-bold outline-none"
                 />
-                <span className="flex w-14 shrink-0 items-center justify-center border-l-2 border-border-strong bg-surface-alt text-sm text-muted-foreground">
+                <span className="flex w-14 shrink-0 items-center justify-center border-l-2 border-border bg-surface-alt text-sm text-muted-foreground">
                     {satuan}
                 </span>
             </div>
             {rusak ? (
-                <p className="mt-1 text-base font-semibold text-tone-red">
+                <p className="mt-1 text-sm font-semibold text-tone-red">
                     Isi dengan angka.
                 </p>
             ) : (
@@ -1177,14 +1178,14 @@ function BagianPengguna({
                             Daftar akun tidak dapat dimuat
                         </p>
                         <p className="mt-0.5 text-sm">
-                            Periksa sambungan ke server, lalu coba lagi.
+                            Periksa sambungan ke server, lalu ulangi.
                         </p>
                         <button
                             type="button"
                             onClick={daftar.ulangi}
                             className="tombol-kedua mt-3 px-5.5"
                         >
-                            Coba lagi
+                            Ulangi
                         </button>
                     </div>
                 </div>
@@ -1192,7 +1193,7 @@ function BagianPengguna({
         );
     }
 
-    const { pengguna, wilayahRt } = daftar;
+    const { pengguna, wilayahRt, posyandu } = daftar;
     const aktif = pengguna.filter((p) => p.aktif).length;
     const diubah =
         typeof dialog === 'number'
@@ -1229,13 +1230,22 @@ function BagianPengguna({
             >
                 <TableHeader className="sticky top-0 z-10">
                     <TableRow>
-                        <TableHead scope="col" className="first:pl-7">
+                        <TableHead scope="col" className="bg-card first:pl-7">
                             Nama dan nama pengguna
                         </TableHead>
-                        <TableHead scope="col">Peran</TableHead>
-                        <TableHead scope="col">RT binaan</TableHead>
-                        <TableHead scope="col">Status</TableHead>
-                        <TableHead scope="col" className="text-right last:pr-7">
+                        <TableHead scope="col" className="bg-card">
+                            Peran
+                        </TableHead>
+                        <TableHead scope="col" className="bg-card">
+                            Posyandu / RW
+                        </TableHead>
+                        <TableHead scope="col" className="bg-card">
+                            Status
+                        </TableHead>
+                        <TableHead
+                            scope="col"
+                            className="bg-card text-right last:pr-7"
+                        >
                             Aksi
                         </TableHead>
                     </TableRow>
@@ -1255,11 +1265,13 @@ function BagianPengguna({
                             </TableCell>
                             <TableCell>{NAMA_PERAN[p.peran]}</TableCell>
                             <TableCell className="whitespace-nowrap">
-                                {/* Bidan dan admin memang melihat semua RT;
-                                    itu keterangan, bukan data yang hilang. */}
-                                {p.peran === 'kader' && p.rt !== null
-                                    ? labelRt(p.rt)
-                                    : 'Semua RT'}
+                                {p.superAdmin ? (
+                                    <span className="font-semibold text-primary">Superadmin · semua RW</span>
+                                ) : p.posyanduNama ? (
+                                    <span>{p.posyanduNama} · RW {p.rw ?? '—'}</span>
+                                ) : (
+                                    <span className="text-tone-red">Belum ditetapkan</span>
+                                )}
                             </TableCell>
                             <TableCell>
                                 <span
@@ -1310,9 +1322,10 @@ function BagianPengguna({
                     pengguna={diubah}
                     terkunci={
                         diubah !== null &&
-                        adminAktifTerakhir(pengguna, diubah.id)
+                        (diubah.superAdmin === true || adminAktifTerakhir(pengguna, diubah.id))
                     }
                     wilayahRt={wilayahRt}
+                    posyandu={posyandu}
                     usernameTerpakai={pengguna
                         .filter((p) => p.id !== diubah?.id)
                         .map((p) => p.username)}
@@ -1340,6 +1353,7 @@ function DialogPengguna({
     pengguna,
     terkunci,
     wilayahRt,
+    posyandu,
     usernameTerpakai,
     onTutup,
     onSimpan,
@@ -1348,7 +1362,8 @@ function DialogPengguna({
     pengguna: Pengguna | null;
     /** Admin aktif terakhir: peran dan statusnya tidak bisa diubah. */
     terkunci: boolean;
-    wilayahRt: string[];
+    wilayahRt: WilayahRtAkun[];
+    posyandu: PosyanduAkun[];
     usernameTerpakai: string[];
     onTutup: () => void;
     /** Hasilnya null bila tersimpan, atau alasan penolakan dari server. */
@@ -1357,7 +1372,9 @@ function DialogPengguna({
     const [nama, setNama] = useState(pengguna?.nama ?? '');
     const [username, setUsername] = useState(pengguna?.username ?? '');
     const [peran, setPeran] = useState<Peran>(pengguna?.peran ?? 'kader');
-    const [rt, setRt] = useState(pengguna?.rt ?? wilayahRt[0] ?? '');
+    const [posyanduId, setPosyanduId] = useState<number | null>(pengguna?.posyanduId ?? posyandu[0]?.id ?? null);
+    const rtUntukPosyandu = wilayahRt.filter((w) => w.posyanduId === posyanduId);
+    const [rt, setRt] = useState(pengguna?.rt ?? rtUntukPosyandu[0]?.rt ?? '');
     const [aktif, setAktif] = useState(pengguna?.aktif ?? true);
     const [kataSandi, setKataSandi] = useState('');
     const [dicoba, setDicoba] = useState(false);
@@ -1367,16 +1384,15 @@ function DialogPengguna({
     // Huruf kecil dipaksakan, sama seperti di server: "Kader01" tetap kader01.
     const usernameBersih = username.trim().toLowerCase();
     const bentrok = usernameTerpakai.includes(usernameBersih);
+    const cakupanKosong = pengguna?.superAdmin !== true && posyanduId === null;
     const kosong = nama.trim() === '' || usernameBersih === '';
     const salahBentuk =
         usernameBersih !== '' && !POLA_USERNAME.test(usernameBersih);
     const galatUsername = bentrok
         ? 'Nama pengguna ini sudah dipakai akun lain.'
-        : dicoba && usernameBersih === ''
-          ? 'Nama pengguna wajib diisi.'
-          : dicoba && salahBentuk
-            ? ATURAN_USERNAME
-            : null;
+        : dicoba && salahBentuk
+          ? ATURAN_USERNAME
+          : null;
     const galatSandi =
         pengguna === null && kataSandi === ''
             ? 'Kata sandi awal wajib diisi.'
@@ -1405,6 +1421,7 @@ function DialogPengguna({
                         bentrok ||
                         salahBentuk ||
                         galatSandi !== null ||
+                        cakupanKosong ||
                         menyimpan
                     ) {
                         return;
@@ -1418,12 +1435,13 @@ function DialogPengguna({
                         username: usernameBersih,
                         peran,
                         rt: peran === 'kader' ? rt : null,
+                        posyanduId,
                         aktif,
                         kataSandi,
                     })
                         .catch(
                             () =>
-                                'Perubahan tidak dapat disimpan. Silakan coba lagi.',
+                                'Perubahan tidak dapat disimpan. Silakan ulangi.',
                         )
                         .then((galat) => {
                             setGalatServer(galat);
@@ -1432,23 +1450,14 @@ function DialogPengguna({
                 }}
                 className="flex min-h-0 flex-1 flex-col"
             >
-                <div className="grid min-h-0 gap-4 overflow-y-auto px-7 py-4.5 sm:grid-cols-2 lg:pendek:gap-y-2.5 lg:pendek:py-3">
-                    <KolomPengguna
-                        id="pengguna-nama"
-                        label="Nama lengkap"
-                        galat={
-                            dicoba && nama.trim() === ''
-                                ? 'Nama lengkap wajib diisi.'
-                                : null
-                        }
-                    >
+                <div className="grid min-h-0 gap-4 overflow-y-auto px-7 pt-4.5 pb-5.5 sm:grid-cols-2">
+                    <KolomPengguna id="pengguna-nama" label="Nama lengkap">
                         <input
                             id="pengguna-nama"
                             value={nama}
                             maxLength={120}
                             onChange={(e) => setNama(e.target.value)}
-                            aria-invalid={dicoba && nama.trim() === ''}
-                            className={`isian w-full ${dicoba && nama.trim() === '' ? 'border-tone-red' : ''}`}
+                            className="isian w-full"
                         />
                     </KolomPengguna>
                     <KolomPengguna
@@ -1472,55 +1481,79 @@ function DialogPengguna({
                             onChange={(e) => setUsername(e.target.value)}
                             aria-invalid={galatUsername !== null}
                             aria-describedby="pengguna-username-ket"
-                            className={`isian w-full ${galatUsername !== null || (dicoba && usernameBersih === '') ? 'border-tone-red' : ''}`}
+                            className={`isian w-full ${galatUsername !== null ? 'border-tone-red' : ''}`}
                         />
                         {galatUsername === null && (
                             <p
                                 id="pengguna-username-ket"
-                                className="mt-1.5 text-base text-muted-foreground"
+                                className="mt-1.5 text-sm text-muted-foreground"
                             >
                                 Dipakai untuk masuk. Contoh: kader01.
                             </p>
                         )}
                     </KolomPengguna>
                     <KolomPengguna id="pengguna-peran" label="Peran">
-                        <Pilih
+                        <select
                             id="pengguna-peran"
                             value={peran}
                             disabled={terkunci}
-                            onChange={(v) => setPeran(v as Peran)}
-                            className="font-semibold"
+                            onChange={(e) => setPeran(e.target.value as Peran)}
+                            className="isian w-full cursor-pointer font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {URUTAN_PERAN.map((x) => (
                                 <option key={x} value={x}>
                                     {NAMA_PERAN[x]}
                                 </option>
                             ))}
-                        </Pilih>
+                        </select>
                     </KolomPengguna>
-                    <KolomPengguna id="pengguna-rt" label="RT binaan">
+                    <KolomPengguna id="pengguna-posyandu" label="Posyandu / RW" galat={dicoba && cakupanKosong ? 'Pilih Posyandu/RW untuk akun ini.' : null}>
+                        {pengguna?.superAdmin ? (
+                            <p className="flex min-h-14 items-center font-semibold text-primary">Superadmin · semua Posyandu/RW</p>
+                        ) : (
+                            <select
+                                id="pengguna-posyandu"
+                                value={posyanduId ?? ''}
+                                onChange={(e) => {
+                                    const id = Number(e.target.value) || null;
+                                    setPosyanduId(id);
+                                    setRt(wilayahRt.find((w) => w.posyanduId === id)?.rt ?? '');
+                                }}
+                                className="isian w-full cursor-pointer font-semibold"
+                            >
+                                <option value="" disabled>Pilih Posyandu/RW</option>
+                                {posyandu.map((x) => (
+                                    <option key={x.id} value={x.id}>{x.nama} · RW {x.rw}</option>
+                                ))}
+                            </select>
+                        )}
+                    </KolomPengguna>
+                    <KolomPengguna id="pengguna-rt" label={peran === 'kader' ? 'RT asal kader' : 'Hak dalam Posyandu'}>
                         {peran === 'kader' ? (
-                            <Pilih
+                            <select
                                 id="pengguna-rt"
                                 value={rt}
-                                onChange={setRt}
-                                className="font-semibold"
+                                onChange={(e) => setRt(e.target.value)}
+                                disabled={rtUntukPosyandu.length === 0}
+                                className="isian w-full cursor-pointer font-semibold disabled:opacity-60"
                             >
-                                {wilayahRt.map((w) => (
-                                    <option key={w} value={w}>
-                                        {labelRt(w)}
+                                {rtUntukPosyandu.map((w) => (
+                                    <option key={w.rt} value={w.rt}>
+                                        {labelRt(w.rt)}
                                     </option>
                                 ))}
-                            </Pilih>
+                            </select>
                         ) : (
-                            /* Bidan dan admin melihat seluruh RW; kalimat ini
-                               menjawab pertanyaannya langsung, tanpa kotak
-                               pilih mati yang mengundang klik. */
-                            <p className="flex h-14 items-center text-base text-muted-foreground">
-                                Semua RT
+                            <p className="flex min-h-14 items-center text-base text-muted-foreground">
+                                {peran === 'admin' ? 'Admin Posyandu · kelola akun dan wilayah cluster' : peran === 'bidan' ? 'Bidan · KMS, pengukuran, dan verifikasi' : 'Petugas KMS · pemeriksaan dan edukasi'}
                             </p>
                         )}
                     </KolomPengguna>
+                    {peran === 'kader' && (
+                        <p className="-mt-3 text-sm text-muted-foreground sm:col-span-2">
+                            Kader dapat melihat sasaran semua RT dalam Posyandu terpilih. RT asal hanya penugasan.
+                        </p>
+                    )}
                     <KolomPengguna
                         id="pengguna-sandi"
                         label={
@@ -1546,7 +1579,7 @@ function DialogPengguna({
                         {!(pengguna === null && sandiSalah) && (
                             <p
                                 id="pengguna-sandi-ket"
-                                className="mt-1.5 text-base text-muted-foreground"
+                                className="mt-1.5 text-sm text-muted-foreground"
                             >
                                 {pengguna === null
                                     ? `Minimal ${SANDI_MINIMAL} karakter.`
@@ -1569,15 +1602,21 @@ function DialogPengguna({
                         </label>
                     )}
                     {terkunci && (
-                        <p className="text-base text-muted-foreground sm:col-span-2">
-                            Admin aktif terakhir tidak bisa diturunkan perannya
-                            maupun dinonaktifkan.
+                        <p className="text-sm text-muted-foreground sm:col-span-2">
+                            {pengguna?.superAdmin
+                                ? 'Akun superadmin global harus tetap aktif dengan peran Admin Posyandu.'
+                                : 'Admin aktif terakhir di Posyandu ini tidak bisa diturunkan perannya maupun dinonaktifkan.'}
+                        </p>
+                    )}
+                    {dicoba && kosong && (
+                        <p className="text-sm font-semibold text-tone-red sm:col-span-2">
+                            Nama lengkap dan nama pengguna harus diisi.
                         </p>
                     )}
                     {galatServer !== null && (
                         <p
                             role="alert"
-                            className="text-base font-semibold text-tone-red sm:col-span-2"
+                            className="text-sm font-semibold text-tone-red sm:col-span-2"
                         >
                             {galatServer}
                         </p>
@@ -1628,13 +1667,13 @@ function KolomPengguna({
         <div className="min-w-0">
             <label
                 htmlFor={id}
-                className="block text-base font-semibold text-muted-foreground"
+                className="block text-sm font-semibold text-muted-foreground"
             >
                 {label}
             </label>
-            <div className="mt-2">{children}</div>
+            <div className="mt-1.5">{children}</div>
             {galat !== null && (
-                <p className="mt-1.5 text-base font-semibold text-tone-red">
+                <p className="mt-1.5 text-sm font-semibold text-tone-red">
                     {galat}
                 </p>
             )}

@@ -13,10 +13,12 @@
  * cukup satu blok JSX.
  */
 
-import { FileText } from 'lucide-react';
-import { useState } from 'react';
+import { Download, FileText, RefreshCw } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import EmptyState from '@/components/empty-state';
 import Halaman from '@/components/halaman';
+import StatusGiziBadge from '@/components/status-gizi-badge';
+import { kesimpulanZScore } from '@/lib/kategori';
 import {
     Table,
     TableBody,
@@ -26,7 +28,8 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { persenSaja } from '@/lib/format';
+import { angka, persenSaja, tanggalRingkas, zScore } from '@/lib/format';
+import type { useLaporanServer } from '@/lib/laporan';
 import type { Periode } from '@/types/posyandu';
 
 export type BarisRekapRt = {
@@ -96,6 +99,8 @@ type Props = {
     kelurahan: string;
     periodeTerisi: Periode | null;
     onPindahPeriode?: (id: string) => void;
+    laporanLive?: ReturnType<typeof useLaporanServer>;
+    bolehUnduh?: boolean;
 };
 
 export default function Laporan({
@@ -109,6 +114,8 @@ export default function Laporan({
     kelurahan,
     periodeTerisi,
     onPindahPeriode,
+    laporanLive,
+    bolehUnduh = false,
 }: Props) {
     const [rt, setRt] = useState('');
     const [urut, setUrut] = useState<{ kolom: Kolom; naik: boolean }>({
@@ -131,6 +138,16 @@ export default function Laporan({
         urut.kolom === 'rt'
             ? `urut nomor RT${urut.naik ? '' : ', terbesar dulu'}`
             : `urut ${KOLOM.find((k) => k.kunci === urut.kolom)?.kode} ${urut.naik ? 'naik' : 'turun'}`;
+
+    if (laporanLive !== undefined) {
+        return (
+            <LaporanDataLive
+                periode={periode}
+                laporan={laporanLive}
+                bolehUnduh={bolehUnduh}
+            />
+        );
+    }
 
     const angka = (r: BarisRekapRt) => [
         r.s,
@@ -315,6 +332,475 @@ export default function Laporan({
                     </div>
                 </section>
             )}
+        </Halaman>
+    );
+}
+
+function umurUntukLaporan(umurLengkap: string, hanyaTahunBulan = false): string {
+    const lengkap = /^(\d+)Thn(\d+)Bln(?:(\d+)Hari)?$/.exec(umurLengkap ?? '');
+
+    if (lengkap !== null) {
+        if (hanyaTahunBulan) {
+            return `${Number(lengkap[1])} thn ${Number(lengkap[2])} bln`;
+        }
+        return `${Number(lengkap[1])} thn ${Number(lengkap[2])} bln${lengkap[3] ? ` ${Number(lengkap[3])} hari` : ''}`;
+    }
+
+    // Tetap terbaca bila API yang berjalan masih memakai keluaran antara.
+    const bulanHari = /^(\d+) bulan(?: (\d+) hari)?$/.exec(umurLengkap ?? '');
+
+    if (bulanHari !== null) {
+        const bulan = Number(bulanHari[1]);
+        if (hanyaTahunBulan) {
+            return `${Math.floor(bulan / 12)} thn ${bulan % 12} bln`;
+        }
+        return `${Math.floor(bulan / 12)} thn ${bulan % 12} bln${bulanHari[2] ? ` ${Number(bulanHari[2])} hari` : ''}`;
+    }
+
+    const umurArsip = /^(\d+)Thn(\d+)Bln/.exec(umurLengkap ?? '');
+
+    if (umurArsip) {
+        return `${umurArsip[1]} thn ${umurArsip[2]} bln`;
+    }
+
+    return umurLengkap || '—';
+}
+
+function LaporanDataLive({
+    periode,
+    laporan,
+    bolehUnduh,
+}: {
+    periode: Periode;
+    laporan: ReturnType<typeof useLaporanServer>;
+    bolehUnduh: boolean;
+}) {
+    const [tab, setTab] = useState<'zscore' | '2t'>('zscore');
+    const [indeks, setIndeks] = useState('BB_U');
+    const [standar, setStandar] = useState('PERMENKES-2-2020');
+    const [galatUnduh, setGalatUnduh] = useState<string | null>(null);
+    const [mengunduhF1, setMengunduhF1] = useState(false);
+    const data = laporan.data;
+    const daftarIndeks = [
+        ['BB_U', 'BB/U'],
+        ['TB_U', 'TB/U'],
+        ['BB_TB', 'BB/TB'],
+        ['IMT_U', 'IMT/U'],
+        ['LILA_U', 'LILA/U'],
+        ['LIKA_U', 'LIKA/U'],
+    ];
+
+    // Di website: tampilkan anak 2T+ serta anak 1T pada bulan laporan agar tabel tidak kosong
+    const daftarT = useMemo(() => {
+        const riwayat = data?.riwayat2T ?? [];
+        const anakRiwayat = new Set(riwayat.map((r) => r.anakId));
+        const anakSatuT = (data?.bulanan ?? [])
+            .filter((r) => !anakRiwayat.has(r.anakId) && (r.nt === 'T' || (r.jumlahTBerturut && r.jumlahTBerturut >= 1)))
+            .map((r) => ({
+                ...r,
+                status2T: r.status2T ?? (r.jumlahTBerturut ? `${r.jumlahTBerturut}T` : '1T'),
+                jumlahTBerturut: r.jumlahTBerturut ?? 1,
+                sumberRiwayat: r.sumberRiwayat ?? 'pengukuran',
+            }));
+        return [...riwayat, ...anakSatuT];
+    }, [data?.riwayat2T, data?.bulanan]);
+
+    const jumlahDuaT = data?.ringkasan.denganDuaT ?? 0;
+    const jumlahSatuT = useMemo(() => {
+        const anakRiwayat = new Set((data?.riwayat2T ?? []).map((r) => r.anakId));
+        return (data?.bulanan ?? []).filter(
+            (r) => !anakRiwayat.has(r.anakId) && (r.nt === 'T' || (r.jumlahTBerturut && r.jumlahTBerturut >= 1)),
+        ).length;
+    }, [data?.riwayat2T, data?.bulanan]);
+    const totalT = jumlahDuaT + jumlahSatuT;
+
+    const baris =
+        tab === 'zscore' ? (data?.bulanan ?? []) : daftarT;
+
+    return (
+        <Halaman
+            ikon={FileText}
+            judul="Laporan"
+            subjudul={`Rekap live Posyandu · ${periode.label}. Data berasal dari catatan ukur dan penilaian tersimpan.`}
+            aksi={
+                <div className="flex flex-wrap items-center gap-2">
+                    <button
+                        type="button"
+                        className="tombol-kedua"
+                        onClick={laporan.muatUlang}
+                    >
+                        <RefreshCw className="size-4.5" aria-hidden="true" /> Perbarui
+                    </button>
+                    {bolehUnduh && (
+                        <button
+                            type="button"
+                            className="tombol-kedua"
+                            onClick={() =>
+                                void laporan
+                                    .unduh()
+                                    .catch((e: unknown) =>
+                                        setGalatUnduh(
+                                            e instanceof Error
+                                                ? e.message
+                                                : 'Unduhan gagal.',
+                                        ),
+                                    )
+                            }
+                        >
+                            <Download className="size-4.5" aria-hidden="true" /> Excel Z-score & 2T
+                        </button>
+                    )}
+                    {bolehUnduh && (
+                        <button type="button" className="tombol-utama" disabled={mengunduhF1}
+                            onClick={async () => {
+                                setMengunduhF1(true); setGalatUnduh(null);
+                                try { await laporan.unduh('f1'); }
+                                catch (e) { setGalatUnduh(e instanceof Error ? e.message : 'Unduhan F1 gagal.'); }
+                                finally { setMengunduhF1(false); }
+                            }}>
+                            <Download className="size-4.5" aria-hidden="true" /> {mengunduhF1 ? 'Menyiapkan F1…' : 'Unduh F1 Excel'}
+                        </button>
+                    )}
+                </div>
+            }
+        >
+            <div className="grid gap-3 sm:grid-cols-3">
+                <article className="kartu p-4">
+                    <p className="text-sm text-muted-foreground">
+                        Balita diukur
+                    </p>
+                    <p className="mt-1 text-2xl font-extrabold">
+                        {data?.ringkasan.anakDiukur ?? '—'}
+                    </p>
+                </article>
+                <article className="kartu p-4">
+                    <p className="text-sm text-muted-foreground">
+                        Pemantauan 1T & 2T+
+                    </p>
+                    <p className="mt-1 text-2xl font-extrabold">
+                        {totalT > 0 ? (
+                            <>
+                                <span>{jumlahDuaT} (2T+)</span>
+                                {jumlahSatuT > 0 && (
+                                    <span className="ml-1 text-base font-normal text-muted-foreground">
+                                        · {jumlahSatuT} (1T)
+                                    </span>
+                                )}
+                            </>
+                        ) : data && (data.ringkasan.belumDapatDinilai ?? 0) > 0 ? (
+                            'Belum cukup data'
+                        ) : (
+                            '0'
+                        )}
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        {totalT > 0
+                            ? `${totalT} balita tidak naik (1T & 2T+) bulan ini`
+                            : 'Tidak ada balita tidak naik bulan ini'}
+                    </p>
+                </article>
+                <article className="kartu p-4">
+                    <p className="text-sm text-muted-foreground">
+                        Standar tersedia
+                    </p>
+                    <p className="mt-1 text-lg font-extrabold">
+                        {data?.standar
+                            .map((s) =>
+                                s === 'PERMENKES-2-2020'
+                                    ? 'Permenkes 2/2020'
+                                    : s === 'WHO-2006'
+                                      ? 'WHO 2006'
+                                      : s,
+                            )
+                            .join(', ') || '—'}
+                    </p>
+                </article>
+            </div>
+            <section className="kartu mt-4 overflow-hidden">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+                    <div
+                        className="bilah-tab"
+                        role="tablist"
+                        aria-label="Jenis laporan"
+                    >
+                        <button
+                            type="button"
+                            role="tab"
+                            aria-selected={tab === 'zscore'}
+                            onClick={() => setTab('zscore')}
+                            className="tab"
+                        >
+                            Rekap Z-score
+                        </button>
+                        <button
+                            type="button"
+                            role="tab"
+                            aria-selected={tab === '2t'}
+                            onClick={() => setTab('2t')}
+                            className="tab"
+                        >
+                            Riwayat 1T & 2T+
+                        </button>
+                    </div>
+                    {tab === 'zscore' && (
+                        <div className="flex flex-wrap items-center gap-3">
+                            <label className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                                Standar
+                                <select
+                                    className="isian"
+                                    value={standar}
+                                    onChange={(e) => setStandar(e.target.value)}
+                                >
+                                    {(data?.standar ?? [standar]).map(
+                                        (value) => (
+                                            <option key={value} value={value}>
+                                                {value === 'PERMENKES-2-2020'
+                                                    ? 'Permenkes 2/2020'
+                                                    : value === 'WHO-2006'
+                                                      ? 'WHO 2006'
+                                                      : value}
+                                            </option>
+                                        ),
+                                    )}
+                                </select>
+                            </label>
+                            <label className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                                Indeks
+                                <select
+                                    className="isian"
+                                    value={indeks}
+                                    onChange={(e) => setIndeks(e.target.value)}
+                                >
+                                    {daftarIndeks.map(([value, label]) => (
+                                        <option key={value} value={value}>
+                                            {label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                        </div>
+                    )}
+                </div>
+                {tab === '2t' && data?.keterangan2T && (
+                    <p className="border-b border-border bg-muted/30 px-5 py-3 text-sm text-muted-foreground">
+                        {data.keterangan2T}
+                    </p>
+                )}
+                {laporan.status === 'memuat' ? (
+                    <div
+                        className="space-y-3 p-5"
+                        role="status"
+                        aria-live="polite"
+                    >
+                        <span className="sr-only">Memuat data laporan…</span>
+                        {[0, 1, 2, 3].map((i) => (
+                            <div
+                                key={i}
+                                className="h-12 animate-pulse rounded-lg bg-surface-subtle"
+                            />
+                        ))}
+                    </div>
+                ) : laporan.status === 'galat' ? (
+                    <div className="p-6">
+                        <p role="alert">{laporan.pesanGalat}</p>
+                        <button
+                            className="tombol-kedua mt-3"
+                            onClick={laporan.muatUlang}
+                        >
+                            Coba lagi
+                        </button>
+                    </div>
+                ) : (
+                    <div
+                        className="gulir-dalam w-full overflow-x-auto"
+                        tabIndex={0}
+                        role="region"
+                        aria-label="Tabel laporan, geser ke samping untuk melihat semua kolom"
+                    >
+                        {baris.length === 0 ? (
+                            <p className="p-6 text-muted-foreground">
+                                {tab === 'zscore'
+                                    ? `Belum ada pengukuran hadir pada ${periode.label}.`
+                                    : (data?.ringkasan.belumDapatDinilai ?? 0) >
+                                        0
+                                      ? `Riwayat 1T & 2T+ ${periode.label} belum dapat ditentukan karena data pembanding belum lengkap.`
+                                      : `Tidak ada anak berstatus 1T maupun 2T+ pada ${periode.label}.`}
+                            </p>
+                        ) : (
+                            <table className="w-full min-w-[880px] border-collapse text-left text-sm">
+                                <thead className="bg-muted/60">
+                                    <tr>
+                                        {(tab === 'zscore'
+                                            ? [
+                                                  'Nama',
+                                                  'RT',
+                                                  'Umur lengkap',
+                                                  'Tanggal ukur',
+                                                  'BB (kg)',
+                                                  'TB/PB (cm)',
+                                                  'Z-score',
+                                                  'Kesimpulan Status Gizi',
+                                              ]
+                                            : [
+                                                  'Nama',
+                                                  'RT',
+                                                  'Periode',
+                                                  'Umur',
+                                                  'BB (kg)',
+                                                  'Kenaikan (g)',
+                                                  'KBM (g)',
+                                                  'N/T',
+                                                  'Status tidak naik',
+                                                  'Sumber',
+                                              ]
+                                        ).map((h) => (
+                                            <th
+                                                key={h}
+                                                className="sticky top-0 px-4 py-3.5 font-bold whitespace-nowrap first:pl-5 last:pr-5"
+                                            >
+                                                {h}
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {baris.map((row, index) => {
+                                        const assessment =
+                                            row.penilaian[standar]?.[indeks];
+
+                                        return (
+                                            <tr
+                                                key={`${row.anakId}-${row.periodeId}-${index}`}
+                                                className="border-t border-border"
+                                            >
+                                                <td className="px-4 py-3.5 pl-5 font-semibold whitespace-nowrap">
+                                                    {row.nama}
+                                                </td>
+                                                <td className="px-4 py-3.5 tabular-nums">
+                                                    {row.rt
+                                                        ? `RT ${row.rt}`
+                                                        : '—'}
+                                                </td>
+                                                {tab === 'zscore' ? (
+                                                    <>
+                                                        <td className="px-4 py-3.5 whitespace-nowrap tabular-nums">
+                                                            {umurUntukLaporan(
+                                                                row.umurLengkap,
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-3.5 whitespace-nowrap tabular-nums">
+                                                            {tanggalRingkas(
+                                                                row.tanggalUkur ??
+                                                                    null,
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-3.5 tabular-nums">
+                                                            {angka(
+                                                                row.bbKg ??
+                                                                    null,
+                                                                1,
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-3.5 tabular-nums">
+                                                            {angka(
+                                                                row.tinggiCm ??
+                                                                    null,
+                                                                1,
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-3.5 font-semibold tabular-nums">
+                                                            {zScore(
+                                                                typeof assessment?.z ===
+                                                                    'number'
+                                                                    ? assessment.z
+                                                                    : null,
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-3.5 pr-5 font-semibold">
+                                                            <StatusGiziBadge
+                                                                kategori={kesimpulanZScore(assessment?.kategori, assessment?.z)}
+                                                                rapat
+                                                            />
+                                                        </td>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <td className="px-4 py-3.5 tabular-nums">
+                                                            {row.periodeId}
+                                                        </td>
+                                                        <td className="px-4 py-3.5 whitespace-nowrap tabular-nums">
+                                                            {umurUntukLaporan(
+                                                                row.umurLengkap,
+                                                                true,
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-3.5 tabular-nums">
+                                                            {angka(
+                                                                row.bbKg ??
+                                                                    null,
+                                                                1,
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-3.5 tabular-nums">
+                                                            {angka(
+                                                                row.kenaikanGram ??
+                                                                    null,
+                                                                0,
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-3.5 tabular-nums">
+                                                            {angka(
+                                                                row.kbmGram ??
+                                                                    null,
+                                                                0,
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-3.5 font-bold">
+                                                            {row.nt ?? '—'}
+                                                        </td>
+                                                        <td className="px-4 py-3.5 font-bold">
+                                                            <span
+                                                                className={`inline-flex items-center rounded-lg px-2 py-0.5 text-xs font-bold ${
+                                                                    (row.jumlahTBerturut ?? 0) >= 2 || row.duaT || (row.status2T && row.status2T !== '1T')
+                                                                        ? 'bg-tone-red-bg text-tone-red'
+                                                                        : 'bg-tone-amber-bg text-tone-amber'
+                                                                }`}
+                                                            >
+                                                                {row.status2T ?? (row.jumlahTBerturut ? `${row.jumlahTBerturut}T` : row.duaT ? '2T+' : '1T')}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-4 py-3.5 pr-5 whitespace-nowrap">
+                                                            {row.sumberRiwayat ===
+                                                            'arsip'
+                                                                ? 'Arsip Bu Sri'
+                                                                : 'Pengukuran aplikasi'}
+                                                        </td>
+                                                    </>
+                                                )}
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+                )}
+                {galatUnduh && (
+                    <p
+                        className="border-t border-border px-5 py-3 text-sm text-destructive"
+                        role="alert"
+                    >
+                        {galatUnduh}
+                    </p>
+                )}
+                <p className="border-t border-border px-5 py-3 text-xs leading-relaxed text-muted-foreground">
+                    {data?.metodeUmur ??
+                        'Z-score laporan adalah estimasi umur hari yang diinterpolasi di antara titik standar bulanan, bukan pengganti penilaian resmi. '}
+                    KBM dan penetapan N/T tetap mengikuti kelompok umur pada
+                    KMS. Rekap N/T tidak menimpa catatan historis dan perlu
+                    ditinjau petugas.
+                </p>
+            </section>
         </Halaman>
     );
 }

@@ -4,28 +4,39 @@ import {
     CreditCard,
     FileCheck2,
     FileSpreadsheet,
+    Pencil,
     RefreshCw,
-    Save,
     Search,
+    Trash2,
+    UserRoundPlus,
     Upload,
     UsersRound,
+    X,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import Dialog, { KakiDialog } from '@/components/dialog';
 import Halaman from '@/components/halaman';
-import Pilih from '@/components/pilih';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import { Link } from '@/lib/nav';
-import { ambilSasaran, gantiSasaran, periksaFileSasaran } from '@/lib/sasaran';
-import type { HasilImpor, SasaranAktif, SheetSasaran } from '@/lib/sasaran';
+import {
+    ambilSasaran,
+    ambilPeriodeSasaran,
+    cariCalonSasaran,
+    gantiSasaran,
+    perbaruiSasaran,
+    periksaFileSasaran,
+    tambahAnakKeSasaran,
+    pratinjauResetHariIni,
+    resetPengukuranHariIni,
+} from '@/lib/sasaran';
+import type {
+    CalonSasaran,
+    HasilImpor,
+    PeriodeSasaran,
+    SasaranAktif,
+    RingkasanResetHariIni,
+    SheetSasaran,
+    StatusSasaran,
+} from '@/lib/sasaran';
 
 type Tahap = 'kosong' | 'memeriksa' | 'siap' | 'mengimpor' | 'selesai';
 
@@ -58,12 +69,16 @@ function formatPeriode(kode: string | undefined): string {
     }).format(new Date(tahun, bulan - 1, 1));
 }
 
-export default function SasaranImpor({
-    onImporBerhasil,
-}: {
-    /** Dipanggil setelah impor berhasil, supaya periode barunya langsung tampil. */
-    onImporBerhasil?: (periode: string) => void;
-}) {
+function periodeJakartaSekarang(): string {
+    const bagian = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit',
+    }).formatToParts(new Date());
+    const nilai = Object.fromEntries(bagian.map((item) => [item.type, item.value]));
+
+    return `${nilai.year}-${nilai.month}`;
+}
+
+export default function SasaranImpor() {
     const [sasaran, setSasaran] = useState<SasaranAktif | null>(null);
     const [statusMuat, setStatusMuat] = useState<'memuat' | 'siap' | 'galat'>(
         'memuat',
@@ -76,24 +91,47 @@ export default function SasaranImpor({
     const [galat, setGalat] = useState('');
     const [hasil, setHasil] = useState<HasilImpor | null>(null);
     const [cari, setCari] = useState('');
+    const [pesanMutasi, setPesanMutasi] = useState('');
+    const [tambahTerbuka, setTambahTerbuka] = useState(false);
+    const [cariCalon, setCariCalon] = useState('');
+    const [calon, setCalon] = useState<CalonSasaran[]>([]);
+    const [memuatCalon, setMemuatCalon] = useState(false);
+    const [anakDitambahkan, setAnakDitambahkan] = useState<number | null>(null);
+    const [editId, setEditId] = useState<number | null>(null);
+    const [editStatus, setEditStatus] = useState<StatusSasaran>('menunggu');
+    const [editCatatan, setEditCatatan] = useState('');
+    const [menyimpanEdit, setMenyimpanEdit] = useState(false);
+    const [periodeDitampilkan, setPeriodeDitampilkan] = useState('');
+    const [pilihanPeriode, setPilihanPeriode] = useState<PeriodeSasaran[]>([]);
+    const [pratinjauReset, setPratinjauReset] = useState<RingkasanResetHariIni | null>(null);
+    const [memuatPratinjauReset, setMemuatPratinjauReset] = useState(false);
+    const [konfirmasiReset, setKonfirmasiReset] = useState('');
+    const [menjalankanReset, setMenjalankanReset] = useState(false);
 
-    const muat = useCallback(async () => {
+    const muat = useCallback(async (periode?: string) => {
         try {
             setStatusMuat('memuat');
-            setSasaran(await ambilSasaran());
+            setGalat('');
+            const data = await ambilSasaran(periode || undefined);
+            const periodeTersedia = await ambilPeriodeSasaran().catch(() =>
+                data.periode === null ? [] : [data.periode],
+            );
+            setSasaran(data);
+            setPilihanPeriode(periodeTersedia);
+            setPeriodeDitampilkan(data.periode?.periode ?? '');
             setStatusMuat('siap');
         } catch (error) {
             setGalat(
                 error instanceof Error
                     ? error.message
-                    : 'Daftar sasaran belum dapat dimuat. Coba lagi.',
+                    : 'Daftar sasaran tidak dapat dimuat.',
             );
             setStatusMuat('galat');
         }
     }, []);
 
     useEffect(() => {
-        void Promise.resolve().then(muat);
+        void Promise.resolve().then(() => muat());
     }, [muat]);
 
     const sheetAktif = sheets.find((item) => item.sheet === sheetDipilih);
@@ -133,25 +171,35 @@ export default function SasaranImpor({
             setGalat(
                 error instanceof Error
                     ? error.message
-                    : 'File Excel belum dapat diperiksa. Coba lagi.',
+                    : 'File Excel tidak dapat diperiksa.',
             );
             setTahap('kosong');
         }
     };
 
-    const [konfirmasi, setKonfirmasi] = useState(false);
-    const lamaAktif =
-        sheetAktif !== undefined &&
-        sasaran?.periode?.periode === sheetAktif.periode
-            ? sasaran.ringkasan.total
-            : 0;
-
-    const gantiDaftar = async () => {
+    const terbitkan = async () => {
         if (file === null || sheetAktif === undefined || isiBase64 === '') {
             return;
         }
 
-        setKonfirmasi(false);
+        const lama =
+            sasaran?.periode?.periode === sheetAktif.periode
+                ? sasaran.ringkasan.total
+                : 0;
+        const jumlahDiterbitkan =
+            sheetAktif.jumlahBaris - sheetAktif.jumlahDitahan;
+        const catatanDuplikat =
+            sheetAktif.jumlahDitahan > 0
+                ? ` ${sheetAktif.jumlahDitahan} baris dengan NIK duplikat akan ditahan dan tidak diterbitkan.`
+                : '';
+        const pesan =
+            lama > 0
+                ? `Ganti ${lama} sasaran ${formatPeriode(sheetAktif.periode)} dengan maksimal ${jumlahDiterbitkan} baris dari ${file.name}?${catatanDuplikat} Master anak dan riwayat pengukuran tidak akan dihapus.`
+                : `Terbitkan maksimal ${jumlahDiterbitkan} sasaran ${formatPeriode(sheetAktif.periode)} ke perangkat Android?${catatanDuplikat}`;
+
+        if (!window.confirm(pesan)) {
+            return;
+        }
 
         try {
             setGalat('');
@@ -163,23 +211,144 @@ export default function SasaranImpor({
             );
             setHasil(selesai);
             setTahap('selesai');
-            onImporBerhasil?.(selesai.periode);
-            await muat();
+            setPeriodeDitampilkan(selesai.periode);
+            await muat(selesai.periode);
         } catch (error) {
             setGalat(
                 error instanceof Error
                     ? error.message
-                    : 'Sasaran belum dapat diganti. Coba lagi.',
+                    : 'Sasaran tidak dapat diganti.',
             );
             setTahap('siap');
+        }
+    };
+
+    const cariAnakMaster = async () => {
+        if (!sasaran?.periode || cariCalon.trim().length < 2) {
+            return;
+        }
+
+        try {
+            setGalat('');
+            setMemuatCalon(true);
+            setCalon(
+                await cariCalonSasaran(sasaran.periode.id, cariCalon.trim()),
+            );
+        } catch (error) {
+            setGalat(
+                error instanceof Error
+                    ? error.message
+                    : 'Anak tidak dapat dicari.',
+            );
+        } finally {
+            setMemuatCalon(false);
+        }
+    };
+
+    const tambahAnak = async (item: CalonSasaran) => {
+        if (!sasaran?.periode) {
+            return;
+        }
+
+        try {
+            setGalat('');
+            setPesanMutasi('');
+            setAnakDitambahkan(item.anakId);
+            const hasilTambah = await tambahAnakKeSasaran(
+                sasaran.periode.id,
+                item.anakId,
+            );
+            setPesanMutasi(
+                `${item.nama} ditambahkan ke sasaran${hasilTambah.sudahDiukur ? ' dan sudah memiliki pengukuran pada periode ini' : ''}.`,
+            );
+            setCalon((daftar) =>
+                daftar.filter((anak) => anak.anakId !== item.anakId),
+            );
+            await muat(sasaran.periode.periode);
+        } catch (error) {
+            setGalat(
+                error instanceof Error
+                    ? error.message
+                    : 'Anak tidak dapat ditambahkan.',
+            );
+        } finally {
+            setAnakDitambahkan(null);
+        }
+    };
+
+    const mulaiEdit = (item: SasaranAktif['items'][number]) => {
+        setEditId(item.id);
+        setEditStatus(item.status);
+        setEditCatatan(item.catatan ?? '');
+        setGalat('');
+        setPesanMutasi('');
+    };
+
+    const simpanEdit = async () => {
+        if (editId === null) {
+            return;
+        }
+
+        try {
+            setGalat('');
+            setMenyimpanEdit(true);
+            await perbaruiSasaran(editId, editStatus, editCatatan);
+            setPesanMutasi('Status dan catatan sasaran berhasil diperbarui.');
+            setEditId(null);
+            await muat(sasaran?.periode?.periode);
+        } catch (error) {
+            setGalat(
+                error instanceof Error
+                    ? error.message
+                    : 'Perubahan tidak dapat disimpan.',
+            );
+        } finally {
+            setMenyimpanEdit(false);
+        }
+    };
+
+    const bukaPratinjauReset = async () => {
+        if (!sasaran?.periode) {
+return;
+}
+
+        try {
+            setGalat('');
+            setMemuatPratinjauReset(true);
+            setKonfirmasiReset('');
+            setPratinjauReset(await pratinjauResetHariIni(sasaran.periode.id));
+        } catch (error) {
+            setGalat(error instanceof Error ? error.message : 'Pratinjau reset tidak dapat dimuat.');
+        } finally {
+            setMemuatPratinjauReset(false);
+        }
+    };
+
+    const jalankanResetHariIni = async () => {
+        if (!sasaran?.periode || !pratinjauReset || konfirmasiReset !== 'RESET HARI INI') {
+return;
+}
+
+        try {
+            setGalat('');
+            setMenjalankanReset(true);
+            const hasilReset = await resetPengukuranHariIni(sasaran.periode.id, pratinjauReset.jumlahPengukuran, pratinjauReset.jumlahAntrean);
+            setPratinjauReset(null);
+            setKonfirmasiReset('');
+            setPesanMutasi(`${hasilReset.jumlahPengukuran} hasil ukur dihapus dan ${hasilReset.jumlahAntrean} antrean hari ini dihapus. Nomor antrean berikutnya kembali ke 1. ${hasilReset.jumlahAnak} sasaran tanpa riwayat lain kembali ke status belum dilayani.`);
+            await muat(sasaran.periode.periode);
+        } catch (error) {
+            setGalat(error instanceof Error ? error.message : 'Hasil ukur hari ini tidak dapat direset.');
+        } finally {
+            setMenjalankanReset(false);
         }
     };
 
     return (
         <Halaman
             ikon={Upload}
-            judul="Sasaran & Impor"
-            subjudul="Kelola daftar sasaran bulanan. Data Balita dan riwayat ukur tidak ikut terhapus."
+            judul="Sasaran & impor"
+            subjudul="Kelola daftar layanan bulanan tanpa menghapus master Data Balita atau riwayat pengukuran."
         >
             <div className="w-full space-y-6">
                 {galat !== '' && (
@@ -194,16 +363,29 @@ export default function SasaranImpor({
                         />
                         <div className="min-w-0">
                             <p className="font-bold">Proses belum berhasil</p>
-                            <p className="mt-0.5 text-base">{galat}</p>
+                            <p className="mt-0.5 text-sm">{galat}</p>
                         </div>
                     </div>
                 )}
+                {pesanMutasi !== '' && (
+                    <p
+                        role="status"
+                        className="rounded-lg bg-tone-green-bg px-4 py-3 text-sm font-semibold text-tone-green"
+                    >
+                        {pesanMutasi}
+                    </p>
+                )}
 
-                <section className="kartu overflow-hidden">
-                    <div className="strip-kepala">
+                <section className="overflow-hidden rounded-xl border border-border bg-card">
+                    <div className="border-b border-border bg-surface-subtle px-5 py-5 sm:px-6">
                         <h2 className="text-xl font-extrabold">
                             Unggah atau ganti sasaran bulanan
                         </h2>
+                        <p className="mt-1 max-w-[74ch] text-base text-muted-foreground">
+                            Sistem mencari header setiap sheet, sehingga format
+                            Januari dan Februari yang berbeda posisi tetap dapat
+                            dibaca.
+                        </p>
                     </div>
                     <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_360px]">
                         <div>
@@ -220,7 +402,8 @@ export default function SasaranImpor({
                                     {file?.name ?? 'Pilih file Excel Puskesmas'}
                                 </span>
                                 <span className="mt-1 text-sm text-muted-foreground">
-                                    .xlsx · maksimal 3 MB
+                                    .xlsx · maksimum 3 MB · file diperiksa
+                                    sebelum data diganti
                                 </span>
                                 <input
                                     id="berkas-sasaran"
@@ -268,13 +451,15 @@ export default function SasaranImpor({
                         </div>
                         <aside className="rounded-xl bg-primary p-5 text-primary-foreground">
                             <h3 className="font-bold">
-                                Yang berubah setelah daftar diganti
+                                Yang berubah saat diterbitkan
                             </h3>
-                            <ul className="mt-4 space-y-3 text-base text-primary-foreground/85">
+                            <ul className="mt-4 space-y-3 text-sm text-primary-foreground/85">
                                 <li>
                                     Daftar sasaran periode terpilih diganti.
                                 </li>
-                                <li>Balita baru ditambahkan ke Data Balita.</li>
+                                <li>
+                                    Anak baru ditambahkan ke master Data Balita.
+                                </li>
                                 <li>
                                     Profil lama, kartu, dan riwayat ukur tetap
                                     tersimpan.
@@ -293,46 +478,46 @@ export default function SasaranImpor({
                                 <div>
                                     <label
                                         htmlFor="sheet-sasaran"
-                                        className="block text-base font-semibold text-muted-foreground"
+                                        className="text-sm font-bold"
                                     >
-                                        Pilih bulan yang akan dijadikan sasaran
+                                        Pilih sheet yang akan menjadi sasaran
                                         aktif
                                     </label>
-                                    <div className="mt-2">
-                                        <Pilih
-                                            id="sheet-sasaran"
-                                            value={sheetDipilih}
-                                            onChange={setSheetDipilih}
-                                        >
-                                            {sheets.map((sheet) => (
-                                                <option
-                                                    key={sheet.sheet}
-                                                    value={sheet.sheet}
-                                                >
-                                                    {sheet.labelPeriode} ·{' '}
-                                                    {sheet.jumlahBaris} balita
-                                                </option>
-                                            ))}
-                                        </Pilih>
-                                    </div>
+                                    <select
+                                        id="sheet-sasaran"
+                                        value={sheetDipilih}
+                                        onChange={(event) =>
+                                            setSheetDipilih(event.target.value)
+                                        }
+                                        className="mt-2 min-h-12 w-full rounded-lg border border-border-strong bg-surface px-3 text-base outline-none focus:ring-2 focus:ring-ring"
+                                    >
+                                        {sheets.map((sheet) => (
+                                            <option
+                                                key={sheet.sheet}
+                                                value={sheet.sheet}
+                                            >
+                                                {sheet.labelPeriode} ·{' '}
+                                                {sheet.jumlahBaris} anak
+                                            </option>
+                                        ))}
+                                    </select>
                                     <p className="mt-2 text-sm text-muted-foreground">
-                                        Ditemukan {sheets.length} lembar
-                                        bulanan. Hanya bulan yang dipilih yang
-                                        dipakai.
+                                        Ditemukan {sheets.length} sheet bulanan.
+                                        Hanya sheet terpilih yang diterbitkan.
                                     </p>
                                 </div>
                                 {sheetAktif !== undefined && (
-                                    <dl className="grid grid-cols-3 content-center gap-3 rounded-xl bg-surface-subtle p-4 text-center">
+                                    <dl className="grid grid-cols-3 gap-3 rounded-xl bg-surface-subtle p-4 text-center">
                                         <div>
-                                            <dt className="text-sm text-muted-foreground">
-                                                Baris
+                                            <dt className="text-xs text-muted-foreground">
+                                                Terbaca
                                             </dt>
                                             <dd className="mt-1 text-xl font-extrabold tabular-nums">
                                                 {sheetAktif.jumlahBaris}
                                             </dd>
                                         </div>
                                         <div>
-                                            <dt className="text-sm text-muted-foreground">
+                                            <dt className="text-xs text-muted-foreground">
                                                 Siap
                                             </dt>
                                             <dd className="mt-1 text-xl font-extrabold text-tone-green tabular-nums">
@@ -340,7 +525,7 @@ export default function SasaranImpor({
                                             </dd>
                                         </div>
                                         <div>
-                                            <dt className="text-sm text-muted-foreground">
+                                            <dt className="text-xs text-muted-foreground">
                                                 Verifikasi
                                             </dt>
                                             <dd className="mt-1 text-xl font-extrabold text-tone-amber tabular-nums">
@@ -354,22 +539,62 @@ export default function SasaranImpor({
                             </div>
                             {sheetAktif !== undefined &&
                                 sheetAktif.jumlahPerluVerifikasi > 0 && (
-                                    <p className="mt-4 flex items-start gap-2 rounded-lg bg-tone-amber-bg p-3 text-sm text-tone-amber">
-                                        <AlertTriangle
-                                            className="mt-0.5 size-4 shrink-0"
-                                            aria-hidden="true"
-                                        />
-                                        {sheetAktif.jumlahPerluVerifikasi} baris
-                                        tetap dapat masuk, tetapi dicatat
-                                        sebagai konflik impor untuk ditinjau
-                                        karena NIK atau satuan data belum
-                                        lengkap.
-                                    </p>
+                                    <div className="mt-4 rounded-lg bg-tone-amber-bg p-3 text-sm text-tone-amber">
+                                        <p className="flex items-start gap-2">
+                                            <AlertTriangle
+                                                className="mt-0.5 size-4 shrink-0"
+                                                aria-hidden="true"
+                                            />
+                                            <span>
+                                                {sheetAktif.jumlahDitahan >
+                                                    0 && (
+                                                    <>
+                                                        {
+                                                            sheetAktif.jumlahDitahan
+                                                        }{' '}
+                                                        baris dengan NIK
+                                                        duplikat akan ditahan
+                                                        dan tidak
+                                                        diterbitkan.{' '}
+                                                    </>
+                                                )}
+                                                {sheetAktif.jumlahPerluVerifikasi -
+                                                    sheetAktif.jumlahDitahan}{' '}
+                                                baris lain dapat diterbitkan,
+                                                tetapi akan ditandai untuk
+                                                ditinjau. Periksa rincian
+                                                sebelum menerbitkan.
+                                            </span>
+                                        </p>
+                                        <ul className="mt-3 grid gap-2 border-t border-tone-amber/20 pt-3">
+                                            {(sheetAktif.barisVerifikasi ?? []).map(
+                                                (baris) => (
+                                                    <li
+                                                        key={baris.barisAsal}
+                                                        className="rounded-md bg-white/50 px-3 py-2"
+                                                    >
+                                                        <p className="font-semibold">
+                                                            Baris{' '}
+                                                            {baris.barisAsal}:{' '}
+                                                            {baris.nama}
+                                                            {baris.ditahan &&
+                                                                ' — ditahan'}
+                                                        </p>
+                                                        <p className="mt-0.5 text-xs">
+                                                            {(baris.masalah ?? []).join(
+                                                                ' · ',
+                                                            )}
+                                                        </p>
+                                                    </li>
+                                                ),
+                                            )}
+                                        </ul>
+                                    </div>
                                 )}
                             <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-5">
                                 <button
                                     type="button"
-                                    onClick={() => setKonfirmasi(true)}
+                                    onClick={() => void terbitkan()}
                                     disabled={
                                         sheetAktif === undefined ||
                                         tahap === 'mengimpor'
@@ -389,10 +614,12 @@ export default function SasaranImpor({
                                     )}
                                     {tahap === 'mengimpor'
                                         ? 'Mengganti sasaran…'
-                                        : lamaAktif > 0
-                                          ? 'Ganti daftar sasaran'
-                                          : 'Simpan daftar sasaran'}
+                                        : 'Ganti dan terbitkan sasaran'}
                                 </button>
+                                <p className="text-sm text-muted-foreground">
+                                    Konfirmasi ditampilkan sebelum daftar aktif
+                                    diganti.
+                                </p>
                             </div>
                         </div>
                     )}
@@ -405,7 +632,8 @@ export default function SasaranImpor({
                                     aria-hidden="true"
                                 />
                                 {hasil.jumlahSasaran} sasaran{' '}
-                                {hasil.labelPeriode} sudah aktif.
+                                {hasil.labelPeriode} sudah diterbitkan ke REST
+                                API.
                             </p>
                             <p className="text-sm">
                                 {hasil.anakBaru} anak baru ·{' '}
@@ -416,17 +644,43 @@ export default function SasaranImpor({
                     )}
                 </section>
 
-                <section className="kartu overflow-hidden">
-                    <div className="strip-kepala flex flex-wrap items-start justify-between gap-x-2 gap-y-4">
+                <section className="overflow-hidden rounded-xl border border-border bg-card">
+                    <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border px-5 py-5 sm:px-6">
                         <div>
                             <h2 className="text-xl font-extrabold">
-                                Sasaran aktif di perangkat
+                                Sasaran yang aktif di perangkat
                             </h2>
                             <p className="mt-1 max-w-[72ch] text-base text-muted-foreground">
-                                Daftar ini dipakai aplikasi Android.
+                                Android membaca daftar ini. Data Balita tetap
+                                menampilkan seluruh anak yang pernah terdaftar.
                             </p>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => void bukaPratinjauReset()}
+                                disabled={memuatPratinjauReset || sasaran?.periode?.periode !== periodeJakartaSekarang()}
+                                className="tombol-kedua text-tone-red"
+                                title="Khusus admin · hanya hasil ukur bertanggal hari ini pada periode aktif"
+                            >
+                                {memuatPratinjauReset ? <RefreshCw className="size-4 animate-spin" aria-hidden="true" /> : <Trash2 className="size-4" aria-hidden="true" />}
+                                Reset data sesi hari ini
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setTambahTerbuka((terbuka) => !terbuka);
+                                    setCalon([]);
+                                    setGalat('');
+                                }}
+                                className="tombol-utama"
+                            >
+                                <UserRoundPlus
+                                    className="size-4"
+                                    aria-hidden="true"
+                                />
+                                Tambah anak
+                            </button>
                             <button
                                 type="button"
                                 onClick={() => void muat()}
@@ -434,7 +688,7 @@ export default function SasaranImpor({
                                 className="tombol-kedua"
                             >
                                 <RefreshCw
-                                    className={`size-5 ${statusMuat === 'memuat' ? 'animate-spin' : ''}`}
+                                    className={`size-4 ${statusMuat === 'memuat' ? 'animate-spin' : ''}`}
                                     aria-hidden="true"
                                 />
                                 Muat ulang
@@ -444,13 +698,43 @@ export default function SasaranImpor({
                                 className="tombol-kedua"
                             >
                                 <CreditCard
-                                    className="size-5"
+                                    className="size-4"
                                     aria-hidden="true"
                                 />
-                                Kartu semua balita
+                                Kartu semua anak
                             </Link>
                         </div>
                     </div>
+
+                    {statusMuat === 'galat' && (
+                        <div
+                            role="alert"
+                            className="flex flex-wrap items-center justify-between gap-3 border-b border-tone-amber/30 bg-tone-amber-bg px-5 py-4 text-tone-amber sm:px-6"
+                        >
+                            <div>
+                                <p className="font-bold">
+                                    Daftar sasaran belum berhasil dimuat.
+                                </p>
+                                <p className="mt-1 text-sm">
+                                    {galat ||
+                                        'Periksa koneksi website ke REST API, lalu coba lagi.'}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    void muat(periodeDitampilkan || undefined)
+                                }
+                                className="tombol-kedua"
+                            >
+                                <RefreshCw
+                                    className="size-4"
+                                    aria-hidden="true"
+                                />
+                                Coba lagi
+                            </button>
+                        </div>
+                    )}
 
                     {statusMuat === 'memuat' && (
                         <div
@@ -479,285 +763,538 @@ export default function SasaranImpor({
                                     Belum ada sasaran bulanan
                                 </h3>
                                 <p className="mt-1 max-w-[68ch] text-base text-muted-foreground">
-                                    Periksa file Excel di atas, pilih bulannya,
-                                    lalu simpan daftarnya. Perangkat Android
-                                    akan menerima daftar itu saat sinkronisasi
+                                    Periksa file Excel di bawah, pilih sheet
+                                    periode, lalu terbitkan. Perangkat Android
+                                    akan menerima daftar itu pada sinkronisasi
                                     berikutnya.
                                 </p>
                             </div>
                         </div>
                     )}
 
-                    {statusMuat === 'siap' && sasaran?.periode !== null && (
-                        <>
-                            <div className="grid border-b border-border sm:grid-cols-[1.3fr_repeat(4,minmax(110px,1fr))]">
-                                <div className="p-5 sm:p-6">
-                                    <p className="text-sm font-semibold text-muted-foreground">
-                                        Periode aktif
-                                    </p>
-                                    <p className="mt-1 text-2xl font-extrabold capitalize">
-                                        {formatPeriode(
-                                            sasaran?.periode?.periode,
-                                        )}
-                                    </p>
-                                    <p className="mt-1 text-sm text-muted-foreground">
-                                        {sasaran?.periode?.sesiDitutupPada ===
-                                        null
-                                            ? 'Sesi masih terbuka'
-                                            : 'Sesi sudah ditutup'}
-                                    </p>
-                                </div>
-                                {[
-                                    ['Total', sasaran?.ringkasan.total ?? 0],
-                                    [
-                                        'Belum dilayani',
-                                        sasaran?.ringkasan.menunggu ?? 0,
-                                    ],
-                                    [
-                                        'Selesai',
-                                        sasaran?.ringkasan.selesai ?? 0,
-                                    ],
-                                    [
-                                        'Tidak hadir',
-                                        sasaran?.ringkasan.tidakHadir ?? 0,
-                                    ],
-                                ].map(([label, nilai]) => (
-                                    <div
-                                        key={String(label)}
-                                        className="border-t border-border p-5 sm:border-t-0 sm:border-l sm:p-6"
-                                    >
-                                        <p className="text-sm text-muted-foreground">
-                                            {label}
+                    {statusMuat === 'siap' &&
+                        sasaran !== null &&
+                        sasaran.periode !== null && (
+                            <>
+                                <div className="grid border-b border-border sm:grid-cols-[1.3fr_repeat(4,minmax(110px,1fr))]">
+                                    <div className="flex flex-col justify-between p-4 sm:p-5">
+                                        <p className="text-xs font-semibold text-muted-foreground sm:text-sm">
+                                            Periode daftar
                                         </p>
-                                        <p className="mt-1 text-2xl font-extrabold tabular-nums">
-                                            {nilai}
+                                        <select
+                                            aria-label="Pilih periode daftar sasaran"
+                                            value={periodeDitampilkan}
+                                            onChange={(event) =>
+                                                void muat(event.target.value)
+                                            }
+                                            className="isian mt-1.5 w-full max-w-full font-bold capitalize"
+                                        >
+                                            {(pilihanPeriode ?? []).map((item) => (
+                                                <option
+                                                    key={item.id}
+                                                    value={item.periode}
+                                                >
+                                                    {formatPeriode(
+                                                        item.periode,
+                                                    )}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <p className="mt-1.5 text-xs text-muted-foreground sm:text-sm">
+                                            {sasaran?.periode
+                                                ?.sesiDitutupPada === null
+                                                ? 'Sesi masih terbuka'
+                                                : 'Sesi sudah ditutup'}
                                         </p>
                                     </div>
-                                ))}
-                            </div>
-                            <div className="border-b border-border p-4 sm:px-6">
-                                {/* `relative`: label "Cari sasaran" yang tersembunyi berlabuh di
-                                    sini. Tanpanya ia mengambang di halaman dan memanjangkannya,
-                                    sehingga muncul bilah gulir kedua. */}
-                                <label className="isian relative flex max-w-lg items-center gap-2.5 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring">
-                                    <Search
-                                        className="size-5 text-muted-foreground"
-                                        aria-hidden="true"
-                                    />
-                                    <span className="sr-only">
-                                        Cari sasaran
-                                    </span>
-                                    <input
-                                        value={cari}
-                                        onChange={(event) =>
-                                            setCari(event.target.value)
-                                        }
-                                        placeholder="Cari nama balita, NIK, atau orang tua"
-                                        className="w-full bg-transparent text-base outline-none placeholder:text-muted-foreground"
-                                    />
-                                </label>
-                            </div>
-                            <div>
-                                <Table
-                                    aria-label="Sasaran yang aktif"
-                                    containerClassName="max-h-[430px] overflow-y-auto"
-                                    className="min-w-[760px]"
-                                >
-                                    <TableHeader className="sticky top-0 z-[1]">
-                                        <TableRow>
-                                            <TableHead
-                                                scope="col"
-                                                className="first:pl-6"
+                                    <div className="grid grid-cols-2 divide-x divide-y border-t border-border sm:col-span-4 sm:grid-cols-4 sm:divide-y-0 sm:border-t-0 sm:border-l">
+                                        {[
+                                            [
+                                                'Total',
+                                                sasaran?.ringkasan.total ?? 0,
+                                            ],
+                                            [
+                                                'Belum dilayani',
+                                                sasaran?.ringkasan.menunggu ?? 0,
+                                            ],
+                                            [
+                                                'Selesai',
+                                                sasaran?.ringkasan.selesai ?? 0,
+                                            ],
+                                            [
+                                                'Tidak hadir',
+                                                sasaran?.ringkasan.tidakHadir ?? 0,
+                                            ],
+                                        ].map(([label, nilai]) => (
+                                            <div
+                                                key={String(label)}
+                                                className="flex flex-col justify-between p-4 sm:p-5"
                                             >
-                                                Balita
-                                            </TableHead>
-                                            <TableHead scope="col">
-                                                Orang tua
-                                            </TableHead>
-                                            <TableHead scope="col">
-                                                RT
-                                            </TableHead>
-                                            <TableHead scope="col">
-                                                Kode kartu
-                                            </TableHead>
-                                            <TableHead
-                                                scope="col"
-                                                className="text-right last:pr-6"
+                                                <p className="text-xs font-semibold text-muted-foreground sm:text-sm">
+                                                    {label}
+                                                </p>
+                                                <p className="mt-2 text-2xl font-extrabold tabular-nums sm:text-3xl">
+                                                    {nilai}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                {tambahTerbuka && (
+                                    <div className="border-b border-border bg-surface-subtle/60 p-4 sm:px-6">
+                                        <div className="flex flex-wrap items-start justify-between gap-3">
+                                            <div>
+                                                <h3 className="font-bold">
+                                                    Tambahkan anak dari Data
+                                                    Balita
+                                                </h3>
+                                                <p className="mt-1 text-sm text-muted-foreground">
+                                                    Pilih profil yang sudah ada
+                                                    di database. Profil master
+                                                    dan riwayatnya tidak diubah.
+                                                </p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setTambahTerbuka(false)
+                                                }
+                                                className="tombol-kedua min-h-9 px-3"
+                                                aria-label="Tutup pencarian anak"
                                             >
-                                                Status
-                                            </TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {daftarTersaring.map((item) => (
-                                            <TableRow
-                                                key={item.id}
-                                                className="hover:bg-surface-subtle"
+                                                <X
+                                                    className="size-4"
+                                                    aria-hidden="true"
+                                                />
+                                            </button>
+                                        </div>
+                                        <form
+                                            className="mt-4 flex max-w-3xl flex-wrap gap-2"
+                                            onSubmit={(event) => {
+                                                event.preventDefault();
+                                                void cariAnakMaster();
+                                            }}
+                                        >
+                                            <label className="flex min-h-11 min-w-[220px] flex-1 items-center gap-3 rounded-lg border border-border-strong bg-surface px-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring">
+                                                <Search
+                                                    className="size-5 text-muted-foreground"
+                                                    aria-hidden="true"
+                                                />
+                                                <span className="sr-only">
+                                                    Cari anak di Data Balita
+                                                </span>
+                                                <input
+                                                    value={cariCalon}
+                                                    onChange={(event) =>
+                                                        setCariCalon(
+                                                            event.target.value,
+                                                        )
+                                                    }
+                                                    placeholder="Nama, NIK, atau nama orang tua"
+                                                    className="w-full bg-transparent text-base outline-none placeholder:text-muted-foreground"
+                                                />
+                                            </label>
+                                            <button
+                                                type="submit"
+                                                disabled={
+                                                    memuatCalon ||
+                                                    cariCalon.trim().length < 2
+                                                }
+                                                className="tombol-kedua"
                                             >
-                                                <TableCell className="py-3 first:pl-6">
+                                                {memuatCalon ? (
+                                                    <RefreshCw
+                                                        className="size-4 animate-spin"
+                                                        aria-hidden="true"
+                                                    />
+                                                ) : (
+                                                    <Search
+                                                        className="size-4"
+                                                        aria-hidden="true"
+                                                    />
+                                                )}
+                                                Cari anak
+                                            </button>
+                                        </form>
+                                        {calon.length > 0 && (
+                                            <ul className="mt-3 max-w-3xl divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
+                                                {calon.map((item) => (
+                                                    <li
+                                                        key={item.anakId}
+                                                        className="flex flex-wrap items-center justify-between gap-3 p-3"
+                                                    >
+                                                        <div>
+                                                            <p className="font-bold">
+                                                                {item.nama}
+                                                            </p>
+                                                            <p className="mt-0.5 text-xs text-muted-foreground">
+                                                                {item.nik ??
+                                                                    'NIK belum tercatat'}{' '}
+                                                                · RT {item.rt} ·{' '}
+                                                                {item.namaOrtu ??
+                                                                    'Orang tua belum tercatat'}
+                                                            </p>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                void tambahAnak(
+                                                                    item,
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                anakDitambahkan !==
+                                                                null
+                                                            }
+                                                            className="tombol-utama min-h-9 px-3"
+                                                        >
+                                                            {anakDitambahkan ===
+                                                            item.anakId ? (
+                                                                <RefreshCw
+                                                                    className="size-4 animate-spin"
+                                                                    aria-hidden="true"
+                                                                />
+                                                            ) : (
+                                                                <UserRoundPlus
+                                                                    className="size-4"
+                                                                    aria-hidden="true"
+                                                                />
+                                                            )}
+                                                            Tambahkan
+                                                        </button>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                        {!memuatCalon &&
+                                            cariCalon.trim().length >= 2 &&
+                                            calon.length === 0 && (
+                                                <p className="mt-3 text-sm text-muted-foreground">
+                                                    Tidak ada anak aktif yang
+                                                    cocok, atau semua hasil
+                                                    sudah masuk sasaran periode
+                                                    ini.
+                                                </p>
+                                            )}
+                                    </div>
+                                )}
+                                <div className="border-b border-border p-4 sm:px-6">
+                                    <label className="flex min-h-11 max-w-lg items-center gap-3 rounded-lg border border-border-strong bg-surface px-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring">
+                                        <Search
+                                            className="size-5 text-muted-foreground"
+                                            aria-hidden="true"
+                                        />
+                                        <span className="sr-only">
+                                            Cari sasaran
+                                        </span>
+                                        <input
+                                            value={cari}
+                                            onChange={(event) =>
+                                                setCari(event.target.value)
+                                            }
+                                            placeholder="Cari nama anak, NIK, atau orang tua"
+                                            className="w-full bg-transparent text-base outline-none placeholder:text-muted-foreground"
+                                        />
+                                    </label>
+                                </div>
+                                {/* Tampilan Ponsel: Daftar Kartu Modern */}
+                                <div className="divide-y divide-border md:hidden">
+                                    {daftarTersaring.map((item) => (
+                                        <div
+                                            key={item.id}
+                                            className="space-y-3 p-4 transition-colors hover:bg-surface-subtle/50"
+                                        >
+                                            <div className="flex items-start justify-between gap-2">
+                                                <div className="min-w-0">
                                                     <Link
                                                         href={`/balita/${item.anakId}`}
-                                                        className="font-bold text-foreground underline-offset-4 hover:text-primary hover:underline"
+                                                        className="flex items-center gap-1.5 font-bold text-foreground underline-offset-4 hover:text-primary hover:underline"
                                                     >
-                                                        {item.nama}
+                                                        <span className="truncate">{item.nama}</span>
+                                                        <span className="rounded bg-surface-subtle px-1.5 py-0.5 text-xs font-semibold text-muted-foreground">
+                                                            {item.jk}
+                                                        </span>
                                                     </Link>
-                                                    <p className="mt-0.5 text-sm text-muted-foreground">
-                                                        {item.nik ??
-                                                            'NIK perlu verifikasi'}
+                                                    <p className="mt-0.5 text-xs text-muted-foreground">
+                                                        {item.nik ? `NIK: ${item.nik}` : 'NIK perlu verifikasi'}
                                                     </p>
-                                                </TableCell>
-                                                <TableCell>
-                                                    {item.namaOrtu ??
-                                                        'Belum tercatat'}
-                                                </TableCell>
-                                                <TableCell className="tabular-nums">
-                                                    {item.rt ?? '—'}
-                                                </TableCell>
-                                                <TableCell className="font-semibold whitespace-nowrap tabular-nums">
-                                                    {item.kodeKartu}
-                                                </TableCell>
-                                                <TableCell className="text-right last:pr-6">
-                                                    <span
-                                                        className={`inline-flex rounded-md px-3 py-1 text-sm font-bold whitespace-nowrap ${WARNA_STATUS[item.status]}`}
+                                                </div>
+                                                <span
+                                                    className={`inline-flex shrink-0 rounded-full px-2.5 py-0.5 text-xs font-bold ${WARNA_STATUS[item.status]}`}
+                                                >
+                                                    {LABEL_STATUS[item.status]}
+                                                </span>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-2 rounded-lg bg-surface-subtle/40 p-2.5 text-xs text-muted-foreground">
+                                                <div>
+                                                    <span className="block font-medium text-foreground">Orang tua</span>
+                                                    <span className="truncate">{item.namaOrtu ?? 'Belum tercatat'}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="block font-medium text-foreground">Wilayah RT</span>
+                                                    <span>RT {item.rt ?? '—'}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="block font-medium text-foreground">Kode kartu</span>
+                                                    <span className="font-semibold text-foreground">{item.kodeKartu}</span>
+                                                </div>
+                                                <div className="flex items-end justify-end">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => mulaiEdit(item)}
+                                                        className="tombol-kedua min-h-8 px-2.5 py-1 text-xs font-semibold"
+                                                        aria-label={`Edit sasaran ${item.nama}`}
                                                     >
-                                                        {
-                                                            LABEL_STATUS[
-                                                                item.status
-                                                            ]
-                                                        }
-                                                    </span>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
+                                                        <Pencil className="mr-1 size-3.5" aria-hidden="true" />
+                                                        Edit
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {item.catatan !== null && (
+                                                 <p className="flex items-start gap-1.5 rounded bg-tone-amber-bg/50 p-2 text-xs font-medium text-tone-amber">
+                                                     <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+                                                     <span>{item.catatan}</span>
+                                                 </p>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Tampilan Desktop & Tablet Lebar: Tabel Lengkap */}
+                                <div className="hidden md:block max-h-[460px] overflow-auto">
+                                    <table className="w-full min-w-[760px] text-left text-sm">
+                                        <thead className="sticky top-0 z-[1] bg-surface-subtle text-muted-foreground">
+                                            <tr>
+                                                <th className="px-6 py-3 font-semibold">
+                                                    Anak
+                                                </th>
+                                                <th className="px-4 py-3 font-semibold">
+                                                    Orang tua
+                                                </th>
+                                                <th className="px-4 py-3 font-semibold">
+                                                    RT
+                                                </th>
+                                                <th className="px-4 py-3 font-semibold">
+                                                    Kode kartu
+                                                </th>
+                                                <th className="px-6 py-3 text-right font-semibold">
+                                                    Status
+                                                </th>
+                                                <th className="px-4 py-3 text-right font-semibold">
+                                                    Aksi
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-border">
+                                            {daftarTersaring.map((item) => (
+                                                <tr
+                                                    key={item.id}
+                                                    className="hover:bg-surface-subtle"
+                                                >
+                                                    <td className="px-6 py-3.5">
+                                                        <Link
+                                                            href={`/balita/${item.anakId}`}
+                                                            className="font-bold text-foreground underline-offset-4 hover:text-primary hover:underline"
+                                                        >
+                                                            {item.nama}
+                                                        </Link>
+                                                        <p className="mt-0.5 text-xs text-muted-foreground">
+                                                            {item.nik ??
+                                                                'NIK perlu verifikasi'}
+                                                        </p>
+                                                        {item.catatan !== null && (
+                                                            <p className="mt-1 max-w-[34rem] text-xs font-medium text-tone-amber">
+                                                                <AlertTriangle
+                                                                    className="mr-1 inline size-3.5 align-[-2px]"
+                                                                    aria-hidden="true"
+                                                                />
+                                                                {item.catatan}
+                                                            </p>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-3.5">
+                                                        {item.namaOrtu ??
+                                                            'Belum tercatat'}
+                                                    </td>
+                                                    <td className="px-4 py-3.5 tabular-nums">
+                                                        {item.rt ?? '—'}
+                                                    </td>
+                                                    <td className="px-4 py-3.5 font-semibold tabular-nums">
+                                                        {item.kodeKartu}
+                                                    </td>
+                                                    <td className="px-6 py-3.5 text-right">
+                                                        <span
+                                                            className={`inline-flex rounded-md px-2.5 py-1 text-xs font-bold ${WARNA_STATUS[item.status]}`}
+                                                        >
+                                                            {
+                                                                LABEL_STATUS[
+                                                                    item.status
+                                                                ]
+                                                            }
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-3.5 text-right">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                mulaiEdit(item)
+                                                            }
+                                                            className="tombol-kedua min-h-9 px-3"
+                                                            aria-label={`Edit sasaran ${item.nama}`}
+                                                        >
+                                                            <Pencil
+                                                                className="size-4"
+                                                                aria-hidden="true"
+                                                            />
+                                                            Edit
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                                 {daftarTersaring.length === 0 && (
-                                    <p className="p-8 text-center text-muted-foreground">
+                                    <p className="p-8 text-center text-sm text-muted-foreground">
                                         Tidak ada sasaran yang cocok dengan
                                         pencarian.
                                     </p>
                                 )}
-                            </div>
-                        </>
-                    )}
+                                {editId !== null && (
+                                    <div className="border-t border-border bg-surface-subtle/60 p-4 sm:px-6">
+                                        <div className="flex flex-wrap items-center justify-between gap-3">
+                                            <div>
+                                                <h3 className="font-bold">
+                                                    Edit status sasaran
+                                                </h3>
+                                                <p className="mt-1 text-sm text-muted-foreground">
+                                                    Perubahan hanya berlaku
+                                                    untuk daftar periode ini,
+                                                    bukan profil anak.
+                                                </p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setEditId(null)}
+                                                className="tombol-kedua min-h-9 px-3"
+                                            >
+                                                <X
+                                                    className="size-4"
+                                                    aria-hidden="true"
+                                                />{' '}
+                                                Batal
+                                            </button>
+                                        </div>
+                                        <div className="mt-4 grid max-w-3xl gap-3 sm:grid-cols-[220px_minmax(0,1fr)_auto] sm:items-end">
+                                            <label className="text-sm font-semibold">
+                                                Status
+                                                <select
+                                                    value={editStatus}
+                                                    onChange={(event) =>
+                                                        setEditStatus(
+                                                            event.target
+                                                                .value as StatusSasaran,
+                                                        )
+                                                    }
+                                                    className="mt-1 min-h-11 w-full rounded-lg border border-border-strong bg-surface px-3 text-base"
+                                                >
+                                                    {(
+                                                        Object.keys(
+                                                            LABEL_STATUS,
+                                                        ) as StatusSasaran[]
+                                                    ).map((status) => (
+                                                        <option
+                                                            key={status}
+                                                            value={status}
+                                                        >
+                                                            {
+                                                                LABEL_STATUS[
+                                                                    status
+                                                                ]
+                                                            }
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </label>
+                                            <label className="text-sm font-semibold">
+                                                Catatan{' '}
+                                                <span className="font-normal text-muted-foreground">
+                                                    (opsional)
+                                                </span>
+                                                <input
+                                                    value={editCatatan}
+                                                    maxLength={500}
+                                                    onChange={(event) =>
+                                                        setEditCatatan(
+                                                            event.target.value,
+                                                        )
+                                                    }
+                                                    placeholder="Contoh: orang tua tidak hadir"
+                                                    className="mt-1 min-h-11 w-full rounded-lg border border-border-strong bg-surface px-3 text-base"
+                                                />
+                                            </label>
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    void simpanEdit()
+                                                }
+                                                disabled={menyimpanEdit}
+                                                className="tombol-utama"
+                                            >
+                                                {menyimpanEdit ? (
+                                                    <RefreshCw
+                                                        className="size-4 animate-spin"
+                                                        aria-hidden="true"
+                                                    />
+                                                ) : (
+                                                    <CheckCircle2
+                                                        className="size-4"
+                                                        aria-hidden="true"
+                                                    />
+                                                )}
+                                                Simpan
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        )}
                 </section>
             </div>
-            {konfirmasi && sheetAktif !== undefined && file !== null && (
-                <DialogGantiDaftar
-                    bulan={formatPeriode(sheetAktif.periode)}
-                    namaFile={file.name}
-                    baru={sheetAktif.jumlahBaris}
-                    lama={lamaAktif}
-                    perluTinjau={sheetAktif.jumlahPerluVerifikasi}
-                    onBatal={() => setKonfirmasi(false)}
-                    onLanjut={() => void gantiDaftar()}
-                />
+            {pratinjauReset !== null && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/55 p-4" onMouseDown={(event) => {
+ if (event.target === event.currentTarget && !menjalankanReset) {
+setPratinjauReset(null);
+}
+}}>
+                    <section role="alertdialog" aria-modal="true" aria-labelledby="judul-reset-harian" className="my-auto w-full max-w-xl rounded-2xl border border-border bg-card p-6 shadow-2xl">
+                        <div className="flex items-start gap-3">
+                            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-tone-red-bg text-tone-red"><AlertTriangle className="size-6" aria-hidden="true" /></span>
+                            <div className="min-w-0 flex-1">
+                                <h2 id="judul-reset-harian" className="text-xl font-extrabold">Reset data sesi hari ini?</h2>
+                            <p className="mt-2 text-sm leading-6 text-muted-foreground">Aksi admin ini akan menghapus <strong className="text-foreground">{pratinjauReset.jumlahPengukuran} catatan pengukuran</strong> bertanggal {pratinjauReset.tanggal} dari periode sasaran aktif beserta penilaian gizinya, lalu menghapus <strong className="text-foreground">{pratinjauReset.jumlahAntrean} antrean hari ini</strong> agar anak dapat check-in lagi dengan nomor antrean mulai dari 1. Sasaran tanpa catatan ukur periode lain akan kembali ke “Belum dilayani”.</p>
+                            </div>
+                            <button type="button" aria-label="Tutup" onClick={() => setPratinjauReset(null)} disabled={menjalankanReset} className="rounded-lg p-2 text-muted-foreground hover:bg-surface-subtle"><X className="size-5" aria-hidden="true" /></button>
+                        </div>
+                        {pratinjauReset.jumlahPengukuran + pratinjauReset.jumlahAntrean > 0 ? (
+                            <>
+                                {pratinjauReset.namaAnak.length > 0 && <div className="mt-4 max-h-32 overflow-y-auto rounded-lg bg-surface-subtle p-3 text-sm">{pratinjauReset.namaAnak.join(' · ')}</div>}
+                                <p className="mt-4 text-sm font-semibold">Data master balita dan pengukuran tanggal lain tidak dihapus. Pastikan semua tablet sudah tersinkron; data lokal yang masih menunggu sinkronisasi dapat mengirim ulang hasil ukur. Setelah reset, muat ulang antrean pada semua tablet sebelum check-in kembali.</p>
+                                <label className="mt-4 block text-sm font-semibold" htmlFor="konfirmasi-reset-harian">Ketik <code className="rounded bg-surface-subtle px-1.5 py-0.5">RESET HARI INI</code> untuk mengaktifkan reset.</label>
+                                <input id="konfirmasi-reset-harian" value={konfirmasiReset} onChange={(event) => setKonfirmasiReset(event.target.value)} autoComplete="off" className="mt-2 min-h-11 w-full rounded-lg border border-border-strong bg-surface px-3" />
+                            </>
+                        ) : (
+                            <p className="mt-4 rounded-lg bg-tone-green-bg p-4 text-sm font-semibold text-tone-green">Tidak ada hasil ukur maupun antrean hari ini di periode sasaran aktif.</p>
+                        )}
+                        <div className="mt-6 flex flex-wrap justify-end gap-2">
+                            <button type="button" onClick={() => setPratinjauReset(null)} disabled={menjalankanReset} className="tombol-kedua">Batal</button>
+                            {pratinjauReset.jumlahPengukuran + pratinjauReset.jumlahAntrean > 0 && <button type="button" onClick={() => void jalankanResetHariIni()} disabled={menjalankanReset || konfirmasiReset !== 'RESET HARI INI'} className="tombol-utama bg-tone-red text-white hover:bg-tone-red/90 disabled:opacity-50">{menjalankanReset ? <RefreshCw className="size-4 animate-spin" aria-hidden="true" /> : <Trash2 className="size-4" aria-hidden="true" />}{menjalankanReset ? 'Mereset data…' : 'Reset data hari ini'}</button>}
+                        </div>
+                    </section>
+                </div>
             )}
         </Halaman>
-    );
-}
-
-/** Konfirmasi sebelum daftar sasaran aktif diganti. Fokus awal di Batal. */
-function DialogGantiDaftar({
-    bulan,
-    namaFile,
-    baru,
-    lama,
-    perluTinjau,
-    onBatal,
-    onLanjut,
-}: {
-    bulan: string;
-    namaFile: string;
-    baru: number;
-    /** Sasaran aktif untuk bulan yang sama; 0 bila belum ada. */
-    lama: number;
-    perluTinjau: number;
-    onBatal: () => void;
-    onLanjut: () => void;
-}) {
-    const angka: [string, number, string][] = [
-        ...(lama > 0
-            ? [['Sekarang aktif', lama, ''] as [string, number, string]]
-            : []),
-        [
-            lama > 0 ? 'Akan menggantikan' : 'Akan disimpan',
-            baru,
-            'text-primary',
-        ],
-        ...(perluTinjau > 0
-            ? [
-                  ['Perlu ditinjau', perluTinjau, 'text-tone-amber'] as [
-                      string,
-                      number,
-                      string,
-                  ],
-              ]
-            : []),
-    ];
-
-    return (
-        <Dialog
-            judul={`${lama > 0 ? 'Ganti' : 'Simpan'} daftar sasaran ${bulan}?`}
-            lebar="w-[520px]"
-            onTutup={onBatal}
-        >
-            <div className="px-7 py-5 text-base">
-                <p>
-                    {lama > 0
-                        ? `Daftar sasaran ${bulan} yang aktif sekarang akan diganti dengan isi berkas `
-                        : `${baru} sasaran dari berkas `}
-                    <b>{namaFile}</b>
-                    {lama > 0 ? '.' : ' akan dijadikan daftar sasaran aktif.'}
-                </p>
-                <dl
-                    className={`mt-4 grid gap-3 rounded-xl bg-surface-subtle p-4 text-center ${
-                        angka.length === 3
-                            ? 'grid-cols-3'
-                            : angka.length === 2
-                              ? 'grid-cols-2'
-                              : 'grid-cols-1'
-                    }`}
-                >
-                    {angka.map(([label, nilai, warna]) => (
-                        <div key={label}>
-                            <dt className="text-sm text-muted-foreground">
-                                {label}
-                            </dt>
-                            <dd
-                                className={`mt-1 text-xl font-extrabold ${warna}`}
-                            >
-                                {nilai}
-                            </dd>
-                        </div>
-                    ))}
-                </dl>
-                <p className="mt-4 text-muted-foreground">
-                    Data Balita dan riwayat ukur tidak ikut terhapus.
-                </p>
-            </div>
-            <KakiDialog>
-                <button
-                    type="button"
-                    autoFocus
-                    onClick={onBatal}
-                    className="tombol-kedua px-5.5"
-                >
-                    Batal
-                </button>
-                <button
-                    type="button"
-                    onClick={onLanjut}
-                    className="tombol-utama px-5.5"
-                >
-                    {lama > 0 ? (
-                        <RefreshCw className="size-5" aria-hidden="true" />
-                    ) : (
-                        <Save className="size-5" aria-hidden="true" />
-                    )}
-                    {lama > 0 ? 'Ganti daftar' : 'Simpan daftar'}
-                </button>
-            </KakiDialog>
-        </Dialog>
     );
 }

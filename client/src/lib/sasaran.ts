@@ -6,16 +6,25 @@ export type SheetSasaran = {
     jumlahBaris: number;
     jumlahSiap: number;
     jumlahPerluVerifikasi: number;
+    jumlahDitahan: number;
+    barisVerifikasi: Array<{
+        barisAsal: number;
+        nama: string;
+        masalah: string[];
+        ditahan: boolean;
+    }>;
+};
+
+export type PeriodeSasaran = {
+    id: number;
+    periode: string;
+    label: string;
+    tanggalKegiatan: string | null;
+    sesiDitutupPada: string | null;
 };
 
 export type SasaranAktif = {
-    periode: null | {
-        id: number;
-        periode: string;
-        label: string;
-        tanggalKegiatan: string | null;
-        sesiDitutupPada: string | null;
-    };
+    periode: PeriodeSasaran | null;
     ringkasan: {
         total: number;
         menunggu: number;
@@ -49,36 +58,33 @@ export type HasilImpor = {
     perluVerifikasi: number;
 };
 
-const TIDAK_MENJAWAB =
-    'Tidak dapat terhubung ke server. Periksa koneksi internet, lalu coba lagi.';
+export type StatusSasaran = SasaranAktif['items'][number]['status'];
+export type CalonSasaran = {
+    anakId: number;
+    nama: string;
+    nik: string | null;
+    tglLahir: string;
+    jk: 'L' | 'P';
+    namaOrtu: string | null;
+    rt: string;
+};
 
-/**
- * Meminta JSON dari API sasaran. Pesan dari server (mis. isi Excel yang
- * ditolak) diteruskan apa adanya; gangguan jaringan, kode HTTP tanpa pesan,
- * atau jawaban yang bukan JSON menjadi satu kalimat yang bisa dipahami
- * petugas, bukan "Unexpected token '<'".
- */
-async function minta<T>(url: string, init?: RequestInit): Promise<T> {
-    let res: Response;
+export type RingkasanResetHariIni = {
+    periodeId: number;
+    tanggal: string;
+    jumlahPengukuran: number;
+    jumlahAnak: number;
+    jumlahAntrean: number;
+    namaAnak: string[];
+};
 
+async function galatDari(res: Response): Promise<Error> {
     try {
-        res = await fetch(url, { credentials: 'same-origin', ...init });
+        const isi = (await res.json()) as { galat?: string };
+
+        return new Error(isi.galat ?? `Permintaan gagal (HTTP ${res.status}).`);
     } catch {
-        throw new Error(TIDAK_MENJAWAB);
-    }
-
-    if (!res.ok) {
-        const isi = (await res.json().catch(() => null)) as {
-            galat?: string;
-        } | null;
-
-        throw new Error(isi?.galat ?? TIDAK_MENJAWAB);
-    }
-
-    try {
-        return (await res.json()) as T;
-    } catch {
-        throw new Error(TIDAK_MENJAWAB);
+        return new Error(`Permintaan gagal (HTTP ${res.status}).`);
     }
 }
 
@@ -100,8 +106,63 @@ function base64(file: File): Promise<string> {
     });
 }
 
-export async function ambilSasaran(): Promise<SasaranAktif> {
-    return minta<SasaranAktif>('/api/v1/sasaran');
+export async function ambilSasaran(periode?: string): Promise<SasaranAktif> {
+    const query = periode ? `?periode=${encodeURIComponent(periode)}` : '';
+    const res = await fetch(`/api/v1/sasaran${query}`, {
+        credentials: 'same-origin',
+    });
+
+    if (!res.ok) {
+        throw await galatDari(res);
+    }
+
+    return (await res.json()) as SasaranAktif;
+}
+
+export async function ambilPeriodeSasaran(): Promise<PeriodeSasaran[]> {
+    const res = await fetch('/api/v1/sasaran/periode', {
+        credentials: 'same-origin',
+    });
+
+    if (!res.ok) {
+        throw await galatDari(res);
+    }
+
+    return (await res.json()) as PeriodeSasaran[];
+}
+
+export async function pratinjauResetHariIni(
+    periodeId: number,
+): Promise<RingkasanResetHariIni> {
+    const res = await fetch(
+        `/api/v1/sasaran/reset-hari-ini?periodeId=${encodeURIComponent(periodeId)}`,
+        { credentials: 'same-origin' },
+    );
+
+    if (!res.ok) {
+throw await galatDari(res);
+}
+
+    return (await res.json()) as RingkasanResetHariIni;
+}
+
+export async function resetPengukuranHariIni(
+    periodeId: number,
+    jumlahDikonfirmasi: number,
+    jumlahAntreanDikonfirmasi: number,
+): Promise<RingkasanResetHariIni> {
+    const res = await fetch('/api/v1/sasaran/reset-hari-ini', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ periodeId, jumlahDikonfirmasi, jumlahAntreanDikonfirmasi, konfirmasi: true }),
+    });
+
+    if (!res.ok) {
+throw await galatDari(res);
+}
+
+    return ((await res.json()) as { hasil: RingkasanResetHariIni }).hasil;
 }
 
 export async function periksaFileSasaran(
@@ -112,17 +173,21 @@ export async function periksaFileSasaran(
     }
 
     const isiBase64 = await base64(file);
-    const isi = await minta<{ namaFile: string; sheets: SheetSasaran[] }>(
-        '/api/v1/sasaran/pratinjau',
-        {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                namaFile: file.name,
-                dataBase64: isiBase64,
-            }),
-        },
-    );
+    const res = await fetch('/api/v1/sasaran/pratinjau', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ namaFile: file.name, dataBase64: isiBase64 }),
+    });
+
+    if (!res.ok) {
+        throw await galatDari(res);
+    }
+
+    const isi = (await res.json()) as {
+        namaFile: string;
+        sheets: SheetSasaran[];
+    };
 
     return { ...isi, isiBase64 };
 }
@@ -132,11 +197,74 @@ export async function gantiSasaran(
     isiBase64: string,
     sheet: string,
 ): Promise<HasilImpor> {
-    const isi = await minta<{ hasil: HasilImpor }>('/api/v1/sasaran/impor', {
+    const res = await fetch('/api/v1/sasaran/impor', {
         method: 'POST',
+        credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ namaFile, dataBase64: isiBase64, sheet }),
     });
 
-    return isi.hasil;
+    if (!res.ok) {
+        throw await galatDari(res);
+    }
+
+    return ((await res.json()) as { hasil: HasilImpor }).hasil;
+}
+
+export async function cariCalonSasaran(
+    periodeId: number,
+    cari: string,
+): Promise<CalonSasaran[]> {
+    const query = new URLSearchParams({
+        periodeId: String(periodeId),
+        cari,
+    });
+    const res = await fetch(`/api/v1/sasaran/calon-anak?${query}`, {
+        credentials: 'same-origin',
+    });
+
+    if (!res.ok) {
+throw await galatDari(res);
+}
+
+    return (await res.json()) as CalonSasaran[];
+}
+
+export async function tambahAnakKeSasaran(
+    periodeId: number,
+    anakId: number,
+): Promise<{ sasaranId: number; sudahDiukur: boolean }> {
+    const res = await fetch('/api/v1/sasaran/manual', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ periodeId, anakId }),
+    });
+
+    if (!res.ok) {
+throw await galatDari(res);
+}
+
+    return (
+        (await res.json()) as {
+            hasil: { sasaranId: number; sudahDiukur: boolean };
+        }
+    ).hasil;
+}
+
+export async function perbaruiSasaran(
+    sasaranId: number,
+    status: StatusSasaran,
+    catatan: string,
+): Promise<void> {
+    const res = await fetch(`/api/v1/sasaran/${sasaranId}`, {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, catatan }),
+    });
+
+    if (!res.ok) {
+throw await galatDari(res);
+}
 }

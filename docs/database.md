@@ -4,7 +4,7 @@
 |---|---|
 | **Jenis** | Rujukan |
 | **Status** | hidup |
-| **Perubahan berarti terakhir** | 29 September 2026 |
+| **Perubahan berarti terakhir** | 29 Oktober 2026 |
 
 Bentuk tabel, relasi antar tabel, dan aturan integritas SIMPATIK Posyandu. Inilah yang mengikat berkas migrasi di `server/db/migrations/`.
 
@@ -31,6 +31,8 @@ erDiagram
     PENGUKURAN ||--o{ PENILAIAN_GIZI : "menghasilkan"
     ANAK ||--o{ LAYANAN : "menerima"
     PERIODE ||--o{ LAYANAN : "mewadahi"
+    PERIODE ||--o{ CAKUPAN_HARI_H : "mewadahi"
+    WILAYAH_RT ||--o{ CAKUPAN_HARI_H : "memiliki"
     IMPORT_BATCH ||--o{ IMPORT_KONFLIK : "menghasilkan"
 
     POSYANDU {
@@ -75,10 +77,13 @@ erDiagram
     ORANG_TUA {
         id id PK
         string nik "nullable unique"
+        uuid id_keluarga "UUID keluarga; dapat dipakai bersama"
         string nama
+        bool kb_ibu "nullable"
     }
     ANAK {
         id id PK
+        uuid id_publik "UUID unik untuk integrasi"
         string nik "nullable unique"
         id orang_tua_id FK "nullable"
         id wilayah_rt_id FK "nullable"
@@ -161,6 +166,14 @@ erDiagram
         json payload
         enum status "terbuka, selesai, diabaikan"
     }
+    CAKUPAN_HARI_H {
+        id id PK
+        id periode_id FK
+        id wilayah_rt_id FK
+        date tanggal_hari_h
+        int jumlah_hadir
+        id dicatat_oleh FK "nullable"
+    }
 ```
 
 ## Kamus data
@@ -177,18 +190,35 @@ Hanya kolom yang menuntut penjelasan. Kolom `id`, `created_at`, dan `updated_at`
 
 *Unique:* `(posyandu_id, rt, rw)`
 
+### `pengguna_posyandu`
+
+Keanggotaan akun ke cluster. Akun operasional memiliki satu baris untuk satu Posyandu/RW; Mirae sebagai superadmin global tidak memiliki baris keanggotaan.
+
+| Kolom | Tipe | Aturan |
+|---|---|---|
+| `pengguna_id` | FK → `pengguna` | Bagian dari primary key; dihapus saat akun dihapus. |
+| `posyandu_id` | FK → `posyandu` | Cluster akses akun. |
+| `created_at` | `timestamptz` | Waktu keanggotaan dibuat. |
+
+*Primary key:* `(pengguna_id, posyandu_id)` · *Index:* `(posyandu_id, pengguna_id)`
+
+`pengguna.super_admin` membedakan superadmin global dari Admin Posyandu. Hanya Mirae ditandai global melalui migrasi `021_super_admin_global.sql`; perubahan ini tidak mengubah kata sandi atau hash akun.
+
 ### `orang_tua`
 
 | Kolom | Tipe | Aturan |
 |---|---|---|
 | `nik` | `string(16)` `nullable` | *Unique*, boleh `NULL` (DR-02). |
+| `id_keluarga` | `uuid` | ID keluarga terpisah dari NIK; beberapa anak/orang tua dapat berbagi ID ini. |
 | `nama` | `string` | Data sumber memuat bentuk `AYAH - IBU` dalam satu sel. Disimpan apa adanya; pemisahan menjadi dua entitas ditunda sampai ada kebutuhan nyata. |
+| `kb_ibu` | `boolean` `nullable` | Status keikutsertaan KB ibu (`true` = Iya, `false` = Tidak, `NULL` = Belum tercatat). Ditambahkan pada migrasi `024_kb_ibu.sql`. |
 
 ### `anak`
 
 | Kolom | Tipe | Aturan |
 |---|---|---|
 | `nik` | `string(16)` `nullable` | *Unique*, boleh `NULL` (DR-01, DR-02). |
+| `id_publik` | `uuid` | ID anak stabil dan unik untuk integrasi web/tablet; tidak menggantikan `id` internal atau NIK. |
 | `nama` | `string` | Nama sebagaimana tertulis di sumber. |
 | `nama_baku` | `string` | Nama yang sudah dibakukan, dipakai untuk pencarian dan pencocokan. Berasal dari kolom `NAMA_BAKU` arsip; bila kosong, diisi dari `nama`. |
 | `tgl_lahir` | `date` | Wajib. Tanpa ini status gizi tidak dapat dihitung. |
@@ -199,6 +229,8 @@ Hanya kolom yang menuntut penjelasan. Kolom `id`, `created_at`, dan `updated_at`
 
 *Unique:* `nik` (mengizinkan banyak `NULL`)
 *Index:* `nama_baku`, `wilayah_rt_id`, `tgl_lahir`
+
+NIK anak mengidentifikasi anak dan tidak boleh dipakai bersama oleh saudara. NIK orang tua berada di `orang_tua`, sehingga dapat sama-sama dirujuk oleh beberapa anak. `id_keluarga` adalah pengelompokan keluarga yang terpisah dari kedua NIK; riwayat ukur tetap terikat ke `anak.id` masing-masing.
 
 ### `periode`
 
@@ -263,6 +295,21 @@ Satu tabel untuk imunisasi, Vitamin A, dan obat cacing, dibedakan kolom `jenis`.
 
 Jejak audit impor (DR-09). `import_konflik.jenis`: `nik_ganda`, `tgl_lahir_bentrok`, `nama_mirip`, `satuan_meragukan`, `nilai_bukan_angka`, `anak_tidak_dikenal`.
 
+### `cakupan_hari_h`
+
+Rekap kehadiran fisik hari H per RT untuk periode tertentu. Digunakan untuk menghitung *Real D/S* (kehadiran riil hari H) disandingkan dengan D/S keseluruhan (termasuk sweeping). Ditambahkan pada migrasi `025_cakupan_hari_h.sql` dan `026_cakupan_hari_h_audit_id.sql`.
+
+| Kolom | Tipe | Aturan |
+|---|---|---|
+| `id` | `bigint` | Generated always as identity unique, identitas baris untuk audit. |
+| `periode_id` | FK → `periode` | Periode kegiatan Posyandu (`ON DELETE CASCADE`). |
+| `wilayah_rt_id` | FK → `wilayah_rt` | RT sasaran. |
+| `tanggal_hari_h` | `date` | Tanggal pelaksanaan hari kegiatan. |
+| `jumlah_hadir` | `integer` | Jumlah balita hadir fisik di meja posyandu (0 s.d. 100.000). |
+| `dicatat_oleh` | FK → `pengguna` `nullable` | Petugas pencatat konfirmasi (`ON DELETE SET NULL`). |
+
+*Primary key:* `(periode_id, wilayah_rt_id)` · *Audit:* trigger `cakupan_hari_h_catat_audit` aktif.
+
 ### `audit`
 
 Jejak perubahan (DR-09). Diisi **trigger**, bukan kode aplikasi, sehingga tidak ada jalur mutasi yang bisa lupa mencatat — termasuk perubahan lewat `psql` langsung. Keputusannya di [ADR-0007](adr/0007-jejak-audit-lewat-trigger.md).
@@ -278,7 +325,7 @@ Jejak perubahan (DR-09). Diisi **trigger**, bukan kode aplikasi, sehingga tidak 
 
 *Index:* `(tabel, baris_id, pada DESC)` dan `(pengguna_id, pada DESC)` — dua bentuk pertanyaan yang nyata: riwayat satu baris, dan apa yang dikerjakan satu pengguna.
 
-**Tabel yang diaudit:** `anak`, `orang_tua`, `pengukuran`, `layanan`, `periode`, `wilayah_rt`, `pengguna`.
+**Tabel yang diaudit:** `anak`, `orang_tua`, `pengukuran`, `layanan`, `periode`, `wilayah_rt`, `pengguna`, `cakupan_hari_h`.
 
 `penilaian_gizi` sengaja di luar daftar: ia hasil turunan yang dihitung ulang setiap kali nilai ukur dikoreksi, dan menghitung ulang satu periode 101 anak menulis sekitar 1.200 baris untuk angka yang dapat dihasilkan ulang kapan saja.
 

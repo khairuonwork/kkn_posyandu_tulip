@@ -93,6 +93,19 @@ export function tautanWa(nomor: string, pesan: string): string {
     return `https://wa.me/${nomor}?text=${encodeURIComponent(pesan)}`;
 }
 
+export type DiskusiKiaWa = {
+    kelompokLabel: string;
+    ya: number;
+    tidak: number;
+    belum: number;
+    total: number;
+    arahan: string;
+    catatan?: string;
+    tindakLanjut?: string;
+    makan?: string[];
+    stimulasi?: string[];
+};
+
 type Bahan = {
     nama: string;
     umurBulan: number | null;
@@ -100,6 +113,8 @@ type Bahan = {
     /** Pengukuran tepat dua bulan sebelumnya, bila ada. */
     duaBulanLalu: Pengukuran | undefined;
     kesimpulan: Kesimpulan;
+    /** Ringkasan diskusi tumbuh kembang & rekomendasi Buku KIA 2024, bila tersedia. */
+    diskusiKia?: DiskusiKiaWa | null;
     /** Tautan Lembar Hasil; baris "Rincian lengkap" hilang bila null. */
     tautan?: string | null;
     lembaga: string;
@@ -114,15 +129,56 @@ function baris(
         return null;
     }
 
-    // Kategori ditulis tanpa kode indeks dan z-score: orang tua tidak
-    // mengenal "BB/U" atau "SD"; angka lengkap ada di Lembar Hasil.
-    // "Berat badan normal" setelah "Berat badan 8,1 kg:" berulang.
+    // Orang tua menerima ringkasan sederhana. Kode indeks dan z-score tetap
+    // tersedia pada Lembar Hasil yang ditautkan, bukan di pesan singkat.
     const kategori = penilaian?.kategori?.replace(/^Berat badan /, '');
     const isi = [nama, ukur].filter((s) => s !== '').join(' ');
 
     return kategori == null
         ? `• ${isi}`
         : `• ${isi}: ${kategori.charAt(0).toLowerCase()}${kategori.slice(1)}`;
+}
+
+function susunBagianKia(d: DiskusiKiaWa): string[] {
+    const bagian: string[] = [
+        '',
+        `*Hasil Diskusi Tumbuh Kembang (${d.kelompokLabel})*`,
+    ];
+
+    if (d.ya + d.tidak > 0) {
+        bagian.push(
+            `• Pemantauan: ${d.ya} sesuai (Ya), ${d.tidak} perlu perhatian (Tidak)${
+                d.belum > 0 ? `, ${d.belum} belum diamati` : ''
+            } dari ${d.total} butir`,
+        );
+    }
+
+    if (d.arahan.trim() !== '') {
+        bagian.push(d.arahan.trim());
+    }
+
+    if (d.catatan && d.catatan.trim() !== '') {
+        bagian.push(`• Catatan pengamatan: ${d.catatan.trim()}`);
+    }
+
+    if (d.tindakLanjut && d.tindakLanjut.trim() !== '') {
+        bagian.push(`• Tindak lanjut disepakati: ${d.tindakLanjut.trim()}`);
+    }
+
+    const rekomendasi = [
+        ...(d.makan ?? []).slice(0, 2),
+        ...(d.stimulasi ?? []).slice(0, 2),
+    ];
+
+    if (rekomendasi.length > 0) {
+        bagian.push('', '*Rekomendasi perawatan & stimulasi di rumah:*');
+
+        for (const butir of rekomendasi) {
+            bagian.push(`• ${butir}`);
+        }
+    }
+
+    return bagian;
 }
 
 /**
@@ -174,6 +230,11 @@ export function susunPesan(b: Bahan): string {
               } dibanding 2 bulan lalu`,
     ].filter((l) => l !== null);
 
+    const bagianKia = b.diskusiKia ? susunBagianKia(b.diskusiKia) : [];
+    const labelTautan = b.diskusiKia
+        ? 'Ringkasan lengkap, panduan perawatan, dan grafik pertumbuhan (PDF)'
+        : 'Rincian lengkap dan grafik';
+
     return [
         `Yth. Ibu/Bapak dari ${nama},`,
         `Hasil penimbangan ${tanggalPanjang(t.tanggalUkur)} (umur ${umurPanjang(b.umurBulan)}):`,
@@ -181,7 +242,8 @@ export function susunPesan(b: Bahan): string {
         '',
         `*${kalimat.judul}*`,
         kalimat.anjuran,
-        ...(b.tautan ? ['', `Rincian lengkap dan grafik: ${b.tautan}`] : []),
+        ...bagianKia,
+        ...(b.tautan ? ['', `${labelTautan}: ${b.tautan}`] : []),
         '',
         b.lembaga,
     ].join('\n');

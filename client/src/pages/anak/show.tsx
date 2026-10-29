@@ -11,6 +11,7 @@
 
 import {
     ArrowRight,
+    ChevronDown,
     CircleCheck,
     CreditCard,
     Info,
@@ -33,7 +34,7 @@ import Halaman from '@/components/halaman';
 import IkonWhatsApp from '@/components/ikon-whatsapp';
 import KartuBalita, { LembarCetak } from '@/components/kartu-balita';
 import KmsChart from '@/components/kms-chart-sep24';
-import Pilih from '@/components/pilih';
+import PendampinganKia from '@/components/pendampingan-kia';
 import { nadaKategori } from '@/components/status-gizi-badge';
 import {
     Table,
@@ -59,12 +60,13 @@ import {
     zScore,
 } from '@/lib/format';
 import { kodeKartuSasaran } from '@/lib/kartu-sasaran';
-import { kbmKg } from '@/lib/kategori';
+import { kbmKg, kesimpulanZScore } from '@/lib/kategori';
 import { tandaGizi, tentukanKesimpulan } from '@/lib/kesimpulan-gizi';
 import { buatTautanLembar } from '@/lib/lembar';
 import { Link } from '@/lib/nav';
 import { penilaianLayak, terbaruUntuk } from '@/lib/penilaian-utama';
 import { kalimatKesimpulan, nomorBaku, susunPesan } from '@/lib/pesan-wa';
+import type { DiskusiKiaWa } from '@/lib/pesan-wa';
 import type { BarisLms } from '@/lib/z-score';
 import type { PatchAnak } from '@/pages/anak/index';
 import type {
@@ -125,7 +127,7 @@ export type AmbangDetail = {
 type TabDetail = 'profil' | 'status' | 'kurva' | 'grafik' | 'riwayat';
 
 const TAB_DETAIL: { nilai: TabDetail; label: string }[] = [
-    { nilai: 'profil', label: 'Profil Balita' },
+    { nilai: 'profil', label: 'Profil Anak' },
     { nilai: 'status', label: 'Status Gizi' },
     { nilai: 'kurva', label: 'Kurva KMS' },
     { nilai: 'grafik', label: 'Grafik Pertumbuhan' },
@@ -149,6 +151,7 @@ type Props = {
     lembaga: string;
     onSimpan?: (patch: PatchAnak) => void;
     sumberLive?: boolean;
+    kembaliKe?: { href: string; label: string };
 };
 
 /**
@@ -229,12 +232,20 @@ export default function DetailAnak({
     lembaga,
     onSimpan,
     sumberLive = false,
+    kembaliKe = { href: '/balita', label: 'Data Balita' },
 }: Props) {
     const [umurDisorot, setUmurDisorot] = useState<number | null>(null);
-    const [tabAktif, setTabAktif] = useState<TabDetail>('profil');
+    const [tabAktif, setTabAktif] = useState<TabDetail>(
+        peran === 'kms' ? 'kurva' : 'profil',
+    );
     const [dialog, setDialog] = useState<'ubah' | 'cetak' | 'wa' | null>(null);
-    const bolehUbah = peran !== 'kader' && onSimpan !== undefined;
-    const bolehCetak = peran !== 'kader';
+    const [infoKiaWa, setInfoKiaWa] = useState<DiskusiKiaWa | null>(null);
+    const bolehUbah =
+        peran !== 'kms' &&
+        onSimpan !== undefined &&
+        (peran !== 'kader' ||
+            (anak.rt !== null && wilayahRt.includes(anak.rt)));
+    const bolehCetak = peran !== 'kader' && peran !== 'kms';
     const terbaru = terbaruUntuk(pengukuran, periode);
     const nama = namaTampil(anak.nama);
     const inisial = nama
@@ -315,9 +326,7 @@ export default function DetailAnak({
                       p.umurBulan === umurTerbaru - 2,
               );
 
-    // Tombol kirim tidak dirender bila tak ada yang dapat dikirim; sebabnya
-    // ditulis sebagai satu baris di bawah judul (docs/prd/feedback/F03).
-    const alasanTanpaWa =
+    const alasanTanpaDataWa =
         terbaru === null
             ? `Belum ada hasil pengukuran pada ${periode.label}, sehingga tidak ada yang dapat dikirim.${
                   hasilTerakhir === undefined
@@ -326,11 +335,17 @@ export default function DetailAnak({
               }`
             : indeksTidakWajar.length > 0
               ? 'Hasil periode ini ditandai tidak wajar. Verifikasi ulang sebelum dikirim ke orang tua.'
-              : nomorTujuan !== null
-                ? null
-                : (noWa ?? '').trim() === ''
-                  ? 'Nomor WhatsApp orang tua belum diisi. Isi lewat Ubah data.'
-                  : 'Nomor WhatsApp orang tua tidak valid. Periksa lewat Ubah data.';
+              : null;
+
+    // Tombol kirim tidak dirender bila tak ada yang dapat dikirim; sebabnya
+    // ditulis sebagai satu baris di bawah judul (docs/prd/feedback/F03).
+    const alasanTanpaWa =
+        alasanTanpaDataWa ??
+        (nomorTujuan !== null
+            ? null
+            : (noWa ?? '').trim() === ''
+              ? 'Nomor WhatsApp orang tua belum diisi. Isi lewat Ubah data, atau kirim dari bagian bawah tab Status Gizi.'
+              : 'Nomor WhatsApp orang tua tidak sah. Periksa lewat Ubah data.');
 
     // Titik kurva hanya dari pengukuran yang punya umur dan berat sekaligus.
     const riwayatKurva = pengukuran
@@ -391,12 +406,12 @@ export default function DetailAnak({
     return (
         <Halaman
             judul={nama}
-            kembali={{ href: '/balita', label: 'Data Balita' }}
+            kembali={kembaliKe}
             subjudul={`${umur !== null ? `${umurPanjang(umur)}, ` : ''}${
                 anak.rt === null
                     ? 'RT belum tercatat'
                     : `RT ${anak.rt.padStart(2, '0')}`
-            }${sumberLive ? '' : '. Data contoh'}.`}
+            }. ${sumberLive ? 'Database live' : 'Data contoh'}.`}
             aksi={
                 <>
                     {bolehCetak && (
@@ -427,7 +442,7 @@ export default function DetailAnak({
                             Ubah data
                         </button>
                     )}
-                    {alasanTanpaWa === null && (
+                    {peran !== 'kms' && alasanTanpaWa === null && (
                         <button
                             type="button"
                             onClick={() => setDialog('wa')}
@@ -443,7 +458,7 @@ export default function DetailAnak({
             {alasanTanpaWa !== null && (
                 <p
                     role="status"
-                    className="mb-5 flex items-start gap-2.5 text-base text-muted-foreground"
+                    className="mb-5 flex items-start gap-2.5 text-sm text-muted-foreground"
                 >
                     <Info
                         className="mt-0.5 size-4 shrink-0"
@@ -460,22 +475,28 @@ export default function DetailAnak({
             <div
                 className="bilah-tab mb-7"
                 role="tablist"
-                aria-label="Kategori detail balita"
+                aria-label="Kategori detail anak"
             >
-                {TAB_DETAIL.map((tab) => (
-                    <button
-                        key={tab.nilai}
-                        id={`tab-${tab.nilai}`}
-                        type="button"
-                        role="tab"
-                        aria-selected={tabAktif === tab.nilai}
-                        aria-controls={`panel-${tab.nilai}`}
-                        onClick={() => setTabAktif(tab.nilai)}
-                        className="tab"
-                    >
-                        {tab.label}
-                    </button>
-                ))}
+                <div className="flex flex-wrap gap-1.5">
+                    {TAB_DETAIL.map((tab) => {
+                        const aktif = tabAktif === tab.nilai;
+
+                        return (
+                            <button
+                                key={tab.nilai}
+                                id={`tab-${tab.nilai}`}
+                                type="button"
+                                role="tab"
+                                aria-selected={aktif}
+                                aria-controls={`panel-${tab.nilai}`}
+                                onClick={() => setTabAktif(tab.nilai)}
+                                className="tab"
+                            >
+                                {tab.label}
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
 
             {/* Identitas memimpin halaman, seperti artboard Detail: satu
@@ -498,9 +519,7 @@ export default function DetailAnak({
                         {inisial || '—'}
                     </div>
                     <div className="min-w-0 flex-1">
-                        <h2 className="text-xl font-extrabold">
-                            Profil balita
-                        </h2>
+                        <h2 className="text-xl font-extrabold">Profil anak</h2>
                         <p className="mt-0.5 text-base text-primary-foreground/80">
                             {nama}
                         </p>
@@ -538,6 +557,18 @@ export default function DetailAnak({
                         </BarisDefinisi>
                         <BarisDefinisi label="Ibu">
                             {anak.namaOrtu ?? KOSONG}
+                        </BarisDefinisi>
+                        <BarisDefinisi label="Kelompok Desil">
+                            {anak.desil == null
+                                ? 'Belum tercatat'
+                                : `Desil ${anak.desil} · ${anak.desil <= 4 ? 'G (Gakin)' : 'NG (Non Gakin)'}`}
+                        </BarisDefinisi>
+                        <BarisDefinisi label="Data KB Ibu">
+                            {anak.kbIbu == null
+                                ? 'Belum tercatat'
+                                : anak.kbIbu
+                                  ? 'Iya'
+                                  : 'Tidak'}
                         </BarisDefinisi>
                         <BarisDefinisi label="Alamat">
                             {anak.rt === null
@@ -580,15 +611,16 @@ export default function DetailAnak({
                                 <div>
                                     <p className="font-bold">Imunisasi</p>
                                     <p className="mt-0.5 text-sm text-muted-foreground">
-                                        Belum tercatat. Konfirmasi saat
-                                        pendaftaran.
+                                        Belum dipastikan dari arsip ini.
+                                        Konfirmasi dan lengkapi saat daftar.
                                     </p>
                                 </div>
                             </div>
                         </div>
                         <p className="mt-3 max-w-[78ch] text-sm text-muted-foreground">
-                            Saat kartu dipindai, item yang belum lengkap muncul
-                            sebagai skrining awal sebelum balita dicatat hadir.
+                            Saat kartu sasaran dipindai, item yang belum lengkap
+                            ini muncul sebagai skrining awal sebelum anak
+                            dicatat hadir.
                         </p>
                     </div>
                 </div>
@@ -620,98 +652,116 @@ export default function DetailAnak({
                         role="tabpanel"
                         aria-labelledby="tab-status"
                         hidden={tabAktif !== 'status'}
-                        className="kartu overflow-hidden"
                     >
-                        <h2 className="strip-kepala text-xl font-extrabold">
+                        <h2 className="text-xl font-extrabold">
                             Status pengukuran{' '}
                             {tanggalPanjang(terbaru.tanggalUkur)}
                         </h2>
-                        <div className="p-5 sm:p-6">
-                            {/* Tiga kartu indeks berdampingan, susunan artboard.
+
+                        {/* Tiga kartu indeks berdampingan, susunan artboard.
                             Yang terberat tetap di depan: urutannya dihitung
                             dari nadanya, bukan dari urutan tulis — supaya mata
                             jatuh lebih dulu pada vonis yang menentukan. */}
-                            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                                {terurut.map((i) => (
-                                    <KartuIndeks
-                                        key={i.label}
-                                        label={i.label}
-                                        nilai={i.nilai}
-                                    />
-                                ))}
-                            </div>
+                        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                            {terurut.map((i) => (
+                                <KartuIndeks
+                                    key={i.label}
+                                    label={i.label}
+                                    nilai={i.nilai}
+                                />
+                            ))}
+                        </div>
 
-                            {indeksTidakWajar.length > 0 && (
-                                <p className="mt-4 rounded-xl bg-tone-amber-bg p-4 text-sm font-semibold text-tone-amber">
-                                    {indeksTidakWajar.join(', ')} ditandai tidak
-                                    wajar dan tidak dipakai untuk penilaian.
-                                    Periksa ulang hasil ukur sebelum memberi
-                                    arahan.
-                                </p>
-                            )}
+                        {indeksTidakWajar.length > 0 && (
+                            <p className="mt-4 rounded-xl bg-tone-amber-bg p-4 text-sm font-semibold text-tone-amber">
+                                {indeksTidakWajar.join(', ')} ditandai tidak
+                                wajar dalam arsip dan tidak dipakai untuk
+                                penilaian. Periksa ulang hasil ukur sebelum
+                                memberi arahan.
+                            </p>
+                        )}
 
-                            {/* Layar ini dulu tidak pernah menjawab pertanyaan yang
+                        {/* Layar ini dulu tidak pernah menjawab pertanyaan yang
                             jadi alasan keberadaannya: anak ini perlu
                             ditindaklanjuti atau tidak. */}
-                            <p className="mt-4 text-base font-bold">
-                                {indeksTidakWajar.length > 0
-                                    ? 'Sebagian hasil perlu verifikasi ulang sebelum keputusan tindak lanjut.'
-                                    : indeks.every((i) => i.nilai === undefined)
-                                      ? 'Belum dapat dinilai dari data periode ini.'
-                                      : perluTindakLanjut
-                                        ? 'Perlu tindak lanjut bulan ini.'
-                                        : 'Tidak perlu tindak lanjut bulan ini.'}
-                            </p>
+                        <p className="mt-4 text-base font-bold">
+                            {indeksTidakWajar.length > 0
+                                ? 'Sebagian hasil perlu verifikasi ulang sebelum keputusan tindak lanjut.'
+                                : indeks.every((i) => i.nilai === undefined)
+                                  ? 'Belum dapat dinilai dari data periode ini.'
+                                  : perluTindakLanjut
+                                    ? 'Perlu tindak lanjut bulan ini.'
+                                    : 'Lanjutkan pemantauan bulanan dan diskusi perkembangan sesuai usia.'}
+                        </p>
 
-                            <div
-                                className={`mt-5 rounded-xl p-5 ${
-                                    perluRujukan
-                                        ? 'bg-tone-red-bg text-tone-red'
-                                        : 'bg-surface-subtle text-foreground'
-                                }`}
-                            >
-                                <h3 className="text-base font-extrabold">
-                                    Arahan untuk keluarga
-                                </h3>
-                                <p className="mt-1 max-w-[76ch] text-base text-pretty">
-                                    {edukasiKms}
+                        <div
+                            className={`mt-5 rounded-xl p-5 ${
+                                perluRujukan
+                                    ? 'bg-tone-red-bg text-tone-red'
+                                    : 'bg-surface-subtle text-foreground'
+                            }`}
+                        >
+                            <h3 className="text-base font-extrabold">
+                                Diskusikan hasil gizi dengan keluarga
+                            </h3>
+                            <p className="mt-1 max-w-[76ch] text-base text-pretty">
+                                {edukasiKms}
+                            </p>
+                            {perluRujukan && (
+                                <p className="mt-2 text-sm font-semibold">
+                                    Ambang kerja rujukan: z-score ≤{' '}
+                                    {zScore(ambang.ambangRujukan)} SD. Perlu
+                                    pengesahan Puskesmas sebelum digunakan
+                                    sebagai aturan produksi.
                                 </p>
-                                {perluRujukan && (
-                                    <p className="mt-2 text-sm font-semibold">
-                                        Ambang kerja rujukan: z-score ≤{' '}
-                                        {zScore(ambang.ambangRujukan)} SD. Perlu
-                                        pengesahan Puskesmas sebelum digunakan
-                                        sebagai aturan produksi.
-                                    </p>
-                                )}
-                                {perluWaspada && !perluRujukan && (
-                                    <p className="mt-2 text-sm font-semibold">
-                                        Zona waspada dimulai pada z-score ≤{' '}
-                                        {zScore(ambang.ambangWaspada)} SD.
-                                    </p>
-                                )}
-                            </div>
-
-                            <p className="mt-2 max-w-[80ch] text-sm text-pretty text-muted-foreground">
-                                Acuan: standar pertumbuhan WHO 2006 (sama dengan
-                                tabel Permenkes No. 2 Tahun 2020). BB/PB dipakai
-                                untuk usia di bawah 24 bulan, BB/TB untuk 24
-                                bulan ke atas.
-                            </p>
-
-                            {/* Asumsi sistem harus terlihat di antarmuka, bukan hanya
-                            di basis data (prinsip P4). */}
-                            {terbaru.catatanUkur?.jenisUkur !== undefined && (
-                                <p className="mt-2 max-w-[80ch] text-sm text-muted-foreground">
-                                    Cara ukur mengikuti umur (
-                                    {umur !== null && umur < 24
-                                        ? 'panjang badan, telentang'
-                                        : 'tinggi badan, berdiri'}
-                                    ) karena tidak tercatat di data.
+                            )}
+                            {perluWaspada && !perluRujukan && (
+                                <p className="mt-2 text-sm font-semibold">
+                                    Zona waspada dimulai pada z-score ≤{' '}
+                                    {zScore(ambang.ambangWaspada)} SD.
                                 </p>
                             )}
                         </div>
+
+                        <p className="mt-2 max-w-[80ch] text-sm text-pretty text-muted-foreground">
+                            Acuan standar pertumbuhan WHO 2006, dihitung dari
+                            parameter LMS. Nilainya sama dengan tabel Permenkes
+                            No. 2 Tahun 2020. Indeks mengikuti umur anak: BB/PB
+                            di bawah 24 bulan, BB/TB untuk 24 bulan ke atas.
+                        </p>
+
+                        {/* Asumsi sistem harus terlihat di antarmuka, bukan hanya
+                            di basis data (prinsip P4). */}
+                        {terbaru.catatanUkur?.jenisUkur !== undefined && (
+                            <p className="mt-2 max-w-[80ch] text-sm text-muted-foreground">
+                                Cara ukur {terbaru.catatanUkur.jenisUkur}:{' '}
+                                {umur !== null && umur < 24
+                                    ? 'panjang badan, telentang'
+                                    : 'tinggi badan, berdiri'}
+                                . Berkas sumber tidak mencatatnya.
+                            </p>
+                        )}
                     </section>
+                )}
+
+                {tabAktif === 'status' && (
+                    <PendampinganKia
+                        key={anak.id}
+                        anakId={anak.id}
+                        sumberLive={sumberLive ?? false}
+                        alasanTanpaWa={
+                            peran === 'kms' ? undefined : alasanTanpaDataWa
+                        }
+                        onInfoKiaChange={setInfoKiaWa}
+                        onKirimWa={
+                            peran === 'kms'
+                                ? undefined
+                                : (info) => {
+                                      setInfoKiaWa(info);
+                                      setDialog('wa');
+                                  }
+                        }
+                    />
                 )}
 
                 {/* Kurva dan riwayat adalah cerita yang sama, jadi jaraknya
@@ -729,7 +779,7 @@ export default function DetailAnak({
                     ) : (
                         anak.jk !== null && (
                             <div className="overflow-hidden rounded-xl border border-border bg-card">
-                                <div className="strip-kepala flex flex-wrap items-center justify-between gap-3">
+                                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-surface-subtle px-4 py-3 sm:px-5">
                                     <div>
                                         <h2 className="text-xl font-extrabold">
                                             Kartu Menuju Sehat
@@ -742,7 +792,7 @@ export default function DetailAnak({
                                         {nama} · {umurPanjang(umur)}
                                     </p>
                                 </div>
-                                <div className="px-5 py-4 sm:px-6">
+                                <div className="px-4 py-4 sm:px-5">
                                     <p className="mb-3 text-sm text-muted-foreground">
                                         {terbaru === null
                                             ? `Kurva ini hanya menampilkan riwayat; belum ada pengukuran pada ${periode.label}.`
@@ -858,6 +908,7 @@ export default function DetailAnak({
                                     <TableHead scope="col">
                                         Panjang atau Tinggi
                                     </TableHead>
+                                    <TableHead scope="col">BB/U</TableHead>
                                     <TableHead scope="col">
                                         {labelIndeks('BB_TB', umur)}
                                     </TableHead>
@@ -904,7 +955,7 @@ export default function DetailAnak({
                                                             p.umurBulan,
                                                         )
                                                     }
-                                                    className="-ml-3 inline-flex min-h-13 items-center rounded-lg px-3 font-semibold text-primary underline"
+                                                    className="inline-flex min-h-13 items-center rounded-lg px-3 font-semibold text-primary underline"
                                                 >
                                                     {tanggalRingkas(
                                                         p.tanggalUkur,
@@ -913,7 +964,7 @@ export default function DetailAnak({
                                                 {/* Baris kosong sekarang
                                                         menyebutkan sebabnya. */}
                                                 {sebab !== null && (
-                                                    <span className="block pb-1 text-sm text-muted-foreground">
+                                                    <span className="block px-3 pb-1 text-sm text-muted-foreground">
                                                         {sebab}
                                                     </span>
                                                 )}
@@ -949,6 +1000,11 @@ export default function DetailAnak({
                                                         {peringatan}
                                                     </span>
                                                 )}
+                                            </TableCell>
+                                            <TableCell>
+                                                <ZScoreCell
+                                                    nilai={p.penilaian.BB_U}
+                                                />
                                             </TableCell>
                                             <TableCell>
                                                 <ZScoreCell
@@ -989,16 +1045,17 @@ export default function DetailAnak({
             {dialog === 'ubah' && (
                 <DialogUbah
                     anak={anak}
+                    periodeId={periode.id}
                     noWa={noWa}
                     wilayahRt={wilayahRt}
                     onTutup={() => setDialog(null)}
-                    onSimpan={(patch) => {
-                        onSimpan?.(patch);
+                    onSimpan={async (patch) => {
+                        await onSimpan?.(patch);
                         setDialog(null);
                     }}
                 />
             )}
-            {dialog === 'wa' && terbaru !== null && nomorTujuan !== null && (
+            {dialog === 'wa' && terbaru !== null && (
                 <DialogKirimWa
                     nama={nama}
                     nomor={nomorTujuan}
@@ -1010,6 +1067,7 @@ export default function DetailAnak({
                             terbaru,
                             duaBulanLalu,
                             kesimpulan: kesimpulanWa,
+                            diskusiKia: infoKiaWa,
                             tautan,
                             lembaga,
                         })
@@ -1047,11 +1105,12 @@ function KartuIndeks({
     label: string;
     nilai: PenilaianGizi | undefined;
 }) {
-    const warna = WARNA_NADA[nadaKategori(nilai?.kategori ?? null)];
+    const kesimpulan = kesimpulanZScore(nilai?.kategori, nilai?.z);
+    const warna = WARNA_NADA[nadaKategori(kesimpulan)];
 
     return (
         <div className="kartu p-5">
-            <p className="text-base font-bold text-muted-foreground">{label}</p>
+            <p className="text-sm font-bold text-muted-foreground">{label}</p>
             <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
                 <span
                     className={`text-3xl leading-none font-extrabold ${warna}`}
@@ -1061,7 +1120,7 @@ function KartuIndeks({
                 <span className="text-sm text-muted-foreground">SD</span>
             </p>
             <p className={`mt-1.5 text-base font-bold text-pretty ${warna}`}>
-                {nilai?.kategori ?? 'Belum dapat dinilai'}
+                {kesimpulan}
             </p>
         </div>
     );
@@ -1076,22 +1135,26 @@ type IsianUbah = {
     rt: string;
     nik: string;
     bukuKia: boolean;
+    kbIbu: string;
+    desil: string;
     namaOrtu: string;
     noWa: string;
 };
 
 function DialogUbah({
     anak,
+    periodeId,
     noWa,
     wilayahRt,
     onTutup,
     onSimpan,
 }: {
     anak: Anak;
+    periodeId: string;
     noWa: string | null;
     wilayahRt: string[];
     onTutup: () => void;
-    onSimpan: (patch: PatchAnak) => void;
+    onSimpan: (patch: PatchAnak) => void | Promise<void>;
 }) {
     const [isi, setIsi] = useState<IsianUbah>({
         nama: anak.nama ?? '',
@@ -1102,19 +1165,23 @@ function DialogUbah({
         rt: anak.rt ?? wilayahRt[0] ?? '',
         nik: anak.nik === null ? '' : nik(anak.nik),
         bukuKia: anak.bukuKia,
+        kbIbu: anak.kbIbu == null ? '' : anak.kbIbu ? 'iya' : 'tidak',
+        desil: anak.desil == null ? '' : String(anak.desil),
         namaOrtu: anak.namaOrtu ?? '',
         noWa: noWa ?? '',
     });
     const [galat, setGalat] = useState<
         Partial<Record<keyof IsianUbah, string>>
     >({});
+    const [galatSimpan, setGalatSimpan] = useState('');
+    const [menyimpan, setMenyimpan] = useState(false);
 
     const ubah = <K extends keyof IsianUbah>(kunci: K, nilai: IsianUbah[K]) => {
         setIsi((lama) => ({ ...lama, [kunci]: nilai }));
         setGalat((lama) => ({ ...lama, [kunci]: undefined }));
     };
 
-    const simpan = (e: FormEvent) => {
+    const simpan = async (e: FormEvent) => {
         e.preventDefault();
 
         const salah: Partial<Record<keyof IsianUbah, string>> = {};
@@ -1150,18 +1217,38 @@ function DialogUbah({
             return;
         }
 
-        onSimpan({
-            nama: isi.nama.trim(),
-            nik: digit,
-            namaOrtu: isi.namaOrtu.trim(),
-            rt: isi.rt,
-            jk: isi.jk,
-            tglLahir: isi.tglLahir,
-            anakKe: isi.anakKe === '' ? null : Number(isi.anakKe),
-            bbLahirKg: bb,
-            bukuKia: isi.bukuKia,
-            noWa: isi.noWa.trim(),
-        });
+        setMenyimpan(true);
+        setGalatSimpan('');
+
+        try {
+            await onSimpan({
+                nama: isi.nama.trim(),
+                nik: digit,
+                namaOrtu: isi.namaOrtu.trim(),
+                rt: isi.rt,
+                jk: isi.jk,
+                tglLahir: isi.tglLahir,
+                anakKe: isi.anakKe === '' ? null : Number(isi.anakKe),
+                bbLahirKg: bb,
+                bukuKia: isi.bukuKia,
+                kbIbu: isi.kbIbu === '' ? null : isi.kbIbu === 'iya',
+                noWa: isi.noWa.trim(),
+                ...(isi.desil !== (anak.desil == null ? '' : String(anak.desil))
+                    ? {
+                          desil: isi.desil === '' ? null : Number(isi.desil),
+                          periodeId,
+                      }
+                    : {}),
+            });
+        } catch (error) {
+            setGalatSimpan(
+                error instanceof Error
+                    ? error.message
+                    : 'Perubahan profil belum tersimpan. Silakan coba lagi.',
+            );
+        } finally {
+            setMenyimpan(false);
+        }
     };
 
     return (
@@ -1176,10 +1263,10 @@ function DialogUbah({
                 onSubmit={simpan}
                 className="flex min-h-0 flex-1 flex-col"
             >
-                <div className="grid min-h-0 gap-y-5 overflow-y-auto px-7 py-4.5 md:grid-cols-2 lg:pendek:py-3">
+                <div className="grid min-h-0 gap-y-5 overflow-y-auto px-7 pt-4.5 pb-5.5 md:grid-cols-2">
                     <section
                         aria-labelledby="kolom-balita"
-                        className="flex min-w-0 flex-col gap-4 md:pr-7 lg:pendek:gap-3"
+                        className="flex min-w-0 flex-col gap-4 md:pr-7"
                     >
                         <h3
                             id="kolom-balita"
@@ -1201,10 +1288,10 @@ function DialogUbah({
                             />
                         </Kolom>
                         <fieldset className="min-w-0">
-                            <legend className="text-base font-semibold text-muted-foreground">
+                            <legend className="text-sm font-semibold text-muted-foreground">
                                 Jenis kelamin
                             </legend>
-                            <div className="mt-2 grid grid-cols-2 gap-4.5">
+                            <div className="mt-1.5 grid grid-cols-2 gap-4.5">
                                 <Pilihan
                                     nama="ubah-jk"
                                     terpilih={isi.jk === 'L'}
@@ -1294,30 +1381,40 @@ function DialogUbah({
                                         }
                                         className="min-w-0 grow bg-transparent px-3.5 text-right outline-none"
                                     />
-                                    <span className="flex items-center border-l-2 border-border-strong bg-surface-alt px-3.5 text-base text-muted-foreground">
+                                    <span className="flex items-center border-l-2 border-border bg-surface-alt px-3.5 text-sm text-muted-foreground">
                                         kg
                                     </span>
                                 </div>
                             </Kolom>
                             <Kolom id="ubah-rt" label="RT">
-                                <Pilih
-                                    id="ubah-rt"
-                                    value={isi.rt}
-                                    onChange={(v) => ubah('rt', v)}
-                                >
-                                    {wilayahRt.map((w) => (
-                                        <option key={w} value={w}>
-                                            RT {w.padStart(2, '0')}
-                                        </option>
-                                    ))}
-                                </Pilih>
+                                <div className="relative">
+                                    <select
+                                        id="ubah-rt"
+                                        value={isi.rt}
+                                        onChange={(e) =>
+                                            ubah('rt', e.target.value)
+                                        }
+                                        className="isian w-full cursor-pointer appearance-none pr-11"
+                                    >
+                                        {wilayahRt.map((w) => (
+                                            <option key={w} value={w}>
+                                                RT {w.padStart(2, '0')}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown
+                                        className="pointer-events-none absolute top-1/2 right-3.5 size-5 -translate-y-1/2 text-muted-foreground"
+                                        strokeWidth={2.5}
+                                        aria-hidden="true"
+                                    />
+                                </div>
                             </Kolom>
                         </div>
                     </section>
 
                     <section
                         aria-labelledby="kolom-ortu"
-                        className="flex min-w-0 flex-col gap-4 md:border-l md:border-border md:pl-7 lg:pendek:gap-3"
+                        className="flex min-w-0 flex-col gap-4 md:border-l md:border-border md:pl-7"
                     >
                         <h3
                             id="kolom-ortu"
@@ -1346,10 +1443,10 @@ function DialogUbah({
                             />
                         </Kolom>
                         <fieldset className="min-w-0">
-                            <legend className="text-base font-semibold text-muted-foreground">
+                            <legend className="text-sm font-semibold text-muted-foreground">
                                 Buku KIA
                             </legend>
-                            <div className="mt-2 grid grid-cols-2 gap-4.5">
+                            <div className="mt-1.5 grid grid-cols-2 gap-4.5">
                                 <Pilihan
                                     nama="ubah-kia"
                                     terpilih={isi.bukuKia}
@@ -1366,6 +1463,43 @@ function DialogUbah({
                                 </Pilihan>
                             </div>
                         </fieldset>
+                        <Kolom
+                            id="ubah-desil"
+                            label="Kelompok Desil"
+                            keterangan="Desil 1–4: Gakin; Desil 5–10: Non Gakin. Berlaku mulai periode yang dipilih untuk laporan F1."
+                        >
+                            <select
+                                id="ubah-desil"
+                                className="isian w-full"
+                                value={isi.desil}
+                                onChange={(e) => ubah('desil', e.target.value)}
+                            >
+                                <option value="">Belum tercatat</option>
+                                {Array.from(
+                                    { length: 10 },
+                                    (_, i) => i + 1,
+                                ).map((d) => (
+                                    <option key={d} value={d}>
+                                        Desil {d} ·{' '}
+                                        {d <= 4
+                                            ? 'G (Gakin)'
+                                            : 'NG (Non Gakin)'}
+                                    </option>
+                                ))}
+                            </select>
+                        </Kolom>
+                        <Kolom id="ubah-kbIbu" label="Data KB Ibu">
+                            <select
+                                id="ubah-kbIbu"
+                                className="isian w-full"
+                                value={isi.kbIbu}
+                                onChange={(e) => ubah('kbIbu', e.target.value)}
+                            >
+                                <option value="">Belum tercatat</option>
+                                <option value="iya">Iya</option>
+                                <option value="tidak">Tidak</option>
+                            </select>
+                        </Kolom>
                         <Kolom id="ubah-namaOrtu" label="Nama ibu">
                             <input
                                 id="ubah-namaOrtu"
@@ -1398,21 +1532,41 @@ function DialogUbah({
                     </section>
                 </div>
 
+                {galatSimpan !== '' && (
+                    <p
+                        role="alert"
+                        className="mx-7 mb-3 rounded-lg bg-tone-red-bg px-4 py-3 text-sm font-semibold text-tone-red"
+                    >
+                        {galatSimpan}
+                    </p>
+                )}
                 <KakiDialog>
                     <button
                         type="button"
                         onClick={onTutup}
+                        disabled={menyimpan}
                         className="tombol-kedua px-5.5"
                     >
                         Batal
                     </button>
-                    <button type="submit" className="tombol-utama px-5.5">
-                        <Save
-                            className="size-5"
-                            strokeWidth={2.5}
-                            aria-hidden="true"
-                        />
-                        Simpan perubahan
+                    <button
+                        type="submit"
+                        disabled={menyimpan}
+                        className="tombol-utama px-5.5"
+                    >
+                        {menyimpan ? (
+                            <span
+                                className="size-5 animate-spin rounded-full border-2 border-current border-r-transparent"
+                                aria-hidden="true"
+                            />
+                        ) : (
+                            <Save
+                                className="size-5"
+                                strokeWidth={2.5}
+                                aria-hidden="true"
+                            />
+                        )}
+                        {menyimpan ? 'Menyimpan…' : 'Simpan perubahan'}
                     </button>
                 </KakiDialog>
             </form>
@@ -1438,16 +1592,16 @@ function Kolom({
         <div className="min-w-0">
             <label
                 htmlFor={id}
-                className="block text-base font-semibold text-muted-foreground"
+                className="block text-sm font-semibold text-muted-foreground"
             >
                 {label}
                 {keterangan !== undefined && (
                     <span className="font-medium"> {keterangan}</span>
                 )}
             </label>
-            <div className="mt-2">{children}</div>
+            <div className="mt-1.5">{children}</div>
             {galat !== undefined && (
-                <p className="mt-1.5 text-base font-semibold text-tone-red">
+                <p className="mt-1.5 text-sm font-semibold text-tone-red">
                     {galat}
                 </p>
             )}
@@ -1472,7 +1626,7 @@ function Pilihan({
             className={`flex h-14 cursor-pointer items-center gap-2.5 rounded-lg border-2 px-3.5 text-base ${
                 terpilih
                     ? 'border-primary bg-accent font-bold text-primary'
-                    : 'border-border-strong bg-surface font-semibold'
+                    : 'border-border bg-surface font-semibold'
             }`}
         >
             <input
@@ -1518,7 +1672,7 @@ function DialogCetak({
                     <div className="flex justify-center rounded-lg bg-surface-alt p-5.5">
                         <KartuBalita kartu={kartu} lembaga={lembaga} />
                     </div>
-                    <figcaption className="mt-2 text-base text-muted-foreground">
+                    <figcaption className="mt-2 text-sm text-muted-foreground">
                         Ukuran asli 85,6 × 54 mm, seukuran KTP. Garis
                         putus-putus adalah garis potong.
                     </figcaption>
@@ -1529,7 +1683,7 @@ function DialogCetak({
                         <h3 className="text-base font-extrabold">
                             Ingin mencetak beberapa kartu sekaligus?
                         </h3>
-                        <p className="mt-1 text-base text-muted-foreground">
+                        <p className="mt-1 text-sm text-muted-foreground">
                             Satu lembar A4 memuat 8 kartu. Pilih balita lain di
                             halaman Kartu Balita agar kertas tidak terbuang.
                         </p>
@@ -1551,7 +1705,7 @@ function DialogCetak({
                             strokeWidth={2.5}
                             aria-hidden="true"
                         />
-                        <p className="text-base">
+                        <p className="text-sm">
                             Saat jendela cetak muncul, pilih kertas{' '}
                             <span className="font-bold">A4</span> dan skala{' '}
                             <span className="font-bold">100%</span> agar ukuran

@@ -11,7 +11,8 @@
  * @see docs/prd/dasar/B01-simpan-hasil-gizi.md
  */
 
-import type { Pool } from 'pg';
+import type { Pool, PoolClient } from 'pg';
+import type { TabelStandar } from '../antropometri/tabel-standar.ts';
 
 import { hitungPenilaian } from '../antropometri/penilaian-gizi.ts';
 import type { Pelaku } from '../db/transaksi.ts';
@@ -51,7 +52,19 @@ export async function hitungDanSimpan(
     pelaku: Pelaku = PELAKU_BAWAAN,
 ): Promise<number> {
     const tabel = await muatTabelStandar(pool, versi);
-    const pengukuran = await ambilMasukan(pool, pengukuranId);
+    return dalamTransaksi(pool, pelaku, (klien) =>
+        hitungDanSimpanDalamTransaksi(klien, pengukuranId, tabel, versi),
+    );
+}
+
+/** Memakai transaksi pemanggil agar pengukuran dan hasil gizi tersimpan bersama. */
+export async function hitungDanSimpanDalamTransaksi(
+    klien: PoolClient,
+    pengukuranId: number,
+    tabel: TabelStandar,
+    versi: string = VERSI_DEFAULT,
+): Promise<number> {
+    const pengukuran = await ambilMasukan(klien, pengukuranId);
 
     if (pengukuran === null) {
         throw new GalatPengukuranTidakAda(pengukuranId);
@@ -59,9 +72,7 @@ export async function hitungDanSimpan(
 
     const hasil = hitungPenilaian(tabel, pengukuran);
 
-    return dalamTransaksi(pool, pelaku, (klien) =>
-        simpanPenilaian(klien, pengukuranId, versi, hasil),
-    );
+    return simpanPenilaian(klien, pengukuranId, versi, hasil);
 }
 
 /**

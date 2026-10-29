@@ -4,7 +4,7 @@
 |---|---|
 | **Jenis** | Orientasi |
 | **Status** | hidup |
-| **Perubahan berarti terakhir** | 1 Oktober 2026 |
+| **Perubahan berarti terakhir** | 29 Oktober 2026 |
 
 Seluruh kemampuan SIMPATIK Posyandu beserta keadaannya hari ini. Untuk tahu **apa yang sudah bisa dipakai**, baca tabel pertama saja.
 
@@ -16,18 +16,15 @@ Urutan pengerjaan yang berlaku ada di [Rencana kerja](rencana-kerja.md). Perilak
 
 | Kemampuan | Keadaan |
 |---|---|
-| Perhitungan status gizi enam indeks (WHO LMS) | **Berjalan dan terbukti** — setara perhitungan lama sampai 4,4 × 10⁻¹⁵ pada 2.076 kasus uji |
+| Perhitungan status gizi enam indeks (WHO LMS) | **Berjalan dan terbukti** — setara perhitungan acuan sampai 4,4 × 10⁻¹⁵ pada 2.076 kasus uji |
 | Perhitungan umur, skema basis data, aturan integritasnya | **Berjalan** |
-| Login, tiga peran, pembatasan kader ke RT binaan | **Berjalan** — ditegakkan server, bukan antarmuka |
-| Kelola akun di Pengaturan › Pengguna dan peran | **Berjalan** — tersimpan ke basis data lewat `/api/pengguna`, khusus admin, tercatat di audit. Wajib ganti kata sandi awal saat pertama masuk belum ada |
-| Delapan layar web: Beranda, Data Balita, Detail Balita, Detail riwayat penimbangan, Kartu Balita, Laporan, Sasaran & Impor, Pengaturan ([peta layar](mulai-di-sini.md#peta-layar)) | **Tampilannya jadi** — Data Balita memakai REST API live; sebagian layar lain masih menampilkan [data contoh](rujukan/data-contoh.md). Fitur input Penimbangan web diarsipkan karena menjadi tanggung jawab aplikasi Android |
+| Login, empat peran (Kader, Bidan, Admin, Petugas KMS) | **Berjalan** — ditegakkan server, termasuk pembatasan RT kader dan hak antrean KMS |
+| Kelola akun di Pengaturan › Pengguna dan peran | **Berjalan** — tersimpan ke basis data lewat `/api/pengguna`, khusus admin, tercatat di audit |
+| Sembilan layar web: Beranda, Data Balita, Detail Balita, Detail riwayat, Pemeriksaan KMS, Kartu Balita, Laporan, Sasaran & Impor, Pengaturan | **Berjalan dan tersambung live ke PostgreSQL** — Beranda memuat filter RT dan Real D/S; Detail memuat grafik pertumbuhan kurva KIA, kelompok Desil, KB Ibu, dan panduan KIA; Laporan memuat rekap live dan ekspor F1 |
 | Kartu balita ber-QR dan pemindaiannya | **Berjalan** — kartu dibuat/cetak dari Portal dan QR dipindai aplikasi Android ([format](arsitektur.md#kartu-balita)) |
-| Jalur dari basis data ke layar | **Baru untuk daftar akun** — data balita, pengukuran, dan laporan belum |
-| Penyimpanan hasil perhitungan gizi | **Berjalan** — `hitungDanSimpan()`, lihat [B01](prd/dasar/B01-simpan-hasil-gizi.md) |
-| Pencatatan riwayat perubahan (audit) | **Berjalan setelah migrasi 004–005** — trigger tujuh tabel; cakupan dan batasnya di [Basis Data](database.md#audit), kontrak selesai di [B02](prd/dasar/B02-jejak-audit.md) |
-| Pemasukan data arsip Excel | **Belum ada** |
-
-Ringkasnya: **tampilannya sudah jadi, mesin hitungnya sudah benar, bagian tengahnya yang kosong.**
+| Sinkronisasi tablet dan transaksi pengukuran | **Berjalan** — transaksi atomik (ukur + sasaran + gizi), advisory lock transaksi, batch insert penilaian, dan idempotensi kiriman relai |
+| Pencatatan riwayat perubahan (audit) | **Berjalan** — trigger delapan tabel (`anak`, `orang_tua`, `pengukuran`, `layanan`, `periode`, `wilayah_rt`, `pengguna`, `cakupan_hari_h`) |
+| Pemasukan data arsip Excel | **Berjalan** — impor historis Juli–Agustus 2026 dan modul pratinjau/penerbitan sasaran live |
 
 ---
 

@@ -9,6 +9,7 @@
 
 import {
     Baby,
+    BadgeCheck,
     CreditCard,
     FileText,
     House,
@@ -21,6 +22,7 @@ import {
 import { useEffect, useRef } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import FilterPeriode from '@/components/filter-periode';
+import StatusTablet from '@/components/status-tablet';
 import { data } from '@/data/contoh/store';
 import { tanggalPanjang } from '@/lib/format';
 import { Link, useAlamat } from '@/lib/nav';
@@ -34,7 +36,8 @@ export type Rute =
     | { nama: 'laporan' }
     | { nama: 'sasaran' }
     | { nama: 'kartu-sasaran'; id?: number }
-    | { nama: 'pengaturan' };
+    | { nama: 'pengaturan' }
+    | { nama: 'kms' };
 
 /** Router portal, seluruhnya, tanpa pustaka tambahan. */
 export function bacaRute(alamat: string): Rute {
@@ -70,6 +73,9 @@ export function bacaRute(alamat: string): Rute {
         case '/pengaturan':
             return { nama: 'pengaturan' };
 
+        case '/kms':
+            return { nama: 'kms' };
+
         default:
             return { nama: 'beranda' };
     }
@@ -83,6 +89,18 @@ export function bacaRute(alamat: string): Rute {
  * tentang apa yang bisa dilakukan, bukan mencegah siapa pun melakukannya.
  */
 export function boleh(rute: Rute, peran: Peran): boolean {
+    if (peran === 'kms') {
+        return (
+            rute.nama === 'kms' ||
+            rute.nama === 'detail' ||
+            rute.nama === 'riwayat'
+        );
+    }
+
+    if (rute.nama === 'kms') {
+        return false;
+    }
+
     if (rute.nama === 'pengaturan' || rute.nama === 'kartu-sasaran') {
         return peran !== 'kader';
     }
@@ -125,9 +143,16 @@ const NAV: ButirNav[] = [
         ikon: Settings,
         peran: ['bidan', 'admin'],
     },
+    {
+        href: '/kms',
+        label: 'Pemeriksaan KMS',
+        ikon: BadgeCheck,
+        peran: ['kms'],
+    },
 ];
 
 type CangkangProps = {
+    cakupanPosyandu?: string;
     peran: Peran;
     periodeId: string;
     periode?: Periode[];
@@ -146,6 +171,7 @@ type CangkangProps = {
 const LEBAR_SIDEBAR = '(min-width: 64rem)';
 
 export function Cangkang({
+    cakupanPosyandu,
     peran,
     periodeId,
     periode = data.periode,
@@ -260,7 +286,7 @@ export function Cangkang({
             >
                 <div className="flex h-full flex-col px-3.5 pt-2.5 pb-4.5">
                     <div className="flex items-center justify-between gap-2 pl-2">
-                        <Merek />
+                        <Merek cakupan={cakupanPosyandu} />
                         <button
                             type="button"
                             onClick={() => laci.current?.close()}
@@ -277,13 +303,14 @@ export function Cangkang({
 
                     <div className="mt-5.5">{menu}</div>
 
-                    {kakiSidebar !== undefined && (
-                        <div className="mt-auto pt-4">{kakiSidebar}</div>
-                    )}
+                    <div className="mt-auto space-y-2.5 pt-4">
+                        <StatusTablet />
+                        {kakiSidebar !== undefined && kakiSidebar}
+                    </div>
                 </div>
             </dialog>
 
-            <aside className="hidden h-screen w-64 shrink-0 flex-col overflow-y-auto border-r border-border bg-sidebar px-3.5 pb-4.5 lg:flex pendek:pointer-fine:pb-3">
+            <aside className="hidden h-screen w-68 shrink-0 flex-col overflow-y-auto border-r border-border bg-sidebar px-3.5 pb-4.5 lg:flex pendek:pointer-fine:pb-3">
                 {/* Pita merek selebar sidebar, setinggi bilah kepala halaman,
                     supaya garis bawah keduanya menyambung. */}
                 <div className="-mx-3.5 flex min-h-[76px] shrink-0 flex-col justify-center border-b border-border bg-accent px-5.5 py-3.5">
@@ -291,7 +318,7 @@ export function Cangkang({
                         SIMPATIK Posyandu
                     </p>
                     <p className="mt-0.5 text-sm text-[#2f6b4d]">
-                        RW {data.meta.rw} Kelurahan {data.meta.kelurahan}
+                        {cakupanPosyandu ?? `RW ${data.meta.rw} Kelurahan ${data.meta.kelurahan}`}
                     </p>
                 </div>
 
@@ -320,19 +347,53 @@ export function Cangkang({
 
                 <div className="mt-5.5 pendek:pointer-fine:mt-3">{menu}</div>
 
-                {kakiSidebar !== undefined && (
-                    <div className="mt-auto pt-4 pendek:pointer-fine:pt-2.5">
-                        {kakiSidebar}
-                    </div>
-                )}
+                <div className="mt-auto space-y-2.5 pt-4 pendek:pointer-fine:pt-2.5">
+                    <StatusTablet />
+                    {kakiSidebar !== undefined && kakiSidebar}
+                </div>
             </aside>
 
             {/* Tanpa jarak tepi sendiri: bilah kepala tiap layar membentang
                 penuh sampai tepi, dan `Halaman` yang memberi pinggir pada
-                isinya. */}
-            <main className="flex min-w-0 flex-1 flex-col lg:min-h-0 lg:overflow-y-auto">
+                isinya. Di bawah layar lebar (1024 px), diberi padding bawah
+                agar tidak tertutup bilah navigasi bawah ponsel. */}
+            <main className="flex min-w-0 flex-1 flex-col pb-20 lg:pb-0 lg:min-h-0 lg:overflow-y-auto">
                 {children}
             </main>
+
+            {/* Bilah Navigasi Bawah Gaya Aplikasi Mobile (Hanya tampil di ponsel/tablet < 1024 px) */}
+            <nav
+                aria-label="Navigasi cepat ponsel"
+                className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-around border-t border-border bg-card/95 px-1 py-1.5 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] backdrop-blur lg:hidden pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+            >
+                {NAV.filter((butir) => butir.peran.includes(peran)).slice(0, 5).map((butir) => {
+                    const aktif = alamat.startsWith(butir.href);
+                    const Ikon = butir.ikon;
+                    return (
+                        <Link
+                            key={butir.href}
+                            href={butir.href}
+                            aria-current={aktif ? 'page' : undefined}
+                            className={`flex flex-1 flex-col items-center justify-center gap-1 rounded-xl py-1 text-center transition-colors min-h-[50px] ${
+                                aktif
+                                    ? 'text-primary font-bold'
+                                    : 'text-muted-foreground hover:text-foreground font-medium'
+                            }`}
+                        >
+                            <span
+                                className={`flex size-8 items-center justify-center rounded-full transition-transform ${
+                                    aktif ? 'bg-primary/12 text-primary scale-110' : ''
+                                }`}
+                            >
+                                <Ikon className="size-5 shrink-0" strokeWidth={aktif ? 2.5 : 2} />
+                            </span>
+                            <span className="text-[11px] leading-tight tracking-tight">
+                                {butir.label === 'Data Balita' ? 'Balita' : (butir.label === 'Sasaran & impor' ? 'Sasaran' : butir.label)}
+                            </span>
+                        </Link>
+                    );
+                })}
+            </nav>
         </div>
     );
 }
@@ -364,7 +425,7 @@ export function KartuAkun({
     onKeluar: () => void;
 }) {
     return (
-        <div className="flex items-center gap-2.5 rounded-xl bg-accent px-3 py-2.5">
+        <div className="flex items-center gap-2 rounded-xl bg-accent px-2.5 py-2.5">
             <span
                 aria-hidden="true"
                 className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-extrabold text-primary-foreground uppercase"
@@ -374,11 +435,11 @@ export function KartuAkun({
             <div className="min-w-0 flex-1">
                 <p
                     title={nama}
-                    className="truncate text-base leading-tight font-bold text-[#0b4f31]"
+                    className="truncate text-sm leading-snug font-bold text-[#0b4f31]"
                 >
                     {nama}
                 </p>
-                <div className="mt-0.5 truncate text-sm text-[#2f6b4d]">
+                <div className="mt-0.5 truncate text-xs font-medium text-[#2f6b4d]">
                     {peran}
                 </div>
             </div>
@@ -402,14 +463,14 @@ export function KartuAkun({
 }
 
 /** Merek polos untuk bilah atas dan laci; sidebar memakai versi berpita. */
-function Merek() {
+function Merek({ cakupan }: { cakupan?: string }) {
     return (
         <div className="min-w-0">
             <p className="truncate text-lg leading-tight font-extrabold">
                 SIMPATIK Posyandu
             </p>
             <p className="mt-0.5 truncate text-sm text-muted-foreground">
-                RW {data.meta.rw} Kelurahan {data.meta.kelurahan}
+                {cakupan ?? `RW ${data.meta.rw} Kelurahan ${data.meta.kelurahan}`}
             </p>
         </div>
     );

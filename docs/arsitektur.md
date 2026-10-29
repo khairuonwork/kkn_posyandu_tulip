@@ -83,25 +83,18 @@ Pemeriksaan `p.aktif` dilakukan di SQL pada setiap permintaan, tanpa cache. Deng
 
 ```text
 server/
-  src/antropometri/   indeks, tabel-standar, z-score, kategori,
-                      penilaian-gizi, sumber-standar
-  src/auth/           peran (matriks izin), kata-sandi (scrypt), sesi,
-                      akun (aturan isian akun)
-  src/http/           server, middleware, auth-controller,
-                      pengguna-controller, cookie, batas-masuk, tipe.d.ts
-  src/repositories/   standar-lms, pengguna, sesi, penilaian-gizi
-  src/services/       auth-service, gizi-service, pengguna-service
-  src/db/pool.ts, src/db/transaksi.ts
-  db/migrations/      001_skema_awal.sql, 002_pengguna_dan_sesi.sql,
-                      003_updated_at_dan_nik_terhapus.sql, 004_audit.sql,
-                      005_audit_tanpa_hash_sandi.sql, 006_username.sql
-  db/data/who-lms.json        seed standar, di-commit
-  db/migrate.ts, db/seed-standar-lms.ts,
-                      db/seed-contoh.ts (wilayah dan akun contoh,
-                      khusus basis data lokal),
-                      db/buat-pengguna.ts, db/ganti-sandi.ts
-  test/               acuan-php.json + berkas *.test.ts
-  docker-compose.yml
+  src/http/           Express composition, middleware dan controller per domain
+  src/services/       use case per domain; laporan dipisah menjadi service,
+                      perhitungan murni, dan renderer Excel
+  src/repositories/   query PostgreSQL dan pemetaan hasil query
+  src/antropometri/   rumus domain, kategori, standar PMK dan tabel WHO
+  src/auth/           peran/izin, kata sandi, sesi, aturan akun
+  src/db/             pool koneksi dan transaksi/audit
+  db/migrations/      perubahan skema berurutan; hanya runner yang menerapkan
+  db/                 utilitas migrasi, verifikasi koneksi dan administrasi akun
+  test/               uji unit, integrasi, kontrak, dan acuan perhitungan
+  .env.example        nama variabel saja; tidak memuat kredensial
+  package.json        perintah server yang dapat dijalankan terpisah
 client/
   index.html                  entri aplikasi
   src/main.tsx, src/app.tsx   entri dan cangkang aplikasi
@@ -122,30 +115,31 @@ client/
 docs/
 ```
 
+Panduan penyerahan operasional dan batas tanggung jawab modul ada di
+[Panduan serah-terima server](panduan-serah-terima-server.md).
+
 Aplikasi dan demo berbagi seluruh `src/`; yang berbeda hanya entri, cara masuk, dan pemilih peran.
 
 ---
 
 ## Otorisasi
 
-Tiga peran, diurutkan menaik. Peran yang lebih tinggi mewarisi seluruh hak peran di bawahnya.
+Hak akses ditentukan oleh dua hal: peran dan cluster Posyandu/RW pada akun. Kader, Bidan, Admin Posyandu, dan Petugas KMS bekerja hanya di Posyandu yang ditautkan ke akun. Superadmin Mirae dapat melihat seluruh cluster.
 
-| Aksi | Kader | Bidan | Admin |
-|---|:---:|:---:|:---:|
-| Lihat dashboard | ✅ | ✅ | ✅ |
-| Cari & lihat data anak | ✅ | ✅ | ✅ |
-| Lihat profil anak & kurva KMS | ✅ | ✅ | ✅ |
-| Lihat rekap | ✅ | ✅ | ✅ |
-| Tambah & ubah data anak | ❌ | ✅ | ✅ |
-| Ubah nilai pengukuran | ❌ | ✅ | ✅ |
-| Gabungkan profil duplikat | ❌ | ✅ | ✅ |
-| Selesaikan konflik impor | ❌ | ✅ | ✅ |
-| Unduh *export* rekap | ❌ | ✅ | ✅ |
-| Kelola wilayah RT | ❌ | ❌ | ✅ |
-| Kelola periode | ❌ | ❌ | ✅ |
-| Hapus anak atau pengukuran | ❌ | ❌ | ✅ |
-| Kelola akun & peran | ❌ | ❌ | ✅ |
-| Jalankan impor arsip | ❌ | ❌ | ✅ |
+| Aksi | Kader | Bidan | Admin | Petugas KMS |
+|---|:---:|:---:|:---:|:---:|
+| Lihat dashboard dan antrean layanan | ✅ | ✅ | ✅ | ✅ |
+| Cari & lihat data anak, status gizi, dan kurva KMS | ✅ | ✅ | ✅ | ✅ |
+| Catat diskusi tumbuh kembang (survei Buku KIA) | ✅ | ✅ | ✅ | ✅ |
+| Lihat rekap | ✅ | ✅ | ✅ | ❌ |
+| Ubah data profil anak | ✅* | ✅ | ✅ | ❌ |
+| Tambah data anak | ✅ | ✅ | ✅ | ❌ |
+| Ubah nilai pengukuran | ❌ | ✅ | ✅ | ❌ |
+| Gabungkan profil / selesaikan konflik impor | ❌ | ✅ | ✅ | ❌ |
+| Unduh *export* rekap | ❌ | ✅ | ✅ | ❌ |
+| Kelola wilayah, periode, data, akun, impor | ❌ | ❌ | ✅ | ❌ |
+| Tutup sesi sasaran (menandai sasaran tersisa tidak hadir) | ❌ | ❌ | ✅ | ❌ |
+| Konfirmasi tahap penjelasan KMS selesai | ❌ | ❌ | ❌ | ✅ |
 
 Matriks ini **ditulis sekali** di [`server/src/auth/peran.ts`](../server/src/auth/peran.ts) dan tidak disalin ke mana pun. Tiap aksi menyebut peran terendah yang boleh melakukannya, bukan daftar peran — daftar yang ditulis tangan cepat atau lambat punya satu baris yang lupa diperbarui.
 
@@ -155,11 +149,13 @@ Penegakan berlapis:
 2. **`wajibBoleh(aksi)`** sebagai middleware per rute. Ini yang mengikat: ia yang menjawab 403.
 3. **Antarmuka** menyembunyikan menu yang tidak boleh dipakai — kenyamanan, **bukan** pengamanan.
 
-Ke-14 aksi × 3 peran diuji satu per satu di `server/test/auth.test.ts`, ditambah invarian bahwa peran lebih tinggi tidak pernah kehilangan hak peran di bawahnya. Tabel harapan di berkas uji ditulis ulang dari dokumen ini, **tidak** diimpor dari kode yang diujinya.
+Ke-19 aksi diuji untuk setiap peran di `server/test/auth.test.ts`, ditambah invarian pewarisan untuk tiga peran operasional. Tabel harapan di berkas uji ditulis ulang dari dokumen ini, **tidak** diimpor dari kode yang diujinya.
 
-### Pembatasan RT kader
+### Cakupan Posyandu/RW
 
-Kader hanya boleh menyentuh data RT binaannya. `rtYangBolehDilihat()` mengembalikan `null` untuk bidan dan admin, yang berarti seluruh RW. Untuk kader tanpa RT binaan ia **melempar galat**, bukan mengembalikan `null` — sebab `null` di sini berarti akses penuh, dan kader tanpa RT seharusnya tidak punya akses sama sekali.
+Setiap akun operasional terhubung ke satu cluster lewat `pengguna_posyandu`. Semua kader dapat melihat sasaran lintas RT **di dalam Posyandu/RW akun tersebut**; RT pada profil kader hanya menunjukkan penugasan. Admin Posyandu mengelola akun di cluster miliknya. Hanya superadmin yang dapat mengelola seluruh cluster. Mirae ditandai dengan `pengguna.super_admin`; akun dan hash kata sandinya tidak berubah.
+
+Sesi memuat daftar id Posyandu dan penanda superadmin dari basis data. Query beranda, anak, sasaran, pengukuran, antrean, laporan, dan sinkronisasi tablet membatasi hasil ke daftar tersebut. Akun operasional tanpa keanggotaan cluster ditolak saat sesi diperiksa. Penutupan sesi sasaran tetap hanya dapat dilakukan Admin Posyandu dalam cluster terkait.
 
 Skema ikut menegakkannya lewat `CHECK ((peran = 'kader') = (wilayah_rt_id IS NOT NULL))`, sehingga keadaan itu tidak dapat tersimpan sejak awal.
 
@@ -167,22 +163,28 @@ Skema ikut menegakkannya lewat `CHECK ((peran = 'kader') = (wilayah_rt_id IS NOT
 
 ## Endpoint
 
-> **Baru autentikasi dan akun.** Endpoint untuk data balita, pengukuran, dan laporan belum ada; tabel ini bertambah saat endpoint itu dibangun ([rencana kerja](rencana-kerja.md)).
-
-Yang sudah ada:
+Endpoint operasional mencakup:
 
 | Method | URI | Aksi | Peran minimum |
 |---|---|---|---|
 | POST | `/api/masuk` | masuk, memasang cookie sesi | — (terbuka) |
 | POST | `/api/keluar` | mencabut sesi | — (terbuka) |
 | GET | `/api/saya` | identitas pengguna yang sedang masuk | sudah masuk |
-| GET | `/api/pengguna` | daftar akun tanpa hash kata sandi, beserta pilihan RT binaan | admin (`kelola-akun`) |
-| POST | `/api/pengguna` | akun baru dengan kata sandi awal | admin (`kelola-akun`) |
-| PATCH | `/api/pengguna/:id` | ubah akun; kata sandi kosong berarti tidak diganti | admin (`kelola-akun`) |
+| GET | `/api/pengguna` | daftar akun tanpa hash kata sandi, pilihan Posyandu/RW dan RT cluster | Admin Posyandu (cluster sendiri), superadmin (semua cluster) |
+| POST | `/api/pengguna` | akun baru dengan kata sandi awal dan satu Posyandu/RW | Admin Posyandu (cluster sendiri), superadmin (semua cluster) |
+| PATCH | `/api/pengguna/:id` | ubah akun dalam cluster; kata sandi kosong berarti tidak diganti | Admin Posyandu (cluster sendiri), superadmin (semua cluster) |
+| GET | `/api/v1/anak/:id/pendampingan-kia` | panduan Buku KIA 2024 sesuai usia dan riwayat diskusi | kader, bidan, admin, KMS (`lihat-anak`) |
+| POST | `/api/v1/anak/:id/pendampingan-kia` | simpan atau perbarui catatan diskusi tumbuh kembang | kader, bidan, admin, KMS (`catat-survei-kia`) |
+| GET | `/api/v1/antrean?periodeId=&tanggal=` | antrean layanan pada tanggal itu | kader, bidan, admin, KMS (`lihat-anak`) |
+| POST | `/api/v1/antrean` | check-in sasaran ke antrean | kader, bidan, admin (`catat-pengukuran-lapangan`) |
+| PATCH | `/api/v1/antrean/:id` | panggil, mulai ukur, atau kirim ke tahap KMS | kader, bidan, admin (`catat-pengukuran-lapangan`) |
+| POST | `/api/v1/antrean/:id/konfirmasi-kms` | tandai antrean dan sasaran selesai setelah penjelasan | KMS (`konfirmasi-kms`) |
+
+Status layanan bergerak `waiting → called → serving → kms_review → done`. Hasil pengukuran mengisi tahap ketiga, tetapi tidak melepas satu dari empat slot dan tidak menutup sasaran. Akun Petugas KMS membuka `#/kms`, membaca analisis dari profil anak, lalu mengonfirmasi setelah menjelaskan kepada orang tua. Endpoint konfirmasi memperbarui antrean dan sasaran dalam transaksi yang sama. Penutupan sesi bulanan oleh admin tetap tindakan terpisah.
 
 Seluruh rute berada di bawah `sesiMiddleware`, yang mengenali sesi tanpa menolak. Penolakan adalah tugas `wajibMasuk` dan `wajibBoleh(aksi)`, dipasang per rute. Permintaan yang mengubah data wajib berbadan `application/json` (`wajibJson`, 415 bila bukan) — berpasangan dengan `SameSite=Lax` untuk menutup CSRF tanpa token tersendiri.
 
-Aturan kelola akun ditegakkan di server (`src/auth/akun.ts` dan `src/services/pengguna-service.ts`); layar hanya memeriksanya lebih awal. Tidak ada `DELETE`: akun dinonaktifkan, bukan dihapus. Setiap perubahan berjalan dalam satu transaksi yang menyebut admin pelakunya, sehingga audit mencatatnya dengan sumber `aplikasi`. Mengganti kata sandi, mengubah peran, atau menonaktifkan akun mencabut seluruh sesinya di transaksi yang sama; admin yang hanya mengganti kata sandinya sendiri tetap masuk di sesi yang sedang dipakai. Admin aktif terakhir tidak bisa diturunkan atau dinonaktifkan. Seluruh admin aktif dikunci `FOR UPDATE` lebih dulu, supaya dua admin yang saling menurunkan pada saat bersamaan tidak sama-sama lolos.
+Aturan kelola akun ditegakkan di server (`src/auth/akun.ts` dan `src/services/pengguna-service.ts`); layar hanya memeriksanya lebih awal. Setiap akun operasional harus memiliki satu Posyandu/RW; RT kader dipilih dari Posyandu tersebut. Admin Posyandu tidak dapat melihat atau memindahkan akun ke cluster lain. Akun Mirae tetap global dan tidak dapat dibuat dari form biasa. Tidak ada `DELETE`: akun dinonaktifkan, bukan dihapus. Setiap perubahan berjalan dalam satu transaksi yang menyebut pelakunya, sehingga audit mencatatnya dengan sumber `aplikasi`.
 
 ---
 
@@ -194,10 +196,11 @@ Alamatnya memakai hash (`#/balita/12`), bukan path. Router dan penjaga rutenya a
 
 | Alamat | Berkas di `client/src/pages/` | Peran | Isi |
 |---|---|---|---|
-| `#/beranda` | `dashboard.tsx` | semua | Angka S, D, D/S, dan N bulan berjalan; sebaran status gizi; cakupan dan tren enam bulan; daftar Perlu perhatian |
-| `#/balita` | `anak/index.tsx` | semua | Data Balita: tabel, pencarian, saringan, tambah dan ubah |
-| `#/balita/{id}` | `anak/show.tsx` | semua | Detail Balita: identitas, kurva KMS, status gizi, riwayat singkat, dialog Ubah data dan Cetak kartu |
+| `#/beranda` | `dashboard.tsx` | semua | Angka S, D, D/S, N, dan T; sebaran status gizi (BB/U, TB/U, BB/TB); filter RT; Real D/S (kehadiran hari H) vs cakupan sweeping; tren gizi; daftar Perlu perhatian |
+| `#/balita` | `anak/index.tsx` | semua | Data Balita: tabel, pencarian nama anak/ibu, filter balita aktif (<60 bln) vs arsip, filter RT, tambah dan ubah |
+| `#/balita/{id}` | `anak/show.tsx` | semua | Detail Balita: identitas (termasuk kelompok Desil dan KB Ibu), kurva KMS, grafik pertumbuhan 6 indeks (dengan kurva acuan KIA untuk BB/PB dan BB/TB), status gizi & diskusi Buku KIA, dialog Ubah data dan Cetak kartu |
 | `#/balita/{id}/riwayat` | `anak/riwayat.tsx` | semua | Seluruh hasil ukur satu balita beserta z-score |
+| `#/kms` | `kms/index.tsx` | KMS, admin | Pemeriksaan KMS: antrean anak menunggu penjelasan hasil ukur, riwayat balita, dan konfirmasi selesai |
 | `#/kartu-sasaran`, `#/kartu-sasaran/{id}` | `kartu-sasaran/index.tsx` | bidan, admin | Kartu Balita: pilih balita, pratinjau, cetak kartu ber-QR |
 | `#/laporan` | `laporan/index.tsx` | semua | Rekap SKDN per RT, bulanan atau enam bulan |
 | `#/sasaran` | `sasaran/index.tsx` | admin | Sasaran & Impor: rancangan alur impor data Puskesmas, belum membaca berkas |
@@ -277,6 +280,8 @@ Sebuah perubahan dinyatakan selesai bila seluruhnya terpenuhi:
 | Rekap periode | Ribuan pengukuran × 6 penilaian | Satu `JOIN` yang mengambil pengukuran beserta penilaiannya sekaligus — satu *query* per halaman, bukan N+1. |
 | Perhitungan massal | 906 baris standar dicari ribuan kali | Seluruh tabel standar dimuat sekali ke memori per proses. |
 | *Export* | Seluruh periode sekaligus | Kursor `pg` yang dialirkan baris demi baris ke respons, bukan menyusun seluruh larik di memori. |
+| Kirim ukur tablet | Kiriman serentak atau relai berulang | Advisory lock transaksi per anak/periode, transaksi atomik ukur + gizi, batch insert penilaian, dan idempotensi relai identik tanpa duplikasi audit. |
+| Unduh sinkronisasi | Lonjakan permintaan baca saat banyak tablet terhubung | Penggabungan permintaan in-flight per pool dan cluster Posyandu; hasil dibuang setelah siklus baca selesai tanpa cache kedaluwarsa. |
 
 Angka yang dihadapi (ratusan anak, ribuan pengukuran) tidak menuntut *cache* lintas-permintaan, *queue*, atau denormalisasi. Tidak ada satu pun dari itu yang dibangun sekarang.
 

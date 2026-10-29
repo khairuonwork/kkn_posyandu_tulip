@@ -10,6 +10,7 @@ import type { Pool, PoolClient } from 'pg';
 
 import type { IsianAkun } from '../auth/akun.ts';
 import type { Peran } from '../auth/peran.ts';
+import type { PenggunaAktif } from '../auth/peran.ts';
 import { dalamTransaksi } from '../db/transaksi.ts';
 
 /** Pool untuk baca biasa, klien transaksi untuk perubahan yang diaudit. */
@@ -23,16 +24,37 @@ export type PenggunaPublik = {
     peran: Peran;
     rt: string | null;
     aktif: boolean;
+    posyanduId: number | null;
+    posyanduNama: string | null;
+    rw: string | null;
+    superAdmin: boolean;
 };
 
+export type PosyanduPublik = { id: number; nama: string; rw: string };
+
 const KOLOM_PUBLIK = `
-    p.id, p.nama, p.username, p.peran, p.aktif, w.rt
+    p.id, p.nama, p.username, p.peran, p.aktif, w.rt,
+    p.super_admin AS "superAdmin", posyandu.id AS "posyanduId",
+    posyandu.nama AS "posyanduNama", posyandu.rw
     FROM pengguna p
     LEFT JOIN wilayah_rt w ON w.id = p.wilayah_rt_id
+    LEFT JOIN LATERAL (
+        SELECT po.id, po.nama, po.rw FROM pengguna_posyandu up
+        JOIN posyandu po ON po.id = up.posyandu_id
+        WHERE up.pengguna_id = p.id ORDER BY po.id LIMIT 1
+    ) posyandu ON true
 `;
 
-export async function daftar(db: Kueri): Promise<PenggunaPublik[]> {
-    const { rows } = await db.query<PenggunaPublik>(`SELECT ${KOLOM_PUBLIK} ORDER BY p.id`);
+export async function daftar(db: Kueri, pengguna: PenggunaAktif): Promise<PenggunaPublik[]> {
+    const { rows } = await db.query<PenggunaPublik>(
+        `SELECT ${KOLOM_PUBLIK}
+          WHERE $1::boolean OR EXISTS (
+              SELECT 1 FROM pengguna_posyandu akses
+               WHERE akses.pengguna_id=p.id AND akses.posyandu_id=ANY($2::bigint[])
+          )
+          ORDER BY posyandu.rw, p.nama`,
+        [pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
+    );
 
     return rows;
 }
@@ -100,13 +122,44 @@ export async function cariRtId(db: Kueri, rt: string): Promise<number | null> {
     return rows[0]?.id ?? null;
 }
 
+export async function cariRtIdDiPosyandu(db: Kueri, posyanduId: number, rt: string): Promise<number | null> {
+    const { rows } = await db.query<{ id: number }>(
+        `SELECT id FROM wilayah_rt WHERE posyandu_id=$1 AND ltrim(rt,'0')=ltrim($2,'0') ORDER BY id LIMIT 1`,
+        [posyanduId, rt],
+    );
+    return rows[0]?.id ?? null;
+}
+
 /** Pilihan RT binaan untuk akun kader. */
-export async function daftarRt(db: Kueri): Promise<string[]> {
-    const { rows } = await db.query<{ rt: string }>(
-        'SELECT DISTINCT rt FROM wilayah_rt ORDER BY rt',
+export async function daftarRt(db: Kueri, posyanduIds: number[], superAdmin: boolean): Promise<{posyanduId:number; rt:string}[]> {
+    const { rows } = await db.query<{posyanduId:number; rt:string}>(
+        `SELECT DISTINCT posyandu_id AS "posyanduId", rt FROM wilayah_rt WHERE ($1::boolean OR posyandu_id=ANY($2::bigint[])) ORDER BY posyandu_id, rt`,
+        [superAdmin, posyanduIds],
     );
 
-    return rows.map((r) => r.rt);
+    return rows;
+}
+
+export async function daftarPosyandu(db: Kueri, pengguna: PenggunaAktif): Promise<PosyanduPublik[]> {
+    const { rows } = await db.query<PosyanduPublik>(
+        `SELECT id, nama, rw FROM posyandu
+          WHERE $1::boolean OR id=ANY($2::bigint[])
+          ORDER BY rw, nama`,
+        [pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
+    );
+    return rows;
+}
+
+export async function adaAksesPosyandu(db: Kueri, pengguna: PenggunaAktif, posyanduId: number): Promise<boolean> {
+    if (pengguna.superAdmin) return true;
+    return (pengguna.posyanduIds ?? []).includes(posyanduId);
+}
+
+export async function simpanKeanggotaan(db: PoolClient, penggunaId: number, posyanduId: number | null): Promise<void> {
+    await db.query('DELETE FROM pengguna_posyandu WHERE pengguna_id=$1', [penggunaId]);
+    if (posyanduId !== null) {
+        await db.query('INSERT INTO pengguna_posyandu (pengguna_id,posyandu_id) VALUES ($1,$2)', [penggunaId, posyanduId]);
+    }
 }
 
 export async function sisipkan(
@@ -121,6 +174,7 @@ export async function sisipkan(
          RETURNING id`,
         [isian.nama, isian.username, hash, isian.peran, wilayahRtId, isian.aktif],
     );
+    await simpanKeanggotaan(db, rows[0].id, isian.posyanduId ?? null);
 
     return rows[0].id;
 }
@@ -140,6 +194,7 @@ export async function perbarui(
           WHERE id = $1`,
         [id, isian.nama, isian.username, isian.peran, wilayahRtId, isian.aktif, hash],
     );
+    await simpanKeanggotaan(db, id, isian.posyanduId ?? null);
 }
 
 export type PenggunaUntukMasuk = {

@@ -8,7 +8,7 @@
  * di seluruh aplikasi, dan itu disengaja.
  */
 
-import { Loader2, TriangleAlert } from 'lucide-react';
+import { useState } from 'react';
 import type { Rute } from '@/app-shell';
 import {
     balitaKartu,
@@ -27,12 +27,13 @@ import {
     RT_KADER,
     standarLms,
     statusGizi,
+    sebaranIndeks,
     trenStatusGizi,
 } from '@/data/contoh/store';
 import type { DetailAnakServerState } from '@/lib/anak';
 import type { useBerandaServer } from '@/lib/beranda';
 import { umurBulanPada } from '@/lib/format';
-import { Link } from '@/lib/nav';
+import type { useLaporanServer } from '@/lib/laporan';
 import DaftarAnak from '@/pages/anak/index';
 import type { AnakBaru, BarisAnak, PatchAnak } from '@/pages/anak/index';
 import RiwayatPenimbangan from '@/pages/anak/riwayat';
@@ -40,6 +41,7 @@ import DetailAnak from '@/pages/anak/show';
 import Dashboard from '@/pages/dashboard';
 import KartuSasaran from '@/pages/kartu-sasaran/index';
 import type { BalitaKartu } from '@/pages/kartu-sasaran/index';
+import PemeriksaanKms from '@/pages/kms';
 import Laporan from '@/pages/laporan/index';
 import type { TabPeriode } from '@/pages/laporan/index';
 import Pengaturan from '@/pages/pengaturan/index';
@@ -111,7 +113,11 @@ function terapkanKoreksi(
 }
 
 /** Koreksi yang sama, ditempelkan pada identitas di Detail Balita. */
-function terapkanIdentitas(anak: Anak, patch: PatchAnak | undefined): Anak {
+function terapkanIdentitas(
+    anak: Anak,
+    patch: PatchAnak | undefined,
+    periodeId: string,
+): Anak {
     if (patch === undefined) {
         return anak;
     }
@@ -133,6 +139,11 @@ function terapkanIdentitas(anak: Anak, patch: PatchAnak | undefined): Anak {
         bbLahirMeragukan:
             patch.bbLahirKg === undefined ? anak.bbLahirMeragukan : false,
         bukuKia: patch.bukuKia ?? anak.bukuKia,
+        kbIbu: patch.kbIbu === undefined ? anak.kbIbu : patch.kbIbu,
+        desil:
+            patch.desil !== undefined && patch.periodeId === periodeId
+                ? patch.desil
+                : anak.desil,
     };
 }
 
@@ -142,14 +153,13 @@ const LEMBAGA = `Posyandu ${data.meta.posyandu} · RW ${data.meta.rw} ${data.met
 export type LayarProps = {
     rute: Rute;
     peran: Peran;
-    rtPengguna?: string | null;
     periodeId: string;
     onPindahPeriode: (id: string) => void;
     koreksi: Record<number, PatchAnak>;
     tambahan: AnakBaru[];
     antrean?: { jumlah: number; sejak: string };
     onCobaKirim: () => void;
-    onSimpanAnak: (anakId: number, patch: PatchAnak) => void;
+    onSimpanAnak: (anakId: number, patch: PatchAnak) => void | Promise<void>;
     onTambahAnak: (baru: AnakBaru) => void;
     ambang: Ambang;
     onSimpanAmbang: (nilai: Ambang) => void;
@@ -169,6 +179,8 @@ export type LayarProps = {
     detailServer?: DetailAnakServerState;
     periodeServer?: Periode[];
     berandaServer?: ReturnType<typeof useBerandaServer>;
+    laporanServer?: ReturnType<typeof useLaporanServer>;
+    onSesiBerakhir: () => void;
     tabLaporan: TabPeriode;
     onGantiTabLaporan: (tab: TabPeriode) => void;
 };
@@ -176,7 +188,6 @@ export type LayarProps = {
 export function Layar({
     rute,
     peran,
-    rtPengguna,
     periodeId,
     onPindahPeriode,
     tabLaporan,
@@ -202,18 +213,16 @@ export function Layar({
     detailServer,
     periodeServer,
     berandaServer,
+    laporanServer,
+    onSesiBerakhir,
 }: LayarProps) {
+    const [rtBeranda, setRtBeranda] = useState('');
     const periode = modeDataLive
         ? (periodeServer?.find((p) => p.id === periodeId) ?? null)
         : cariPeriode(periodeId);
-    // Satu sumber untuk lingkup data kader, dipakai Beranda, Data Balita, dan
-    // Laporan sekaligus.
-    const rtLingkup =
-        peran === 'kader'
-            ? modeDataLive
-                ? (rtPengguna ?? null)
-                : RT_KADER
-            : null;
+    // Portal live memberi semua kader cakupan lintas RT. Data contoh masih
+    // mempertahankan RT binaan untuk merepresentasikan mode demonstrasi.
+    const rtLingkup = modeDataLive ? null : peran === 'kader' ? RT_KADER : null;
     const wilayahRt = modeDataLive
         ? Array.from(
               new Set(
@@ -228,7 +237,8 @@ export function Layar({
         modeDataLive &&
         periode === null &&
         rute.nama !== 'sasaran' &&
-        rute.nama !== 'pengaturan'
+        rute.nama !== 'pengaturan' &&
+        rute.nama !== 'kms'
     ) {
         return berandaServer?.statusPeriode === 'galat' ? (
             <GalatData
@@ -251,9 +261,32 @@ export function Layar({
         }
 
         const live = modeDataLive ? berandaServer?.data : null;
+        const rtDashboard = rtLingkup ?? (rtBeranda || null);
 
         return (
             <Dashboard
+                kehadiranHariH={live?.kehadiranHariH}
+                bolehUbahHariH={live?.bolehUbahHariH}
+                onSimpanHariH={
+                    modeDataLive ? berandaServer?.simpanHariH : undefined
+                }
+                rtPilihan={modeDataLive ? berandaServer?.rtPilihan : rtBeranda}
+                wilayahRt={live?.wilayahRt ?? wilayahRt}
+                onPilihRt={
+                    modeDataLive ? berandaServer?.setRtPilihan : setRtBeranda
+                }
+                statusBbU={
+                    live?.statusBbU ??
+                    (modeDataLive
+                        ? []
+                        : sebaranIndeks(periodeId, 'BB_U', rtDashboard))
+                }
+                statusTbU={
+                    live?.statusTbU ??
+                    (modeDataLive
+                        ? []
+                        : sebaranIndeks(periodeId, 'TB_U', rtDashboard))
+                }
                 periode={periode}
                 ringkasan={
                     live?.ringkasan ??
@@ -264,7 +297,7 @@ export function Layar({
                               naik: 0,
                               tanggalUkur: null,
                           }
-                        : ringkasan(periodeId, rtLingkup))
+                        : ringkasan(periodeId, rtDashboard))
                 }
                 statusGizi={
                     live?.statusGizi ??
@@ -279,19 +312,19 @@ export function Layar({
                               belumDinilai: 0,
                               ditimbang: 0,
                           }
-                        : statusGizi(periodeId, rtLingkup))
+                        : statusGizi(periodeId, rtDashboard))
                 }
                 cakupanEnamBulan={
                     live?.cakupanEnamBulan ??
-                    (modeDataLive ? [] : cakupanEnamBulan(rtLingkup))
+                    (modeDataLive ? [] : cakupanEnamBulan(rtDashboard))
                 }
                 trenGizi={
                     live?.trenGizi ??
-                    (modeDataLive ? [] : trenStatusGizi(rtLingkup))
+                    (modeDataLive ? [] : trenStatusGizi(rtDashboard))
                 }
                 perluPerhatian={
                     live?.perluPerhatian ??
-                    (modeDataLive ? [] : perluPerhatian(periodeId, rtLingkup))
+                    (modeDataLive ? [] : perluPerhatian(periodeId, rtDashboard))
                 }
                 periodeTerisi={
                     modeDataLive
@@ -351,7 +384,7 @@ export function Layar({
         }
 
         if (detailServer?.status === 'tidak-ada') {
-            return <BalitaTidakDitemukan />;
+            return <TidakDitemukan />;
         }
 
         const detail =
@@ -364,10 +397,14 @@ export function Layar({
                 : detailAnak(rute.id);
 
         if (detail === null) {
-            return <BalitaTidakDitemukan />;
+            return <TidakDitemukan />;
         }
 
-        const anak = terapkanIdentitas(detail.anak, koreksi[rute.id]);
+        const anak = terapkanIdentitas(
+            detail.anak,
+            koreksi[rute.id],
+            periodeId,
+        );
 
         if (rute.nama === 'riwayat') {
             return (
@@ -395,14 +432,15 @@ export function Layar({
                 periode={periode}
                 ambang={ambang}
                 wilayahRt={wilayahRt}
-                noWa={koreksi[rute.id]?.noWa ?? null}
+                noWa={koreksi[rute.id]?.noWa ?? anak.noWa}
                 lembaga={LEMBAGA}
-                onSimpan={
-                    modeDataLive
-                        ? undefined
-                        : (patch) => onSimpanAnak(rute.id, patch)
-                }
+                onSimpan={(patch) => onSimpanAnak(rute.id, patch)}
                 sumberLive={modeDataLive}
+                kembaliKe={
+                    peran === 'kms'
+                        ? { href: '/kms', label: 'Pemeriksaan KMS' }
+                        : undefined
+                }
             />
         );
     }
@@ -428,18 +466,21 @@ export function Layar({
                 kelurahan={data.meta.kelurahan}
                 periodeTerisi={periodeTerakhirTerisi()}
                 onPindahPeriode={onPindahPeriode}
+                laporanLive={modeDataLive ? laporanServer : undefined}
+                bolehUnduh={peran === 'bidan' || peran === 'admin'}
             />
         );
     }
 
     if (rute.nama === 'sasaran') {
+        return <SasaranImpor />;
+    }
+
+    if (rute.nama === 'kms') {
         return (
-            <SasaranImpor
-                onImporBerhasil={(periode) => {
-                    berandaServer?.muatUlang();
-                    onMuatUlangAnakServer?.();
-                    onPindahPeriode(periode);
-                }}
+            <PemeriksaanKms
+                periodeId={periodeId}
+                onSesiBerakhir={onSesiBerakhir}
             />
         );
     }
@@ -480,31 +521,13 @@ export function Layar({
 
 function TidakDitemukan() {
     return (
-        <div className="px-4 py-6 sm:p-7">
-            <div className="rounded-xl border border-border bg-surface-subtle p-6">
+        <div className="p-6">
+            <div className="rounded-lg border border-border bg-surface-subtle p-6">
                 <p className="text-base font-bold">Halaman tidak ditemukan</p>
                 <p className="mt-1 text-base text-muted-foreground">
-                    Halaman yang dicari tidak ditemukan. Silakan pilih menu
-                    lain.
+                    Alamat yang dibuka tidak dikenali. Pilih salah satu menu di
+                    samping.
                 </p>
-            </div>
-        </div>
-    );
-}
-
-function BalitaTidakDitemukan() {
-    return (
-        <div className="px-4 py-6 sm:p-7">
-            <div className="rounded-xl border border-border bg-surface-subtle p-6">
-                <p className="text-base font-bold">
-                    Data balita tidak ditemukan
-                </p>
-                <p className="mt-1 text-base text-muted-foreground">
-                    Balita yang dicari tidak tersedia.
-                </p>
-                <Link href="/balita" className="tombol-kedua mt-3.5">
-                    Kembali ke Data Balita
-                </Link>
             </div>
         </div>
     );
@@ -512,16 +535,30 @@ function BalitaTidakDitemukan() {
 
 function MemuatData() {
     return (
-        <div
-            role="status"
-            className="flex min-h-80 flex-1 flex-col items-center justify-center gap-3 p-6"
-        >
-            <Loader2
-                className="size-7 animate-spin text-primary motion-reduce:[animation-duration:3s]"
-                strokeWidth={2.5}
-                aria-hidden="true"
-            />
-            <p className="text-base text-muted-foreground">Memuat data…</p>
+        <div role="status" aria-live="polite" className="flex flex-1 flex-col">
+            <span className="sr-only">Memuat data anak…</span>
+            <div className="strip-kepala">
+                <div className="h-7 w-56 animate-pulse rounded-lg bg-surface-alt" />
+                <div className="mt-2 h-4 w-80 max-w-full animate-pulse rounded bg-surface-alt" />
+            </div>
+            <div className="space-y-4 p-5 sm:p-6">
+                <div className="grid gap-3 sm:grid-cols-4">
+                    {[0, 1, 2, 3].map((i) => (
+                        <div
+                            key={i}
+                            className="h-24 animate-pulse rounded-xl border border-border bg-card p-4"
+                        />
+                    ))}
+                </div>
+                <div className="kartu space-y-3 p-5">
+                    {[0, 1, 2, 3].map((i) => (
+                        <div
+                            key={i}
+                            className="h-13 animate-pulse rounded-lg bg-surface-subtle"
+                        />
+                    ))}
+                </div>
+            </div>
         </div>
     );
 }
@@ -536,17 +573,11 @@ function GalatData({
     return (
         <div
             role="alert"
-            className="mx-4 my-6 rounded-xl border border-tone-red bg-tone-red-bg p-6 text-center sm:m-7"
+            className="m-6 rounded-xl border border-tone-amber bg-tone-amber-bg p-6"
         >
-            <TriangleAlert
-                className="mx-auto mb-3 size-7 text-tone-red"
-                strokeWidth={2.5}
-                aria-hidden="true"
-            />
-            <p className="font-bold">Data belum dapat dimuat.</p>
-            <p className="mt-1 text-base">
-                {pesan ??
-                    'Tidak dapat terhubung ke server. Periksa koneksi internet, lalu coba lagi.'}
+            <p className="font-bold">Data live belum dapat dimuat.</p>
+            <p className="mt-1 text-sm">
+                {pesan ?? 'Periksa sambungan API lalu coba lagi.'}
             </p>
             <button
                 type="button"

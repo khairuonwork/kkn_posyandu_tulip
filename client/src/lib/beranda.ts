@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import type {
+    KehadiranHariH,
+    IsianHariH,
+} from '@/components/cakupan-penimbangan';
+import type {
     AnakPerluPerhatian,
     CakupanPeriode,
     RingkasanBeranda,
@@ -10,7 +14,12 @@ import type {
 import type { Periode } from '@/types/posyandu';
 
 export type DataBeranda = {
+    kehadiranHariH?: KehadiranHariH[];
+    bolehUbahHariH?: boolean;
     ringkasan: RingkasanBeranda;
+    wilayahRt?: string[];
+    statusBbU?: { label: string; jumlah: number }[];
+    statusTbU?: { label: string; jumlah: number }[];
     sasaranHistoris: boolean;
     statusGizi: SebaranStatusGizi;
     cakupanEnamBulan: CakupanPeriode[];
@@ -52,6 +61,7 @@ export function useBerandaServer(
     aktif: boolean,
     onSesiBerakhir: () => void,
 ) {
+    const [rtPilihan, setRtPilihan] = useState('');
     const [daftar, setDaftar] = useState<DaftarPeriode>({
         periode: [],
         periodeTerisi: null,
@@ -120,19 +130,23 @@ export function useBerandaServer(
         const controller = new AbortController();
         const ambil = () => {
             void jsonLive<DataBeranda>(
-                `/api/v1/beranda?periode=${encodeURIComponent(periodeId)}`,
+                `/api/v1/beranda?periode=${encodeURIComponent(periodeId)}&rt=${encodeURIComponent(rtPilihan)}`,
                 controller.signal,
                 onSesiBerakhir,
             )
                 .then((hasil) => {
+                    if (controller.signal.aborted) {
+                        return;
+                    }
+
                     setData(hasil);
-                    setPeriodeData(periodeId);
+                    setPeriodeData(`${periodeId}:${rtPilihan}`);
                     setStatus('siap');
                     setPesanGalat(null);
                 })
                 .catch((galat: unknown) => {
                     if ((galat as Error).name !== 'AbortError') {
-                        setPeriodeData(periodeId);
+                        setPeriodeData(`${periodeId}:${rtPilihan}`);
                         setStatus('galat');
                         setPesanGalat(
                             galat instanceof TypeError
@@ -155,14 +169,43 @@ export function useBerandaServer(
             window.removeEventListener('focus', ambil);
             document.removeEventListener('visibilitychange', ambil);
         };
-    }, [aktif, periodeId, daftar.periode, onSesiBerakhir, versi]);
+    }, [aktif, periodeId, daftar.periode, onSesiBerakhir, versi, rtPilihan]);
+
+    const simpanHariH = async (items: IsianHariH[]) => {
+        const response = await fetch('/api/v1/beranda/hari-h', {
+            method: 'PUT',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ periode: periodeId, items }),
+        });
+
+        if (response.status === 401) {
+            onSesiBerakhir();
+        }
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+
+            throw new Error(
+                error.galat ?? 'Kehadiran hari H belum tersimpan. Coba lagi.',
+            );
+        }
+
+        muatUlang();
+    };
 
     return {
+        simpanHariH,
         ...daftar,
+        rtPilihan,
+        setRtPilihan,
         periodeAktif: periodeId,
         statusPeriode,
         data,
-        status: periodeData === periodeId ? status : ('memuat' as const),
+        status:
+            periodeData === `${periodeId}:${rtPilihan}`
+                ? status
+                : ('memuat' as const),
         pesanGalat,
         muatUlang,
     };

@@ -4,6 +4,8 @@ import type { PenggunaAktif } from "../auth/peran.ts";
 import { umurBulanPada } from "../antropometri/penilaian-gizi.ts";
 import * as repo from "../repositories/beranda-repository.ts";
 import type { BarisUkurBeranda } from "../repositories/beranda-repository.ts";
+import { boleh } from '../auth/peran.ts';
+import { jumlahHariH } from './cakupan-hari-h.ts';
 
 const BULAN = [
     "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -49,7 +51,7 @@ export async function periode(pool: Pool, pengguna: PenggunaAktif) {
     };
 }
 
-export async function beranda(pool: Pool, pengguna: PenggunaAktif, periodeId: string) {
+export async function beranda(pool: Pool, pengguna: PenggunaAktif, periodeId: string, rt: string | null = null) {
     if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(periodeId)) {
         throw new RangeError("Periode harus berformat YYYY-MM.");
     }
@@ -60,11 +62,13 @@ export async function beranda(pool: Pool, pengguna: PenggunaAktif, periodeId: st
 
     const awal = geserBulan(periodeId, -5);
     const enamBulan = Array.from({ length: 6 }, (_, i) => geserBulan(awal, i));
-    const [semua, sasaran] = await Promise.all([
+    const [semua, sasaran, wilayahRt, hariH] = await Promise.all([
         repo.riwayatBeranda(pool, pengguna, awal, periodeId),
-        repo.jumlahSasaran(pool, pengguna, awal, periodeId),
+        repo.jumlahSasaran(pool, pengguna, awal, periodeId, rt),
+        repo.daftarRt(pool, pengguna),
+        repo.dataHariH(pool,pengguna,awal,periodeId),
     ]);
-    const menurutBulan = (id: string) => semua.filter((p) => p.periodeId === id);
+    const menurutBulan = (id: string) => semua.filter((p) => p.periodeId === id && (rt === null || p.rt === rt));
     const bulanIni = hadir(menurutBulan(periodeId));
     const kategori = (nama: string) => bulanIni.filter((p) => p.bbTb?.kategori === nama).length;
     const terukur = bulanIni.reduce<string | null>(
@@ -98,13 +102,25 @@ export async function beranda(pool: Pool, pengguna: PenggunaAktif, periodeId: st
     }).sort((a, b) => a.prioritas - b.prioritas || b.berat - a.berat)
       .map(({ prioritas: _prioritas, berat: _berat, ...p }) => p);
 
+    const sebaran = (indeks: 'bbU' | 'tbU', daftar: [string, string[]][]) => daftar.map(([label, kategori]) => ({
+        label, jumlah: bulanIni.filter(p => kategori.includes(p[indeks]?.kategori ?? '')).length,
+    }));
     return {
+        wilayahRt,
+        kehadiranHariH: hariH.filter(r => r.periodeId === periodeId),
+        bolehUbahHariH: boleh(pengguna.peran,'ubah-pengukuran'),
+        statusBbU: sebaran('bbU', [
+            ['BB Sangat Kurang', ['Berat badan sangat kurang']], ['BB Kurang', ['Berat badan kurang']],
+            ['BB Normal', ['Berat badan normal']], ['BB Lebih', ['Risiko berat badan lebih']],
+        ]),
+        statusTbU: sebaran('tbU', [['Pendek', ['Pendek', 'Sangat pendek']], ['Normal', ['Normal']], ['Tinggi', ['Tinggi']]]),
         ringkasan: {
             // Sasaran unggahan mengikat bila tersedia; arsip lama memakai
             // jumlah anak dengan rekam periode itu, tanpa angka demo.
             sasaran: sasaran[periodeId] ?? menurutBulan(periodeId).length,
             ditimbang: bulanIni.length,
-            naik: bulanIni.filter((p) => p.ntob?.toUpperCase() === "N").length,
+            naik: bulanIni.filter((p) => p.ntob?.trim().toUpperCase() === "N").length,
+            tidakNaik: bulanIni.filter((p) => p.ntob?.trim().toUpperCase() === "T").length,
             tanggalUkur: terukur,
         },
         sasaranHistoris: sasaran[periodeId] === undefined,
@@ -120,6 +136,7 @@ export async function beranda(pool: Pool, pengguna: PenggunaAktif, periodeId: st
         },
         cakupanEnamBulan: enamBulan.map((id) => ({
             periodeId: id, label: label(id),
+            hadirHariH: jumlahHariH(hariH.filter(r => r.periodeId === id),rt),
             sasaran: sasaran[id] ?? menurutBulan(id).length,
             ditimbang: hadir(menurutBulan(id)).length,
         })),
@@ -127,6 +144,7 @@ export async function beranda(pool: Pool, pengguna: PenggunaAktif, periodeId: st
             const baris = hadir(menurutBulan(id));
             return {
                 periodeId: id, label: label(id), ditimbang: baris.length,
+                bbKurang: baris.filter(p => ["Berat badan kurang", "Berat badan sangat kurang"].includes(p.bbU?.kategori ?? "")).length,
                 pendek: baris.filter((p) => ["Pendek", "Sangat pendek"].includes(p.tbU?.kategori ?? "")).length,
                 giziKurang: baris.filter((p) => ["Gizi kurang", "Gizi buruk"].includes(p.bbTb?.kategori ?? "")).length,
                 giziLebih: baris.filter((p) => ["Gizi lebih", "Obesitas"].includes(p.bbTb?.kategori ?? "")).length,

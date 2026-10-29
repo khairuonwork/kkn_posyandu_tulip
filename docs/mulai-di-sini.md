@@ -4,7 +4,7 @@
 |---|---|
 | **Jenis** | Orientasi |
 | **Status** | hidup |
-| **Perubahan berarti terakhir** | 1 Oktober 2026 |
+| **Perubahan berarti terakhir** | 29 Oktober 2026 |
 
 Halaman pertama bagi anggota tim baru. Isinya: aplikasi ini apa, layarnya apa saja, siapa yang memakainya, dan apa yang dibaca berikutnya. Sekitar sepuluh menit.
 
@@ -22,12 +22,12 @@ Dokumen yang lebih lama menyebutnya **Portal Posyandu Tulip**, atau cukup **Port
 
 | Bagian | Keadaan |
 |---|---|
-| Masuk, keluar, dan tiga peran | Tersambung ke basis data; hak akses ditegakkan server |
+| Masuk, keluar, dan empat peran (Kader, Bidan, Admin, Petugas KMS) | Tersambung ke basis data; hak akses ditegakkan server |
 | Pengaturan › Pengguna dan peran | Tersambung ke basis data |
-| Perhitungan status gizi | Berjalan di server dan teruji terhadap 2.076 kasus |
-| Data Balita | Tersambung ke REST API dan basis data live |
-| Dashboard, laporan, kartu, impor, dan sebagian detail | Tampilan sudah jadi, tetapi sebagian isinya masih **[data contoh](rujukan/data-contoh.md)** |
-| Input pengukuran | Hanya di aplikasi Android; halaman web lamanya ada di [`archive-fitur/penimbangan`](../archive-fitur/penimbangan/README.md) |
+| Perhitungan status gizi | Berjalan di server dan teruji terhadap 2.076 kasus acuan |
+| Data Balita & Profil | Tersambung ke REST API live; memuat filter aktif/arsip, kelompok Desil, dan KB Ibu |
+| Beranda, Laporan, Sasaran, dan KMS | Tersambung ke basis data live; filter RT, Real D/S hari H, ekspor F1, antrean KMS |
+| Input pengukuran | Di aplikasi Android; sinkronisasi server terintegrasi dengan transaksi atomik dan dedup |
 
 Rinciannya di [Fitur](fitur.md).
 
@@ -35,21 +35,22 @@ Rinciannya di [Fitur](fitur.md).
 
 ## Peta layar
 
-Delapan layar setelah masuk, ditambah layar Masuk. Alamatnya memakai tanda `#`, misalnya `#/balita/19`. Berkas halamannya ada di `client/src/pages/`.
+Sembilan layar setelah masuk, ditambah layar Masuk. Alamatnya memakai tanda `#`, misalnya `#/balita/19`. Berkas halamannya ada di `client/src/pages/`.
 
 | No. | Layar (nama menu) | Alamat | Peran | Untuk apa | Berkas |
 |---|---|---|---|---|---|
 | — | Masuk | — | semua | Nama pengguna dan kata sandi | `auth/login.tsx` |
-| 1 | Beranda | `#/beranda` | K · B · A | Ringkasan bulan berjalan dan balita yang perlu perhatian | `dashboard.tsx` |
-| 2 | Data Balita | `#/balita` | K · B · A | Daftar balita: cari, saring, tambah, dan ubah | `anak/index.tsx` |
-| 3 | Detail Balita | `#/balita/{id}` | K · B · A | Identitas, kurva KMS, status gizi, dan riwayat singkat | `anak/show.tsx` |
+| 1 | Beranda | `#/beranda` | K · B · A | Ringkasan bulan berjalan, filter RT, sebaran status gizi, dan Real D/S | `dashboard.tsx` |
+| 2 | Data Balita | `#/balita` | K · B · A | Daftar balita: cari, saring aktif/arsip/RT, tambah, dan ubah | `anak/index.tsx` |
+| 3 | Detail Balita | `#/balita/{id}` | K · B · A | Identitas (Desil, KB), KMS, grafik 6 indeks kurva KIA, status gizi & KIA | `anak/show.tsx` |
 | 4 | Detail riwayat penimbangan | `#/balita/{id}/riwayat` | K · B · A | Semua hasil ukur satu balita | `anak/riwayat.tsx` |
-| 5 | Kartu Balita | `#/kartu-sasaran` | B · A | Pilih balita, lalu cetak kartu ber-QR | `kartu-sasaran/index.tsx` |
-| 6 | Laporan | `#/laporan` | K · B · A | Rekap SKDN per RT, bulanan atau enam bulan | `laporan/index.tsx` |
-| 7 | Sasaran & Impor | `#/sasaran` | A | Rancangan alur impor data sasaran dari Puskesmas | `sasaran/index.tsx` |
-| 8 | Pengaturan | `#/pengaturan` | B · A | Batas angka ukur, ambang rujukan, akun, dan standar perhitungan | `pengaturan/index.tsx` |
+| 5 | Pemeriksaan KMS | `#/kms` | KMS · A | Antrean balita menunggu penjelasan hasil ukur dan konfirmasi selesai | `kms/index.tsx` |
+| 6 | Kartu Balita | `#/kartu-sasaran` | B · A | Pilih balita, lalu cetak kartu ber-QR | `kartu-sasaran/index.tsx` |
+| 7 | Laporan | `#/laporan` | K · B · A | Rekap SKDN per RT, z-score, riwayat 2T+, dan ekspor F1 | `laporan/index.tsx` |
+| 8 | Sasaran & Impor | `#/sasaran` | A | Pratinjau dan penerbitan sasaran dari berkas Excel | `sasaran/index.tsx` |
+| 9 | Pengaturan | `#/pengaturan` | B · A | Batas angka ukur, ambang rujukan, akun, dan standar perhitungan | `pengaturan/index.tsx` |
 
-K = Kader, B = Bidan, A = Admin. Detail Balita dan Detail riwayat penimbangan tidak punya menu sendiri; keduanya dibuka dari Data Balita atau Beranda.
+K = Kader, B = Bidan, A = Admin, KMS = Petugas KMS. Detail Balita dan Detail riwayat penimbangan tidak punya menu sendiri; keduanya dibuka dari Data Balita atau Beranda.
 
 Tangkapan di bawah diambil dari demo sebagai Admin pada 1280 × 800 px (tablet mendatar), 29 September 2026. Semua nama dan NIK di dalamnya sudah diganti.
 
@@ -75,7 +76,7 @@ Tabel seluruh balita, digulir di dalam kartunya. Tombol **Tambah balita** dan **
 
 ![Detail Balita](gambar/detail-balita.png)
 
-Satu layar untuk satu balita: identitas, kurva berat badan menurut umur (KMS), status gizi tiga indeks, dan riwayat penimbangan singkat. **Ubah data** dan **Cetak kartu** hanya untuk bidan dan admin.
+Satu layar untuk satu balita: identitas, kurva berat badan menurut umur (KMS), status gizi tiga indeks, dan riwayat penimbangan singkat. **Ubah data** tersedia untuk kader pada RT binaannya serta bidan/admin; **Cetak kartu** hanya untuk bidan dan admin.
 
 ### 4. Detail riwayat penimbangan
 

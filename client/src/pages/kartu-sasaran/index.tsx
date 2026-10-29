@@ -108,7 +108,7 @@ export default function KartuSasaran({
                         <div className="min-w-56 flex-1">
                             <label
                                 htmlFor="cari-kartu"
-                                className="block text-base font-semibold text-muted-foreground"
+                                className="block text-sm font-semibold text-muted-foreground"
                             >
                                 Cari nama balita, ibu, atau kode
                             </label>
@@ -130,7 +130,7 @@ export default function KartuSasaran({
                         <div className="w-40">
                             <label
                                 htmlFor="rt-kartu"
-                                className="block text-base font-semibold text-muted-foreground"
+                                className="block text-sm font-semibold text-muted-foreground"
                             >
                                 RT
                             </label>

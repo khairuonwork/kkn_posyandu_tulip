@@ -1,3 +1,4 @@
+import {paketSinkronisasi} from '../src/repositories/anak-repository.ts';
 /**
  * Autentikasi lewat HTTP, diuji terhadap server dan basis data sungguhan.
  *
@@ -16,9 +17,12 @@ import type { Server } from 'node:http';
 import { after, before, beforeEach, describe, test } from 'node:test';
 
 import { hashKataSandi } from '../src/auth/kata-sandi.ts';
-import { dapatkanPool, tutupPool } from '../src/db/pool.ts';
+import pg from 'pg';
+import { randomUUID } from 'node:crypto';
+import { readdirSync, readFileSync } from 'node:fs';
+import '../src/db/pool.ts';
 import { kosongkanBatas, MAKS_GAGAL } from '../src/http/batas-masuk.ts';
-import { buatApp } from '../src/http/server.ts';
+import { buatApp } from '../src/http/app.ts';
 
 const adaDb = process.env.DATABASE_URL !== undefined && process.env.DATABASE_URL !== '';
 
@@ -32,13 +36,15 @@ describe(
     'autentikasi HTTP',
     { skip: adaDb ? false : 'DATABASE_URL tidak diatur — lihat server/.env.example' },
     () => {
+        const skema = 'uji_auth_http_' + randomUUID().replaceAll('-', '');
+        let induk: pg.Pool;
+        let pool: pg.Pool;
         let server: Server;
         let akar: string;
         let idPosyandu: number;
         let idRt: number;
 
         const bersihkan = async () => {
-            const pool = dapatkanPool();
 
             const { rows: pengguna } = await pool.query<{ id: number }>(
                 "SELECT id FROM pengguna WHERE username LIKE 'uji-http.%'",
@@ -61,7 +67,13 @@ describe(
         };
 
         before(async () => {
-            const pool = dapatkanPool();
+            induk = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+            await induk.query(`CREATE SCHEMA ${skema}`);
+            pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, options: `-c search_path=${skema}` });
+            const folder = new URL('../db/migrations/', import.meta.url);
+            for (const nama of readdirSync(folder).filter(n => n.endsWith('.sql')).sort()) {
+                await pool.query(readFileSync(new URL(nama, folder), 'utf8'));
+            }
 
             // Run yang terputus meninggalkan barisnya, dan run berikutnya mati
             // di unique constraint `slug` — 13 uji berhenti jalan tanpa satu
@@ -92,6 +104,7 @@ describe(
                 [USERNAME_KADER, hash, idRt],
             );
 
+            await pool.query(`INSERT INTO pengguna_posyandu (pengguna_id, posyandu_id) SELECT id, $1 FROM pengguna WHERE username IN ($2,$3)`, [idPosyandu, USERNAME_BIDAN, USERNAME_KADER]);
             server = buatApp(pool).listen(0);
             await new Promise((siap) => server.once('listening', siap));
 
@@ -103,7 +116,10 @@ describe(
         after(async () => {
             await bersihkan();
             await new Promise((selesai) => server.close(selesai));
-            await tutupPool();
+            await pool.end();
+            assert.match(skema, /^uji_auth_http_[a-f0-9]{32}$/);
+            await induk.query(`DROP SCHEMA ${skema} CASCADE`);
+            await induk.end();
         });
 
         beforeEach(() => {
@@ -205,7 +221,6 @@ describe(
             // Inilah alasan sesi disimpan di basis data dan bukan di dalam
             // token. Bila uji ini gagal, keputusan itu kehilangan seluruh
             // manfaatnya.
-            const pool = dapatkanPool();
             const cookie = ambilCookie(await kirimMasuk(USERNAME_KADER, SANDI));
 
             assert.equal((await fetch(`${akar}/api/saya`, { headers: { cookie } })).status, 200);
@@ -222,7 +237,6 @@ describe(
         });
 
         test('akun nonaktif tidak dapat masuk', async () => {
-            const pool = dapatkanPool();
 
             await pool.query('UPDATE pengguna SET aktif = false WHERE username = $1', [
                 USERNAME_BIDAN,
@@ -285,6 +299,24 @@ describe(
 
             assert.equal(res.status, 404);
             assert.match(res.headers.get('content-type') ?? '', /application\/json/);
+        });
+
+        test('paket tablet menyertakan anak baru meskipun belum terdaftar sebagai sasaran bulan aktif', async () => {
+            const period = await pool.query("INSERT INTO periode (posyandu_id,bulan,tahun) VALUES ($1,10,2026) RETURNING id",[idPosyandu]);
+            const children = await pool.query("INSERT INTO anak (wilayah_rt_id,nama,nama_baku,tgl_lahir,jk) VALUES ($1,'UJI TARGET','uji target','2024-01-01','L'),($1,'UJI BARU','uji baru','2024-02-01','P') RETURNING id",[idRt]);
+            try {
+                await pool.query("INSERT INTO sasaran (periode_id,anak_id) VALUES ($1,$2)",[period.rows[0].id,children.rows[0].id]);
+                const packet = await paketSinkronisasi(pool,{id:1,peran:'kader',rt:'07',aktif:true,posyanduIds:[idPosyandu],superAdmin:false});
+                assert.equal(packet.anak.length,1);
+                assert.equal(packet.masterAnak.length,2);
+                assert.equal(packet.sasaran!.ringkasan.total,1);
+                const baru = packet.masterAnak.find((r: any)=>r.id_anak===children.rows[1].id);
+                assert.ok(baru);assert.equal(baru.id_sasaran,null);
+            } finally {
+                await pool.query('DELETE FROM sasaran WHERE periode_id=$1',[period.rows[0].id]);
+                await pool.query('DELETE FROM periode WHERE id=$1',[period.rows[0].id]);
+                await pool.query('DELETE FROM anak WHERE id=ANY($1::bigint[])',[children.rows.map((r:any)=>r.id)]);
+            }
         });
     },
 );

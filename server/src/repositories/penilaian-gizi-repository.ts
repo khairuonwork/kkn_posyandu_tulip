@@ -115,12 +115,14 @@ export async function simpanPenilaian(
 ): Promise<number> {
     const dihitungPada = new Date();
 
-    for (const baris of hasil) {
+    if (hasil.length > 0) {
         await penjalan.query(
             `INSERT INTO penilaian_gizi
                  (pengukuran_id, standar_versi, indeks, z_score, kategori,
                   tidak_wajar, catatan_perhitungan, dihitung_pada)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+             SELECT $1, $2, h.*, $3::timestamptz
+               FROM unnest($4::varchar[], $5::numeric[], $6::varchar[], $7::boolean[], $8::jsonb[])
+                    AS h(indeks, z_score, kategori, tidak_wajar, catatan_perhitungan)
              ON CONFLICT (pengukuran_id, indeks, standar_versi) DO UPDATE
                  SET z_score             = EXCLUDED.z_score,
                      kategori            = EXCLUDED.kategori,
@@ -130,14 +132,12 @@ export async function simpanPenilaian(
             [
                 pengukuranId,
                 versi,
-                baris.indeks,
-                baris.zScore,
-                baris.kategori,
-                baris.tidakWajar,
-                baris.catatanPerhitungan === null
-                    ? null
-                    : JSON.stringify(baris.catatanPerhitungan),
                 dihitungPada,
+                hasil.map(b => b.indeks),
+                hasil.map(b => b.zScore),
+                hasil.map(b => b.kategori),
+                hasil.map(b => b.tidakWajar),
+                hasil.map(b => b.catatanPerhitungan === null ? null : JSON.stringify(b.catatanPerhitungan)),
             ],
         );
     }

@@ -23,6 +23,8 @@ export default defineConfig({
     },
 
     server: {
+        // Mengizinkan host Cloudflare tunnel, Tailscale, maupun IP LAN lokal.
+        allowedHosts: true,
         proxy: {
             // Porta 4321, sama dengan bawaan server. Lihat server/.env.example.
             '/api': {

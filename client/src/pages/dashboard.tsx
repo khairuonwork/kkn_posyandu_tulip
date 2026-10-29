@@ -15,11 +15,17 @@ import {
     Scale,
     TrendingDown,
     TrendingUp,
-    TriangleAlert,
     Users,
 } from 'lucide-react';
 import { useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
+import CakupanPenimbangan, {
+    FormKehadiranHariH,
+} from '@/components/cakupan-penimbangan';
+import type {
+    KehadiranHariH,
+    IsianHariH,
+} from '@/components/cakupan-penimbangan';
 import EmptyState from '@/components/empty-state';
 import Halaman from '@/components/halaman';
 import StatusGiziBadge, {
@@ -43,6 +49,7 @@ export type RingkasanBeranda = {
     sasaran: number;
     ditimbang: number;
     naik: number;
+    tidakNaik?: number;
     tanggalUkur: string | null;
 };
 
@@ -59,6 +66,7 @@ export type SebaranStatusGizi = {
 };
 
 export type CakupanPeriode = {
+    hadirHariH?: number | null;
     periodeId: string;
     label: string;
     sasaran: number;
@@ -71,6 +79,7 @@ export type TitikTren = {
     label: string;
     ditimbang: number;
     pendek: number;
+    bbKurang?: number;
     giziKurang: number;
     /** Gizi lebih dan obesitas, tanpa yang baru berisiko. */
     giziLebih: number;
@@ -94,6 +103,14 @@ export type AnakPerluPerhatian = {
 export type AntreanKirim = { jumlah: number; sejak: string };
 
 type Props = {
+    kehadiranHariH?: KehadiranHariH[];
+    bolehUbahHariH?: boolean;
+    onSimpanHariH?: (items: IsianHariH[]) => Promise<void>;
+    rtPilihan?: string;
+    wilayahRt?: string[];
+    onPilihRt?: (rt: string) => void;
+    statusBbU?: { label: string; jumlah: number }[];
+    statusTbU?: { label: string; jumlah: number }[];
     periode: Periode;
     ringkasan: RingkasanBeranda;
     statusGizi: SebaranStatusGizi;
@@ -116,6 +133,14 @@ type Props = {
 };
 
 export default function Dashboard({
+    kehadiranHariH = [],
+    bolehUbahHariH = false,
+    onSimpanHariH,
+    rtPilihan = '',
+    wilayahRt = [],
+    onPilihRt,
+    statusBbU = [],
+    statusTbU = [],
     periode,
     ringkasan,
     statusGizi,
@@ -130,6 +155,7 @@ export default function Dashboard({
     sumberLive = false,
     sasaranHistoris = false,
 }: Props) {
+    const [formHariH, setFormHariH] = useState(false);
     const [tabAktif, setTabAktif] = useState<'ringkasan' | 'statistik'>(
         'ringkasan',
     );
@@ -140,7 +166,12 @@ export default function Dashboard({
     // baris berbeda menyatakan angka yang sebanding.
     const puncakTren = Math.max(
         1,
-        ...trenGizi.flatMap((t) => [t.pendek, t.giziKurang, t.giziLebih]),
+        ...trenGizi.flatMap((t) => [
+            t.pendek,
+            t.giziKurang,
+            t.giziLebih,
+            t.bbKurang ?? 0,
+        ]),
     );
     const bulanTren = trenGizi.map((t) => namaBulan(t.label));
 
@@ -159,11 +190,10 @@ export default function Dashboard({
         <Halaman
             ikon={House}
             judul="Beranda"
-            penuh="xl"
             /* Caveat periode ditulis satu tempat saja, tidak diulang tiap kartu. */
             subjudul={
                 sumberLive
-                    ? `${periode.label} · ${ringkasan.tanggalUkur === null ? 'belum ada hasil ukur' : `data ukur terakhir ${tanggalTanpaTahun(ringkasan.tanggalUkur)}`}`
+                    ? `${periode.label} · ${ringkasan.tanggalUkur === null ? 'belum ada pengukuran' : `data ukur terakhir ${tanggalTanpaTahun(ringkasan.tanggalUkur)}`} · Database live`
                     : `${periode.label}, data per ${tanggalTanpaTahun(ringkasan.tanggalUkur)}. Data contoh.`
             }
             /* Kabar bahwa data tertahan duduk di bilah kepala, sebelum angka
@@ -178,73 +208,93 @@ export default function Dashboard({
                 ) : undefined
             }
         >
-            <div
-                role="tablist"
-                aria-label="Tampilan Beranda"
-                className="bilah-tab mb-7"
-            >
-                {(
-                    [
-                        ['ringkasan', 'Ringkasan'],
-                        ['statistik', 'Statistik & Tren'],
-                    ] as const
-                ).map(([id, label]) => (
-                    <button
-                        key={id}
-                        type="button"
-                        role="tab"
-                        id={`beranda-tab-${id}`}
-                        aria-controls={`beranda-panel-${id}`}
-                        aria-selected={tabAktif === id}
-                        tabIndex={tabAktif === id ? 0 : -1}
-                        onClick={() => setTabAktif(id)}
-                        onKeyDown={(event) => {
-                            if (
-                                ![
-                                    'ArrowLeft',
-                                    'ArrowRight',
-                                    'Home',
-                                    'End',
-                                ].includes(event.key)
-                            ) {
-                                return;
-                            }
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+                <div
+                    role="tablist"
+                    aria-label="Tampilan Beranda"
+                    className="bilah-tab"
+                >
+                    {(
+                        [
+                            ['ringkasan', 'Ringkasan'],
+                            ['statistik', 'Statistik & Tren'],
+                        ] as const
+                    ).map(([id, label]) => (
+                        <button
+                            key={id}
+                            type="button"
+                            role="tab"
+                            id={`beranda-tab-${id}`}
+                            aria-controls={`beranda-panel-${id}`}
+                            aria-selected={tabAktif === id}
+                            tabIndex={tabAktif === id ? 0 : -1}
+                            onClick={() => setTabAktif(id)}
+                            onKeyDown={(event) => {
+                                if (
+                                    ![
+                                        'ArrowLeft',
+                                        'ArrowRight',
+                                        'Home',
+                                        'End',
+                                    ].includes(event.key)
+                                ) {
+                                    return;
+                                }
 
-                            event.preventDefault();
-                            const berikut =
-                                event.key === 'Home'
-                                    ? 'ringkasan'
-                                    : event.key === 'End'
-                                      ? 'statistik'
-                                      : id === 'ringkasan'
-                                        ? 'statistik'
-                                        : 'ringkasan';
-                            setTabAktif(berikut);
-                            event.currentTarget.parentElement
-                                ?.querySelector<HTMLButtonElement>(
-                                    `#beranda-tab-${berikut}`,
-                                )
-                                ?.focus();
-                        }}
-                        className="tab"
-                    >
-                        {label}
-                    </button>
-                ))}
+                                event.preventDefault();
+                                const berikut =
+                                    event.key === 'Home'
+                                        ? 'ringkasan'
+                                        : event.key === 'End'
+                                          ? 'statistik'
+                                          : id === 'ringkasan'
+                                            ? 'statistik'
+                                            : 'ringkasan';
+                                setTabAktif(berikut);
+                                event.currentTarget.parentElement
+                                    ?.querySelector<HTMLButtonElement>(
+                                        `#beranda-tab-${berikut}`,
+                                    )
+                                    ?.focus();
+                            }}
+                            className="tab"
+                        >
+                            {label}
+                        </button>
+                    ))}
+                </div>
+                {onPilihRt && (
+                    <div className="flex flex-wrap items-center gap-2.5">
+                        <label
+                            htmlFor="beranda-rt"
+                            className="text-sm font-semibold text-muted-foreground"
+                        >
+                            RT
+                        </label>
+                        <select
+                            id="beranda-rt"
+                            className="isian"
+                            value={rtPilihan}
+                            onChange={(e) => onPilihRt(e.target.value)}
+                        >
+                            <option value="">Semua RT</option>
+                            {wilayahRt.map((rt) => (
+                                <option key={rt} value={rt}>
+                                    RT {rt}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
             </div>
             {!memuat && sasaranHistoris && (
                 <p
                     role="note"
-                    className="mb-6 flex items-start gap-2.5 rounded-lg bg-tone-amber-bg px-4 py-3 text-sm leading-relaxed text-tone-amber"
+                    className="mb-6 rounded-lg bg-tone-amber-bg px-4 py-3 text-sm leading-relaxed text-tone-amber"
                 >
-                    <TriangleAlert
-                        className="mt-0.5 size-5 shrink-0"
-                        strokeWidth={2.5}
-                        aria-hidden
-                    />
-                    Daftar sasaran bulan ini belum diunggah. Angka S dihitung
-                    dari balita yang tercatat bulan ini, jadi cakupan belum
-                    resmi.
+                    Daftar sasaran periode ini belum diunggah. Angka S berasal
+                    dari anak yang punya rekam pada bulan ini; cakupan belum
+                    dapat dianggap cakupan sasaran resmi.
                 </p>
             )}
             {memuat && <Skeleton />}
@@ -266,7 +316,7 @@ export default function Dashboard({
             )}
 
             {!memuat && (
-                <div className="flex min-w-0 flex-col gap-7 xl:min-h-0 xl:flex-1">
+                <div className="flex min-w-0 flex-col gap-7">
                     <div
                         role="tabpanel"
                         id="beranda-panel-ringkasan"
@@ -275,7 +325,7 @@ export default function Dashboard({
                         hidden={tabAktif !== 'ringkasan'}
                         className={
                             tabAktif === 'ringkasan'
-                                ? 'flex min-w-0 flex-col gap-7 xl:min-h-0 xl:flex-1'
+                                ? 'flex min-w-0 flex-col gap-7'
                                 : 'hidden'
                         }
                     >
@@ -285,7 +335,7 @@ export default function Dashboard({
                         keterangan pendek di sebelah angkanya. */}
                                 <div
                                     aria-label="Ringkasan periode"
-                                    className="kartu grid grid-cols-2 gap-y-6 py-6 xl:grid-cols-4 xl:pendek:py-4"
+                                    className="grid grid-cols-2 gap-y-6 rounded-2xl border border-border bg-card py-6 xl:grid-cols-5"
                                 >
                                     <Kpi
                                         ikon={Users}
@@ -294,8 +344,8 @@ export default function Dashboard({
                                         nilai={ringkasan.sasaran}
                                         keterangan={
                                             sasaranHistoris
-                                                ? 'tercatat bulan ini'
-                                                : 'terdaftar bulan ini'
+                                                ? 'rekam periode ini'
+                                                : 'terdaftar periode ini'
                                         }
                                     />
                                     <Kpi
@@ -330,16 +380,71 @@ export default function Dashboard({
                                         nilai={ringkasan.naik}
                                         keterangan={`${persenSaja(ringkasan.naik, ringkasan.ditimbang)}% dari D`}
                                     />
+                                    <Kpi
+                                        ikon={TrendingDown}
+                                        label="Berat tidak naik (T)"
+                                        nilai={ringkasan.tidakNaik ?? 0}
+                                        keterangan={`${persenSaja(ringkasan.tidakNaik ?? 0, ringkasan.ditimbang)}% dari D`}
+                                    />
                                 </div>
 
-                                <div className="grid items-start gap-7 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(300px,0.85fr)_minmax(0,1.5fr)] xl:grid-rows-[minmax(0,1fr)]">
-                                    <section className="kartu min-w-0 p-5 sm:p-6">
+                                <div className="grid gap-6 lg:grid-cols-2">
+                                    {[
+                                        { judul: 'BB/U', rows: statusBbU },
+                                        {
+                                            judul: 'PB/U atau TB/U',
+                                            rows: statusTbU,
+                                        },
+                                    ].map(({ judul, rows }) => (
+                                        <section
+                                            key={judul}
+                                            className="kartu p-5 sm:p-6"
+                                        >
+                                            <h2 className="text-xl font-bold">
+                                                Status gizi {judul}
+                                            </h2>
+                                            <p className="mt-1 text-sm text-muted-foreground">
+                                                {ringkasan.ditimbang} ditimbang
+                                            </p>
+                                            <dl className="mt-4 divide-y divide-border">
+                                                {rows.map((row) => (
+                                                    <div
+                                                        key={row.label}
+                                                        className="flex justify-between gap-3 py-3"
+                                                    >
+                                                        <dt>{row.label}</dt>
+                                                        <dd className="font-bold tabular-nums">
+                                                            {row.jumlah}
+                                                        </dd>
+                                                    </div>
+                                                ))}
+                                                <div className="flex justify-between gap-3 py-3">
+                                                    <dt>Belum dinilai</dt>
+                                                    <dd className="font-bold tabular-nums">
+                                                        {Math.max(
+                                                            0,
+                                                            ringkasan.ditimbang -
+                                                                rows.reduce(
+                                                                    (sum, r) =>
+                                                                        sum +
+                                                                        r.jumlah,
+                                                                    0,
+                                                                ),
+                                                        )}
+                                                    </dd>
+                                                </div>
+                                            </dl>
+                                        </section>
+                                    ))}
+                                </div>
+                                <div className="grid items-start gap-6 xl:grid-cols-[minmax(300px,0.85fr)_minmax(0,1.5fr)]">
+                                    <section className="min-w-0 rounded-2xl border border-border bg-card p-5 sm:p-6">
                                         <KepalaKartu
                                             judul="Status gizi"
                                             sub={`BB/PB atau BB/TB · ${statusGizi.ditimbang} ditimbang`}
                                         />
 
-                                        <ul className="mt-4 divide-y divide-rule xl:pendek:mt-2 xl:pendek:grid xl:pendek:grid-cols-2 xl:pendek:gap-x-6 xl:pendek:[&>li:nth-child(n+5)]:border-b-0">
+                                        <ul className="mt-4 divide-y divide-rule">
                                             {petak.map((p) => (
                                                 <PetakGizi
                                                     key={p.label}
@@ -373,7 +478,7 @@ export default function Dashboard({
                         hidden={tabAktif !== 'statistik'}
                         className={
                             tabAktif === 'statistik'
-                                ? 'min-w-0 space-y-7 xl:min-h-0 xl:flex-1 xl:overflow-y-auto'
+                                ? 'min-w-0 space-y-6'
                                 : 'hidden'
                         }
                     >
@@ -383,68 +488,69 @@ export default function Dashboard({
                             </h2>
                             <p className="mt-1 text-sm text-muted-foreground">
                                 Perbandingan cakupan penimbangan dan status gizi
-                                tiap bulan.
+                                antarbulan · {rentang}
                             </p>
                         </div>
-                        <div className="grid gap-7 xl:grid-cols-2">
-                            <section className="kartu flex min-w-0 flex-col p-5 sm:p-6">
+                        <div className="grid items-start gap-6 xl:grid-cols-2">
+                            <section className="flex min-w-0 flex-col rounded-2xl border border-border bg-card p-5 sm:p-6">
                                 <KepalaKartu
                                     judul="Cakupan penimbangan (D/S)"
                                     sub={rentang}
                                 />
 
-                                <div
-                                    role="img"
-                                    aria-label={`Cakupan penimbangan: ${cakupanEnamBulan
-                                        .map(
-                                            (c) =>
-                                                `${namaBulan(c.label)} ${persenSaja(c.ditimbang, c.sasaran)}%`,
-                                        )
-                                        .join(', ')}`}
-                                    className="mt-6 grid min-h-64 flex-1 grid-cols-6 items-end gap-2 border-b border-border px-0.5"
-                                >
-                                    {/* Batang bertanda mengikuti periode
-                                            yang dipilih, bukan selalu yang
-                                            terakhir: judul halaman, KPI, dan
-                                            grafik ini harus menunjuk bulan yang
-                                            sama. */}
-                                    {cakupanEnamBulan.map((c) => (
-                                        <BatangCakupan
-                                            key={c.periodeId}
-                                            cakupan={c}
-                                            kini={c.periodeId === periode.id}
-                                        />
-                                    ))}
-                                </div>
-                                <div
-                                    aria-hidden="true"
-                                    className="mt-1 grid grid-cols-6 gap-2 px-0.5 text-center text-sm"
-                                >
-                                    {cakupanEnamBulan.map((c) => (
-                                        <span
-                                            key={c.periodeId}
-                                            className={
-                                                c.periodeId === periode.id
-                                                    ? 'font-extrabold'
-                                                    : 'text-muted-foreground'
+                                <CakupanPenimbangan
+                                    rows={cakupanEnamBulan}
+                                    periodeId={periode.id}
+                                />
+                                {bolehUbahHariH &&
+                                    onSimpanHariH &&
+                                    kehadiranHariH.length > 0 && (
+                                        <button
+                                            type="button"
+                                            className="tombol-kedua mt-4 self-start"
+                                            aria-expanded={formHariH}
+                                            onClick={() =>
+                                                setFormHariH((old) => !old)
                                             }
                                         >
-                                            {c.label.slice(0, 3)}
-                                        </span>
-                                    ))}
-                                </div>
+                                            Isi kehadiran hari H
+                                        </button>
+                                    )}
+                                {formHariH &&
+                                    bolehUbahHariH &&
+                                    onSimpanHariH && (
+                                        <FormKehadiranHariH
+                                            key={`${periode.id}:${rtPilihan}`}
+                                            rows={kehadiranHariH.filter(
+                                                (r) =>
+                                                    rtPilihan === '' ||
+                                                    r.rt === rtPilihan,
+                                            )}
+                                            onSimpan={onSimpanHariH}
+                                            onTutup={() => setFormHariH(false)}
+                                        />
+                                    )}
                             </section>
 
                             {/* Seluruh angka status gizi lain adalah potret
                                     satu bulan; kartu ini yang menjawab
                                     pertanyaan pembina: membaik atau memburuk. */}
-                            <section className="kartu flex min-w-0 flex-col p-5 sm:p-6">
+                            <section className="flex min-w-0 flex-col rounded-2xl border border-border bg-card p-5 sm:p-6">
                                 <KepalaKartu
                                     judul="Tren status gizi"
                                     sub={rentang}
                                 />
 
                                 <div className="mt-4 flex flex-col gap-4">
+                                    <BarisTren
+                                        label="BB Kurang dan BB Sangat Kurang"
+                                        nilai={trenGizi.map(
+                                            (t) => t.bbKurang ?? 0,
+                                        )}
+                                        bulan={bulanTren}
+                                        puncak={puncakTren}
+                                        warna={WARNA_TREN.amber}
+                                    />
                                     <BarisTren
                                         label="Pendek"
                                         nilai={trenGizi.map((t) => t.pendek)}
@@ -663,7 +769,7 @@ function PetakGizi({ label, nilai }: { label: string; nilai: number }) {
             : KELAS[nada];
 
     return (
-        <li className="flex min-h-12 items-center justify-between gap-3 py-3 xl:pendek:min-h-0 xl:pendek:py-2">
+        <li className="flex min-h-12 items-center justify-between gap-3 py-3">
             <span className="flex items-center gap-3">
                 <span
                     className={`flex size-7 shrink-0 items-center justify-center rounded-md ${kelas}`}
@@ -674,48 +780,10 @@ function PetakGizi({ label, nilai }: { label: string; nilai: number }) {
                         aria-hidden="true"
                     />
                 </span>
-                <span className="text-base font-medium">{label}</span>
+                <span className="text-sm font-medium">{label}</span>
             </span>
             <span className="text-lg font-bold tabular-nums">{nilai}</span>
         </li>
-    );
-}
-
-/** Batang cakupan bulanan: persen di atas, batang di bawahnya. */
-function BatangCakupan({
-    cakupan,
-    kini,
-}: {
-    cakupan: CakupanPeriode;
-    kini: boolean;
-}) {
-    const nilai = persenSaja(cakupan.ditimbang, cakupan.sasaran);
-
-    // Tinggi dalam persen ruang grafik, bukan px, supaya batang ikut
-    // memanjang bersama kartunya. Dari 0%, bukan dari sumbu yang dinaikkan:
-    // panjang batang sebanding dengan angkanya, jadi grafik ini tidak butuh
-    // catatan peringatan, dan bulan dengan cakupan rendah tetap punya batang.
-    // `pt-6` menyisakan tempat untuk angka di atas batang 100%.
-    return (
-        <div className="flex h-full flex-col items-center justify-end pt-6">
-            {/* Judul bawaan peramban memberi pembilang dan penyebutnya saat
-                disentuh tetikus; angkanya sendiri sudah tercetak di atas. */}
-            <span
-                title={pecahan(cakupan.ditimbang, cakupan.sasaran)}
-                className={`relative w-full max-w-[40px] rounded-t-[8px] ${kini ? 'bg-primary' : 'bg-input'}`}
-                style={{ height: `${Math.min(nilai, 100)}%` }}
-            >
-                <span
-                    className={`absolute bottom-full left-1/2 mb-1 -translate-x-1/2 text-sm whitespace-nowrap tabular-nums ${
-                        kini
-                            ? 'font-extrabold text-primary'
-                            : 'font-bold text-muted-foreground'
-                    }`}
-                >
-                    {nilai}%
-                </span>
-            </span>
-        </div>
     );
 }
 
@@ -763,13 +831,13 @@ function BarisTren({
               ? [
                     'bg-tone-red-bg text-tone-red',
                     TrendingUp,
-                    `Naik ${selisih} dari ${bulanLalu}`,
+                    `+${selisih} dari ${bulanLalu}`,
                 ]
               : selisih < 0
                 ? [
                       'bg-tone-green-bg text-tone-green',
                       TrendingDown,
-                      `Turun ${-selisih} dari ${bulanLalu}`,
+                      `−${-selisih} dari ${bulanLalu}`,
                   ]
                 : [
                       'bg-surface-alt text-muted-foreground',
@@ -783,7 +851,7 @@ function BarisTren({
                 <p className="text-base leading-tight font-bold">{label}</p>
                 {IkonSelisih !== null && (
                     <span
-                        className={`mt-1 inline-flex items-center gap-1 rounded-md px-2 text-sm font-semibold ${kelasSelisih}`}
+                        className={`mt-1 inline-flex items-center gap-1 rounded-md px-2 text-xs font-semibold ${kelasSelisih}`}
                     >
                         <IkonSelisih
                             className="size-3.5"
@@ -850,9 +918,9 @@ function DaftarPerhatian({ anak }: { anak: AnakPerluPerhatian[] }) {
     return (
         <section
             aria-labelledby="judul-perlu"
-            className="kartu flex min-w-0 flex-col overflow-hidden xl:min-h-0 xl:self-stretch"
+            className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-card"
         >
-            <div className="flex flex-col gap-1.5 border-b border-rule p-5 sm:p-6">
+            <div className="flex flex-col gap-1.5 border-b border-rule px-5 py-5 sm:px-6">
                 <h2 id="judul-perlu" className="text-lg font-extrabold">
                     Perlu perhatian
                 </h2>
@@ -871,7 +939,6 @@ function DaftarPerhatian({ anak }: { anak: AnakPerluPerhatian[] }) {
             ) : (
                 <ul
                     id="daftar-perhatian"
-                    className="gulir-dalam xl:min-h-0 xl:flex-1 xl:overflow-y-auto"
                     aria-label={`${terlihat.length} dari ${anak.length} balita yang perlu perhatian`}
                 >
                     {terlihat.map((a) => (
@@ -894,7 +961,7 @@ function DaftarPerhatian({ anak }: { anak: AnakPerluPerhatian[] }) {
 
                                 <span className="flex min-w-0 grow flex-col gap-1">
                                     <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                                        <span className="text-base font-bold break-words">
+                                        <span className="text-sm font-bold break-words">
                                             {namaTampil(a.nama)}
                                         </span>
                                         <StatusGiziBadge
@@ -936,7 +1003,7 @@ function DaftarPerhatian({ anak }: { anak: AnakPerluPerhatian[] }) {
                         aria-expanded={semua}
                         aria-controls="daftar-perhatian"
                         onClick={() => setSemua(!semua)}
-                        className="min-h-13 rounded-lg px-2 text-sm font-bold text-primary hover:bg-accent"
+                        className="min-h-11 rounded-lg px-2 text-sm font-bold text-primary hover:bg-accent"
                     >
                         {semua
                             ? 'Ringkas daftar'

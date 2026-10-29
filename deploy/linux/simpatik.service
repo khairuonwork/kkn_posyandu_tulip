@@ -1,0 +1,32 @@
+[Unit]
+Description=SIMPATIK website dan REST API
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=hafizh
+Group=hafizh
+WorkingDirectory=/home/hafizh/simpatik/server
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=4321
+Environment=TRUST_PROXY=loopback
+Environment=WEB_DIST=client/dist
+ExecStart=/home/hafizh/simpatik-runtime/node/bin/node --env-file=/home/hafizh/.config/simpatik/server.env src/http/server.ts
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

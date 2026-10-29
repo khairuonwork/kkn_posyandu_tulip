@@ -116,6 +116,7 @@ export type Ringkasan = {
     ditimbang: number;
     /** N — dibaca apa adanya dari kolom NTOB arsip, tanpa logika turunan (OI-01). */
     naik: number;
+    tidakNaik?: number;
     tanggalUkur: string | null;
 };
 
@@ -185,6 +186,7 @@ export function ringkasan(
         sasaran: baris.length,
         ditimbang: ditimbang(baris),
         naik: hitungNtob(baris, 'N'),
+        tidakNaik: hitungNtob(baris, 'T'),
         tanggalUkur: cariPeriode(periodeId)?.tanggalKegiatan ?? null,
     };
 }
@@ -764,6 +766,7 @@ export type TitikTren = {
     ditimbang: number;
     /** TB/U/PB/U: Pendek dan Sangat pendek. */
     pendek: number;
+    bbKurang?: number;
     /** BB/TB: Gizi kurang dan Gizi buruk. */
     giziKurang: number;
     /** BB/TB: Gizi lebih dan Obesitas. */
@@ -794,6 +797,10 @@ export function trenStatusGizi(rt: string | null = null): TitikTren[] {
             label: p.label,
             ditimbang: baris.length,
             pendek: punya('TB_U', ['Pendek', 'Sangat pendek']),
+            bbKurang: punya('BB_U', [
+                'Berat badan kurang',
+                'Berat badan sangat kurang',
+            ]),
             giziKurang: punya('BB_TB', ['Gizi kurang', 'Gizi buruk']),
             giziLebih: punya('BB_TB', ['Gizi lebih', 'Obesitas']),
         };
@@ -948,3 +955,37 @@ export const RIWAYAT_PENGATURAN_CONTOH = [
         perubahan: 'Standar Permenkes RI No. 2/2020 + WHO LMS 2006 dipilih.',
     },
 ];
+
+/** Ringkasan demo memakai kategori yang sama dengan layanan live. */
+export function sebaranIndeks(
+    periodeId: string,
+    indeks: 'BB_U' | 'TB_U',
+    rt: string | null,
+) {
+    const kategori =
+        indeks === 'BB_U'
+            ? ([
+                  ['BB Sangat Kurang', ['Berat badan sangat kurang']],
+                  ['BB Kurang', ['Berat badan kurang']],
+                  ['BB Normal', ['Berat badan normal']],
+                  ['BB Lebih', ['Risiko berat badan lebih']],
+              ] as const)
+            : ([
+                  ['Pendek', ['Pendek', 'Sangat pendek']],
+                  ['Normal', ['Normal']],
+                  ['Tinggi', ['Tinggi']],
+              ] as const);
+    const rows = saringRt(pengukuranPeriode(periodeId), rt).filter(
+        (p) => p.statusKehadiran === 'hadir',
+    );
+
+    return kategori.map(([label, labels]) => ({
+        label,
+        jumlah: rows.filter(
+            (p) =>
+                (labels as readonly string[]).includes(
+                    p.penilaian[indeks]?.kategori ?? '',
+                ) && p.penilaian[indeks]?.tidakWajar !== true,
+        ).length,
+    }));
+}

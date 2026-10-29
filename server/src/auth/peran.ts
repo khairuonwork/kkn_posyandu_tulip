@@ -11,7 +11,7 @@
  * lambat akan punya satu baris yang lupa diperbarui.
  */
 
-export type Peran = "kader" | "bidan" | "admin";
+export type Peran = "kader" | "bidan" | "admin" | "kms";
 
 export type Aksi =
     // Kader ke atas
@@ -21,9 +21,11 @@ export type Aksi =
     | "lihat-rekap"
     | "daftar-anak-lapangan"
     | "catat-pengukuran-lapangan"
-    | "selesaikan-sesi-lapangan"
-    // Bidan ke atas
+    | "catat-survei-kia"
+    // Semua kader melihat sasaran lintas RT. RT pada akun kader hanya penugasan
+    // administratif, bukan pembatasan data.
     | "ubah-anak"
+    // Bidan ke atas
     | "ubah-pengukuran"
     | "gabung-duplikat"
     | "selesaikan-konflik-impor"
@@ -33,13 +35,16 @@ export type Aksi =
     | "kelola-periode"
     | "hapus-data"
     | "kelola-akun"
-    | "jalankan-impor";
+    | "jalankan-impor"
+    | "selesaikan-sesi-lapangan"
+    | "konfirmasi-kms";
 
 /** Menaik. Perbandingan angkanya yang menegakkan pewarisan hak. */
 const TINGKAT: Readonly<Record<Peran, number>> = {
     kader: 1,
     bidan: 2,
     admin: 3,
+    kms: 1,
 };
 
 /** Peran terendah yang boleh melakukan tiap aksi. */
@@ -50,9 +55,9 @@ const MINIMUM: Readonly<Record<Aksi, Peran>> = {
     "lihat-rekap": "kader",
     "daftar-anak-lapangan": "kader",
     "catat-pengukuran-lapangan": "kader",
-    "selesaikan-sesi-lapangan": "kader",
+    "catat-survei-kia": "kader",
 
-    "ubah-anak": "bidan",
+    "ubah-anak": "kader",
     "ubah-pengukuran": "bidan",
     "gabung-duplikat": "bidan",
     "selesaikan-konflik-impor": "bidan",
@@ -63,13 +68,21 @@ const MINIMUM: Readonly<Record<Aksi, Peran>> = {
     "hapus-data": "admin",
     "kelola-akun": "admin",
     "jalankan-impor": "admin",
+    "selesaikan-sesi-lapangan": "admin",
+    "konfirmasi-kms": "kms",
 };
 
-export const SEMUA_PERAN: readonly Peran[] = ["kader", "bidan", "admin"];
+export const SEMUA_PERAN: readonly Peran[] = ["kader", "bidan", "admin", "kms"];
 
 export const SEMUA_AKSI: readonly Aksi[] = Object.keys(MINIMUM) as Aksi[];
 
 export function boleh(peran: Peran, aksi: Aksi): boolean {
+    // Role KMS bersifat terfokus: dapat membaca analisa anak dan hanya KMS
+    // yang berhak menutup tahap pemeriksaan. Ia tidak mewarisi hak input kader.
+    if (peran === "kms") {
+        return ["lihat-dashboard", "lihat-anak", "lihat-kms", "konfirmasi-kms", "catat-survei-kia"].includes(aksi);
+    }
+    if (aksi === "konfirmasi-kms") return false;
     return TINGKAT[peran] >= TINGKAT[MINIMUM[aksi]];
 }
 
@@ -84,35 +97,25 @@ export type PenggunaAktif = {
     /** Hanya berarti untuk kader; bidan dan admin melihat seluruh RW. */
     rt: string | null;
     aktif: boolean;
+    /** Cluster Posyandu yang ditugaskan kepada akun ini. */
+    posyanduIds?: number[];
+    /** Mirae memiliki akses portal lintas cluster. */
+    superAdmin?: boolean;
 };
 
 /**
- * RT yang boleh dilihat pengguna ini: `null` berarti seluruh RW.
- *
- * Kader tanpa RT binaan **tidak** berarti boleh melihat semuanya. Itu keadaan
- * data yang salah, dan menafsirkannya sebagai akses penuh adalah cara paling
- * sunyi untuk membocorkan data seluruh RW. Karena itu ia melempar, bukan
- * mengembalikan null — pemanggil tidak punya cara keliru untuk memakainya.
+ * Semua kader mendapat cakupan seluruh RT Posyandu. RT di profil akun hanya
+ * menunjukkan penugasan, bukan batas akses.
  */
 export function rtYangBolehDilihat(pengguna: PenggunaAktif): string | null {
-    if (pengguna.peran !== "kader") {
-        return null;
-    }
-
-    if (pengguna.rt === null || pengguna.rt === "") {
-        throw new Error(
-            `Kader #${pengguna.id} tidak punya RT binaan; aksesnya tidak dapat ditentukan.`,
-        );
-    }
-
-    return pengguna.rt;
+    void pengguna;
+    return null;
 }
 
 /**
- * Apakah pengguna ini boleh menyentuh data milik RT tertentu.
- *
- * Dipakai di lapisan data, bukan hanya di route: penyaringan yang hanya ada di
- * query membuat satu endpoint yang lupa menyaring membocorkan seluruh RW.
+ * Apakah pengguna ini boleh melihat data milik RT tertentu. Seluruh kader
+ * dapat melihat semua RT; fungsi dipertahankan sebagai satu sumber kebijakan
+ * untuk query yang mungkin kelak menambah filter.
  */
 export function bolehAksesRt(
     pengguna: PenggunaAktif,

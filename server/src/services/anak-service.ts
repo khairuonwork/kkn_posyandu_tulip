@@ -5,14 +5,126 @@ import type { Pool } from "pg";
 import type { PenggunaAktif } from "../auth/peran.ts";
 import { dalamTransaksi } from "../db/transaksi.ts";
 import * as anakRepo from "../repositories/anak-repository.ts";
-import { hitungDanSimpan } from "./gizi-service.ts";
+import { hitungDanSimpanDalamTransaksi } from "./gizi-service.ts";
+import { muatTabelStandar } from '../repositories/standar-lms-repository.ts';
 
 export class GalatAnak extends Error {
-    readonly status: 400 | 404;
+    readonly status: 400 | 404 | 409;
 
-    constructor(status: 400 | 404, pesan: string) {
+    constructor(status: 400 | 404 | 409, pesan: string) {
         super(pesan);
         this.status = status;
+    }
+}
+
+export async function ubahProfil(
+    pool: Pool,
+    pengguna: PenggunaAktif,
+    anakId: number,
+    badan: unknown,
+) {
+    if (typeof badan !== "object" || badan === null)
+        throw new GalatAnak(400, "Data profil anak tidak valid.");
+    const data = badan as Record<string, unknown>;
+    const nama = teks(data, "nama").replace(/\s+/g, " ");
+    const nikMentah = teks(data, "nik").replace(/\D/g, "");
+    const tglLahir = teks(data, "tglLahir");
+    const jk = teks(data, "jk").toUpperCase();
+    const namaOrtu = teks(data, "namaOrtu").replace(/\s+/g, " ");
+    const rt = teks(data, "rt").replace(/\D/g, "");
+    const noWaMentah = teks(data, "noWa");
+    const noWa = noWaMentah === "" ? null : noWaMentah;
+    const anakKeRaw = data.anakKe;
+    const anakKe =
+        anakKeRaw === null || anakKeRaw === "" || anakKeRaw === undefined
+            ? null
+            : Number(anakKeRaw);
+    const bbRaw = data.bbLahirKg;
+    const bbLahirKg =
+        bbRaw === null || bbRaw === "" || bbRaw === undefined
+            ? null
+            : Number(String(bbRaw).replace(",", "."));
+    const bukuKia = data.bukuKia;
+    if (data.desil !== undefined && data.desil !== null && (typeof data.desil !== 'number' || !Number.isInteger(data.desil) || data.desil < 1 || data.desil > 10))
+        throw new GalatAnak(400, 'Kelompok Desil harus bilangan 1 sampai 10.');
+    if (data.desil !== undefined && (typeof data.periodeId !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(data.periodeId)))
+        throw new GalatAnak(400, 'Pilih periode berlaku untuk Kelompok Desil.');
+    if (data.kbIbu !== undefined && data.kbIbu !== null && typeof data.kbIbu !== 'boolean')
+        throw new GalatAnak(400, 'Data KB Ibu harus Iya atau Tidak.');
+    if (data.kbIbu != null && namaOrtu === '')
+        throw new GalatAnak(400, 'Isi nama ibu untuk menyimpan Data KB Ibu.');
+    const tanggal = new Date(`${tglLahir}T00:00:00Z`);
+    if (
+        nama === "" ||
+        nama.length > 160 ||
+        (nikMentah !== "" && !/^\d{16}$/.test(nikMentah)) ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(tglLahir) ||
+        Number.isNaN(tanggal.getTime()) ||
+        tanggal.toISOString().slice(0, 10) !== tglLahir ||
+        !["L", "P"].includes(jk) ||
+        !/^\d{1,3}$/.test(rt) ||
+        (anakKe !== null &&
+            (!Number.isInteger(anakKe) || anakKe < 1 || anakKe > 30)) ||
+        (bbLahirKg !== null &&
+            (!Number.isFinite(bbLahirKg) ||
+                bbLahirKg < 0.5 ||
+                bbLahirKg > 6)) ||
+        typeof bukuKia !== "boolean" ||
+        (noWa !== null && noWa.length > 32)
+    ) {
+        throw new GalatAnak(
+            400,
+            "Periksa kembali nama, NIK 16 digit, tanggal lahir, RT, dan data profil lainnya.",
+        );
+    }
+
+    try {
+        const hasil = await dalamTransaksi(
+            pool,
+            { pengguna: pengguna.id, sumber: "web" },
+            (db) =>
+                anakRepo.ubahProfilAnak(db, pengguna, anakId, {
+                    nama,
+                    nik: nikMentah || null,
+                    namaOrtu,
+                    noWa,
+                    rt,
+                    jk: jk as "L" | "P",
+                    tglLahir,
+                    anakKe,
+                    bbLahirKg,
+                    bukuKia,
+                    kbIbu: data.kbIbu as boolean | null | undefined,
+                    desil: data.desil as number | null | undefined,
+                    periodeId: data.periodeId as string | undefined,
+                }),
+        );
+        if (hasil === "tidak_ada")
+            throw new GalatAnak(404, "Anak tidak ditemukan.");
+        if (hasil === "rt_tidak_ada")
+            throw new GalatAnak(
+                400,
+                "RT tujuan tidak tersedia di Posyandu ini.",
+            );
+        if (hasil === "nik_dipakai")
+            throw new GalatAnak(
+                409,
+                "NIK tersebut sudah digunakan profil anak lain.",
+            );
+        return { anakId, status: "tersimpan" as const };
+    } catch (galat) {
+        if (galat instanceof GalatAnak) throw galat;
+        if (
+            typeof galat === "object" &&
+            galat !== null &&
+            "code" in galat &&
+            galat.code === "23505"
+        )
+            throw new GalatAnak(
+                409,
+                "NIK tersebut sudah digunakan profil anak lain.",
+            );
+        throw galat;
     }
 }
 
@@ -51,16 +163,19 @@ export async function daftar(
     const halaman = angkaPositif(query.halaman, 1, 100_000);
     const ukuran = angkaPositif(query.ukuran, 25, 100);
     const cari = (query.cari ?? "").trim();
+    if (query.periode !== undefined && !/^\d{4}-(0[1-9]|1[0-2])$/.test(query.periode))
+        throw new GalatAnak(400, 'Periode harus berformat YYYY-MM.');
     const hasil = await anakRepo.daftar(pool, pengguna, cari, {
         halaman,
         ukuran,
-    });
+    }, query.periode);
 
     return { ...hasil, halaman, ukuran };
 }
 
-export async function ambil(pool: Pool, pengguna: PenggunaAktif, id: number) {
-    const anak = await anakRepo.ambil(pool, pengguna, id);
+export async function ambil(pool: Pool, pengguna: PenggunaAktif, id: number, periode?: string) {
+    if (periode !== undefined && !/^\d{4}-(0[1-9]|1[0-2])$/.test(periode)) throw new GalatAnak(400, 'Periode harus berformat YYYY-MM.');
+    const anak = await anakRepo.ambil(pool, pengguna, id, periode);
     if (anak === null) {
         throw new GalatAnak(404, "Anak tidak ditemukan.");
     }
@@ -141,7 +256,7 @@ export async function simpanAnak(
         pool,
         { pengguna: pengguna.id, sumber: "tablet" },
         (db) =>
-            anakRepo.upsertAnak(db, {
+            anakRepo.upsertAnak(db, pengguna, {
                 nik,
                 nama,
                 tglLahir,
@@ -205,11 +320,12 @@ export async function simpanPengukuran(
         );
     }
 
-    const id = await dalamTransaksi(
+    const tabel = await muatTabelStandar(pool);
+    const hasil = await dalamTransaksi(
         pool,
         { pengguna: pengguna.id, sumber: "tablet" },
-        (db) =>
-            anakRepo.upsertPengukuran(db, pengguna, {
+        async (db) => {
+            const hasil = await anakRepo.upsertPengukuran(db, pengguna, {
                 idPengukuran,
                 anakId,
                 nik,
@@ -221,20 +337,38 @@ export async function simpanPengukuran(
                 likaCm,
                 ntob: teks(data, "ntob") || null,
                 statusKehadiran: status,
-            }),
-    );
-    if (id === null)
+            });
+            if (hasil?.berubah) await hitungDanSimpanDalamTransaksi(db, hasil.id, tabel);
+            return hasil;
+        },
+    ).catch((galat: unknown) => {
+        if (galat instanceof RangeError || (galat as { constraint?: string })?.constraint === 'pengukuran_id_sumber_key') {
+            throw new GalatAnak(400, 'ID pengukuran sudah digunakan untuk anak atau periode lain.');
+        }
+        throw galat;
+    });
+    if (hasil === null)
         throw new GalatAnak(
             404,
             "Anak tidak ditemukan atau berada di luar RT binaan.",
         );
-    await hitungDanSimpan(pool, id, undefined, {
-        pengguna: pengguna.id,
-        sumber: "tablet",
-    });
-    return { id, idPengukuran };
+    return { id: hasil.id, idPengukuran, susulan: hasil.susulan };
 }
 
+const pembacaanSinkronisasi = new WeakMap<Pool, Map<string, ReturnType<typeof anakRepo.paketSinkronisasi>>>();
+
 export function sinkronisasi(pool: Pool, pengguna: PenggunaAktif) {
-    return anakRepo.paketSinkronisasi(pool, pengguna);
+    let berlangsung = pembacaanSinkronisasi.get(pool);
+    if (berlangsung === undefined) {
+        berlangsung = new Map();
+        pembacaanSinkronisasi.set(pool, berlangsung);
+    }
+    const cakupan = JSON.stringify([pengguna.superAdmin ?? false, [...(pengguna.posyanduIds ?? [])].sort((a, b) => a - b)]);
+    const ada = berlangsung.get(cakupan);
+    if (ada) return ada;
+    // Hanya gabungkan pembacaan yang masih berjalan; hasil tidak disimpan setelah selesai.
+    const hasil = anakRepo.paketSinkronisasi(pool, pengguna);
+    berlangsung.set(cakupan, hasil);
+    void hasil.then(() => berlangsung.delete(cakupan), () => berlangsung.delete(cakupan));
+    return hasil;
 }

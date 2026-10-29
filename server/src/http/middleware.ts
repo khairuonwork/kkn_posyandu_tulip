@@ -71,7 +71,7 @@ export const wajibMasuk: RequestHandler = (req, res, next) => {
  * UI juga menyembunyikan tombol yang tidak boleh dipakai, tetapi itu
  * kenyamanan — bukan pengamanan. Yang mengikat adalah baris ini.
  */
-export function wajibBoleh(aksi: Aksi): RequestHandler {
+export function wajibBoleh(aksi: Aksi | readonly Aksi[]): RequestHandler {
     return (req, res, next) => {
         if (req.pengguna === undefined) {
             res.status(401).json({ galat: 'Belum masuk' });
@@ -79,7 +79,10 @@ export function wajibBoleh(aksi: Aksi): RequestHandler {
             return;
         }
 
-        if (!boleh(req.pengguna.peran, aksi)) {
+        const daftarAksi = Array.isArray(aksi) ? aksi : [aksi];
+        const diizinkan = daftarAksi.some(a => boleh(req.pengguna!.peran, a));
+
+        if (!diizinkan) {
             res.status(403).json({ galat: 'Tidak berhak' });
 
             return;

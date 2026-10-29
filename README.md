@@ -1,5 +1,7 @@
 # SIMPATIK Posyandu
 
+Pembaruan 21 Oktober 2026: daftar perangkat memakai heartbeat bertoken yang tersimpan di PostgreSQL. Perangkat offline tetap tercatat; akun operasional melihat Posyandunya sendiri dan super admin melihat semua Posyandu. Panduan dan hasil uji ada di [status perangkat per Posyandu](docs/status-perangkat-posyandu.md). Migrasi baru: `022_status_perangkat_posyandu.sql`.
+
 | | |
 |---|---|
 | **Jenis** | Panduan — pengembangan lokal |
@@ -46,7 +48,7 @@ Proyek produksi memakai PostgreSQL Supabase. Pada Windows, buat `server/.env`
 tanpa menampilkan kata sandi di terminal:
 
 ```powershell
-.\server\setup-supabase-env.ps1
+node scripts\buat-env-supabase.cjs
 ```
 
 Masukkan **Database Password** proyek ketika diminta, lalu jalankan dari folder
@@ -104,27 +106,35 @@ npm run dev
 
 Buka http://localhost:5173 dan masuk, misalnya sebagai `admin`.
 
-### QA sementara melalui satu Wi-Fi/AP
+### Jalankan website dan tablet lokal
 
 Untuk uji website dan tablet sebelum hosting tersedia, jalankan dari akar repo:
 
 ```powershell
-.\mulai-qa-lan.ps1
+.\mulai-server.bat
 ```
 
-Skrip mendeteksi IPv4 PC, membuka React pada semua antarmuka jaringan, membuka
-REST API pada semua antarmuka jaringan, lalu memeriksa jalur API sampai ke
-PostgreSQL. Alamat yang dicetak skrip dimasukkan pada layar masuk Android,
-misalnya `http://192.168.1.20:4321/api/v1`, lalu tekan **Uji koneksi API**.
+Atau klik dua kali [`mulai-server.bat`](mulai-server.bat) di Windows. File ini
+memeriksa Node.js, konfigurasi `.env`, dan dependensi terlebih dahulu, lalu
+menampilkan URL yang dapat dibuka dari tablet di jaringan yang sama.
+
+Skrip mendeteksi IPv4 PC, membuka React dan REST API pada jaringan lokal, lalu
+memeriksa jalur API sampai PostgreSQL. Gunakan alamat yang dicetak untuk membuka
+website dari perangkat lain pada Wi-Fi yang sama.
+
+Panduan menyiapkan PC baru dari clone, termasuk dependensi, konfigurasi database,
+firewall, dan cara menjalankan/berhenti ada di
+[`docs/menjalankan-server-lan.md`](docs/menjalankan-server-lan.md).
+Untuk penyerahan pengelolaan API/host ke tim server, gunakan
+[`docs/panduan-serah-terima-server.md`](docs/panduan-serah-terima-server.md).
 
 ```powershell
-.\hentikan-qa-lan.ps1
+.\hentikan-server.bat
 ```
 
-Gunakan router/hotspot privat bila AP kantor/kampus menerapkan *client
-isolation*. Berada pada SSID yang sama tidak selalu berarti dua perangkat boleh
-saling menghubungi. APK debug mengizinkan HTTP lokal khusus QA; build rilis
-tetap disiapkan untuk HTTPS.
+Untuk QA lokal, Android dapat menemukan server melalui jaringan Wi-Fi/hotspot
+yang sama setelah layanan lokal dijalankan. Hosting publik dan tunnel bukan
+bagian dari launcher lokal ini.
 
 Setelah `git pull`, jalankan `npm ci` di folder yang dependensinya berubah, lalu `npm run migrate` dari `server/`.
 
@@ -151,9 +161,16 @@ anaknya.
 `sasaran` adalah daftar kerja per periode. Admin mengunggah `.xlsx` Puskesmas di
 **Sasaran & Impor**, memeriksa pratinjau per sheet, lalu menerbitkannya. Impor
 ulang hanya mengganti keanggotaan sasaran pada periode terpilih. Aplikasi Android
-membaca daftar ini melalui `/api/v1/sinkronisasi`; hasil ukur mengubah status
-menjadi `selesai`, sedangkan **Konfirmasi beres sesi** mengubah sasaran tersisa
-menjadi `tidak_hadir`.
+membaca daftar ini melalui `/api/v1/sinkronisasi`. Layanan memiliki tiga tahap:
+antrean/pemanggilan, pengukuran, lalu penjelasan KMS. Setelah hasil ukur disimpan,
+slot tetap aktif dengan status `kms_review` dan sasaran belum ditandai selesai.
+Petugas KMS di website mengonfirmasi setelah penjelasan; barulah antrean dan
+sasaran menjadi `done`/`selesai`. **Konfirmasi beres sesi** admin tetap menandai
+sasaran yang belum hadir sebagai `tidak_hadir`.
+
+Antrean lintas perangkat dan tahap KMS memerlukan migrasi database `012`–`015`.
+Lihat [panduan menjalankan server LAN](docs/menjalankan-server-lan.md) sebelum
+menerapkan migrasi ke database yang dipakai.
 
 Endpoint terkait:
 
@@ -207,3 +224,13 @@ Tes server yang butuh database memakai `DATABASE_URL` dari `server/.env`, jadi d
 | `bash: :SANDI: command not found` | Perintah PowerShell dijalankan di Bash; pakai versi Bash |
 | Porta 4321 sudah dipakai | Isi `PORT=4322` di `server/.env`, lalu jalankan antarmuka dengan variabel lingkungan `API=http://127.0.0.1:4322` |
 | Lupa kata sandi | Minta admin menggantinya di Pengaturan, atau pakai `pengguna:sandi` seperti di atas |
+
+## Deployment VM (23 Oktober 2026)
+
+Web dan REST API disiapkan untuk VM Ubuntu melalui systemd, dengan akses publik HTTPS Cloudflare dan database Supabase yang sama. Lihat [lokasi konfigurasi, operasi, dan batas URL sementara](docs/deployment-vm-2026-10-23.md). Rahasia dan hasil cetak kartu anak tidak ikut Git.
+
+### Revisi ekspor laporan Bu Sri (23 Oktober 2026)
+
+Unduhan Excel memakai N/T/B, warna status konsisten, peringatan internal −1,96 SD, deskripsi LILA usia ≥6 bulan dan umur historis berdasarkan tanggal yang tersedia. [Aturan dan hasil pemeriksaan](docs/format-ekspor-laporan.md#revisi-komentar-bu-sri--23-oktober-2026). Pembaruan ini cukup memperbarui backend VM; APK dan frontend tidak perlu di-build ulang.
+
+Pembaruan sinkronisasi Android 1.12.6: paket REST `/sinkronisasi` mengirim `anak` khusus sasaran periode aktif dan `masterAnak` untuk semua anak Posyandu, termasuk pendaftaran baru. Ringkasan sasaran tetap menghitung sasaran terdaftar. Diuji dengan skema database terisolasi.
