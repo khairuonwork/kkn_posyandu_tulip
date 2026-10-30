@@ -225,6 +225,7 @@ export default function RiwayatPenimbangan({
                                     : 'panjang menurut umur'}
                                 )
                             </TableHead>
+                            <TableHead scope="col">BB/U (berat menurut umur)</TableHead>
                             <TableHead scope="col">Berat naik?</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -268,6 +269,9 @@ export default function RiwayatPenimbangan({
                                     </TableCell>
                                     <TableCell>
                                         <SelZ nilai={p.penilaian.TB_U} />
+                                    </TableCell>
+                                    <TableCell>
+                                        <SelZ nilai={p.penilaian.BB_U} />
                                     </TableCell>
                                     <TableCell className="whitespace-nowrap">
                                         {hadir ? (

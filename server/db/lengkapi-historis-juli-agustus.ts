@@ -13,8 +13,10 @@ import { hitungZ } from '../src/antropometri/z-score.ts';
 import { muatTabelStandar } from '../src/repositories/standar-lms-repository.ts';
 import { ambilMasukan, simpanPenilaian } from '../src/repositories/penilaian-gizi-repository.ts';
 
-const file = 'E:/TUGAS KULIAH/KKN/3_DATA SASARAN POSYANDU TULIP-2026.xlsx';
-const mode = process.argv[2] ?? '--pratinjau';
+const fileArg = process.argv.indexOf('--file');
+const file = fileArg >= 0 ? process.argv[fileArg + 1] : process.env.HISTORIS_FILE;
+assert(file && !file.startsWith('--'), 'Sertakan --file PATH_EXCEL atau set HISTORIS_FILE; sumber wajib eksplisit.');
+const mode = process.argv.slice(2).find(arg => ['--pratinjau', '--uji', '--simpan'].includes(arg)) ?? '--pratinjau';
 assert(['--pratinjau', '--uji', '--simpan'].includes(mode), 'Mode tidak dikenal');
 const sasaran = [
     { id: 353, nama: 'ARZANDYA DEVA DATTA', juli: 12, agustus: 12 },

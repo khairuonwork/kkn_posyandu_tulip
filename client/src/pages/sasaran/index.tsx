@@ -197,7 +197,7 @@ export default function SasaranImpor() {
                 ? `Ganti ${lama} sasaran ${formatPeriode(sheetAktif.periode)} dengan maksimal ${jumlahDiterbitkan} baris dari ${file.name}?${catatanDuplikat} Master anak dan riwayat pengukuran tidak akan dihapus.`
                 : `Terbitkan maksimal ${jumlahDiterbitkan} sasaran ${formatPeriode(sheetAktif.periode)} ke perangkat Android?${catatanDuplikat}`;
 
-        if (!window.confirm(pesan)) {
+        if (!window.confirm(`${pesan} Hasil ukur valid pada periode sheet ikut disimpan; hasil ukur yang sudah ada dilewati.`)) {
             return;
         }
 
@@ -639,6 +639,11 @@ return;
                                 {hasil.anakBaru} anak baru ·{' '}
                                 {hasil.anakDiperbarui} diperbarui ·{' '}
                                 {hasil.perluVerifikasi} perlu verifikasi
+                                {hasil.pengukuran && (
+                                    <span className="mt-2 block">
+                                        Hasil ukur: {hasil.pengukuran.tersimpan} disimpan · {hasil.pengukuran.sudahAda} sudah ada · {hasil.pengukuran.ditahan.length} ditahan
+                                    </span>
+                                )}
                             </p>
                         </div>
                     )}

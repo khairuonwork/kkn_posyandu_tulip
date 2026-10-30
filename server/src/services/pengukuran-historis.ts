@@ -22,7 +22,8 @@ export function cocokkanHistoris(baris: BarisSasaranExcel[], anak: IdentitasHist
         }
         const nikCocok = sumber.nik ? anak.filter(a => a.nik === sumber.nik) : [];
         const kandidat = nikCocok.length ? nikCocok : anak.filter(a => baku(a.nama) === baku(sumber.nama) && rt(a.rt) === rt(sumber.rt));
-        const cocok = kandidat.filter(a => a.tglLahir === sumber.tglLahir && a.jk === sumber.jk && rt(a.rt) === rt(sumber.rt));
+        const cocok = kandidat.filter(a => baku(a.nama) === baku(sumber.nama) && a.tglLahir === sumber.tglLahir && a.jk === sumber.jk && rt(a.rt) === rt(sumber.rt)
+            && ukur.tanggalUkur >= a.tglLahir);
         if (sumber.identitasDuplikat || kandidat.length !== 1 || cocok.length !== 1 || terpakai.has(cocok[0]?.id)) {
             ditahan.push({ baris: sumber.barisAsal, alasan: 'Identitas belum cocok unik (NIK/nama, tanggal lahir, jenis kelamin, RT) atau duplikat.' }); continue;
         }

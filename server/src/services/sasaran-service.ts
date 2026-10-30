@@ -4,6 +4,8 @@ import type { PenggunaAktif } from "../auth/peran.ts";
 import { dalamTransaksi } from "../db/transaksi.ts";
 import * as sasaranRepo from "../repositories/sasaran-repository.ts";
 import { bacaWorkbookSasaran, GalatExcelSasaran } from "./sasaran-excel.ts";
+import { identitasImpor, simpanUkurSasaran } from './impor-ukur-sasaran.ts';
+import { muatTabelStandar } from '../repositories/standar-lms-repository.ts';
 
 export class GalatSasaran extends Error {
     readonly status: 400 | 404 | 409;
@@ -175,11 +177,18 @@ export async function impor(
             "Sheet sasaran yang dipilih tidak ditemukan.",
         );
 
-    return dalamTransaksi(
-        pool,
-        { pengguna: pengguna.id, sumber: "impor-excel" },
-        (db) => sasaranRepo.gantiSasaran(db, pengguna, namaFile, sheet),
-    );
+    const adaHasilUkur = sheet.baris.some(b => b.pengukuran?.bbKg != null);
+    const tabel = adaHasilUkur ? await muatTabelStandar(pool) : null;
+    return dalamTransaksi(pool, { pengguna: pengguna.id, sumber: 'impor-excel' }, async db => {
+        if (tabel === null) return sasaranRepo.gantiSasaran(db, pengguna, namaFile, sheet);
+        const posyanduId = await sasaranRepo.posyanduUtama(db, pengguna);
+        const sebelum = await identitasImpor(db, posyanduId);
+        const hasil = await sasaranRepo.gantiSasaran(db, pengguna, namaFile, sheet);
+        const idsLama = new Set(sebelum.map(a => a.id));
+        const baru = (await identitasImpor(db, posyanduId)).filter(a => !idsLama.has(a.id));
+        const pengukuran = await simpanUkurSasaran(db, sheet, hasil.periodeId, [...sebelum, ...baru], tabel, namaFile);
+        return { ...hasil, pengukuran };
+    });
 }
 
 export function daftar(pool: Pool, pengguna: PenggunaAktif, periode?: string) {

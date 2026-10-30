@@ -265,7 +265,7 @@ export async function ubahSasaran(
     return ada.rows[0].ditutup ? "periode_ditutup" : "tidak_ada";
 }
 
-async function posyanduUtama(db: PoolClient, pengguna: PenggunaAktif): Promise<number> {
+export async function posyanduUtama(db: PoolClient, pengguna: PenggunaAktif): Promise<number> {
     const terpilih = pengguna.posyanduIds?.[0];
     if (!pengguna.superAdmin && terpilih !== undefined) return terpilih;
     const { rows } = await db.query<{ id: number }>(
