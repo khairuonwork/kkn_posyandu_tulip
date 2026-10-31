@@ -96,9 +96,9 @@ export function buatApp(
 
     // Jejak tulis ringkas (tanpa isi body) agar kiriman APK yang gagal terlihat di log.
     app.use("/api", (req, res, next) => {
-        if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return next();
         res.once("finish", () => {
             if (/\/masuk/.test(req.path)) return;
+            if (["GET", "HEAD", "OPTIONS"].includes(req.method) && res.statusCode < 400) return;
             console.log(
                 `[Tulis] ${req.method} ${req.originalUrl.split("?")[0]} -> ${res.statusCode} mode=${res.getHeader("X-Simpatik-Mode") ?? "-"}`,
             );
