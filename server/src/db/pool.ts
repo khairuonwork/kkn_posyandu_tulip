@@ -31,7 +31,7 @@ export function dapatkanPool(): pg.Pool {
         throw new Error('DATABASE_URL belum diatur. Salin .env.example menjadi .env.');
     }
 
-    const maksimum = Number(process.env.DB_POOL_MAX ?? 3);
+    const maksimum = Number(process.env.DB_POOL_MAX ?? 10);
     if (!Number.isSafeInteger(maksimum) || maksimum < 1 || maksimum > 50) {
         throw new Error('DB_POOL_MAX harus berupa bilangan bulat antara 1 dan 50.');
     }

@@ -11,8 +11,21 @@ import {
 import { ringkasanToken } from "../auth/sesi.ts";
 import { tokenPermintaan } from "./middleware.ts";
 
-type Konteks = { client: PoolClient; id: string | null; closed?: boolean };
+type Konteks = {
+    client: PoolClient;
+    id: string | null;
+    closed?: boolean;
+    antrean?: Promise<unknown>;
+};
 export const konteksPelatihan = new AsyncLocalStorage<Konteks>();
+
+function jalankanBerurutan<T>(ctx: Konteks, fn: () => Promise<T>): Promise<T> {
+    const sebelumnya = ctx.antrean ?? Promise.resolve();
+    const berikutnya = sebelumnya.catch(() => {}).then(fn);
+    ctx.antrean = berikutnya;
+    return berikutnya;
+}
+
 export function pastikanQueryTerisolasi(query: unknown): void {
     const text =
         typeof query === "string"
@@ -38,7 +51,11 @@ export function poolOperasional(pool: Pool): Pool {
                             "Permintaan sudah selesai; akses database ditolak.",
                         );
                     if (ctx.id) pastikanQueryTerisolasi(args[0]);
-                    return Reflect.apply(ctx.client.query, ctx.client, args);
+                    return jalankanBerurutan(ctx, () =>
+                        Promise.resolve(
+                            Reflect.apply(ctx.client.query, ctx.client, args),
+                        ),
+                    );
                 };
             if (ctx && prop === "connect")
                 return async () => {
@@ -57,7 +74,11 @@ export function poolOperasional(pool: Pool): Pool {
                                         );
                                     if (ctx.id)
                                         pastikanQueryTerisolasi(args[0]);
-                                    return Reflect.apply(c.query, c, args);
+                                    return jalankanBerurutan(ctx, () =>
+                                        Promise.resolve(
+                                            Reflect.apply(c.query, c, args),
+                                        ),
+                                    );
                                 };
                             const v = Reflect.get(c, k);
                             return typeof v === "function" ? v.bind(c) : v;
@@ -76,6 +97,21 @@ export function lingkupPelatihan(pool: Pool): RequestHandler {
             next();
             return;
         }
+        if (!req.pengguna && !/\/lembar/.test(req.path)) {
+            if (
+                !["GET", "HEAD", "OPTIONS"].includes(req.method) &&
+                (mengandungIdentitasLatihan(req.body) ||
+                    mengandungIdentitasLatihan(req.path))
+            ) {
+                res.status(409).json({
+                    galat: "Kiriman latihan ditolak pada mode riil. Hapus data latihan lokal dan sinkronkan ulang.",
+                });
+                return;
+            }
+            next();
+            return;
+        }
+        let sudahTutup = false;
         const db = await pool.connect().catch((error) => {
             next(error);
             return null;
@@ -90,23 +126,42 @@ export function lingkupPelatihan(pool: Pool): RequestHandler {
             if (!res.headersSent) res.status(503).json({galat:'Koneksi database terputus. Silakan coba lagi.'});
             void bersihkan();
         };
+        const batasWaktu = setTimeout(() => {
+            rusak = true;
+            lease.closed = true;
+            void bersihkan();
+        }, 25_000);
+        batasWaktu.unref?.();
         const bersihkan = async () => {
             if (done) return;
             done = true;
             lease.closed = true;
+            clearTimeout(batasWaktu);
+            req.removeListener("close", saatTutup);
+            res.removeListener("close", saatTutup);
+            res.removeListener("finish", saatTutup);
             db.removeListener('error',koneksiPutus);
             if (rusak) { db.release(true); return; }
-            try {
-                await db.query("ROLLBACK");
-                await db.query("RESET search_path");
-                await db.query("SELECT pg_advisory_unlock_shared($1)", [
-                    KUNCI_PELATIHAN,
-                ]);
-                db.release();
-            } catch {
-                db.release(true);
-            }
+            await jalankanBerurutan(lease, async () => {
+                try {
+                    await db.query("ROLLBACK");
+                    await db.query("RESET search_path");
+                    await db.query("SELECT pg_advisory_unlock_shared($1)", [
+                        KUNCI_PELATIHAN,
+                    ]);
+                    db.release();
+                } catch {
+                    db.release(true);
+                }
+            });
         };
+        const saatTutup = () => {
+            sudahTutup = true;
+            void bersihkan();
+        };
+        req.once("close", saatTutup);
+        res.once("close", saatTutup);
+        res.once("finish", saatTutup);
         db.on('error',koneksiPutus);
         try {
             await db.query("SELECT pg_advisory_lock_shared($1)", [
@@ -162,18 +217,22 @@ export function lingkupPelatihan(pool: Pool): RequestHandler {
                     return;
                 }
             }
-            if (aktif)
-                await db.query(
-                    `SET search_path TO ${skemaAman(aktif.skema)}, pg_catalog`,
-                );
             res.set("X-Simpatik-Mode", aktif ? "pelatihan" : "riil");
-            res.once("finish", () => {
-                void bersihkan();
-            });
-            res.once("close", () => {
-                void bersihkan();
-            });
-            lease.id = aktif?.id ?? null;
+            if (!aktif) {
+                await bersihkan();
+                if (!sudahTutup && !req.destroyed && !res.destroyed && !res.writableEnded) {
+                    next();
+                }
+                return;
+            }
+            await db.query(
+                `SET search_path TO ${skemaAman(aktif.skema)}, pg_catalog`,
+            );
+            if (sudahTutup || req.destroyed || res.destroyed || res.writableEnded) {
+                await bersihkan();
+                return;
+            }
+            lease.id = aktif.id;
             konteksPelatihan.run(lease, next);
         } catch (error) {
             await bersihkan();
