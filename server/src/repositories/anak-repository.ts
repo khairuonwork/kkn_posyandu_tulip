@@ -742,7 +742,10 @@ export async function paketSinkronisasi(pool: Pool, pengguna: PenggunaAktif) {
                 o.id_keluarga AS id_keluarga, a.nik,
                 s.id AS id_sasaran, s.status AS status_sasaran,
                 s.catatan AS catatan_sasaran,
-                'SPT-' || lpad(a.id::text, 8, '0') AS kode_kartu,
+                coalesce(
+                    to_jsonb(a)->>'kode_kartu',
+                    'SPT-' || lpad(a.id::text, GREATEST(8, length(a.id::text)), '0')
+                ) AS kode_kartu,
                 a.nama AS nama_anak, to_char(a.tgl_lahir, 'YYYY-MM-DD') AS tgl_lahir,
                 a.jk, o.nama AS nama_ortu, o.nik AS nik_ortu, w.rt,
                 a.anak_ke, a.bb_lahir_kg::text AS bb_lahir,

@@ -81,6 +81,9 @@ export async function buatPelatihan(
             )
             .join(";"),
     );
+    await db.query(
+        `ALTER TABLE ${s}."anak" ADD COLUMN IF NOT EXISTS kode_kartu text`,
+    );
     // LIKE tidak menyalin foreign key. Definisi referensi dibuat ulang ke schema latihan.
     const fks = (
         await db.query<{
@@ -191,6 +194,7 @@ export async function buatPelatihan(
             id: base + i + 1,
             id_publik: randomUUID(),
             nik: `0099${String(meta.nomor).padStart(6, "0")}${String(i + 1).padStart(6, "0")}`,
+            kode_kartu: `SIMPATIK:SASARAN:1:${r.id}:${String(r.nik ?? "").replace(/\D/g, "")}`,
             nama: `ANAK LATIHAN ${String(i + 1).padStart(3, "0")}`,
             nama_baku: `anak latihan ${String(i + 1).padStart(3, "0")}`,
             orang_tua_id: parentMap.get(r.orang_tua_id) ?? null,

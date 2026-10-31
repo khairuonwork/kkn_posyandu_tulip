@@ -10,8 +10,9 @@ dengan 92 sasaran, lalu memulai sesi.
 2. Superadmin mulai sesi. Mode berlaku untuk seluruh web dan APK pada server
    ini; operasional riil tidak berlangsung bersamaan pada server yang sama.
 3. Peserta login ulang dan sinkronisasi. Target disalin sebagai ANAK LATIHAN,
-   dengan NIK, ID internal/UUID, keluarga, dan QR berbeda. Cetak kartu latihan
-   untuk simulasi scan; kartu operasional lama tidak dipakai dalam sandbox.
+   dengan NIK, ID internal/UUID, dan keluarga berbeda. Kartu QR operasional lama
+   tetap dapat dipindai langsung di APK dan otomatis memetakan ke ANAK LATIHAN
+   di sandbox tanpa menyentuh data riil.
 4. Latih antrean, pencatatan hasil ukur, KMS, profil, dan laporan menggunakan
    menu biasa. APK yang sudah memakai REST API ini tidak perlu rebuild.
 5. Sinkronkan tablet, lalu superadmin memilih **Akhiri dan hapus data latihan**.

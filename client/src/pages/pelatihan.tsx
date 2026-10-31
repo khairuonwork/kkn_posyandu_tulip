@@ -239,9 +239,10 @@ export default function Pelatihan() {
                             </li>
                             <li>
                                 Setelah sesi dimulai, peserta masuk kembali dan
-                                sinkronkan Android. Pilih{' '}
-                                <strong>ANAK LATIHAN</strong> dan gunakan kartu
-                                QR latihan.
+                                sinkronkan Android. Kartu QR lama dapat langsung
+                                dipindai dan otomatis diarahkan ke{' '}
+                                <strong>ANAK LATIHAN</strong> di sandbox tanpa
+                                mengubah data asli.
                             </li>
                             <li>
                                 Untuk pendaftaran anak baru, gunakan NIK contoh{' '}

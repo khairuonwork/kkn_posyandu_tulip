@@ -72,11 +72,21 @@ try {
         foreign.every((r) => r.ref_schema === skema),
         "Tidak boleh ada FK ke tabel riil",
     );
+    const anakAsli = (
+        await db.query(
+            `SELECT a.id, a.nik FROM public.anak a JOIN public.sasaran s ON s.anak_id=a.id WHERE s.periode_id=$1 AND s.status<>'batal' AND a.deleted_at IS NULL ORDER BY a.id LIMIT 1`,
+            [pe.id],
+        )
+    ).rows[0];
     const anak = (
-        await db.query(`SELECT id,nik FROM ${s}.anak ORDER BY id LIMIT 1`)
+        await db.query(`SELECT id,nik,kode_kartu FROM ${s}.anak ORDER BY id LIMIT 1`)
     ).rows[0];
     assert(anak.id >= BATAS_ID_LATIHAN);
     assert(anak.nik.startsWith("0099"));
+    assert.equal(
+        anak.kode_kartu,
+        `SIMPATIK:SASARAN:1:${anakAsli.id}:${String(anakAsli.nik ?? "").replace(/\D/g, "")}`,
+    );
     await db.query(`SET search_path TO ${s},pg_catalog`);
     const user = {
         id: admin.id,
