@@ -49,7 +49,6 @@ export async function cariAktif(pool: Pool, ringkasan: string): Promise<Pengguna
          WHERE s.ringkasan = $1
            AND s.kedaluwarsa > now()
            AND p.aktif
-           ${fiturPelatihan() ? 'AND s.pelatihan_id IS NOT DISTINCT FROM (SELECT id FROM public.pelatihan_sesi WHERE selesai_pada IS NULL)' : ''}
            AND (p.super_admin OR EXISTS (
                SELECT 1 FROM pengguna_posyandu cakupan WHERE cakupan.pengguna_id=p.id
            ))
