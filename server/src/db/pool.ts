@@ -40,7 +40,18 @@ export function dapatkanPool(): pg.Pool {
         connectionString: url,
         max: maksimum,
         connectionTimeoutMillis: 10_000,
+        keepAlive: true,
+        keepAliveInitialDelayMillis: 10_000,
         application_name: 'simpatik',
+    });
+    // pg membuang klien idle yang rusak sebelum mengirim event ini. Tanpa
+    // listener, putus jaringan sementara menjadi uncaught error dan mematikan
+    // seluruh API. Permintaan berikutnya boleh membuka koneksi pengganti.
+    pool.on('error', (error: Error & { code?: string }) => {
+        // Jangan mencetak objek driver: dapat memuat konfigurasi dan kredensial.
+        console.warn('[Database] Koneksi idle terputus; akan disambungkan kembali.', {
+            kode: error.code ?? 'UNKNOWN',
+        });
     });
 
     return pool;

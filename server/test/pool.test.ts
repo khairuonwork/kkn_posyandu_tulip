@@ -33,6 +33,21 @@ test('pool mengantre saat penuh, memakai ulang koneksi, dan melepas semuanya saa
         assert.equal(connect.mock.callCount(), 3);
 
         for (const client of klien.splice(0)) client.release();
+        const log = mock.method(console, 'warn', () => {});
+        try {
+            const sebelum = pool.totalCount;
+            const galat = Object.assign(new Error('password-rahasia-jangan-dicetak'), { code: 'EHOSTUNREACH' });
+            dipakaiUlang.emit('error', galat);
+            assert.equal(pool.totalCount, sebelum - 1, 'klien idle rusak dikeluarkan dari pool');
+            assert.equal(log.mock.callCount(), 1);
+            assert.match(JSON.stringify(log.mock.calls[0].arguments), /EHOSTUNREACH/);
+            assert.doesNotMatch(JSON.stringify(log.mock.calls[0].arguments), /password-rahasia/);
+            const pengganti = await pool.connect();
+            assert.notEqual(pengganti, dipakaiUlang);
+            pengganti.release();
+        } finally {
+            log.mock.restore();
+        }
         await tutupPool();
         assert.equal(pool.totalCount, 0);
         assert.equal(end.mock.callCount(), 3);
