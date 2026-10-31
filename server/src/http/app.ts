@@ -94,6 +94,18 @@ export function buatApp(
         next();
     });
 
+    // Jejak tulis ringkas (tanpa isi body) agar kiriman APK yang gagal terlihat di log.
+    app.use("/api", (req, res, next) => {
+        if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return next();
+        res.once("finish", () => {
+            if (/\/masuk/.test(req.path)) return;
+            console.log(
+                `[Tulis] ${req.method} ${req.originalUrl.split("?")[0]} -> ${res.statusCode} mode=${res.getHeader("X-Simpatik-Mode") ?? "-"}`,
+            );
+        });
+        next();
+    });
+
     app.use('/api/v1',rutePelatihan(authPool));
     app.use("/api", ruteAuth(authPool));
 
