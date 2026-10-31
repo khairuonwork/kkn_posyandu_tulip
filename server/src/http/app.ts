@@ -102,6 +102,9 @@ export function buatApp(
             console.log(
                 `[Tulis] ${req.method} ${req.originalUrl.split("?")[0]} -> ${res.statusCode} mode=${res.getHeader("X-Simpatik-Mode") ?? "-"} ua=${String(req.headers["user-agent"] ?? "-").slice(0, 60)}`,
             );
+            if (res.statusCode >= 400) {
+                console.log(`[Galat Tulis ${res.statusCode}] ${req.method} ${req.originalUrl} user=${(req as any).pengguna?.id}:${(req as any).pengguna?.username} body=${JSON.stringify(req.body)}`);
+            }
         });
         next();
     });

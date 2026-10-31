@@ -34,6 +34,7 @@ function idDari(teks: string | string[] | undefined): number | null {
 
 function jawabGalat(galat: unknown, res: Response): void {
     if (galat instanceof GalatAnak) {
+        console.warn(`[AnakController Galat ${galat.status}]`, galat.message);
         res.status(galat.status).json({ galat: galat.message });
 
         return;

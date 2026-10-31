@@ -60,7 +60,11 @@ export function ruteAntrean(pool: Pool): Router {
         try {
             const item = await dalamTransaksi(pool, { pengguna: req.pengguna!.id, sumber: "tablet" }, db =>
                 antreanRepo.checkIn(db, req.pengguna!, periodeId, sasaranId, tanggal, catatan));
-            if (!item) { gagal(res, 404, "Sasaran tidak ditemukan, di luar RT, atau sesi sudah ditutup."); return; }
+            if (!item) {
+                console.warn(`[Antrean checkIn 404] periodeId=${periodeId} sasaranId=${sasaranId} tanggal=${tanggal} user=${req.pengguna?.id}`);
+                gagal(res, 404, "Sasaran tidak ditemukan, di luar RT, atau sesi sudah ditutup.");
+                return;
+            }
             res.status(201).json({ item });
         } catch (error) { next(error); }
     });
