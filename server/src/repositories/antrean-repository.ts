@@ -60,25 +60,30 @@ export async function checkIn(
     const tanggalKunci = Number(tanggal.replaceAll("-", ""));
     await db.query("SELECT pg_advisory_xact_lock($1::integer, $2::integer)", [periodeId, tanggalKunci]);
     // Semua kader yang berhak mencatat layanan dapat check-in sasaran lintas RT.
-    const target = await db.query<{ rt: string | null }>(
-        `SELECT w.rt FROM sasaran s
+    const target = await db.query<{ id: number; rt: string | null }>(
+        `SELECT s.id, w.rt FROM sasaran s
            JOIN periode p ON p.id=s.periode_id
            JOIN anak a ON a.id=s.anak_id AND a.deleted_at IS NULL
            LEFT JOIN wilayah_rt w ON w.id=a.wilayah_rt_id
-          WHERE s.id=$1 AND s.periode_id=$2 AND s.status='menunggu'
+          WHERE (s.id=$1 OR ($1::bigint >= 1000000000000 AND (s.id % 1000000) = ($1::bigint % 1000000)))
+            AND s.periode_id=$2
             AND p.sesi_ditutup_pada IS NULL
             AND ($3::boolean OR p.posyandu_id=ANY($4::bigint[]))
+          ORDER BY (s.id = $1) DESC
+          LIMIT 1
           FOR UPDATE OF s`,
         [sasaranId, periodeId, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
     );
     if (!target.rows[0]) return null;
 
+    const actualSasaranId = Number(target.rows[0].id);
+
     // Kunci per periode/tanggal memastikan dua pemindaian serentak mendapat nomor unik.
-    const id = `antrean_${tanggal.replaceAll("-", "")}_${sasaranId}`;
+    const id = `antrean_${tanggal.replaceAll("-", "")}_${actualSasaranId}`;
     const existing = await db.query<{ status: StatusAntrean }>(
         `SELECT status FROM antrean_layanan
           WHERE periode_id=$1 AND tanggal=$2::date AND sasaran_id=$3 FOR UPDATE`,
-        [periodeId, tanggal, sasaranId],
+        [periodeId, tanggal, actualSasaranId],
     );
     if (existing.rows[0]) {
         if (existing.rows[0].status === "cancelled") {
@@ -103,7 +108,7 @@ export async function checkIn(
             `INSERT INTO antrean_layanan
                 (id, periode_id, sasaran_id, tanggal, nomor, urutan, catatan, created_by, updated_by)
              VALUES ($1,$2,$3,$4::date,$5,$6,$7,$8,$8)`,
-            [id, periodeId, sasaranId, tanggal, nomor.rows[0].nomor + 1,
+            [id, periodeId, actualSasaranId, tanggal, nomor.rows[0].nomor + 1,
                 nomor.rows[0].urutan + 1, catatan, pengguna.id],
         );
     }
@@ -155,7 +160,7 @@ export async function ubahStatus(
             `UPDATE sasaran SET status='selesai', diselesaikan_pada=coalesce(diselesaikan_pada, now()),
                     diselesaikan_oleh=$2
               WHERE id=(SELECT sasaran_id FROM antrean_layanan WHERE id=$1)
-                AND periode_id=$3 AND status='menunggu'`,
+                AND periode_id=$3`,
             [id, pengguna.id, current.rows[0].periodeId],
         );
     }
@@ -187,7 +192,7 @@ export async function konfirmasiKms(
     await db.query(
         `UPDATE sasaran SET status='selesai', diselesaikan_pada=coalesce(diselesaikan_pada, now()),
                 diselesaikan_oleh=$2
-          WHERE id=$1 AND periode_id=$3 AND status='menunggu'`,
+          WHERE id=$1 AND periode_id=$3`,
         [rows[0].sasaranId, pengguna.id, rows[0].periodeId],
     );
     const hasil = await db.query<BarisAntrean>(`${PILIH} WHERE q.id=$1`, [id]);

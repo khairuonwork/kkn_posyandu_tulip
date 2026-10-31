@@ -553,7 +553,9 @@ export async function upsertPengukuran(
            FROM anak a
            JOIN wilayah_rt w ON w.id = a.wilayah_rt_id
           WHERE (($1::bigint IS NOT NULL AND a.id = $1)
-                 OR ($2::text IS NOT NULL AND a.nik = $2))
+                 OR ($2::text IS NOT NULL AND a.nik = $2)
+                 OR ($1::bigint >= 1000000000000 AND (a.id % 1000000) = ($1::bigint % 1000000))
+                 OR ($2::text ~ '^0099[0-9]{12}$' AND substring(a.nik from 11) = substring($2 from 11)))
             AND a.deleted_at IS NULL
             AND (
                 $3::text IS NULL
@@ -569,7 +571,7 @@ export async function upsertPengukuran(
                 )
             )
             AND ($5::boolean OR w.posyandu_id=ANY($6::bigint[]))
-          ORDER BY (a.id = $1) DESC
+          ORDER BY (a.id = $1) DESC, (a.nik = $2) DESC
           LIMIT 1`,
         [data.anakId, data.nik, rt, data.tanggalUkur, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
     );
@@ -705,6 +707,55 @@ export async function upsertPengukuran(
             susulan,
         ],
     );
+
+    // Otomatis sinkronkan status antrean agar anak langsung muncul di Web KMS
+    if (data.statusKehadiran === "hadir") {
+        const sasaranRow = await db.query<{ id: number }>(
+            `SELECT id FROM sasaran WHERE periode_id=$1 AND anak_id=$2 LIMIT 1`,
+            [periode.rows[0].id, anak.rows[0].id],
+        );
+        if (sasaranRow.rows[0]) {
+            const sid = Number(sasaranRow.rows[0].id);
+            const idAntrean = `antrean_${data.tanggalUkur.replaceAll("-", "")}_${sid}`;
+            const antreanAda = await db.query<{ id: string; status: string }>(
+                `SELECT id, status FROM antrean_layanan WHERE periode_id=$1 AND tanggal=$2::date AND sasaran_id=$3`,
+                [periode.rows[0].id, data.tanggalUkur, sid],
+            );
+            if (antreanAda.rows[0]) {
+                if (antreanAda.rows[0].status !== "done") {
+                    await db.query(
+                        `UPDATE antrean_layanan
+                            SET status='kms_review',
+                                called_at=coalesce(called_at, now()),
+                                updated_by=$2, updated_at=now()
+                          WHERE id=$1`,
+                        [antreanAda.rows[0].id, pengguna.id],
+                    );
+                }
+            } else {
+                const urut = await db.query<{ nomor: number; urutan: number }>(
+                    `SELECT coalesce(max(nomor),0)::int AS nomor, coalesce(max(urutan),0)::int AS urutan
+                       FROM antrean_layanan WHERE periode_id=$1 AND tanggal=$2::date`,
+                    [periode.rows[0].id, data.tanggalUkur],
+                );
+                await db.query(
+                    `INSERT INTO antrean_layanan
+                        (id, periode_id, sasaran_id, tanggal, nomor, urutan, status, called_at, created_by, updated_by)
+                     VALUES ($1,$2,$3,$4::date,$5,$6,'kms_review',now(),$7,$7)
+                     ON CONFLICT (id) DO UPDATE SET status='kms_review', updated_at=now()`,
+                    [
+                        idAntrean,
+                        periode.rows[0].id,
+                        sid,
+                        data.tanggalUkur,
+                        urut.rows[0].nomor + 1,
+                        urut.rows[0].urutan + 1,
+                        pengguna.id,
+                    ],
+                );
+            }
+        }
+    }
     return { id: pengukuranId, susulan, berubah: true };
 }
 
