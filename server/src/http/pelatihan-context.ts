@@ -168,22 +168,6 @@ export function lingkupPelatihan(pool: Pool): RequestHandler {
                 KUNCI_PELATIHAN,
             ]);
             const aktif = await sesiAktif(db);
-            const token = tokenPermintaan(req);
-            if (req.pengguna && token) {
-                const epoch = (
-                    await db.query<{ pelatihan_id: string | null }>(
-                        "SELECT pelatihan_id FROM public.sesi WHERE ringkasan=$1 AND kedaluwarsa>now()",
-                        [ringkasanToken(token)],
-                    )
-                ).rows[0];
-                if (!epoch || epoch.pelatihan_id !== (aktif?.id ?? null)) {
-                    res.status(401).json({
-                        galat: "Mode layanan berubah. Masuk kembali lalu sinkronkan tablet.",
-                    });
-                    await bersihkan();
-                    return;
-                }
-            }
             if (!["GET", "HEAD", "OPTIONS"].includes(req.method)) {
                 if (
                     !aktif &&

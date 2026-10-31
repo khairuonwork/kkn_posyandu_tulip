@@ -262,14 +262,10 @@ export async function hapusPelatihan(
     if (!aktif || aktif.id !== id)
         throw new Error("Sesi pelatihan ini sudah tidak aktif.");
     await db.query(`DROP SCHEMA ${skemaAman(aktif.skema)} CASCADE`);
-    // Semua token latihan dicabut kecuali pemulai yang dialihkan ke mode riil.
+    // Sesi dialihkan kembali ke mode riil tanpa memaksa pengguna keluar.
     await db.query(
-        "DELETE FROM public.sesi WHERE pelatihan_id=$1 AND ringkasan<>$2",
+        "UPDATE public.sesi SET pelatihan_id=NULL WHERE pelatihan_id=$1 OR ringkasan=$2",
         [id, tokenHash],
-    );
-    await db.query(
-        "UPDATE public.sesi SET pelatihan_id=NULL WHERE ringkasan=$1",
-        [tokenHash],
     );
     await db.query(
         "UPDATE public.pelatihan_sesi SET selesai_pada=now() WHERE id=$1",
