@@ -98,9 +98,9 @@ export function buatApp(
     app.use("/api", (req, res, next) => {
         res.once("finish", () => {
             if (/\/masuk/.test(req.path)) return;
-            if (req.method === "GET" && res.statusCode < 400 && !/antrean|sinkronisasi/.test(req.path)) return;
+            if (req.method === "GET" && res.statusCode < 400 && !/antrean|sinkronisasi|sasaran/.test(req.path)) return;
             console.log(
-                `[Tulis] ${req.method} ${req.originalUrl.split("?")[0]} -> ${res.statusCode} mode=${res.getHeader("X-Simpatik-Mode") ?? "-"}`,
+                `[Tulis] ${req.method} ${req.originalUrl.split("?")[0]} -> ${res.statusCode} mode=${res.getHeader("X-Simpatik-Mode") ?? "-"} ua=${String(req.headers["user-agent"] ?? "-").slice(0, 60)}`,
             );
         });
         next();
