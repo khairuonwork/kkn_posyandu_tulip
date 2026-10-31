@@ -12,6 +12,7 @@ import {
     BadgeCheck,
     CreditCard,
     FileText,
+    FlaskConical,
     House,
     LogOut,
     Menu as MenuIcon,
@@ -37,7 +38,8 @@ export type Rute =
     | { nama: 'sasaran' }
     | { nama: 'kartu-sasaran'; id?: number }
     | { nama: 'pengaturan' }
-    | { nama: 'kms' };
+    | { nama: 'kms' }
+    | { nama: 'pelatihan' };
 
 /** Router portal, seluruhnya, tanpa pustaka tambahan. */
 export function bacaRute(alamat: string): Rute {
@@ -75,6 +77,8 @@ export function bacaRute(alamat: string): Rute {
 
         case '/kms':
             return { nama: 'kms' };
+        case '/pelatihan':
+            return { nama: 'pelatihan' };
 
         default:
             return { nama: 'beranda' };
@@ -152,6 +156,7 @@ const NAV: ButirNav[] = [
 ];
 
 type CangkangProps = {
+    superAdmin?: boolean;
     cakupanPosyandu?: string;
     peran: Peran;
     periodeId: string;
@@ -171,6 +176,7 @@ type CangkangProps = {
 const LEBAR_SIDEBAR = '(min-width: 64rem)';
 
 export function Cangkang({
+    superAdmin = false,
     cakupanPosyandu,
     peran,
     periodeId,
@@ -198,30 +204,47 @@ export function Cangkang({
     const menu = (
         <nav aria-label="Menu utama" className="flex flex-col gap-0.5">
             {/* Butir yang tidak berhak dihapus dari DOM, bukan dinonaktifkan. */}
-            {NAV.filter((butir) => butir.peran.includes(peran)).map((butir) => {
-                const aktif = alamat.startsWith(butir.href);
-                const Ikon = butir.ikon;
+            {[
+                ...NAV,
+                ...(superAdmin
+                    ? [
+                          {
+                              href: '/pelatihan',
+                              label: 'Sesi Pelatihan',
+                              ikon: FlaskConical,
+                              peran: ['admin'] as Peran[],
+                          },
+                      ]
+                    : []),
+            ]
+                .filter((butir) => butir.peran.includes(peran))
+                .map((butir) => {
+                    const aktif = alamat.startsWith(butir.href);
+                    const Ikon = butir.ikon;
 
-                return (
-                    <Link
-                        key={butir.href}
-                        href={butir.href}
-                        aria-current={aktif ? 'page' : undefined}
-                        // Memilih menu berarti selesai dengan laci, termasuk
-                        // saat menu yang dipilih adalah layar yang sedang
-                        // terbuka. Di sidebar, `close()` tidak berbuat apa-apa.
-                        onClick={() => laci.current?.close()}
-                        className={`flex min-h-14 items-center gap-3.5 rounded-lg px-3.5 text-base pendek:pointer-fine:min-h-10 ${
-                            aktif
-                                ? 'bg-primary font-bold text-primary-foreground'
-                                : 'font-medium text-foreground'
-                        }`}
-                    >
-                        <Ikon className="size-5 shrink-0" strokeWidth={2.5} />
-                        {butir.label}
-                    </Link>
-                );
-            })}
+                    return (
+                        <Link
+                            key={butir.href}
+                            href={butir.href}
+                            aria-current={aktif ? 'page' : undefined}
+                            // Memilih menu berarti selesai dengan laci, termasuk
+                            // saat menu yang dipilih adalah layar yang sedang
+                            // terbuka. Di sidebar, `close()` tidak berbuat apa-apa.
+                            onClick={() => laci.current?.close()}
+                            className={`flex min-h-14 items-center gap-3.5 rounded-lg px-3.5 text-base pendek:pointer-fine:min-h-10 ${
+                                aktif
+                                    ? 'bg-primary font-bold text-primary-foreground'
+                                    : 'font-medium text-foreground'
+                            }`}
+                        >
+                            <Ikon
+                                className="size-5 shrink-0"
+                                strokeWidth={2.5}
+                            />
+                            {butir.label}
+                        </Link>
+                    );
+                })}
         </nav>
     );
 
@@ -318,7 +341,8 @@ export function Cangkang({
                         SIMPATIK Posyandu
                     </p>
                     <p className="mt-0.5 text-sm text-[#2f6b4d]">
-                        {cakupanPosyandu ?? `RW ${data.meta.rw} Kelurahan ${data.meta.kelurahan}`}
+                        {cakupanPosyandu ??
+                            `RW ${data.meta.rw} Kelurahan ${data.meta.kelurahan}`}
                     </p>
                 </div>
 
@@ -357,42 +381,54 @@ export function Cangkang({
                 penuh sampai tepi, dan `Halaman` yang memberi pinggir pada
                 isinya. Di bawah layar lebar (1024 px), diberi padding bawah
                 agar tidak tertutup bilah navigasi bawah ponsel. */}
-            <main className="flex min-w-0 flex-1 flex-col pb-20 lg:pb-0 lg:min-h-0 lg:overflow-y-auto">
+            <main className="flex min-w-0 flex-1 flex-col pb-20 lg:min-h-0 lg:overflow-y-auto lg:pb-0">
                 {children}
             </main>
 
             {/* Bilah Navigasi Bawah Gaya Aplikasi Mobile (Hanya tampil di ponsel/tablet < 1024 px) */}
             <nav
                 aria-label="Navigasi cepat ponsel"
-                className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-around border-t border-border bg-card/95 px-1 py-1.5 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] backdrop-blur lg:hidden pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+                className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-around border-t border-border bg-card/95 px-1 py-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-4px_16px_rgba(0,0,0,0.06)] backdrop-blur lg:hidden"
             >
-                {NAV.filter((butir) => butir.peran.includes(peran)).slice(0, 5).map((butir) => {
-                    const aktif = alamat.startsWith(butir.href);
-                    const Ikon = butir.ikon;
-                    return (
-                        <Link
-                            key={butir.href}
-                            href={butir.href}
-                            aria-current={aktif ? 'page' : undefined}
-                            className={`flex flex-1 flex-col items-center justify-center gap-1 rounded-xl py-1 text-center transition-colors min-h-[50px] ${
-                                aktif
-                                    ? 'text-primary font-bold'
-                                    : 'text-muted-foreground hover:text-foreground font-medium'
-                            }`}
-                        >
-                            <span
-                                className={`flex size-8 items-center justify-center rounded-full transition-transform ${
-                                    aktif ? 'bg-primary/12 text-primary scale-110' : ''
+                {NAV.filter((butir) => butir.peran.includes(peran))
+                    .slice(0, 5)
+                    .map((butir) => {
+                        const aktif = alamat.startsWith(butir.href);
+                        const Ikon = butir.ikon;
+
+                        return (
+                            <Link
+                                key={butir.href}
+                                href={butir.href}
+                                aria-current={aktif ? 'page' : undefined}
+                                className={`flex min-h-[50px] flex-1 flex-col items-center justify-center gap-1 rounded-xl py-1 text-center transition-colors ${
+                                    aktif
+                                        ? 'font-bold text-primary'
+                                        : 'font-medium text-muted-foreground hover:text-foreground'
                                 }`}
                             >
-                                <Ikon className="size-5 shrink-0" strokeWidth={aktif ? 2.5 : 2} />
-                            </span>
-                            <span className="text-[11px] leading-tight tracking-tight">
-                                {butir.label === 'Data Balita' ? 'Balita' : (butir.label === 'Sasaran & impor' ? 'Sasaran' : butir.label)}
-                            </span>
-                        </Link>
-                    );
-                })}
+                                <span
+                                    className={`flex size-8 items-center justify-center rounded-full transition-transform ${
+                                        aktif
+                                            ? 'scale-110 bg-primary/12 text-primary'
+                                            : ''
+                                    }`}
+                                >
+                                    <Ikon
+                                        className="size-5 shrink-0"
+                                        strokeWidth={aktif ? 2.5 : 2}
+                                    />
+                                </span>
+                                <span className="text-[11px] leading-tight tracking-tight">
+                                    {butir.label === 'Data Balita'
+                                        ? 'Balita'
+                                        : butir.label === 'Sasaran & impor'
+                                          ? 'Sasaran'
+                                          : butir.label}
+                                </span>
+                            </Link>
+                        );
+                    })}
             </nav>
         </div>
     );
@@ -470,7 +506,8 @@ function Merek({ cakupan }: { cakupan?: string }) {
                 SIMPATIK Posyandu
             </p>
             <p className="mt-0.5 truncate text-sm text-muted-foreground">
-                {cakupan ?? `RW ${data.meta.rw} Kelurahan ${data.meta.kelurahan}`}
+                {cakupan ??
+                    `RW ${data.meta.rw} Kelurahan ${data.meta.kelurahan}`}
             </p>
         </div>
     );

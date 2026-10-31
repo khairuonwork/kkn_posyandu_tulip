@@ -29,6 +29,7 @@ import type { AnakBaru, PatchAnak } from '@/pages/anak/index';
 import Login from '@/pages/auth/login';
 import LembarHasil from '@/pages/hasil/lembar';
 import type { TabPeriode } from '@/pages/laporan/index';
+import Pelatihan, { PenandaPelatihan } from '@/pages/pelatihan';
 import type {
     Ambang,
     StandarisasiAntropometri,
@@ -183,6 +184,7 @@ function Portal({
 
     return (
         <Cangkang
+            superAdmin={superAdmin}
             peran={peran}
             cakupanPosyandu={
                 superAdmin
@@ -200,45 +202,56 @@ function Portal({
                 />
             }
         >
-            <Layar
-                rute={rute}
-                peran={peran}
-                onSesiBerakhir={onSesiBerakhir}
-                periodeId={periodeId}
-                onPindahPeriode={setPeriodePilihan}
-                tabLaporan={tabLaporan}
-                onGantiTabLaporan={setTabLaporan}
-                koreksi={koreksi}
-                tambahan={tambahan}
-                onCobaKirim={() => undefined}
-                onSimpanAnak={async (anakId, patch) => {
-                    await simpanProfilAnak(anakId, patch, onSesiBerakhir);
-                    setKoreksi((k) => ({
-                        ...k,
-                        // Dialog Ubah data dan editor baris mengisi kolom
-                        // yang berbeda; keduanya ditumpuk, bukan saling ganti.
-                        [anakId]: { ...k[anakId], ...patch },
-                    }));
-                    anakServer.muatUlang();
-                }}
-                onTambahAnak={(baru) => setTambahan((t) => [...t, baru])}
-                ambang={ambang}
-                onSimpanAmbang={setAmbang}
-                standarisasi={standarisasi}
-                onSimpanStandarisasi={setStandarisasi}
-                pengguna={akun.daftar}
-                onSimpanPengguna={akun.simpan}
-                modeDataLive
-                statusAnakServer={anakServer.status}
-                pesanGalatAnakServer={anakServer.pesanGalat}
-                onMuatUlangAnakServer={anakServer.muatUlang}
-                anakServer={anakServer.baris}
-                kartuServer={anakServer.kartu}
-                detailServer={detailServer}
-                periodeServer={berandaServer.periode}
-                berandaServer={berandaServer}
-                laporanServer={laporanServer}
-            />
+            <PenandaPelatihan superAdmin={superAdmin} />
+            {rute.nama === 'pelatihan' ? (
+                superAdmin ? (
+                    <Pelatihan />
+                ) : (
+                    <p className="p-6">
+                        Sesi Pelatihan hanya untuk superadmin.
+                    </p>
+                )
+            ) : (
+                <Layar
+                    rute={rute}
+                    peran={peran}
+                    onSesiBerakhir={onSesiBerakhir}
+                    periodeId={periodeId}
+                    onPindahPeriode={setPeriodePilihan}
+                    tabLaporan={tabLaporan}
+                    onGantiTabLaporan={setTabLaporan}
+                    koreksi={koreksi}
+                    tambahan={tambahan}
+                    onCobaKirim={() => undefined}
+                    onSimpanAnak={async (anakId, patch) => {
+                        await simpanProfilAnak(anakId, patch, onSesiBerakhir);
+                        setKoreksi((k) => ({
+                            ...k,
+                            // Dialog Ubah data dan editor baris mengisi kolom
+                            // yang berbeda; keduanya ditumpuk, bukan saling ganti.
+                            [anakId]: { ...k[anakId], ...patch },
+                        }));
+                        anakServer.muatUlang();
+                    }}
+                    onTambahAnak={(baru) => setTambahan((t) => [...t, baru])}
+                    ambang={ambang}
+                    onSimpanAmbang={setAmbang}
+                    standarisasi={standarisasi}
+                    onSimpanStandarisasi={setStandarisasi}
+                    pengguna={akun.daftar}
+                    onSimpanPengguna={akun.simpan}
+                    modeDataLive
+                    statusAnakServer={anakServer.status}
+                    pesanGalatAnakServer={anakServer.pesanGalat}
+                    onMuatUlangAnakServer={anakServer.muatUlang}
+                    anakServer={anakServer.baris}
+                    kartuServer={anakServer.kartu}
+                    detailServer={detailServer}
+                    periodeServer={berandaServer.periode}
+                    berandaServer={berandaServer}
+                    laporanServer={laporanServer}
+                />
+            )}
         </Cangkang>
     );
 }
