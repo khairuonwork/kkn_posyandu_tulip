@@ -137,7 +137,6 @@ export function lingkupPelatihan(pool: Pool): RequestHandler {
             done = true;
             lease.closed = true;
             clearTimeout(batasWaktu);
-            req.removeListener("close", saatTutup);
             res.removeListener("close", saatTutup);
             res.removeListener("finish", saatTutup);
             db.removeListener('error',koneksiPutus);
@@ -159,7 +158,6 @@ export function lingkupPelatihan(pool: Pool): RequestHandler {
             sudahTutup = true;
             void bersihkan();
         };
-        req.once("close", saatTutup);
         res.once("close", saatTutup);
         res.once("finish", saatTutup);
         db.on('error',koneksiPutus);
@@ -204,7 +202,7 @@ export function lingkupPelatihan(pool: Pool): RequestHandler {
             res.set("X-Simpatik-Mode", aktif ? "pelatihan" : "riil");
             if (!aktif) {
                 await bersihkan();
-                if (!sudahTutup && !req.destroyed && !res.destroyed && !res.writableEnded) {
+                if (!res.destroyed && !res.writableEnded) {
                     next();
                 }
                 return;
@@ -212,7 +210,7 @@ export function lingkupPelatihan(pool: Pool): RequestHandler {
             await db.query(
                 `SET search_path TO ${skemaAman(aktif.skema)}, pg_catalog`,
             );
-            if (sudahTutup || req.destroyed || res.destroyed || res.writableEnded) {
+            if (res.destroyed || res.writableEnded) {
                 await bersihkan();
                 return;
             }
