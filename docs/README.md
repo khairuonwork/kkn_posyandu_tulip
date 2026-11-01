@@ -3,12 +3,24 @@
 | | |
 |---|---|
 | **Jenis** | Orientasi — peta dokumentasi |
-| **Status** | hidup |
-| **Perubahan berarti terakhir** | 29 September 2026 |
+| **Status** | Final Approved / v2.1-Modular |
+| **Perubahan berarti terakhir** | 1 November 2026 |
 
-**SIMPATIK Posyandu** — sistem pencatatan, pemantauan, dan pelaporan status gizi balita Posyandu Tulip RW 18, Kelurahan Citeureup. Dokumen yang lebih lama menyebutnya Portal Posyandu Tulip, atau cukup Portal.
+**SIMPATIK Posyandu** — sistem pencatatan, pemantauan, dan pelaporan status gizi balita Posyandu Tulip RW 18, Kelurahan Citeureup.
 
 Halaman ini memberi tahu **mana yang perlu dibaca dan mana yang tidak**.
+
+---
+
+## 📌 Dokumen Handover & Spesifikasi Resmi (State-of-the-Art)
+
+Tiga dokumen resmi berikut adalah acuan paling mutakhir (Final Handover 1 November 2026) yang mencakup seluruh arsitektur sistem, kontrak antarmuka API, dan arsitektur modular frontend:
+
+| Dokumen | Format Dokumen | Menjawab & Menjelaskan |
+|---|---|---|
+| **[Handover Arsitektur Sistem](arsitektur-sistem-handover.md)** | [Markdown](arsitektur-sistem-handover.md) · **[PDF Resmi](SIMPATIK_Posyandu_System_Architecture_Handover.pdf)** | Topologi offline LAN & cloud, arsitektur monorepo, 8 bab spesifikasi, ERD, sequence alur ukur ke KMS, RBAC, dan systemd runbook. |
+| **[Spesifikasi Kontrak REST API](SIMPATIK_Posyandu_REST_API_Contract.md)** | [Markdown](SIMPATIK_Posyandu_REST_API_Contract.md) · **[PDF Resmi](SIMPATIK_Posyandu_REST_API_Contract.pdf)** | Katalog lengkap 48 endpoint REST API (11 domain), dual-auth (cookie vs bearer), body payload, response code, dan origin mapping. |
+| **[Spesifikasi Komponen Web & Frontend](SIMPATIK_Posyandu_Web_Components.md)** | [Markdown](SIMPATIK_Posyandu_Web_Components.md) · **[PDF Resmi](SIMPATIK_Posyandu_Web_Components.pdf)** | Katalog komponen React 19 modular, hierarki sub-komponen (`anak/`, `sasaran/`, `pengaturan/`), router hash, dan data fetching map. |
 
 ---
 
