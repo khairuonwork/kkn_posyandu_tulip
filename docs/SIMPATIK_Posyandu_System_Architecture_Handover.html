@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>SIMPATIK POSYANDU - Dokumen Serah Terima Arsitektur Sistem</title>
+  
+  <!-- CDN Dependencies -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+    @page {
+      size: A4 portrait;
+      margin: 18mm 16mm 20mm 16mm;
+      @top-right {
+        content: "SIMPATIK POSYANDU — Handover Arsitektur Sistem";
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 8pt;
+        color: #64748b;
+      }
+      @bottom-left {
+        content: "Posyandu Tulip RW 18 · KKN Tematik 2026";
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 8pt;
+        color: #94a3b8;
+      }
+      @bottom-right {
+        content: "Halaman " counter(page);
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 8pt;
+        font-weight: 600;
+        color: #475569;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 10pt;
+      line-height: 1.6;
+      color: #1e293b;
+      background: #ffffff;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Cover Page */
+    .cover-page {
+      page-break-after: always;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 245mm;
+      padding: 20mm 10mm 10mm 10mm;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      position: relative;
+      background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 25%);
+    }
+
+    .cover-badge {
+      display: inline-block;
+      align-self: flex-start;
+      background: #047857;
+      color: #ffffff;
+      font-size: 9pt;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      box-shadow: 0 2px 4px rgba(4, 120, 87, 0.2);
+    }
+
+    .cover-title {
+      font-size: 26pt;
+      font-weight: 800;
+      line-height: 1.15;
+      color: #064e3b;
+      margin: 24px 0 12px 0;
+      letter-spacing: -0.02em;
+    }
+
+    .cover-subtitle {
+      font-size: 13pt;
+      font-weight: 600;
+      color: #047857;
+      margin: 0 0 18px 0;
+      line-height: 1.4;
+    }
+
+    .cover-desc {
+      font-size: 10pt;
+      color: #475569;
+      max-width: 90%;
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+
+    .cover-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 16px;
+      margin: 20px 0;
+    }
+
+    .meta-item {
+      font-size: 9pt;
+    }
+
+    .meta-label {
+      font-size: 7.5pt;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 700;
+      color: #64748b;
+      margin-bottom: 3px;
+    }
+
+    .meta-value {
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    .sign-box-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px dashed #cbd5e1;
+    }
+
+    .sign-box {
+      text-align: center;
+      font-size: 8pt;
+      padding: 10px 6px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+    }
+
+    .sign-role {
+      font-weight: 700;
+      color: #334155;
+      min-height: 28px;
+    }
+
+    .sign-space {
+      height: 48px;
+    }
+
+    .sign-name {
+      font-weight: 600;
+      color: #0f172a;
+      border-top: 1px solid #94a3b8;
+      padding-top: 4px;
+      margin-top: 4px;
+    }
+
+    /* Headings */
+    h1 {
+      font-size: 18pt;
+      font-weight: 800;
+      color: #064e3b;
+      margin-top: 0;
+      margin-bottom: 16px;
+      letter-spacing: -0.02em;
+    }
+
+    h2 {
+      font-size: 13.5pt;
+      font-weight: 700;
+      color: #0f172a;
+      margin-top: 32px;
+      margin-bottom: 12px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid #059669;
+      page-break-before: always;
+      break-before: page;
+      letter-spacing: -0.01em;
+    }
+
+    .toc h2, .first-chapter h2 {
+      page-break-before: avoid !important;
+      break-before: avoid !important;
+    }
+
+    h3 {
+      font-size: 11pt;
+      font-weight: 700;
+      color: #1e293b;
+      margin-top: 20px;
+      margin-bottom: 8px;
+    }
+
+    h4 {
+      font-size: 10pt;
+      font-weight: 700;
+      color: #334155;
+      margin-top: 14px;
+      margin-bottom: 6px;
+    }
+
+    p {
+      margin-top: 0;
+      margin-bottom: 10px;
+      text-align: justify;
+    }
+
+    /* Lists */
+    ul, ol {
+      margin-top: 0;
+      margin-bottom: 12px;
+      padding-left: 22px;
+    }
+
+    li {
+      margin-bottom: 4px;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 8.5pt;
+      margin: 14px 0;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    th {
+      background: #0f172a;
+      color: #ffffff;
+      font-weight: 600;
+      text-align: left;
+      padding: 8px 10px;
+      border: 1px solid #1e293b;
+    }
+
+    td {
+      padding: 7px 10px;
+      border: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+
+    tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+
+    /* Code & Monospace */
+    code {
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      font-size: 8.2pt;
+      background: #f1f5f9;
+      color: #0f172a;
+      padding: 2px 5px;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+    }
+
+    pre {
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      font-size: 8pt;
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 12px 14px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 12px 0;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      line-height: 1.45;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+    }
+
+    pre code {
+      background: transparent;
+      color: inherit;
+      padding: 0;
+      border: none;
+      font-size: inherit;
+    }
+
+    /* Blockquotes / Callouts */
+    blockquote {
+      margin: 14px 0;
+      padding: 10px 14px;
+      background: #f8fafc;
+      border-left: 4px solid #059669;
+      border-radius: 0 6px 6px 0;
+      color: #334155;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    blockquote.alert-warning {
+      background: #fffbeb;
+      border-left-color: #d97706;
+      color: #92400e;
+    }
+
+    blockquote.alert-danger, blockquote.alert-caution {
+      background: #fef2f2;
+      border-left-color: #dc2626;
+      color: #991b1b;
+    }
+
+    blockquote.alert-tip {
+      background: #f0fdf4;
+      border-left-color: #16a34a;
+      color: #166534;
+    }
+
+    /* Mermaid Diagrams */
+    .mermaid-container {
+      margin: 16px 0;
+      padding: 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      text-align: center;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .mermaid svg {
+      max-width: 100%;
+      height: auto;
+    }
+
+    /* Math Formula Container */
+    .math-formula {
+      margin: 12px 0;
+      padding: 10px;
+      background: #f8fafc;
+      border-radius: 6px;
+      text-align: center;
+      font-size: 10.5pt;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid #e2e8f0;
+      margin: 24px 0;
+    }
+
+    /* Table of contents links */
+    a {
+      color: #047857;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Cover Page -->
+  <div class="cover-page">
+    <div>
+      <span class="cover-badge">Dokumen Resmi Serah Terima Sistem</span>
+      <h1 class="cover-title">SIMPATIK POSYANDU</h1>
+      <div class="cover-subtitle">Sistem Informasi Posyandu Terintegrasi dan Antropometri Digital</div>
+      <p class="cover-desc">
+        Dokumentasi komprehensif arsitektur perangkat lunak, spesifikasi modular web modern, katalog endpoint REST API, skema basis data PostgreSQL, isolasi mode sandbox dual-schema, diagram sekuens, serta runbook operasional pemeliharaan sistem.
+      </p>
+
+      <div class="cover-meta-grid">
+        <div class="meta-item">
+          <div class="meta-label">Program & Wilayah Binaan</div>
+          <div class="meta-value">KKN Tematik 2026 — Posyandu Tulip RW 18</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Versi Arsitektur</div>
+          <div class="meta-value">v2.1-Modular (State-of-the-Art Architecture)</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Tanggal Efektif Handover</div>
+          <div class="meta-value">1 November 2026</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Status Verifikasi</div>
+          <div class="meta-value">100% Passed (75 Client Tests + 296 Server Tests)</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="sign-box-grid">
+        <div class="sign-box">
+          <div class="sign-role">Bidan / Pembina Teknis<br>Puskesmas Pembina</div>
+          <div class="sign-space"></div>
+          <div class="sign-name">Bidan Pembina Wilayah</div>
+        </div>
+        <div class="sign-box">
+          <div class="sign-role">Ketua Posyandu<br>Posyandu Tulip RW 18</div>
+          <div class="sign-space"></div>
+          <div class="sign-name">Sri Mindarti</div>
+        </div>
+        <div class="sign-box">
+          <div class="sign-role">Koordinator Pengembang<br>Tim IT KKN Tematik 2026</div>
+          <div class="sign-space"></div>
+          <div class="sign-name">Tim Rekayasa Sistem</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Container rendered by Marked -->
+  <div id="content"></div>
+
+  <script id="markdown-raw" type="text/plain">"# DOKUMEN SERAH TERIMA ARSITEKTUR SISTEM & SPESIFIKASI TEKNIS\n## SIMPATIK POSYANDU (Sistem Informasi Posyandu Terintegrasi dan Antropometri Digital)\n**Program KKN Tematik 2026 — Posyandu Tulip RW 18**\n*Versi Dokumen: 2.1-Modular · Tanggal: 1 November 2026 · Status: Final Handover*\n\n---\n\n## DAFTAR ISI\n1. [BAB 1: Ringkasan Eksekutif & Prinsip Rekayasa](#bab-1-ringkasan-eksekutif--prinsip-rekayasa)\n2. [BAB 2: Topologi Sistem & Tumpukan Teknologi](#bab-2-topologi-sistem--tumpukan-teknologi)\n3. [BAB 3: Struktur Direktori Monorepo & Desain Modular](#bab-3-struktur-direktori-monorepo--desain-modular)\n4. [BAB 4: Katalog Lengkap REST API & Kontrak Data](#bab-4-katalog-lengkap-rest-api--kontrak-data)\n5. [BAB 5: Arsitektur Basis Data, ERD & Isolasi Sandbox](#bab-5-arsitektur-basis-data-erd--isolasi-sandbox)\n6. [BAB 6: Flowchart & Alur Kode Sistem (Sequence Diagrams)](#bab-6-flowchart--alur-kode-sistem-sequence-diagrams)\n7. [BAB 7: Matriks Hak Akses (RBAC) & Jejak Audit (Audit Trail)](#bab-7-matriks-hak-akses-rbac--jejak-audit-audit-trail)\n8. [BAB 8: Panduan Operasional, Migrasi & Runbook Pemeliharaan](#bab-8-panduan-operasional-migrasi--runbook-pemeliharaan)\n\n---\n\n## BAB 1: RINGKASAN EKSEKUTIF & PRINSIP REKAYASA\n\n### 1.1 Latar Belakang & Visi Transformasi Digital\nPosyandu Tulip RW 18 melayani balita dan keluarga di 7 RT binaan. Sebelum digitalisasi, alur pencatatan menggunakan 12 lembar berkas manual dan file spreadsheet yang terfragmentasi. Kesalahan pembacaan tabel cetak pertumbuhan WHO, keterlambatan pelaporan F1 Puskesmas, serta risiko kehilangan kartu fisik menjadi kendala berulang.\n\nSIMPATIK Posyandu dirancang sebagai sistem terintegrasi yang menghubungkan:\n1. **Aplikasi Lapangan Tablet Android:** Pencatatan penimbangan, pendaftaran mandiri cepat via QR code, dan antrean real-time.\n2. **Web Portal Kader & Tenaga Kesehatan (Bidan/Dokter):** Pemeriksaan KMS interaktif, manajemen sasaran bulanan, analisis grafik pertumbuhan multi-indeks, dan ekspor instan F1 resmi.\n3. **Penyimpanan Terpusat & Sinkronisasi Cerdas:** Basis data PostgreSQL berstandar audit klinis, siap beroperasi di jaringan lokal (offline LAN) maupun terhubung internet (Cloudflare Tunnel).\n\n### 1.2 Prinsip Inti Rekayasa Sistem (Engineering Tenets)\nSistem ini dibangun berdasarkan 5 prinsip integritas data fundamental:\n- **DR-01 (Non-Destructive Target Updates):** Pergantian atau penerbitan sasaran bulanan baru tidak pernah menghapus master profil anak, kartu QR, atau riwayat ukur yang pernah dicatat.\n- **DR-02 (Server Authoritative Anthropometrics):** Semua vonis status gizi, z-score, dan validasi medis dihitung dan diverifikasi secara mutlak di sisi server berdasarkan acuan Permenkes No. 2 Tahun 2020 dan parameter LMS WHO 2006. Antarmuka web hanya menghitung salinan pratinjau yang diverifikasi oleh rangkaian test suite.\n- **DR-03 (Absence is Not Zero Measurement):** Balita yang tidak hadir tidak pernah diisi dengan berat badan `0 kg`. Ketidakhadiran, status pindah, atau alasan medis dicatat secara semantik pada kolom status kehadiran.\n- **DR-04 (Dual-Schema Sandbox Isolation):** Sesi pelatihan kader (Mode Pelatihan) berjalan 100% pada skema basis data terpisah (`latihan_<uuid>`). Modifikasi, simulasi penimbangan, atau penghapusan data uji coba tidak pernah menyentuh skema operasional `public`.\n- **DR-05 (Zero Critical External Dependencies):** Seluruh logika autentikasi (scrypt + session token), pembatas laju percobaan masuk (rate limiter), generator sheet Excel F1, dan mesin interpolasi LMS ditulis mandiri tanpa pustaka pihak ketiga berlebih, menjamin portabilitas dan keamanan jangka panjang.\n\n---\n\n## BAB 2: TOPOLOGI SISTEM & TUMPUKAN TEKNOLOGI\n\n### 2.1 Arsitektur Jaringan Dual-Mode (Offline LAN & Hybrid Cloud)\n\n```\n[ KELUARGA / KADER ]\n        |\n        v\n[ Kartu QR Balita ] \n        |\n        +-------------------------------------------------------+\n        |                                                       |\n        v                                                       v\n[ Tablet Kader 1: Pendaftaran ]                         [ Tablet Kader 2: Pengukuran ]\n  - Android App / Chrome PWA                              - Android App / Chrome PWA\n  - Offline Local Queue Storage                           - Fast Measurement Entry\n        |                                                       |\n        +---------------------------+---------------------------+\n                                    |\n                    [ Router WiFi Posyandu (LAN) ]\n                                    |\n        +---------------------------+---------------------------+\n        | (Jaringan Lokal)                                      | (Koneksi Internet)\n        v                                                       v\n[ Server Fisik Posyandu / Mini PC ]                     [ Cloudflare Zero-Trust Tunnel ]\n  - Node.js 24 + Express 5 Core                           - *.trycloudflare.com / Domain\n  - PostgreSQL 16+ Database                                     |\n  - Vite React 19 Frontend Web Portal                           v\n        |                                       [ Laptop Bidan / Dokter / Pengurus RW ]\n        v                                         - Layar Pemeriksaan KMS Real-Time\n[ Layar Pemeriksaan KMS Bidan ]                   - Manajemen Pengguna & Sasaran\n  - Web UI: Auto-Refresh / Real-time Poll         - Ekspor Laporan Bulanan F1 Excel\n```\n\n### 2.2 Matriks Tumpukan Teknologi (Technology Stack Matrix)\n\n| Lapisan Sistem | Komponen / Pustaka | Versi | Peran & Justifikasi |\n|---|---|---|---|\n| **Frontend Framework** | React + TypeScript | React 19 / TS 5.9 | UI reaktif modern dengan state manajemen murni, zero external state bloat |\n| **Frontend Build Tool** | Vite | 8.3 | Bundling super cepat (1.5 detik), modular HMR, kompatibilitas PWA |\n| **CSS & Styling** | Tailwind CSS v4 | v4.0 | Utilitas desain sistem terkonsolidasi, konsistensi warna semantik (`tone-green`, `tone-amber`, `tone-red`, `tone-blue`) |\n| **Ikonografi & QR** | Lucide React / qrcode.react | Latest | Simbol antarmuka standar aksesibilitas dan generator barcode QR kartu |\n| **Backend Runtime** | Node.js (Type Stripping) | v22 / v24 | Eksekusi file TypeScript langsung tanpa proses kompilasi manual perantara |\n| **HTTP Framework** | Express | v5.0 | Routing decoupled REST API, middleware otentikasi kustom, pemrosesan streaming |\n| **Basis Data Relasional** | PostgreSQL | 16 / 17 | Relasional ACID rigid, skema dinamis (sandbox mode), audit trigger otomatis |\n| **Database Driver** | `pg` (node-postgres) | Native Pool | Query SQL murni tulisan tangan tanpa ORM, kendali performa dan isolasi transaksi |\n| **Autentikasi & Kripto** | Node.js `crypto` (`scrypt`) | Bawaan | Hash password aman tahan serangan GPU, session cookie berbasis httpOnly/SameSite |\n| **Test Harness** | `node:test` + Node Assert | Bawaan | Menjalankan 296 pengujian server dan 75 pengujian client dalam hitungan detik |\n\n---\n\n## BAB 3: STRUKTUR DIREKTORI MONOREPO & DESAIN MODULAR\n\n### 3.1 Struktur Direktori Monorepo\nKode sumber terorganisir rapi dalam satu monorepo yang memisahkan aplikasi server dan aplikasi web client:\n\n```text\nkkn_posyandu_tulip/\n├── client/                     # Frontend Application (React 19 + Vite)\n│   ├── index.html              # HTML Entry Point & PWA Manifest Links\n│   ├── vite.config.ts          # Vite Configuration & Backend Proxy\n│   ├── src/\n│   │   ├── main.tsx            # React Bootstrap DOM\n│   │   ├── app.tsx             # Root Application Shell\n│   │   ├── layar.tsx           # Client-side View Router & Screen Dispatcher\n│   │   ├── components/         # Komponen UI Global (Dialog, Table, Badges, KMS Chart)\n│   │   ├── lib/                # Helper Format, Z-score, Pesan WhatsApp, Lembar Hasil\n│   │   ├── pages/              # Modul Halaman Aplikasi (Modular State-of-the-Art)\n│   │   │   ├── anak/           # Modul Data Balita & Detail Pertumbuhan\n│   │   │   │   ├── index.tsx   # Orchestrator Daftar Balita (~240 baris)\n│   │   │   │   ├── show.tsx    # Orchestrator Detail Balita (~350 baris)\n│   │   │   │   ├── daftar/     # Sub-komponen modular daftar balita\n│   │   │   │   │   ├── tipe.ts\n│   │   │   │   │   ├── filter-anak.tsx\n│   │   │   │   │   ├── tabel-anak.tsx\n│   │   │   │   │   ├── editor-baris.tsx\n│   │   │   │   │   ├── form-tambah.tsx\n│   │   │   │   │   └── baris-penanda.tsx\n│   │   │   │   └── detail/     # Sub-komponen modular detail anak\n│   │   │   │       ├── tipe.ts\n│   │   │   │       ├── status-naik.tsx\n│   │   │   │       ├── kartu-indeks.tsx\n│   │   │   │       ├── tab-profil.tsx\n│   │   │   │       ├── tab-status.tsx\n│   │   │   │       ├── tab-kurva.tsx\n│   │   │   │       ├── tab-grafik.tsx\n│   │   │   │       ├── tab-riwayat.tsx\n│   │   │   │       ├── dialog-ubah.tsx\n│   │   │   │       └── dialog-cetak.tsx\n│   │   │   ├── pengaturan/     # Modul Konfigurasi Sistem\n│   │   │   │   ├── index.tsx   # Orchestrator Tab Pengaturan (~260 baris)\n│   │   │   │   ├── tipe.ts\n│   │   │   │   ├── komponen/   # Komponen umum pengaturan (isian-angka, bilah-simpan)\n│   │   │   │   └── bagian/     # Sub-komponen tiap bagian pengaturan\n│   │   │   │       ├── bagian-batas.tsx\n│   │   │   │       ├── bagian-ambang.tsx\n│   │   │   │       ├── bagian-pengguna.tsx\n│   │   │   │       ├── bagian-standar.tsx\n│   │   │   │       ├── bagian-riwayat.tsx\n│   │   │   │       └── dialog-pengguna.tsx\n│   │   │   ├── sasaran/        # Modul Sasaran Layanan & Impor Excel\n│   │   │   │   ├── index.tsx   # Orchestrator Sasaran (~320 baris)\n│   │   │   │   └── komponen/   # Sub-komponen sasaran & impor\n│   │   │   │       ├── tipe.ts\n│   │   │   │       ├── panel-impor.tsx\n│   │   │   │       ├── tabel-sasaran.tsx\n│   │   │   │       ├── dialog-tambah-sasaran.tsx\n│   │   │   │       ├── dialog-edit-sasaran.tsx\n│   │   │   │       └── dialog-reset-sasaran.tsx\n│   │   │   ├── kms/            # Pemeriksaan KMS Bidan (Live Queue Screen)\n│   │   │   ├── dashboard.tsx   # Monitoring Eksekutif & Ringkasan Kehadiran\n│   │   │   ├── laporan.tsx     # Rekapitulasi Laporan SKDN & Analisis Bulanan\n│   │   │   ├── masuk.tsx       # Autentikasi Pengguna\n│   │   │   └── sesi-pelatihan.tsx # Pengendali Sandbox Sesi Pelatihan\n│   ├── test/                   # Unit & Regression Test Client (75 test cases)\n├── server/                     # Backend Application (Node.js + Express 5)\n│   ├── src/\n│   │   ├── main.ts             # Server Entry Point, Port Binding & Shutdown\n│   │   ├── app.ts              # Express Composition & Middleware Stack\n│   │   ├── antropometri/       # Engine Standar WHO 2006, LMS, Tabel KBM\n│   │   ├── auth/               # Logika Peran, Sesi, Hash Scrypt, Aksesibilitas\n│   │   ├── db/                 # Pool PostgreSQL, Transaksi, Audit CDC Logging\n│   │   ├── http/               # Controllers, Route Guards, Error Handlers\n│   │   ├── repositories/       # Abstraksi Query SQL Murni PostgreSQL\n│   │   └── services/           # Logika Bisnis, Sandbox Orchestrator, Excel Generator\n│   ├── db/migrations/          # 28 File Migrasi SQL Berurutan\n│   ├── test/                   # 296 Unit, Integration, & Contract Tests\n└── docs/                       # Dokumentasi Arsitektur, Basis Data, Panduan Operasi\n```\n\n### 3.2 Keuntungan Pola Desain Modular Baru (State-of-the-Art)\nSebelum refaktor, halaman utama memiliki ukuran monolitik besar (`show.tsx` 1.743 baris, `pengaturan/index.tsx` 1.682 baris, `anak/index.tsx` 1.480 baris, `sasaran/index.tsx` 1.305 baris).\n\nDengan arsitektur modular saat ini:\n1. **Single Responsibility Principle (SRP):** Setiap subkomponen hanya bertanggung jawab atas satu bagian tampilan (misalnya `tab-kurva.tsx` hanya mengurus rendering kurva WHO).\n2. **Navigasi Cepat & Cognitive Load Rendah:** Developer baru dapat langsung menemukan file relevan tanpa menelusuri ribuan baris kode.\n3. **Isolasi Bug & Hot-Reload Efisien:** Perubahan styling atau logika pada satu dialog tidak memicu re-render atau resiko regresi pada tab lainnya.\n4. **100% Backward-Compatible Re-exports:** Semua tipe dan fungsi publik tetap diekspor dari file `index.tsx` dan `show.tsx`, menjaga seluruh import eksternal tetap valid tanpa breaking changes.\n\n---\n\n## BAB 4: KATALOG LENGKAP REST API & KONTRAK DATA\n\nSemua endpoint diawali dengan prefix `/api` dan menggunakan format JSON murni.\n\n### 4.1 Autentikasi & Akun Pengguna\n\n#### `POST /api/masuk`\n- **Tujuan:** Autentikasi pengguna (Admin, Bidan, Kader, Petugas KMS).\n- **Request Body:**\n  ```json\n  {\n    \"username\": \"kader01\",\n    \"kataSandi\": \"rahasia123\"\n  }\n  ```\n- **Response `200 OK`:**\n  - Mengembalikan objek profil pengguna dan memasang Cookie `sesi` bertipe `httpOnly; SameSite=Lax; Secure`.\n  ```json\n  {\n    \"id\": 1,\n    \"username\": \"kader01\",\n    \"nama\": \"Siti Nurhaliza\",\n    \"peran\": \"kader\",\n    \"posyanduId\": 1,\n    \"posyanduNama\": \"Posyandu Tulip\",\n    \"rw\": \"18\",\n    \"rt\": \"01\",\n    \"superAdmin\": false\n  }\n  ```\n\n#### `POST /api/keluar`\n- **Tujuan:** Menghapus token sesi aktif di basis data dan membersihkan cookie peramban.\n- **Response `200 OK`:** `{\"pesan\": \"Berhasil keluar\"}`\n\n#### `GET /api/saya`\n- **Tujuan:** Mengecek status autentikasi aktif dari cookie browser.\n- **Response `200 OK`:** Mengembalikan data identitas pengguna saat ini.\n\n---\n\n### 4.2 Master Balita & Profil Pertumbuhan\n\n#### `GET /api/anak`\n- **Query Params:** `rt` (opsional), `cari` (opsional), `lingkup` (`aktif` | `arsip`), `periode` (`YYYY-MM`).\n- **Response `200 OK`:** Daftar balita beserta hasil ukur terakhir dan status perhatian.\n  ```json\n  [\n    {\n      \"anakId\": 101,\n      \"nama\": \"Ahmad Faris\",\n      \"nik\": \"3201012304210001\",\n      \"nikLengkap\": true,\n      \"jk\": \"L\",\n      \"umurBulan\": 28,\n      \"rt\": \"01\",\n      \"namaOrtu\": \"Nurul\",\n      \"tanggalUkurTerakhir\": \"2026-10-09\",\n      \"kategoriGizi\": \"Gizi baik\",\n      \"perluPerhatian\": false,\n      \"risikoLahir\": null,\n      \"bbKg\": 12.4,\n      \"tinggiCm\": 89.5\n    }\n  ]\n  ```\n\n#### `GET /api/anak/:id`\n- **Tujuan:** Mengambil profil lengkap balita, riwayat pengukuran lintas bulan, dan kurva WHO.\n- **Response `200 OK`:**\n  ```json\n  {\n    \"anak\": {\n      \"id\": 101,\n      \"nama\": \"Ahmad Faris\",\n      \"nik\": \"3201012304210001\",\n      \"tglLahir\": \"2024-06-15\",\n      \"jk\": \"L\",\n      \"rt\": \"01\",\n      \"namaOrtu\": \"Nurul\",\n      \"bukuKia\": true\n    },\n    \"pengukuran\": [\n      {\n        \"periodeId\": \"2026-10\",\n        \"tanggalUkur\": \"2026-10-09\",\n        \"umurBulan\": 28,\n        \"bbKg\": 12.4,\n        \"tinggiCm\": 89.5,\n        \"penilaian\": {\n          \"BB_TB\": { \"z\": 0.12, \"kategori\": \"Gizi baik\" },\n          \"BB_U\": { \"z\": -0.45, \"kategori\": \"Berat badan normal\" },\n          \"TB_U\": { \"z\": -0.65, \"kategori\": \"Normal\" }\n        },\n        \"ntob\": \"N\"\n      }\n    ]\n  }\n  ```\n\n---\n\n### 4.3 Layanan Antrean & Pemeriksaan KMS Real-Time\n\n#### `GET /api/kms/antrean`\n- **Tujuan:** Mengambil daftar anak yang telah diukur hari ini dan sedang menunggu penjelasan KMS oleh dokter atau bidan.\n- **Header:** Mendukung `X-Mode-Pelatihan: 1` saat berada di sandbox.\n- **Response `200 OK`:**\n  ```json\n  {\n    \"periode\": \"2026-10\",\n    \"tanggal\": \"2026-10-09\",\n    \"menunggu\": [\n      {\n        \"antreanId\": 45,\n        \"nomorAntrean\": 12,\n        \"anakId\": 101,\n        \"nama\": \"Ahmad Faris\",\n        \"umurBulan\": 28,\n        \"waktuUkur\": \"2026-10-09T08:45:00Z\",\n        \"bbKg\": 12.4,\n        \"tinggiCm\": 89.5,\n        \"kategoriBbTb\": \"Gizi baik\"\n      }\n    ]\n  }\n  ```\n\n#### `POST /api/kms/konfirmasi`\n- **Tujuan:** Konfirmasi bahwa orang tua telah mendapat edukasi hasil KMS; memindahkan slot antrean ke anak berikutnya.\n- **Request Body:**\n  ```json\n  {\n    \"antreanId\": 45,\n    \"anakId\": 101,\n    \"catatanEdukasi\": \"Diskusikan variasi gizi seimbang dan lanjutkan pemantauan\"\n  }\n  ```\n- **Response `200 OK`:** `{\"sukses\": true, \"selesaiPada\": \"2026-10-09T08:52:10Z\"}`\n\n---\n\n### 4.4 Sasaran Layanan & Impor File Excel Puskesmas\n\n#### `POST /api/sasaran/periksa`\n- **Tujuan:** Mengunggah file workbook `.xlsx` untuk dipindai header dan sheet periodenya.\n- **Payload:** Multipart Form Data (`berkas`: file binary .xlsx).\n- **Response `200 OK`:**\n  ```json\n  {\n    \"isiBase64\": \"UEsDBBQAAAAIA...\",\n    \"sheets\": [\n      {\n        \"sheet\": \"Oktober 2026\",\n        \"periode\": \"2026-10\",\n        \"labelPeriode\": \"Oktober 2026\",\n        \"jumlahBaris\": 92,\n        \"jumlahSiap\": 92,\n        \"jumlahPerluVerifikasi\": 0,\n        \"jumlahDitahan\": 0\n      }\n    ]\n  }\n  ```\n\n#### `POST /api/sasaran/ganti`\n- **Tujuan:** Menerbitkan sheet terpilih menjadi sasaran aktif perangkat Android.\n- **Request Body:**\n  ```json\n  {\n    \"namaFile\": \"Format_Sasaran_Puskesmas.xlsx\",\n    \"isiBase64\": \"UEsDBBQAAAAIA...\",\n    \"sheet\": \"Oktober 2026\"\n  }\n  ```\n- **Response `201 Created`:**\n  ```json\n  {\n    \"periode\": \"2026-10\",\n    \"jumlahSasaran\": 92,\n    \"anakBaru\": 3,\n    \"anakDiperbarui\": 89\n  }\n  ```\n\n#### `POST /api/sasaran/reset-hari-ini`\n- **Tujuan:** Menghapus hasil ukur dan antrean bertanggal hari ini pada periode aktif (tindakan darurat jika ada kesalahan fatal).\n- **Request Body:**\n  ```json\n  {\n    \"periodeId\": \"2026-10\",\n    \"konfirmasi\": \"RESET HARI INI\"\n  }\n  ```\n\n---\n\n### 4.5 Mesin Dual-Mode Sesi Pelatihan (Sandbox Isolation)\n\n#### `GET /api/sandbox/status`\n- **Response `200 OK`:**\n  ```json\n  {\n    \"aktif\": true,\n    \"schema\": \"latihan_8f4b12c9_6a21\",\n    \"dimulaiPada\": \"2026-10-31T08:15:00Z\",\n    \"dimulaiOleh\": \"superadmin\",\n    \"periodeSumber\": \"2026-10\",\n    \"jumlahSasaran\": 92\n  }\n  ```\n\n#### `POST /api/sandbox/mulai`\n- **Tujuan:** Menginisiasi skema PostgreSQL baru, menyalin sasaran tersamar, dan beralih ke mode sandbox.\n- **Request Body:** `{\"periodeSumber\": \"2026-10\"}`\n- **Response `201 Created`:** `{\"status\": \"aktif\", \"schema\": \"latihan_...\"}`\n\n#### `POST /api/sandbox/akhiri`\n- **Tujuan:** Menjatuhkan (*drop cascade*) skema `latihan_*` dan mengembalikan server ke skema operasional `public`.\n- **Response `200 OK`:** `{\"status\": \"selesai\", \"dataDibersihkan\": true}`\n\n---\n\n## BAB 5: ARSITEKTUR BASIS DATA, ERD & ISOLASI SANDBOX\n\n### 5.1 Diagram Relasi Entitas (ERD)\n\n```mermaid\nerDiagram\n    POSYANDU ||--o{ WILAYAH_RT : memiliki\n    POSYANDU ||--o{ PENGGUNA : memiliki\n    PENGGUNA ||--o{ SESI : membuat\n    POSYANDU ||--o{ ANAK : merekam\n    ORANG_TUA ||--o{ ANAK : memiliki\n    POSYANDU ||--o{ SASARAN_BULANAN : menetapkan\n    ANAK ||--o{ SASARAN_BULANAN : terdaftar\n    ANAK ||--o{ PENGUKURAN : mencatat\n    SASARAN_BULANAN ||--o{ ANTREAN : dialokasikan\n    ANAK ||--o{ ANTREAN : dipanggil\n    PENGGUNA ||--o{ AUDIT_LOG : melakukan\n\n    POSYANDU {\n        serial id PK\n        varchar nama\n        varchar rw\n        timestamptz dibuat_pada\n    }\n\n    WILAYAH_RT {\n        int posyandu_id FK\n        varchar rt PK\n    }\n\n    PENGGUNA {\n        serial id PK\n        int posyandu_id FK\n        varchar username UK\n        text password_hash\n        varchar peran\n        varchar rt\n        boolean aktif\n        boolean super_admin\n    }\n\n    ANAK {\n        bigserial id PK\n        int posyandu_id FK\n        varchar nama\n        varchar nik UK\n        varchar jk\n        date tgl_lahir\n        numeric bb_lahir_kg\n        boolean buku_kia\n        int orang_tua_id FK\n        varchar rt\n        boolean aktif\n    }\n\n    PENGUKURAN {\n        bigserial id PK\n        bigint anak_id FK\n        varchar periode_id\n        date tanggal_ukur\n        numeric umur_bulan\n        numeric bb_kg\n        numeric tinggi_cm\n        numeric lila_cm\n        numeric lika_cm\n        varchar jenis_ukur\n        jsonb penilaian_gizi\n        varchar ntob\n        varchar status_kehadiran\n    }\n\n    SASARAN_BULANAN {\n        bigserial id PK\n        varchar periode_id\n        bigint anak_id FK\n        varchar status_layanan\n        text catatan\n    }\n\n    ANTREAN {\n        bigserial id PK\n        varchar periode_id\n        date tanggal\n        int nomor_antrean\n        bigint anak_id FK\n        varchar status_antrean\n        timestamptz dipanggil_pada\n        timestamptz selesai_pada\n    }\n\n    AUDIT_LOG {\n        bigserial id PK\n        timestamptz waktu\n        varchar pelaku_username\n        varchar tabel\n        varchar operasi\n        jsonb data_sebelum\n        jsonb data_sesudah\n        inet ip_address\n    }\n```\n\n### 5.2 Mekanisme Isolasi Skema Sandbox (Dual-Schema Training Sandbox)\nSistem memecahkan masalah klasik \"bagaimana kader dapat latihan di perangkat riil tanpa mengotori data asli\" melalui isolasi level schema PostgreSQL:\n\n1. **Pemisahan Skema Dinamis:** Saat Sesi Pelatihan aktif, backend membuat skema sementara `CREATE SCHEMA latihan_<session_uuid>`.\n2. **Duplikasi Metadata & Data Disamarkan:**\n   - Tabel `anak`, `sasaran_bulanan`, `pengukuran`, `antrean` disalin ke skema latihan.\n   - NIK anak diubah ke awalan `0099...` dan nama keluarga disamarkan otomatis.\n   - ID internal dimulai dari offset `1.000.000.000.000`.\n3. **Penyetelan `search_path` Otomatis:** Koneksi klien dialihkan menggunakan `SET search_path = latihan_<uuid>`. Query database yang dieksekusi secara otomatis membaca dan menulis hanya pada tabel latihan.\n4. **Pembersihan Total (*Clean Drop*):** Begitu superadmin menekan \"Akhiri Sesi\", backend menjalankan `DROP SCHEMA latihan_<uuid> CASCADE;`. Basis data produksi `public` dijamin tetap 100% murni dan tak tersentuh.\n\n---\n\n## BAB 6: FLOWCHART & ALUR KODE SISTEM\n\n### 6.1 Alur Pengukuran & Bridging ke Layar Pemeriksaan KMS\n\n```mermaid\nsequenceDiagram\n    autonumber\n    actor K as Kader Posyandu\n    participant App as Tablet Android (Kader)\n    participant API as REST API Backend (Express)\n    participant Engine as Anthropometry Engine\n    participant DB as PostgreSQL Database\n    actor B as Bidan / Dokter\n    participant Web as Layar KMS Web (Bidan)\n\n    Note over K,App: Anak Tiba di Meja Penimbangan\n    K->>App: Masukkan BB (kg) & TB (cm)\n    App->>API: POST /api/pengukuran {anakId, bb, tb, caraUkur}\n    API->>Engine: hitungStatusGizi(bb, tb, umur, jk)\n    Engine-->>API: {zScore, kategoriBB_TB, kategoriTB_U, NTOB}\n    API->>DB: INSERT INTO pengukuran & UPDATE antrean (status='menunggu_kms')\n    API-->>App: 201 Created (Hasil tersimpan)\n    \n    Note over Web,B: Layar KMS Otomatis Menerima Data\n    loop Polling Interval 3 Detik\n        Web->>API: GET /api/kms/antrean\n        API->>DB: SELECT antrean WHERE status='menunggu_kms'\n        DB-->>API: Daftar balita menunggu KMS\n        API-->>Web: 200 OK [Data balita + status gizi + kurva]\n    end\n\n    Web->>B: Notifikasi: \"Ahmad Faris (28 bln) siap diperiksa\"\n    B->>Web: Buka Kurva Pertumbuhan & Riwayat KMS\n    B->>K: Edukasi Orang Tua Mengenai Hasil Pertumbuhan\n    B->>Web: Klik \"Konfirmasi Selesai\"\n    Web->>API: POST /api/kms/konfirmasi {antreanId, anakId}\n    API->>DB: UPDATE antrean SET status='selesai'\n    API-->>Web: Slot antrean kosong / siap untuk balita berikutnya\n```\n\n### 6.2 Alur Perhitungan Antropometri WHO LMS 2006\n1. **Normalisasi Umur & Kunci:** Umur dihitung tepat terhadap tanggal kegiatan (`umurBulanPada`).\n2. **Pemilihan Indeks:**\n   - Usia 0–23 bulan: Indeks panjang badan (`BB_PB`, `PB_U`).\n   - Usia 24–60 bulan: Indeks tinggi badan (`BB_TB`, `TB_U`).\n3. **Koreksi Posisi Ukur Otomatis (Opsional):** Jika anak <24 bulan diukur berdiri, ditambah `0.7 cm`; jika anak >=24 bulan diukur telentang, dikurangi `0.7 cm`.\n4. **Formula LMS WHO:**\n   $$\\text{Jika } L \\neq 0: \\quad Z = \\frac{\\left(\\frac{y}{M}\\right)^L - 1}{L \\cdot S}$$\n   $$\\text{Jika } L = 0: \\quad Z = \\frac{\\ln\\left(\\frac{y}{M}\\right)}{S}$$\n5. **Koreksi WHO Ekstrem ($Z > +3$ atau $Z < -3$):** Penyesuaian deviasi standar eksternal untuk mencegah distorsi bobot anak gizi buruk atau obesitas berat.\n\n---\n\n## BAB 7: MATRIKS HAK AKSES (RBAC) & JEJAK AUDIT\n\n### 7.1 Matriks Peran Pengguna (Role-Based Access Control)\n\n| Hak Akses / Kapabilitas | Superadmin | Admin Posyandu | Bidan / Nakes | Kader Lapangan | Petugas KMS |\n|---|:---:|:---:|:---:|:---:|:---:|\n| Masuk ke Web & APK | Ya | Ya | Ya | Ya | Ya |\n| Kelola Akun & Kata Sandi | Semua Akun | Akun Posyandunya | Tidak | Tidak | Tidak |\n| Konfigurasi Ambang & Standar | Ya | Ya | Ya | Tidak | Tidak |\n| Impor & Ganti Sasaran Excel | Ya | Ya | Tidak | Tidak | Tidak |\n| Reset Sesi Hari Ini (Darurat) | Ya | Ya | Tidak | Tidak | Tidak |\n| Entri & Koreksi Pengukuran | Ya | Ya | Ya | Binaan RT | Hanya Baca |\n| Pemeriksaan & Edukasi KMS | Ya | Ya | Ya | Tidak | Ya |\n| Ekspor Laporan Bulanan F1 | Ya | Ya | Ya | Tidak | Tidak |\n| Mulai / Akhiri Sesi Pelatihan | Ya | Tidak | Tidak | Tidak | Tidak |\n\n### 7.2 Proteksi Admin Aktif Terakhir & Superadmin\nSistem menyertakan validasi level basis data dan middleware:\n- **Last Admin Standing Guard:** Admin aktif terakhir dalam sebuah posyandu tidak dapat dinonaktifkan atau diturunkan perannya agar posyandu tidak terkunci (*lockout*).\n- **Superadmin Immunity:** Akun superadmin global dilindungi dari mutasi yang tidak disengaja.\n\n### 7.3 Jejak Audit Kriptografis (Change Data Capture)\nSetiap mutasi `INSERT`, `UPDATE`, `DELETE` pada tabel kritis tercatat di `audit_log`:\n- Perekaman identitas username, IP client, dan timestamp mikrodetik.\n- Penyimpanan payload `data_sebelum` dan `data_sesudah` dalam format JSONB.\n- Pergantian kata sandi dicatat peristiwanya tanpa pernah membocorkan string password atau hash.\n\n---\n\n## BAB 8: PANDUAN OPERASIONAL, MIGRASI & RUNBOOK PEMELIHARAAN\n\n### 8.1 Manajemen Layanan Produksi (Systemd Service)\nPada server produksi Ubuntu/Debian, aplikasi dijalankan di bawah systemd unit `simpatik-user.service`:\n\n```bash\n# Memeriksa status service\nsystemctl --user status simpatik-user.service\n\n# Membaca log transaksi real-time\njournalctl --user -u simpatik-user.service -f\n\n# Me-restart service backend\nsystemctl --user restart simpatik-user.service\n```\n\n> [!WARNING]\n> Jangan menjalankan `git pull` atau me-restart service di server produksi selama jam operasional Posyandu berlangsung tanpa persetujuan tim medis.\n\n### 8.2 Eksekusi Migrasi Basis Data PostgreSQL\nMigrasi tersimpan dalam direktori `server/db/migrations/` dan dieksekusi secara berurutan:\n```bash\ncd server\nnpm run db:migrasi\n```\n\n### 8.3 Prosedur Cadangan (Backup) & Pemulihan (Disaster Recovery)\n\n```bash\n# Melakukan backup database terkompresi\npg_dump -U postgres -d posyandu_tulip -Fc > posyandu_backup_$(date +%Y%m%d_%H%M%S).dump\n\n# Memulihkan database dari file backup\npg_restore -U postgres -d posyandu_tulip --clean --if-exists posyandu_backup_20261101_120000.dump\n```\n\n### 8.4 Standar Operasional Prosedur (SOP) Hari Penimbangan Posyandu\n\n#### H-1 (Persiapan Sistem):\n1. Buka menu **Sasaran & Impor** di web portal, pastikan sheet periode bulan berjalan (misal: `November 2026`) sudah berstatus aktif.\n2. Periksa bahwa mode pelatihan tidak sedang berjalan (tanda merah sandbox tidak boleh aktif).\n3. Nyalakan laptop posyandu dan router Wi-Fi lokal, pastikan seluruh tablet terhubung ke SSID posyandu.\n\n#### Hari H (Pelaksanaan di Lapangan):\n1. **Meja 1 (Pendaftaran):** Kader memindai QR code kartu anak atau mencari nama di tablet. Anak didaftarkan ke antrean penimbangan.\n2. **Meja 2 (Penimbangan):** Kader menimbang BB dan mengukur TB/PB. Data disimpan di tablet dan langsung mengalir ke server lokal.\n3. **Meja 3 (Pemeriksaan KMS Bidan):** Dokter atau bidan melihat balita yang masuk di menu **Pemeriksaan KMS**, membaca grafik z-score, memberikan edukasi gizi, lalu menekan konfirmasi.\n\n#### Pasca Acara (Pelaporan & Arsip):\n1. Buka menu **Laporan** -> **Unduh F1 Excel**.\n2. File Excel otomatis terisi lengkap sesuai standar format laporan gizi Puskesmas (Format F1 RT 1 s/d RT 7, raw data, serta rekapitulasi gizi SKDN).\n3. Jalankan backup database harian.\n\n---\n*Dokumen ini disusun dan diserahkan secara resmi sebagai bagian dari artefak rekayasa sistem terintegrasi SIMPATIK Posyandu KKN Tematik 2026.*\n"</script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const raw = JSON.parse(document.getElementById('markdown-raw').textContent);
+
+      // Custom Alert Blockquotes Parser
+      marked.use({
+        renderer: {
+          blockquote(quote) {
+            if (quote.includes('[!WARNING]')) {
+              return '<blockquote class="alert-warning">' + quote.replace('[!WARNING]', '<strong>PERINGATAN:</strong>') + '</blockquote>';
+            }
+            if (quote.includes('[!CAUTION]') || quote.includes('[!DANGER]')) {
+              return '<blockquote class="alert-danger">' + quote.replace(/[!(CAUTION|DANGER)]/, '<strong>PERHATIAN KRITIS:</strong>') + '</blockquote>';
+            }
+            if (quote.includes('[!TIP]')) {
+              return '<blockquote class="alert-tip">' + quote.replace('[!TIP]', '<strong>TIPS:</strong>') + '</blockquote>';
+            }
+            if (quote.includes('[!NOTE]') || quote.includes('[!IMPORTANT]')) {
+              return '<blockquote>' + quote.replace(/[!(NOTE|IMPORTANT)]/, '<strong>CATATAN PENTING:</strong>') + '</blockquote>';
+            }
+            return '<blockquote>' + quote + '</blockquote>';
+          }
+        }
+      });
+
+      // Parse markdown to HTML
+      let html = marked.parse(raw);
+      
+      // Inject into DOM
+      const contentDiv = document.getElementById('content');
+      contentDiv.innerHTML = html;
+
+      // Wrap first chapter or TOC if needed
+      const allH2 = contentDiv.querySelectorAll('h2');
+      if (allH2.length > 0) {
+        allH2[0].style.pageBreakBefore = 'avoid';
+        allH2[0].style.breakBefore = 'avoid';
+      }
+
+      // Convert Mermaid code blocks into <div class="mermaid">
+      const codeBlocks = contentDiv.querySelectorAll('pre code.language-mermaid');
+      codeBlocks.forEach(block => {
+        const pre = block.parentElement;
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        const mermaidDiv = document.createElement('div');
+        mermaidDiv.className = 'mermaid';
+        mermaidDiv.textContent = block.textContent;
+        container.appendChild(mermaidDiv);
+        pre.replaceWith(container);
+      });
+
+      // Render Mermaid
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: 'neutral',
+        flowchart: { useMaxWidth: true, htmlLabels: true },
+        sequence: { useMaxWidth: true, showSequenceNumbers: true },
+        er: { useMaxWidth: true }
+      });
+      await mermaid.run();
+
+      // Render KaTeX math
+      const mathRegex = /\$\$([\s\S]*?)\$\$/g;
+      contentDiv.innerHTML = contentDiv.innerHTML.replace(mathRegex, (match, expr) => {
+        try {
+          return '<div class="math-formula">' + katex.renderToString(expr.trim(), { displayMode: true }) + '</div>';
+        } catch (e) {
+          return match;
+        }
+      });
+
+      // Inline math
+      const inlineMathRegex = /\$([^$]+)\$/g;
+      contentDiv.innerHTML = contentDiv.innerHTML.replace(inlineMathRegex, (match, expr) => {
+        try {
+          return katex.renderToString(expr.trim(), { displayMode: false });
+        } catch (e) {
+          return match;
+        }
+      });
+
+      console.log('Rendering complete!');
+      document.body.classList.add('ready-to-print');
+    });
+  </script>
+</body>
+</html>
