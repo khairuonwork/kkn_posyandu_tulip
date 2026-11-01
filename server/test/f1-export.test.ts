@@ -110,9 +110,9 @@ describe('layanan F1', () => {
         };
 
         const wb = await workbookF1(data);
-        assert.ok(wb.getWorksheet('F1_2026-09'));
+        assert.ok(wb.getWorksheet('F1_SEPTEMBER 2026'));
         assert.ok(wb.getWorksheet('RAW DATA FOR F1_ALL'));
-        assert.ok(wb.getWorksheet('RAW DATA F1 RT01'));
+        assert.ok(wb.getWorksheet('RAW DATA FOR F1 RT1'));
 
         const buf = await wb.xlsx.writeBuffer();
         assert.ok(buf.byteLength > 10000);
