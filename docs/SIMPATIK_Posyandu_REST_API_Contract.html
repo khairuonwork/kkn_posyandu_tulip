@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>SPESIFIKASI KONTRAK REST API - SIMPATIK POSYANDU</title>
+  
+  <!-- CDN Dependencies -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+    @page {
+      size: A4 portrait;
+      margin: 18mm 16mm 20mm 16mm;
+      @top-right {
+        content: "SIMPATIK POSYANDU — SPESIFIKASI KONTRAK REST API";
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 8pt;
+        color: #64748b;
+      }
+      @bottom-left {
+        content: "Posyandu Tulip RW 18 · KKN Tematik 2026";
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 8pt;
+        color: #94a3b8;
+      }
+      @bottom-right {
+        content: "Halaman " counter(page);
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 8pt;
+        font-weight: 600;
+        color: #475569;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 9.5pt;
+      line-height: 1.55;
+      color: #1e293b;
+      background: #ffffff;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Cover Page */
+    .cover-page {
+      page-break-after: always;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 245mm;
+      padding: 18mm 12mm 12mm 12mm;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      position: relative;
+      background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 28%);
+    }
+
+    .cover-badge {
+      display: inline-block;
+      align-self: flex-start;
+      background: #047857;
+      color: #ffffff;
+      font-size: 8.5pt;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 9999px;
+      box-shadow: 0 2px 4px rgba(4, 120, 87, 0.2);
+    }
+
+    .cover-title {
+      font-size: 24pt;
+      font-weight: 800;
+      line-height: 1.15;
+      color: #064e3b;
+      margin: 20px 0 10px 0;
+      letter-spacing: -0.02em;
+    }
+
+    .cover-subtitle {
+      font-size: 12.5pt;
+      font-weight: 600;
+      color: #047857;
+      margin: 0 0 16px 0;
+      line-height: 1.4;
+    }
+
+    .cover-desc {
+      font-size: 9.5pt;
+      color: #475569;
+      max-width: 92%;
+      margin-bottom: 20px;
+      line-height: 1.55;
+    }
+
+    .cover-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 14px;
+      margin: 16px 0;
+    }
+
+    .meta-item {
+      font-size: 8.5pt;
+    }
+
+    .meta-label {
+      font-size: 7pt;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 700;
+      color: #64748b;
+      margin-bottom: 2px;
+    }
+
+    .meta-value {
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    .sign-box-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 24px;
+      padding-top: 18px;
+      border-top: 1px dashed #cbd5e1;
+    }
+
+    .sign-box {
+      text-align: center;
+      font-size: 7.8pt;
+      padding: 8px 6px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+    }
+
+    .sign-role {
+      font-weight: 700;
+      color: #334155;
+      min-height: 26px;
+    }
+
+    .sign-space {
+      height: 44px;
+    }
+
+    .sign-name {
+      font-weight: 600;
+      color: #0f172a;
+      border-top: 1px solid #94a3b8;
+      padding-top: 4px;
+      margin-top: 4px;
+    }
+
+    /* Headings */
+    h1 {
+      font-size: 17pt;
+      font-weight: 800;
+      color: #064e3b;
+      margin-top: 0;
+      margin-bottom: 14px;
+      letter-spacing: -0.02em;
+    }
+
+    h2 {
+      font-size: 13pt;
+      font-weight: 700;
+      color: #0f172a;
+      margin-top: 28px;
+      margin-bottom: 12px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid #059669;
+      page-break-before: always;
+      break-before: page;
+      letter-spacing: -0.01em;
+    }
+
+    .first-chapter h2 {
+      page-break-before: avoid !important;
+      break-before: avoid !important;
+    }
+
+    h3 {
+      font-size: 10.5pt;
+      font-weight: 700;
+      color: #1e293b;
+      margin-top: 18px;
+      margin-bottom: 8px;
+    }
+
+    h4 {
+      font-size: 9.5pt;
+      font-weight: 700;
+      color: #334155;
+      margin-top: 12px;
+      margin-bottom: 6px;
+    }
+
+    p {
+      margin-top: 0;
+      margin-bottom: 8px;
+      text-align: justify;
+    }
+
+    /* Lists */
+    ul, ol {
+      margin-top: 0;
+      margin-bottom: 10px;
+      padding-left: 20px;
+    }
+
+    li {
+      margin-bottom: 3px;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 8pt;
+      margin: 12px 0;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    th {
+      background: #0f172a;
+      color: #ffffff;
+      font-weight: 600;
+      text-align: left;
+      padding: 6px 8px;
+      border: 1px solid #1e293b;
+    }
+
+    td {
+      padding: 6px 8px;
+      border: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+
+    tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+
+    /* Code & Monospace */
+    code {
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      font-size: 7.8pt;
+      background: #f1f5f9;
+      color: #0f172a;
+      padding: 2px 4px;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+    }
+
+    pre {
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      font-size: 7.6pt;
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 10px 12px;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin: 10px 0;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      line-height: 1.4;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+    }
+
+    pre code {
+      background: transparent;
+      color: inherit;
+      padding: 0;
+      border: none;
+      font-size: inherit;
+    }
+
+    /* Blockquotes / Callouts */
+    blockquote {
+      margin: 12px 0;
+      padding: 8px 12px;
+      background: #f8fafc;
+      border-left: 4px solid #059669;
+      border-radius: 0 6px 6px 0;
+      color: #334155;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    /* Mermaid Diagrams */
+    .mermaid-container {
+      margin: 14px 0;
+      padding: 10px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      text-align: center;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .mermaid svg {
+      max-width: 100%;
+      height: auto;
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid #e2e8f0;
+      margin: 20px 0;
+    }
+
+    a {
+      color: #047857;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Cover Page -->
+  <div class="cover-page">
+    <div>
+      <span class="cover-badge">Dokumen Resmi Kontrak REST API & Request Routing</span>
+      <h1 class="cover-title">SPESIFIKASI KONTRAK REST API</h1>
+      <div class="cover-subtitle">SIMPATIK POSYANDU — Sistem Informasi Posyandu Terintegrasi dan Antropometri Digital</div>
+      <p class="cover-desc">
+        Dokumen spesifikasi teknis resmi arsitektur perangkat lunak SIMPATIK Posyandu. Disusun secara terperinci untuk referensi serah terima tim pengembang, panduan konfigurasi rute, pemetaan alur permintaan (request pipeline), serta pemeliharaan sistem jangka panjang.
+      </p>
+
+      <div class="cover-meta-grid">
+        
+          <div class="meta-item">
+            <div class="meta-label">Program & Wilayah</div>
+            <div class="meta-value">KKN Tematik 2026 — Posyandu Tulip RW 18</div>
+          </div>
+        
+          <div class="meta-item">
+            <div class="meta-label">Cakupan Endpoint</div>
+            <div class="meta-value">48 REST Endpoints (11 Domain Sistem)</div>
+          </div>
+        
+          <div class="meta-item">
+            <div class="meta-label">Skema Autentikasi</div>
+            <div class="meta-value">Dual-Auth (Cookie Sesi & Bearer Token)</div>
+          </div>
+        
+          <div class="meta-item">
+            <div class="meta-label">Standar Respons</div>
+            <div class="meta-value">JSON RFC 8259 + CDC Audit Trail</div>
+          </div>
+        
+      </div>
+    </div>
+
+    <div>
+      <div class="sign-box-grid">
+        
+          <div class="sign-box">
+            <div class="sign-role">Bidan / Pembina Teknis<br>Puskesmas Pembina</div>
+            <div class="sign-space"></div>
+            <div class="sign-name">Bidan Pembina Wilayah</div>
+          </div>
+        
+          <div class="sign-box">
+            <div class="sign-role">Ketua Posyandu<br>Posyandu Tulip RW 18</div>
+            <div class="sign-space"></div>
+            <div class="sign-name">Sri Mindarti</div>
+          </div>
+        
+          <div class="sign-box">
+            <div class="sign-role">Koordinator Pengembang<br>Tim IT KKN Tematik 2026</div>
+            <div class="sign-space"></div>
+            <div class="sign-name">Tim Rekayasa Sistem</div>
+          </div>
+        
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Container rendered by Marked -->
+  <div id="content"></div>
+
+  <script id="markdown-raw" type="text/plain">"# DOKUMEN SPESIFIKASI KONTRAK REST API\n## SIMPATIK POSYANDU (Sistem Informasi Posyandu Terintegrasi dan Antropometri Digital)\n**Program KKN Tematik 2026 — Posyandu Tulip RW 18**\n*Versi Dokumen: 2.1-Final · Tanggal: 1 November 2026 · Klasifikasi: Spesifikasi Teknis Terbuka*\n\n---\n\n## DAFTAR ISI\n1. [BAB 1: Arsitektur Komunikasi & Standar Global REST API](#bab-1-arsitektur-komunikasi--standar-global-rest-api)\n2. [BAB 2: Jalur Autentikasi, Sesi & Penjaga Akses (Middleware)](#bab-2-jalur-autentikasi-sesi--penjaga-akses-middleware)\n3. [BAB 3: Katalog Lengkap REST API per Domain](#bab-3-katalog-lengkap-rest-api-per-domain)\n   - [3.1 Autentikasi & Akun Pengguna](#31-autentikasi--akun-pengguna)\n   - [3.2 Telemetri Perangkat & Sinkronisasi Mesh](#32-telemetri-perangkat--sinkronisasi-mesh)\n   - [3.3 Master Data Balita & Penimbangan](#33-master-data-balita--penimbangan)\n   - [3.4 Antrean & Pemeriksaan KMS Real-Time](#34-antrean--pemeriksaan-kms-real-time)\n   - [3.5 Lembar Hasil Digital Orang Tua](#35-lembar-hasil-digital-orang-tua)\n   - [3.6 Pendampingan Buku KIA 2024](#36-pendampingan-buku-kia-2024)\n   - [3.7 Sasaran Layanan & Impor Excel Puskesmas](#37-sasaran-layanan--impor-excel-puskesmas)\n   - [3.8 Laporan SKDN & Ekspor Puskesmas F1](#38-laporan-skdn--ekspor-puskesmas-f1)\n   - [3.9 Dasbor Eksekutif & Jadwal Hari-H](#39-dasbor-eksekutif--jadwal-hari-h)\n   - [3.10 Manajemen Pengguna & Hak Akses](#310-manajemen-pengguna--hak-akses)\n   - [3.11 Mesin Sesi Pelatihan (Sandbox Isolation)](#311-mesin-sesi-pelatihan-sandbox-isolation)\n4. [BAB 4: Matriks Pemetaan Pemanggil (Request Origin Mapping)](#bab-4-matriks-pemetaan-pemanggil-request-origin-mapping)\n5. [BAB 5: Konfigurasi Jaringan & Alur Permintaan (Request Pipeline)](#bab-5-konfigurasi-jaringan--alur-permintaan-request-pipeline)\n\n---\n\n## BAB 1: ARSITEKTUR KOMUNIKASI & STANDAR GLOBAL REST API\n\n### 1.1 Format Data & Protokol\nSeluruh pertukaran data pada REST API SIMPATIK Posyandu menggunakan format JSON murni (`application/json`) dengan pengkodean karakter `UTF-8`.\n- **Base Paths:**\n  - `/api`: Rute tingkat portal dan autentikasi sesi peramban (`cookie-based`).\n  - `/api/v1`: Rute berversi yang melayani Web Portal dan Aplikasi Tablet Android (`token-based` & `cookie-based`).\n- **Aturan Pembatasan Body Parser:**\n  - Batas payload JSON adalah `4MB` (`express.json({ limit: \"4mb\" })`) untuk mengakomodasi pengunggahan berkas Excel sasaran bulanan yang di-encode sebagai Base64.\n- **Standar Tanggal & Waktu:**\n  - Semua stempel waktu (*timestamp*) menggunakan standar ISO 8601 UTC (`YYYY-MM-DDTHH:mm:ss.sssZ`).\n  - Tanggal kegiatan posyandu menggunakan format kalender standar (`YYYY-MM-DD`).\n  - Periode posyandu menggunakan format tahun-bulan (`YYYY-MM`).\n\n### 1.2 Format Respons Galat Standar (Standard Error Response)\nJika terjadi kegagalan validasi atau kesalahan server, API selalu mengembalikan struktur respons terpadu:\n```json\n{\n  \"galat\": \"Pesan deskripsi kesalahan yang mudah dipahami manusia\"\n}\n```\n\n### 1.3 Kode Status HTTP (HTTP Status Codes)\n| Kode Status | Makna Teknis | Penggunaan dalam Sistem SIMPATIK |\n|---|---|---|\n| `200 OK` | Permintaan berhasil | Permintaan baca (`GET`) atau mutasi sukses (`POST`, `PATCH`, `PUT`). |\n| `201 Created` | Sumber daya baru terbentuk | Balita baru terdaftar, penimbangan tercatat, sesi latihan dimulai. |\n| `204 No Content` | Berhasil tanpa konten balik | Keluar sesi (`/api/keluar`), pra-pemeriksaan CORS OPTIONS. |\n| `400 Bad Request` | Validasi input gagal | Format NIK tidak valid, parameter query salah, tanggal salah. |\n| `401 Unauthorized` | Belum terotentikasi | Cookie sesi kosong, token Bearer kedaluwarsa atau salah. |\n| `403 Forbidden` | Izin peran tidak cukup | Kader mencoba mengimpor sasaran atau membuka menu pengaturan. |\n| `404 Not Found` | Data tidak ditemukan | ID balita, ID antrean, atau token lembar tidak ada di database. |\n| `409 Conflict` | Konflik integritas data | Akun belum terikat posyandu, antrean belum menunggu KMS. |\n| `429 Too Many Requests` | Batas laju tercapai | Rate limit brute-force kata sandi terpicu (header `Retry-After`). |\n| `500 Server Error` | Galat internal server | Kegagalan basis data PostgreSQL yang tidak terduga. |\n| `503 Service Unavailable` | Layanan belum aktif | Sesi pelatihan belum diaktifkan oleh pengelola sistem. |\n\n---\n\n## BAB 2: JALUR AUTENTIKASI, SESI & PENJAGA AKSES (MIDDLEWARE)\n\nSistem menggunakan arsitektur autentikasi ganda (*Dual-Authentication Scheme*) untuk melayani dua jenis klien:\n\n```\n[ KLIEN WEB BROWSER ]                    [ KLIEN TABLET ANDROID ]\n        |                                           |\n  POST /api/masuk                             POST /api/v1/masuk\n        |                                           |\n  (Set-Cookie: sesi=...)                      (Response: { token: \"...\" })\n        |                                           |\n  Header: Cookie                              Header: Authorization: Bearer <token>\n        \\                                           /\n         +--------------------+--------------------+\n                              |\n                      [ sesiMiddleware ]\n                              |\n               Cek Token di Tabel `sesi` (PostgreSQL)\n                              |\n                     req.pengguna Terisi\n                              |\n                +-------------+-------------+\n                |                           |\n         [ wajibMasuk ]             [ wajibBoleh(...) ]\n         (Cek Autentikasi)           (Cek Hak Akses RBAC)\n```\n\n### 2.1 Mekanisme Klien Web Browser\n1. Petugas memasukkan kredensial pada `/api/masuk`.\n2. Backend memvalidasi hash `scrypt` dan membuat string acak 32-byte kriptografis.\n3. Token disimpan pada tabel `sesi` dan dikirimkan via header HTTP:\n   `Set-Cookie: sesi=<token>; Path=/api; HttpOnly; SameSite=Lax; Secure`\n4. Browser secara otomatis menyertakan cookie ini pada setiap request berikutnya ke `/api/*`.\n\n### 2.2 Mekanisme Klien Tablet Android\n1. Kader memasukkan username dan PIN/kata sandi pada `/api/v1/masuk`.\n2. Backend mengembalikan JSON berisi `token` dan waktu kedaluwarsa `kedaluwarsa`.\n3. Tablet Android menyimpan token pada `EncryptedSharedPreferences` dan menyertakannya pada header:\n   `Authorization: Bearer <token>`\n   `X-SIMpatik-Device-Id: <UUID_Perangkat>`\n\n### 2.3 Rantai Middleware Penjaga Akses (Route Guards)\n* `wajibMasuk`: Memastikan `req.pengguna` ada. Jika tidak ada, mengembalikan status `401 Unauthorized`.\n* `wajibBoleh(izin)`: Menegakkan izin RBAC granular (misal: `lihat-anak`, `catat-pengukuran-lapangan`, `lihat-kms`, `konfirmasi-kms`, `kelola-akun`, `jalankan-impor`).\n* `lingkupPelatihan`: Mengalihkan pool koneksi basis data ke skema `latihan_<uuid>` jika header `X-Mode-Pelatihan: 1` dikirimkan atau sesi latihan global sedang aktif.\n\n---\n\n## BAB 3: KATALOG LENGKAP REST API PER DOMAIN\n\n---\n\n### 3.1 Autentikasi & Akun Pengguna\n\n#### `POST /api/masuk`\n* **Fungsi:** Masuk sesi untuk pengguna Web Portal.\n* **Izin Akses:** Publik (Tanpa Autentikasi).\n* **Asal Pemanggil:** Web Login Screen (`pages/auth/login.tsx`).\n* **Request Body:**\n  ```json\n  {\n    \"username\": \"kader_tulip1\",\n    \"kataSandi\": \"rahasia123\"\n  }\n  ```\n* **Respons `200 OK`:**\n  Memasang cookie `sesi`.\n  ```json\n  {\n    \"pengguna\": {\n      \"id\": 12,\n      \"username\": \"kader_tulip1\",\n      \"nama\": \"Siti Rahmawati\",\n      \"peran\": \"kader\",\n      \"rt\": \"01\",\n      \"rw\": \"18\",\n      \"posyanduNama\": \"Posyandu Tulip\",\n      \"superAdmin\": false\n    }\n  }\n  ```\n* **Respons Galat:** `400` (Data tidak lengkap), `401` (Kata sandi salah), `429` (Terkena pembatas laju percobaan).\n\n#### `POST /api/v1/masuk`\n* **Fungsi:** Masuk sesi untuk Aplikasi Tablet Android.\n* **Izin Akses:** Publik.\n* **Asal Pemanggil:** Tablet Login Screen Android.\n* **Request Body:** Sama dengan `/api/masuk`.\n* **Respons `200 OK`:**\n  ```json\n  {\n    \"token\": \"a8f3b9c1d2e4...32bytesHex\",\n    \"kedaluwarsa\": \"2026-11-02T18:00:00.000Z\",\n    \"pengguna\": {\n      \"id\": 12,\n      \"username\": \"kader_tulip1\",\n      \"nama\": \"Siti Rahmawati\",\n      \"peran\": \"kader\",\n      \"rt\": \"01\",\n      \"rw\": \"18\",\n      \"posyanduNama\": \"Posyandu Tulip\"\n    }\n  }\n  ```\n\n#### `POST /api/keluar`\n* **Fungsi:** Mengakhiri sesi Web Portal dan menghapus cookie.\n* **Izin Akses:** Publik (Idempoten).\n* **Asal Pemanggil:** Web Sidebar Footer (`KartuAkun` tombol keluar).\n* **Respons `204 No Content`**\n\n#### `POST /api/v1/keluar`\n* **Fungsi:** Mengakhiri sesi tablet dan mencabut token di database.\n* **Izin Akses:** `wajibMasuk`.\n* **Asal Pemanggil:** Pengaturan Akun Tablet.\n* **Respons `204 No Content`**\n\n#### `GET /api/saya`\n* **Fungsi:** Validasi status aktif sesi saat ini dan mengambil profil pengguna.\n* **Izin Akses:** `wajibMasuk`.\n* **Asal Pemanggil:** App Bootstrap Web (`useSesi` hook).\n* **Respons `200 OK`:**\n  ```json\n  {\n    \"pengguna\": {\n      \"id\": 12,\n      \"username\": \"kader_tulip1\",\n      \"nama\": \"Siti Rahmawati\",\n      \"peran\": \"kader\",\n      \"rt\": \"01\",\n      \"rw\": \"18\",\n      \"posyanduNama\": \"Posyandu Tulip\",\n      \"superAdmin\": false\n    }\n  }\n  ```\n\n---\n\n### 3.2 Telemetri Perangkat & Sinkronisasi Mesh\n\n#### `GET /api/v1/kesehatan`\n* **Fungsi:** Cek konektivitas jalur PC/Server -> PostgreSQL sebelum kader masuk.\n* **Izin Akses:** Publik.\n* **Asal Pemanggil:** Android Network Check & Diagnostic Ping.\n* **Respons `200 OK`:**\n  ```json\n  {\n    \"status\": \"siap\",\n    \"database\": \"terhubung\",\n    \"waktuServer\": \"2026-11-01T18:06:11.000Z\"\n  }\n  ```\n\n#### `POST /api/v1/heartbeat`\n* **Fungsi:** Mengirim laporan status kesehatan tablet (baterai, antrean tertahan, versi APK).\n* **Izin Akses:** `wajibMasuk`.\n* **Asal Pemanggil:** Android Background Sync Service (setiap 30-60 detik) & Web Heartbeat.\n* **Request Body:**\n  ```json\n  {\n    \"perangkatId\": \"tablet-kader-rt01\",\n    \"tipe\": \"android\",\n    \"baterai\": 85,\n    \"tertahan\": 0,\n    \"versi\": \"2.1.0\"\n  }\n  ```\n* **Respons `200 OK`:** `{\"ok\": true, \"status\": \"terhubung\", \"waktuServer\": \"...\"}`\n\n#### `GET /api/v1/perangkat-terhubung`\n* **Fungsi:** Mendapatkan daftar perangkat tablet aktif dalam 5 menit terakhir di Posyandu ini.\n* **Izin Akses:** `wajibBoleh('lihat-anak')`.\n* **Asal Pemanggil:** Komponen `StatusTablet` di sidebar kiri bawah Web.\n* **Respons `200 OK`:**\n  ```json\n  [\n    {\n      \"perangkatId\": \"tablet-kader-rt01\",\n      \"tipe\": \"android\",\n      \"online\": true,\n      \"baterai\": 85,\n      \"tertahan\": 0,\n      \"terakhirDilihat\": \"2026-11-01T18:05:40.000Z\",\n      \"username\": \"kader_tulip1\"\n    }\n  ]\n  ```\n\n#### `GET /api/v1/cluster-context`\n* **Fungsi:** Menyediakan kunci enkripsi komunikasi peer-to-peer (P2P) antar-tablet di LAN.\n* **Izin Akses:** `wajibMasuk`.\n* **Asal Pemanggil:** Inisialisasi Sinkronisasi Mesh Tablet Android.\n* **Respons `200 OK`:**\n  ```json\n  {\n    \"workspaceId\": \"posyandu:1\",\n    \"posyanduId\": 1,\n    \"namaPosyandu\": \"Posyandu Tulip\",\n    \"rw\": \"18\",\n    \"clusterKey\": \"c3f87a912e8b...\",\n    \"keyVersion\": 1\n  }\n  ```\n\n---\n\n### 3.3 Master Data Balita & Penimbangan\n\n#### `GET /api/v1/anak`\n* **Fungsi:** Menampilkan daftar balita dengan riwayat status gizi terakhir.\n* **Izin Akses:** `wajibBoleh('lihat-anak')`.\n* **Asal Pemanggil:** Halaman Daftar Balita (`pages/anak/index.tsx`).\n* **Query Params:**\n  - `periode` (opsional): `2026-10`\n  - `cari` (opsional): Nama balita atau NIK\n  - `halaman` (opsional): Nomor halaman\n  - `ukuran` (opsional): Jumlah item per halaman (default 50)\n* **Respons `200 OK`:**\n  ```json\n  {\n    \"items\": [\n      {\n        \"anakId\": 101,\n        \"nama\": \"Ahmad Faris\",\n        \"nik\": \"3201012304210001\",\n        \"nikLengkap\": true,\n        \"jk\": \"L\",\n        \"umurBulan\": 28,\n        \"rt\": \"01\",\n        \"namaOrtu\": \"Nurul\",\n        \"tanggalUkurTerakhir\": \"2026-10-09\",\n        \"kategoriGizi\": \"Gizi baik\",\n        \"perluPerhatian\": false,\n        \"risikoLahir\": null,\n        \"bbKg\": 12.4,\n        \"tinggiCm\": 89.5\n      }\n    ],\n    \"total\": 92\n  }\n  ```\n\n#### `POST /api/v1/anak`\n* **Fungsi:** Mendaftarkan balita baru dari meja pendaftaran lapangan atau web.\n* **Izin Akses:** `wajibBoleh('daftar-anak-lapangan')`.\n* **Asal Pemanggil:** Dialog Form Tambah Anak (`pages/anak/daftar/form-tambah.tsx`) & Form Pendaftaran Tablet.\n* **Request Body:**\n  ```json\n  {\n    \"nama\": \"Muhammad Rizky\",\n    \"nik\": \"3201010908240002\",\n    \"tglLahir\": \"2024-08-09\",\n    \"jk\": \"L\",\n    \"rt\": \"02\",\n    \"namaOrtu\": \"Dewi Sartika\",\n    \"nikOrtu\": \"3201015506920001\",\n    \"hp\": \"081234567890\",\n    \"bukuKia\": true,\n    \"bbLahirKg\": 3.2\n  }\n  ```\n* **Respons `201 Created`:** `{\"anak\": { \"id\": 105, \"nama\": \"Muhammad Rizky\", ... }}`\n\n#### `GET /api/v1/anak/:id`\n* **Fungsi:** Mengambil data spesifik balita, riwayat pengukuran lintas bulan, dan kurva WHO.\n* **Izin Akses:** `wajibBoleh('lihat-anak')`.\n* **Asal Pemanggil:** Halaman Detail Balita (`pages/anak/show.tsx`).\n* **Query Params:** `periode` (opsional)\n* **Respons `200 OK`:** Objek profil anak dan seluruh riwayat pengukurannya.\n\n#### `PATCH /api/v1/anak/:id`\n* **Fungsi:** Memperbarui data demografi balita (nama, NIK, RT, orang tua, status buku KIA).\n* **Izin Akses:** `wajibBoleh('ubah-anak')`.\n* **Asal Pemanggil:** Dialog Ubah Profil (`pages/anak/detail/dialog-ubah.tsx`).\n* **Request Body:** Partial object field anak yang diubah.\n* **Respons `200 OK`:** `{\"hasil\": { \"id\": 101, ... }}`\n\n#### `POST /api/v1/pengukuran`\n* **Fungsi:** Menyimpan hasil penimbangan dan pengukuran fisik balita.\n* **Izin Akses:** `wajibBoleh('catat-pengukuran-lapangan')`.\n* **Asal Pemanggil:** Tablet Pengukuran Meja 2 Android & Form Entri Pengukuran Web.\n* **Logika Backend:**\n  1. Menghitung umur bulan presisi pada tanggal ukur.\n  2. Mengeksekusi engine antropometri WHO LMS 2006 (z-score BB/U, TB/U, BB/TB, IMT/U).\n  3. Menentukan status N/T/O/B dibandingkan bulan sebelumnya.\n  4. Menyimpan catatan ke tabel `pengukuran`.\n  5. Memperbarui status antrean menjadi `kms_review` agar balita langsung muncul di layar Bidan.\n* **Request Body:**\n  ```json\n  {\n    \"anakId\": 101,\n    \"periodeId\": \"2026-10\",\n    \"tanggalUkur\": \"2026-10-09\",\n    \"bbKg\": 12.4,\n    \"tinggiCm\": 89.5,\n    \"caraUkur\": \"berdiri\",\n    \"lilaCm\": 15.2,\n    \"likaCm\": 47.5,\n    \"asiEksklusif\": true,\n    \"statusKehadiran\": \"hadir\"\n  }\n  ```\n* **Respons `201 Created`:**\n  ```json\n  {\n    \"pengukuran\": {\n      \"id\": 450,\n      \"anakId\": 101,\n      \"zScore\": { \"bbU\": -0.45, \"tbU\": -0.65, \"bbTb\": 0.12 },\n      \"kategori\": { \"bbU\": \"Normal\", \"tbU\": \"Normal\", \"bbTb\": \"Gizi baik\" },\n      \"ntob\": \"N\"\n    }\n  }\n  ```\n\n#### `GET /api/v1/sinkronisasi`\n* **Fungsi:** Menyediakan dump data lengkap master anak dan standar antropometri untuk cache offline tablet Android.\n* **Izin Akses:** `wajibBoleh('lihat-anak')`.\n* **Asal Pemanggil:** Sinkronisasi Awal Tablet Android.\n* **Respons `200 OK`:** Objek master anak, standar LMS WHO, dan daftar sasaran bulan berjalan.\n\n---\n\n### 3.4 Antrean & Pemeriksaan KMS Real-Time\n\n#### `GET /api/v1/antrean`\n* **Fungsi:** Mengambil daftar antrean penimbangan dan antrean pemeriksaan KMS hari ini.\n* **Izin Akses:** `wajibBoleh('lihat-anak')`.\n* **Asal Pemanggil:** Layar KMS Bidan (`pages/kms/index.tsx` dipolling tiap 3 detik) & Layar Antrean Tablet.\n* **Query Params:**\n  - `periodeId`: `2026-10` (format YYYY-MM untuk web, integer untuk tablet)\n  - `tanggal`: `2026-10-09`\n* **Respons `200 OK`:**\n  ```json\n  {\n    \"items\": [\n      {\n        \"id\": \"antrean_20261009_1\",\n        \"nomorAntrean\": 1,\n        \"sasaranId\": 88,\n        \"anakId\": 101,\n        \"nama\": \"Ahmad Faris\",\n        \"status\": \"kms_review\",\n        \"bbKg\": 12.4,\n        \"tinggiCm\": 89.5,\n        \"kategoriBbTb\": \"Gizi baik\",\n        \"catatan\": null\n      }\n    ]\n  }\n  ```\n\n#### `POST /api/v1/antrean`\n* **Fungsi:** Check-in balita ke antrean hari ini (biasanya saat memindai kartu QR di Meja 1).\n* **Izin Akses:** `wajibBoleh('catat-pengukuran-lapangan')`.\n* **Asal Pemanggil:** Scanner QR Tablet Meja 1 Pendaftaran.\n* **Request Body:**\n  ```json\n  {\n    \"periodeId\": 15,\n    \"sasaranId\": 88,\n    \"tanggal\": \"2026-10-09\",\n    \"catatan\": \"Keluarga baru pindah\"\n  }\n  ```\n* **Respons `201 Created`:** Objek item antrean dengan nomor urut yang digenerate otomatis.\n\n#### `PATCH /api/v1/antrean/:id`\n* **Fungsi:** Memperbarui status antrean (`waiting`, `called`, `serving`, `kms_review`, `done`, `cancelled`).\n* **Izin Akses:** `wajibBoleh('catat-pengukuran-lapangan')`.\n* **Asal Pemanggil:** Kontrol Antrean Tablet Android.\n* **Request Body:**\n  ```json\n  {\n    \"status\": \"serving\"\n  }\n  ```\n* **Respons `200 OK`:** Objek antrean terbarui.\n\n#### `POST /api/v1/antrean/:id/konfirmasi-kms`\n* **Fungsi:** Dokter atau Bidan mengonfirmasi edukasi KMS balita selesai; memindahkan antrean ke status `done`.\n* **Izin Akses:** `wajibBoleh(['konfirmasi-kms', 'catat-pengukuran-lapangan'])`.\n* **Asal Pemanggil:** Tombol \"Konfirmasi Selesai\" di Layar KMS Web Bidan (`pages/kms/index.tsx`).\n* **Respons `200 OK`:** Objek antrean terbarui dengan status `done`.\n\n#### `POST /api/v1/antrean/konfirmasi-semua-kms`\n* **Fungsi:** Tindakan batch untuk menyelesaikan seluruh sisa balita di antrean KMS secara serentak di akhir acara.\n* **Izin Akses:** `wajibBoleh(['konfirmasi-kms', 'catat-pengukuran-lapangan'])`.\n* **Asal Pemanggil:** Tombol \"Konfirmasi Semua\" di Layar KMS Web.\n* **Request Body:** `{\"periodeId\": 15, \"tanggal\": \"2026-10-09\"}`\n* **Respons `200 OK`:** `{\"ok\": true, \"jumlah\": 8}`\n\n---\n\n### 3.5 Lembar Hasil Digital Orang Tua\n\n#### `POST /api/v1/lembar`\n* **Fungsi:** Membuat tautan publik digital berenkripsi yang aman untuk dibagikan ke WhatsApp orang tua.\n* **Izin Akses:** `wajibBoleh('lihat-kms')`.\n* **Asal Pemanggil:** Dialog Kirim WhatsApp (`components/dialog-kirim-wa.tsx`) & Tab Status Detail Anak.\n* **Request Body:**\n  ```json\n  {\n    \"anakId\": 101,\n    \"periodeId\": \"2026-10\"\n  }\n  ```\n* **Respons `201 Created`:**\n  ```json\n  {\n    \"token\": \"7b8e9a21c4...400chars\",\n    \"tautan\": \"https://posyandu-tulip.rw18.id/#/hasil/7b8e9a21c4...\"\n  }\n  ```\n\n#### `GET /api/v1/lembar/:token`\n* **Fungsi:** Menampilkan lembar KMS digital resmi untuk dibaca oleh orang tua di ponsel pribadi.\n* **Izin Akses:** Publik (Tanpa Autentikasi).\n* **Header Keamanan:** `Cache-Control: no-store`, `Referrer-Policy: no-referrer`, `X-Robots-Tag: noindex, nofollow`.\n* **Asal Pemanggil:** Halaman Publik Lembar Hasil (`pages/hasil/lembar.tsx`).\n* **Respons `200 OK`:** Data lengkap nama balita, tanggal penimbangan, berat badan, tinggi badan, vonis status gizi bahasa awam, dan panduan gizi seimbang KIA.\n\n---\n\n### 3.6 Pendampingan Buku KIA 2024\n\n#### `GET /api/v1/anak/:id/pendampingan-kia`\n* **Fungsi:** Mengambil status verifikasi pengisian buku KIA (kepatuhan imunisasi, vitamin A, obat cacing, stimulasi motorik).\n* **Izin Akses:** `wajibBoleh('lihat-anak')`.\n* **Asal Pemanggil:** Dialog Pendampingan KIA (`components/pendampingan-kia.tsx`).\n* **Respons `200 OK`:** Checklist instrumen panduan keluarga KIA 2024.\n\n#### `POST /api/v1/anak/:id/pendampingan-kia`\n* **Fungsi:** Menyimpan hasil diskusi dan evaluasi buku KIA balita bulan ini.\n* **Izin Akses:** `wajibBoleh('catat-survei-kia')`.\n* **Asal Pemanggil:** Dialog Pendampingan KIA (`components/pendampingan-kia.tsx`).\n* **Request Body:** Objek kuesioner KIA (skor stimulasi, kepemilikan buku KIA, pemberian vitamin A/oralit).\n* **Respons `200 OK`:** `{\"sukses\": true, \"dicatatPada\": \"...\"}`\n\n---\n\n### 3.7 Sasaran Layanan & Impor Excel Puskesmas\n\n#### `GET /api/v1/sasaran/periode`\n* **Fungsi:** Mengambil daftar seluruh periode sasaran yang tercatat di sistem (misal: `2026-10`, `2026-09`).\n* **Izin Akses:** `wajibBoleh('lihat-anak')`.\n* **Asal Pemanggil:** Dropdown filter periode global (`FilterPeriode`).\n* **Respons `200 OK`:** Array metadata periode dan tanggal kegiatan.\n\n#### `GET /api/v1/sasaran`\n* **Fungsi:** Mengambil daftar balita yang menjadi target timbang pada periode aktif beserta status layanannya.\n* **Izin Akses:** `wajibBoleh('lihat-anak')`.\n* **Asal Pemanggil:** Tabel Sasaran Web (`pages/sasaran/komponen/tabel-sasaran.tsx`).\n* **Query Params:** `periode` (opsional, contoh: `2026-10`)\n* **Respons `200 OK`:** Array balita sasaran, status penimbangan (sudah diukur / belum), dan keterangan.\n\n#### `GET /api/v1/sasaran/calon-anak`\n* **Fungsi:** Mencari balita yang sudah terdaftar di master database tetapi belum dimasukkan ke sasaran bulan ini.\n* **Izin Akses:** `wajibBoleh('lihat-anak')`.\n* **Asal Pemanggil:** Dialog Tambah Sasaran Manual (`pages/sasaran/komponen/dialog-tambah-sasaran.tsx`).\n* **Query Params:** `periodeId`, `cari`\n* **Respons `200 OK`:** Daftar rekomendasi balita.\n\n#### `POST /api/v1/sasaran/manual`\n* **Fungsi:** Menambahkan satu anak ke daftar sasaran bulan berjalan tanpa impor file.\n* **Izin Akses:** `wajibBoleh('jalankan-impor')`.\n* **Asal Pemanggil:** Dialog Tambah Sasaran Manual.\n* **Request Body:** `{\"periodeId\": \"2026-10\", \"anakId\": 101, \"catatan\": \"Pindahan baru\"}`\n* **Respons `201 Created`:** Objek sasaran baru.\n\n#### `PATCH /api/v1/sasaran/:id`\n* **Fungsi:** Mengubah status layanan atau catatan kehadiran sasaran (misal: pindah RT, sakit).\n* **Izin Akses:** `wajibBoleh('jalankan-impor')`.\n* **Asal Pemanggil:** Dialog Edit Sasaran (`pages/sasaran/komponen/dialog-edit-sasaran.tsx`).\n* **Respons `200 OK`:** Objek sasaran terbarui.\n\n#### `POST /api/v1/sasaran/pratinjau`\n* **Fungsi:** Memindai dan mem-parsing berkas Excel `.xlsx` yang diunggah oleh kader sebelum dilakukan impor permanen.\n* **Izin Akses:** `wajibBoleh('jalankan-impor')`.\n* **Asal Pemanggil:** Panel Impor Excel (`pages/sasaran/komponen/panel-impor.tsx`).\n* **Request Body:**\n  ```json\n  {\n    \"namaBerkas\": \"Sasaran_Posyandu_Oktober2026.xlsx\",\n    \"berkasBase64\": \"UEsDBBQAAAAIA...\"\n  }\n  ```\n* **Respons `200 OK`:**\n  ```json\n  {\n    \"daftarSheet\": [\n      {\n        \"namaSheet\": \"Oktober 2026\",\n        \"periode\": \"2026-10\",\n        \"jumlahBaris\": 92,\n        \"siapImpor\": 92,\n        \"duplikat\": 0\n      }\n    ]\n  }\n  ```\n\n#### `POST /api/v1/sasaran/impor`\n* **Fungsi:** Mengeksekusi penulisan sasaran bulanan dari sheet Excel yang dipilih ke database PostgreSQL.\n* **Izin Akses:** `wajibBoleh('jalankan-impor')`.\n* **Asal Pemanggil:** Panel Impor Excel.\n* **Request Body:**\n  ```json\n  {\n    \"namaBerkas\": \"Sasaran_Posyandu_Oktober2026.xlsx\",\n    \"berkasBase64\": \"UEsDBBQAAAAIA...\",\n    \"namaSheet\": \"Oktober 2026\"\n  }\n  ```\n* **Respons `201 Created`:** `{\"hasil\": { \"jumlahDiproses\": 92, \"anakBaru\": 2, \"anakDiperbarui\": 90 }}`\n\n#### `POST /api/v1/sasaran/tutup-sesi`\n* **Fungsi:** Menandai sesi posyandu bulan ini telah resmi ditutup; membekukan perubahan antrean.\n* **Izin Akses:** `wajibBoleh('selesaikan-sesi-lapangan')`.\n* **Asal Pemanggil:** Tombol \"Tutup Sesi Bulan Ini\" di Web Sasaran.\n* **Request Body:** `{\"periodeId\": \"2026-10\"}`\n* **Respons `200 OK`:** `{\"hasil\": { \"status\": \"ditutup\", \"waktuTutup\": \"...\" }}`\n\n#### `GET /api/v1/sasaran/reset-hari-ini`\n* **Fungsi:** Menghitung jumlah pengukuran dan antrean yang dibuat pada hari ini sebagai pratinjau tindakan darurat.\n* **Izin Akses:** `wajibBoleh('hapus-data')`.\n* **Asal Pemanggil:** Dialog Reset Data Hari Ini (`pages/sasaran/komponen/dialog-reset-sasaran.tsx`).\n* **Query Params:** `periodeId`\n* **Respons `200 OK`:** `{\"jumlahPengukuran\": 14, \"jumlahAntrean\": 14}`\n\n#### `POST /api/v1/sasaran/reset-hari-ini`\n* **Fungsi:** Menghapus seluruh penimbangan dan antrean yang tercatat pada hari ini jika terjadi kekeliruan fatal operasional.\n* **Izin Akses:** `wajibBoleh('hapus-data')`.\n* **Asal Pemanggil:** Dialog Reset Data Hari Ini.\n* **Request Body:**\n  ```json\n  {\n    \"periodeId\": \"2026-10\",\n    \"konfirmasi\": \"RESET HARI INI\"\n  }\n  ```\n* **Respons `200 OK`:** `{\"hasil\": { \"dihapus\": true, \"jumlahPengukuranDihapus\": 14 }}`\n\n---\n\n### 3.8 Laporan SKDN & Ekspor Puskesmas F1\n\n#### `GET /api/v1/laporan`\n* **Fungsi:** Menghasilkan rekapitulasi indikator SKDN (Sasaran, KMS, Ditimbang, Naik BB) dan sebaran status gizi balita.\n* **Izin Akses:** `wajibBoleh('lihat-rekap')`.\n* **Asal Pemanggil:** Halaman Laporan Web (`pages/laporan/index.tsx`).\n* **Query Params:** `periode` (`YYYY-MM`)\n* **Respons `200 OK`:** Objek ringkasan indikator SKDN, tabel per RT, dan sebaran gizi stunting/wasting.\n\n#### `GET /api/v1/laporan/unduh`\n* **Fungsi:** Mengunduh file Excel ringkasan rekapitulasi posyandu internal.\n* **Izin Akses:** `wajibBoleh('unduh-rekap')`.\n* **Asal Pemanggil:** Tombol \"Unduh Rekap Bulanan\" di Halaman Laporan.\n* **Format Output:** Binary Stream `.xlsx` (`application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`).\n\n#### `GET /api/v1/laporan/f1/unduh`\n* **Fungsi:** Mengunduh buku kerja Excel resmi Format F1 Puskesmas Pembina (terdiri dari Sheet F1 Rekapitulasi, Sheet Raw Data RT 1 s/d RT 7).\n* **Izin Akses:** `wajibBoleh('unduh-rekap')`.\n* **Asal Pemanggil:** Tombol \"Unduh Format F1 Puskesmas\" di Halaman Laporan.\n* **Format Output:** Binary Stream `.xlsx` dengan nama berkas `laporan-f1-YYYY-MM.xlsx`.\n\n---\n\n### 3.9 Dasbor Eksekutif & Jadwal Hari-H\n\n#### `GET /api/v1/beranda`\n* **Fungsi:** Mengambil metrik utama untuk pemantauan pimpinan (tingkat kehadiran D/S, grafik radar tren gizi).\n* **Izin Akses:** `wajibBoleh('lihat-dashboard')`.\n* **Asal Pemanggil:** Halaman Beranda Web (`pages/dashboard.tsx`).\n* **Query Params:** `periode` (`YYYY-MM`), `rt` (opsional)\n* **Respons `200 OK`:** Objek statistik dasbor eksekutif.\n\n#### `GET /api/v1/periode`\n* **Fungsi:** Daftar periode untuk navigasi dasbor.\n* **Izin Akses:** `wajibBoleh('lihat-dashboard')`.\n* **Asal Pemanggil:** Selector periode di Dasbor.\n\n#### `PUT /api/v1/beranda/hari-h`\n* **Fungsi:** Mengatur tanggal pelaksanaan kegiatan posyandu (Hari-H) pada bulan aktif.\n* **Izin Akses:** `wajibBoleh('ubah-pengukuran')`.\n* **Asal Pemanggil:** Modal Pengaturan Hari-H di Beranda.\n* **Request Body:**\n  ```json\n  {\n    \"periodeId\": \"2026-10\",\n    \"tanggalKegiatan\": \"2026-10-09\"\n  }\n  ```\n* **Respons `200 OK`:** `{\"sukses\": true, \"tanggalKegiatan\": \"2026-10-09\"}`\n\n---\n\n### 3.10 Manajemen Pengguna & Hak Akses\n\n#### `GET /api/pengguna`\n* **Fungsi:** Mengambil seluruh akun pengguna di Posyandu ini beserta daftar wilayah binaan RT.\n* **Izin Akses:** `wajibBoleh('kelola-akun')` (Khusus Admin Posyandu & Superadmin).\n* **Asal Pemanggil:** Tab Pengguna di Pengaturan (`pages/pengaturan/bagian/bagian-pengguna.tsx`).\n* **Respons `200 OK`:**\n  ```json\n  {\n    \"pengguna\": [\n      {\n        \"id\": 12,\n        \"username\": \"kader_tulip1\",\n        \"nama\": \"Siti Rahmawati\",\n        \"peran\": \"kader\",\n        \"rt\": \"01\",\n        \"aktif\": true\n      }\n    ],\n    \"daftarRt\": [\"01\", \"02\", \"03\", \"04\", \"05\", \"06\", \"07\"]\n  }\n  ```\n\n#### `POST /api/pengguna`\n* **Fungsi:** Membuat akun kader atau nakes baru dengan kata sandi awal yang di-hash menggunakan algoritma `scrypt`.\n* **Izin Akses:** `wajibBoleh('kelola-akun')`.\n* **Asal Pemanggil:** Dialog Pengguna (`pages/pengaturan/bagian/dialog-pengguna.tsx`).\n* **Request Body:**\n  ```json\n  {\n    \"nama\": \"Nurul Hidayah\",\n    \"username\": \"kader_tulip2\",\n    \"kataSandi\": \"Posyandu2026!\",\n    \"peran\": \"kader\",\n    \"rt\": \"02\"\n  }\n  ```\n* **Respons `201 Created`:** Objek data pengguna baru tanpa hash kata sandi.\n\n#### `PATCH /api/pengguna/:id`\n* **Fungsi:** Memperbarui data pengguna, status aktif/nonaktif, peran, RT binaan, atau mereset kata sandi.\n* **Izin Akses:** `wajibBoleh('kelola-akun')`.\n* **Proteksi Khusus:** Dilindungi aturan *Last Admin Standing* (Admin aktif terakhir tidak dapat dinonaktifkan).\n* **Asal Pemanggil:** Dialog Pengguna.\n* **Request Body:**\n  ```json\n  {\n    \"nama\": \"Nurul Hidayah\",\n    \"peran\": \"kader\",\n    \"rt\": \"02\",\n    \"aktif\": true,\n    \"kataSandi\": \"SandiBaru2026\"\n  }\n  ```\n* **Respons `200 OK`:** Objek pengguna terbarui. Sesi aktif pengguna otomatis dicabut jika kata sandi diubah.\n\n---\n\n### 3.11 Mesin Sesi Pelatihan (Sandbox Isolation)\n\n#### `GET /api/v1/pelatihan/status`\n* **Fungsi:** Mengetahui apakah sistem saat ini sedang berada dalam Mode Pelatihan (Sandbox) atau Mode Riil.\n* **Izin Akses:** `wajibMasuk`.\n* **Asal Pemanggil:** Banner Penanda Pelatihan di Web Portal & Indikator Status Tablet.\n* **Respons `200 OK`:**\n  ```json\n  {\n    \"aktif\": true,\n    \"sesi\": {\n      \"id\": \"8f4b12c9-6a21-43ef-b209-1a3e872e4521\",\n      \"jumlah\": 92,\n      \"mulaiPada\": \"2026-10-31T08:15:00.000Z\"\n    }\n  }\n  ```\n\n#### `GET /api/v1/pelatihan`\n* **Fungsi:** Mengambil opsi sasaran riil yang dapat dijadikan sumber duplikasi untuk simulasi pelatihan.\n* **Izin Akses:** Superadmin (`req.pengguna.superAdmin === true`).\n* **Asal Pemanggil:** Halaman Kelola Sesi Pelatihan (`pages/pelatihan/index.tsx`).\n* **Respons `200 OK`:** Sesi aktif dan daftar periode sumber.\n\n#### `POST /api/v1/pelatihan/mulai`\n* **Fungsi:** Menginisialisasi skema isolasi PostgreSQL `latihan_<uuid>` dan menduplikasi data sasaran dengan NIK & nama tersamar.\n* **Izin Akses:** Superadmin.\n* **Asal Pemanggil:** Tombol \"Mulai Sesi Pelatihan\" di Halaman Pelatihan.\n* **Request Body:**\n  ```json\n  {\n    \"periodeId\": 15,\n    \"konfirmasi\": true\n  }\n  ```\n* **Respons `201 Created`:** `{\"status\": \"aktif\", \"id\": \"8f4b12c9...\", \"jumlahSasaran\": 92}`\n\n#### `POST /api/v1/pelatihan/akhiri`\n* **Fungsi:** Menghancurkan (*DROP SCHEMA CASCADE*) seluruh data simulasi pelatihan; mengembalikan server ke skema `public`.\n* **Izin Akses:** Superadmin.\n* **Asal Pemanggil:** Tombol \"Akhiri dan Hapus Data Latihan\" di Halaman Pelatihan.\n* **Request Body:**\n  ```json\n  {\n    \"id\": \"8f4b12c9-6a21-43ef-b209-1a3e872e4521\",\n    \"konfirmasi\": true\n  }\n  ```\n* **Respons `200 OK`:** `{\"status\": \"selesai\", \"dataLatihanDihapus\": true}`\n\n---\n\n## BAB 4: MATRIKS PEMETAAN PEMANGGIL (REQUEST ORIGIN MAPPING)\n\nTabel berikut memetakan setiap endpoint ke komponen frontend atau aplikasi Android yang bertanggung jawab memanggilnya:\n\n| HTTP Method & Endpoint | Pemanggil di Web Portal | Pemanggil di Android App | Frekuensi & Pemicu Request |\n|---|---|---|---|\n| `POST /api/masuk` | `pages/auth/login.tsx` | - | Interaksi tombol saat login web |\n| `POST /api/v1/masuk` | - | `LoginActivity.kt` | Interaksi tombol saat login APK |\n| `POST /api/keluar` | `app-shell.tsx` (`KartuAkun`) | - | Tombol keluar pada sidebar |\n| `POST /api/v1/keluar` | - | Menu Pengaturan APK | Tombol keluar pada tablet |\n| `GET /api/saya` | `lib/sesi.ts` (`useSesi`) | - | Auto-check saat pertama kali web dibuka |\n| `GET /api/v1/kesehatan` | - | `NetworkDiagnostic.kt` | Sebelum login di APK tablet |\n| `POST /api/v1/heartbeat` | `lib/perangkat.ts` | `HeartbeatWorker.kt` | Timer background berkala (30-60 detik) |\n| `GET /api/v1/perangkat-terhubung` | `components/status-tablet.tsx` | - | Polling 15 detik saat web dibuka |\n| `GET /api/v1/anak` | `pages/anak/index.tsx` | `AnakListFragment.kt` | Navigasi halaman, pencarian, filter RT |\n| `POST /api/v1/anak` | `pages/anak/daftar/form-tambah.tsx` | `RegistrasiAnakActivity.kt` | Submit form pendaftaran anak baru |\n| `GET /api/v1/anak/:id` | `pages/anak/show.tsx` | `DetailAnakActivity.kt` | Buka kartu profil anak |\n| `PATCH /api/v1/anak/:id` | `pages/anak/detail/dialog-ubah.tsx` | `EditAnakActivity.kt` | Submit form edit data anak |\n| `POST /api/v1/pengukuran` | `pages/anak/show.tsx` | `TimbangActivity.kt` | Submit simpan hasil penimbangan |\n| `GET /api/v1/sinkronisasi` | - | `SyncManager.kt` | Tombol sinkronisasi awal di tablet |\n| `GET /api/v1/antrean` | `pages/kms/index.tsx` | `AntreanQueueActivity.kt` | Polling real-time 3-5 detik di web KMS |\n| `POST /api/v1/antrean` | - | Scanner QR Meja 1 | Saat kartu anak berhasil dipindai |\n| `POST /api/v1/antrean/:id/konfirmasi-kms` | `pages/kms/index.tsx` | - | Tombol \"Konfirmasi Selesai\" Bidan |\n| `POST /api/v1/antrean/konfirmasi-semua-kms` | `pages/kms/index.tsx` | - | Tombol konfirmasi massal akhir sesi |\n| `POST /api/v1/lembar` | `components/dialog-kirim-wa.tsx` | - | Tombol \"Bagikan via WhatsApp\" |\n| `GET /api/v1/lembar/:token` | `pages/hasil/lembar.tsx` | - | Akses peramban ponsel orang tua |\n| `GET /api/v1/sasaran` | `pages/sasaran/index.tsx` | `SasaranCache.kt` | Saat membuka menu sasaran |\n| `POST /api/v1/sasaran/pratinjau` | `pages/sasaran/komponen/panel-impor.tsx` | - | Saat file `.xlsx` selesai dipilih |\n| `POST /api/v1/sasaran/impor` | `pages/sasaran/komponen/panel-impor.tsx` | - | Tombol \"Impor Sheet Ini\" |\n| `GET /api/v1/laporan/f1/unduh` | `pages/laporan/index.tsx` | - | Tombol unduh laporan F1 Puskesmas |\n| `GET /api/v1/beranda` | `pages/dashboard.tsx` | - | Saat membuka menu Beranda |\n| `GET /api/pengguna` | `pages/pengaturan/bagian/bagian-pengguna.tsx` | - | Buka tab Akun di Pengaturan |\n| `POST /api/pengguna` | `pages/pengaturan/bagian/dialog-pengguna.tsx` | - | Simpan akun kader baru |\n| `GET /api/v1/pelatihan/status` | `app.tsx` & `app-shell.tsx` | `MainActivity.kt` | Pengecekan banner sandbox |\n| `POST /api/v1/pelatihan/mulai` | `pages/pelatihan/index.tsx` | - | Tombol mulai sesi simulasi |\n| `POST /api/v1/pelatihan/akhiri` | `pages/pelatihan/index.tsx` | - | Tombol akhiri & bersihkan simulasi |\n\n---\n\n## BAB 5: KONFIGURASI JARINGAN & ALUR PERMINTAAN (REQUEST PIPELINE)\n\n### 5.1 Jalur Konfigurasi Proxy Pengembangan vs Produksi\n1. **Lingkungan Pengembangan Lokal (Local Dev):**\n   * Frontend berjalan di Vite Server porta `5173`.\n   * Backend Express berjalan di porta `3000`.\n   * File `client/vite.config.ts` membelokkan seluruh request berawalan `/api` ke backend:\n     ```typescript\n     server: {\n       proxy: {\n         '/api': {\n           target: 'http://localhost:3000',\n           changeOrigin: true\n         }\n       }\n     }\n     ```\n2. **Lingkungan Produksi Server Fisik (Production Host):**\n   * Express menyajikan aset statis build frontend (`client/dist/`) langsung melalui `express.static()`.\n   * Akses internet aman difasilitasi oleh `Cloudflare Zero-Trust Tunnel` yang mengarah langsung ke porta `3000` tanpa perlu membuka port publik pada router Wi-Fi Posyandu.\n\n### 5.2 Alur Transaksi & Change Data Capture (CDC)\nSetiap mutasi basis data kritis (`INSERT`, `UPDATE`, `DELETE`) dieksekusi di dalam wrapper fungsi `dalamTransaksi(pool, meta, callback)`:\n- Menetapkan `SET LOCAL audit.pelaku = 'username'` dan `SET LOCAL audit.sumber = 'tablet/web'`.\n- Trigger PostgreSQL merekam otomatis *snapshot* data sebelum dan data sesudah mutasi ke tabel `audit_log`.\n- Menjamin konsistensi ACID 100%: jika terjadi kegagalan pencatatan audit, mutasi data medis juga otomatis dibatalkan (*rollback*).\n\n---\n*Dokumen ini merupakan spesifikasi kontrak antarmuka pemrograman aplikasi (REST API) resmi untuk sistem SIMPATIK Posyandu KKN Tematik 2026.*\n"</script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const raw = JSON.parse(document.getElementById('markdown-raw').textContent);
+
+      // Custom Alert Blockquotes Parser
+      marked.use({
+        renderer: {
+          blockquote(quote) {
+            if (quote.includes('[!WARNING]')) {
+              return '<blockquote style="background:#fffbeb;border-left-color:#d97706;color:#92400e;"><strong>PERINGATAN:</strong> ' + quote.replace('[!WARNING]', '') + '</blockquote>';
+            }
+            if (quote.includes('[!TIP]')) {
+              return '<blockquote style="background:#f0fdf4;border-left-color:#16a34a;color:#166534;"><strong>TIPS:</strong> ' + quote.replace('[!TIP]', '') + '</blockquote>';
+            }
+            if (quote.includes('[!NOTE]') || quote.includes('[!IMPORTANT]')) {
+              return '<blockquote><strong>CATATAN PENTING:</strong> ' + quote.replace(/[!(NOTE|IMPORTANT)]/, '') + '</blockquote>';
+            }
+            return '<blockquote>' + quote + '</blockquote>';
+          }
+        }
+      });
+
+      // Parse markdown to HTML
+      let html = marked.parse(raw);
+      const contentDiv = document.getElementById('content');
+      contentDiv.innerHTML = html;
+
+      // Wrap first chapter or TOC
+      const allH2 = contentDiv.querySelectorAll('h2');
+      if (allH2.length > 0) {
+        allH2[0].style.pageBreakBefore = 'avoid';
+        allH2[0].style.breakBefore = 'avoid';
+      }
+
+      // Convert Mermaid code blocks into <div class="mermaid">
+      const codeBlocks = contentDiv.querySelectorAll('pre code.language-mermaid');
+      codeBlocks.forEach(block => {
+        const pre = block.parentElement;
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        const mermaidDiv = document.createElement('div');
+        mermaidDiv.className = 'mermaid';
+        mermaidDiv.textContent = block.textContent;
+        container.appendChild(mermaidDiv);
+        pre.replaceWith(container);
+      });
+
+      if (window.mermaid) {
+        mermaid.initialize({
+          startOnLoad: false,
+          theme: 'neutral',
+          flowchart: { useMaxWidth: true, htmlLabels: true },
+          sequence: { useMaxWidth: true, showSequenceNumbers: true },
+          er: { useMaxWidth: true }
+        });
+        await mermaid.run();
+      }
+
+      console.log('Rendering complete!');
+      document.body.classList.add('ready-to-print');
+    });
+  </script>
+</body>
+</html>
