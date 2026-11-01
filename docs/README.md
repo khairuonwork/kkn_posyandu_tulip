@@ -91,7 +91,7 @@ Satu berkas untuk satu keputusan yang **mahal kalau dibalik** — bukan cara ker
 
 ## Jarang perlu dibuka
 
-Berkas di [`riwayat/`](riwayat) bertanda status `beku`: isinya sudah tidak diperbarui, dan sebagian menyebut hal yang sekarang tidak ada lagi. Dibuka kalau kamu perlu menelusuri asal-usul sebuah keputusan.
+Berkas di [`riwayat/`](riwayat) bertanda status `beku`: isinya adalah catatan historis, log insiden/deployment yang sudah selesai, atau desain lama yang sudah digantikan. Dibuka kalau kamu perlu menelusuri asal-usul sebuah keputusan.
 
 - [Catatan tahap demo](riwayat/catatan-tahap-demo.md) — catatan pengerjaan demo frontend, beserta keputusan yang waktu itu ditunda
 - [Teks yang dicabut dari layar](riwayat/teks-dicabut-dari-layar.md) — kalimat, tombol, dan kartu yang dihapus atas permintaan pemilik produk, beserta risiko yang ditinggalkannya
@@ -99,6 +99,9 @@ Berkas di [`riwayat/`](riwayat) bertanda status `beku`: isinya sudah tidak diper
 - [Rencana struktur halaman](riwayat/rencana-struktur-halaman.md) — susunan menu dan halaman yang direncanakan sebelum kesembilan layar dibangun
 - [Pertanyaan yang sudah terjawab](riwayat/pertanyaan-terjawab.md) — isu dari Pertanyaan terbuka yang sudah selesai
 - [Backlog feedback](riwayat/backlog-feedback.md) — daftar tugas awal dari feedback lapangan, sebelum dipecah menjadi PRD F01–F13
+- [Log Deployment VM (23 Okt 2026)](riwayat/deployment-vm-2026-10-23.md) — log pemindahan server web/API ke Ubuntu VM dan Cloudflare Quick Tunnel
+- [Log Tindak Lanjut Masukan Bu Sri (30 Okt 2026)](riwayat/tindak-lanjut-bu-sri-2026-10-30.md) — catatan verifikasi 17 masukan lapangan Bu Sri (D/S hari H, KB Ibu, Desil)
+- [Log Pemulihan API (31 Okt 2026)](riwayat/pemulihan-api-2026-10-31.md) — penanganan galat koneksi idle pg.Pool EHOSTUNREACH dan systemd user service
 
 Folder [`design/`](design/README.md) berisi salinan artboard prototipe. Nilai token warna dan tipografi yang berlaku ada di [UI/UX](rujukan/ui-ux.md), bukan di berkas-berkas itu.
 

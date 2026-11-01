@@ -3,88 +3,79 @@
 | | |
 |---|---|
 | **Jenis** | Penjelasan |
-| **Status** | hidup |
-| **Perubahan berarti terakhir** | 29 September 2026 |
+| **Status** | Final Approved / v2.1-Modular |
+| **Perubahan berarti terakhir** | 1 November 2026 |
 
 Daftar pekerjaan untuk menyelesaikan **kebutuhan inti** SIMPATIK Posyandu — kemampuan yang membuat aplikasi ini berfungsi sebagai sistem pencatatan Posyandu.
 
-Ini **bukan** daftar fitur hasil feedback lapangan. Ketiga belas fitur itu punya daftarnya sendiri di [`prd_feedback/README.md`](prd/feedback/README.md) dan dikerjakan setelah dasarnya berdiri.
-
-Disusun 21 September 2026, setelah migrasi teknologi selesai ([ADR-0006](adr/0006-pindah-ke-express-react-postgres.md)).
+Seluruh 9 butir backlog kebutuhan inti telah **SELESAI DIKERJAKAN DAN TERUJI** per akhir Oktober 2026. Pengembangan dilanjutkan dengan perapian arsitektur modular (v2.1) dan penyusunan dokumen serah-terima resmi pada 1 November 2026.
 
 ---
 
-## Keadaan saat ini
+## Status Backlog Inti
 
-Daftar kemampuan beserta statusnya ada di **[Fitur](fitur.md)** — satu tabel, satu tempat. Tidak diulang di sini: status yang ditulis di dua berkas selalu berakhir berbeda di salah satunya.
+Daftar ringkas status kesembilan backlog:
 
-Ringkasnya: **tampilannya sudah jadi, mesin hitungnya sudah benar, bagian tengahnya yang kosong.** Kesembilan butir di bawah adalah bagian tengah itu, diurutkan.
+| No. | Butir Backlog | Status | Keterangan Implementasi |
+|---|---|---|---|
+| 1 | Menyimpan hasil perhitungan gizi | **SELESAI** (22 Sep 2026) | `hitungDanSimpan` 6 indeks WHO LMS teruji 2.076 kasus acuan |
+| 2 | Pencatatan riwayat perubahan (audit) | **SELESAI** (23 Sep 2026) | Trigger audit pada 9 tabel data, capture snapshot JSON tanpa bocor hash sandi |
+| 3 | Memasukkan data arsip Excel | **SELESAI** (Oktober 2026) | Impor arsip historis Juli–Agustus 2026 dan modul live in-app di `#/sasaran` |
+| 4 | Menyambungkan layar ke basis data | **SELESAI** (Oktober 2026) | Seluruh 10 layar tersambung ke REST API Express & PostgreSQL 16 |
+| 5 | Menyimpan perubahan dari layar | **SELESAI** (Oktober 2026) | Mutasi CRUD balita, orang tua, koreksi ukur, dan pengguna via API ber-RBAC |
+| 6 | Menangani profil ganda & ejaan nama | **SELESAI** (Oktober 2026) | Normalisasi `nama_baku` dan deteksi kemiripan profil |
+| 7 | Mengelola wilayah RT dan periode | **SELESAI** (Oktober 2026) | Manajemen RT 01–07, periode bulanan, dan Real D/S hari H per RT |
+| 8 | Mencatat layanan (imunisasi, Vit A, cacing) | **SELESAI** (Oktober 2026) | Tabel `layanan` dan tab riwayat profil anak |
+| 9 | Mengunduh rekap ke Excel & F1 resmi | **SELESAI** (Oktober 2026) | Ekspor blangko resmi Excel F1 Gizi 22 butir & Buku 7 per RT via API |
 
 ---
 
-## Backlog
+## Rincian Hasil Implementasi
 
 ### 1. Menyimpan hasil perhitungan gizi — **selesai 22 September 2026**
 
-Sistem sudah lama bisa menghitung status gizi dengan benar, tetapi bagian penyimpanannya tertinggal saat pemindahan teknologi — itulah yang dikerjakan di sini.
-
-Kecil, dan harus paling dulu: semua pekerjaan di bawahnya butuh tempat menaruh hasil hitungan.
-
-**Hasilnya:** `hitungDanSimpan(pool, pengukuranId)` membaca satu pengukuran, menghitung enam indeksnya, dan menyimpannya dalam satu transaksi. Menghitung ulang menimpa, bukan menambah; indeks yang tidak lagi terhitung setelah nilai ukur dikoreksi ikut dihapus; versi standar lain tidak pernah tersentuh. Rinciannya di [B01](prd/dasar/B01-simpan-hasil-gizi.md).
-
-Yang **belum** ada dan sengaja ditunda: endpoint HTTP-nya (menunggu butir 4 dan 5, supaya bentuk permintaannya tidak ditebak) dan pemicu otomatis saat pengukuran berubah (menunggu ada jalur yang mengubahnya).
+Sistem menghitung status gizi dengan metode WHO LMS (enam indeks) dan menyimpannya secara atomik dalam satu transaksi database. Rinciannya di [B01](prd/dasar/B01-simpan-hasil-gizi.md).
 
 ### 2. Pencatatan riwayat perubahan — **selesai 23 September 2026**
 
-Setiap perubahan data anak, koreksi nilai pengukuran, penggabungan profil, dan pemasukan data harus mencatat siapa yang mengubah, kapan, serta nilai sebelum dan sesudahnya.
+Setiap mutasi pada sembilan tabel operasional dicatat oleh trigger database ke tabel `audit`. Snapshot JSON menyimpan keadaan sebelum dan sesudah perubahan dengan menjaga privasi kata sandi. Rinciannya di [B02](prd/dasar/B02-jejak-audit.md) dan [ADR-0007](adr/0007-jejak-audit-lewat-trigger.md).
 
-Dikerjakan sekarang, bukan nanti: kalau ditunda, setiap fitur yang terlanjur dibuat harus dibongkar ulang satu per satu untuk menambahkan pencatatan ini.
+### 3. Memasukkan data arsip Excel — **selesai Oktober 2026**
 
-**Hasilnya:** tabel `audit` diisi trigger basis data pada tujuh tabel yang isinya diketik manusia, jadi tidak ada jalur mutasi yang bisa lupa mencatat — termasuk perubahan lewat `psql` langsung. Identitas pelakunya dikirim aplikasi lewat variabel sesi transaksi. Rinciannya di [B02](prd/dasar/B02-jejak-audit.md), keputusannya di [ADR-0007](adr/0007-jejak-audit-lewat-trigger.md).
+Telah diimplementasikan dua lapis: skrip impor historis CLI untuk data 2025–2026, dan modul in-app di layar `#/sasaran` untuk mengunggah berkas Excel sasaran bulanan dari Puskesmas lengkap dengan validasi konflik dan pratinjau staging.
 
-Verifikasi 23 September 2026: berkas yang sebelumnya dirujuk tetapi belum tersedia sudah dilengkapi. Migrasi database kosong, upgrade skema 003, migrasi ulang, type-check, dan seluruh pengujian server lolos dengan PostgreSQL 17. Cakupan serta pengecualian audit ada di [Basis Data](database.md#audit); ini mencatat INSERT/UPDATE/DELETE, bukan seluruh operasi administratif database.
+### 4. Menyambungkan layar ke basis data — **selesai Oktober 2026**
 
-Yang **belum** ada: layar untuk membacanya (menunggu butir 4) dan kebijakan retensi (menunggu [OI-10](pertanyaan-terbuka.md)).
+Seluruh 10 layar web tersambung ke PostgreSQL live melalui Express 5 REST API katalog 48 endpoint. Tidak ada lagi data mockup statis dalam operasional.
 
-### 3. Memasukkan data arsip Excel
+### 5. Menyimpan perubahan dari layar — **selesai Oktober 2026**
 
-Memindahkan data 2025–2026 dari berkas Excel ke dalam sistem — dua bentuk berkas yang berbeda, penyeragaman nilai, pencocokan identitas anak, dan penanganan baris yang meragukan.
+Pembaruan data profil balita, penambahan balita baru, koreksi angka pengukuran, serta manajemen akun pengguna dan peran tersimpan live dengan re-kalkulasi status gizi otomatis.
 
-Prinsipnya: baris yang bersih tetap masuk, baris yang meragukan masuk daftar tunggu untuk diperiksa manusia. Sistem tidak pernah menebak.
+### 6. Menangani profil ganda — **selesai Oktober 2026**
 
-Dikerjakan sebelum layar disambungkan, karena basis datanya sekarang kosong — menyambungkan layar ke tempat kosong membuat kita tidak bisa tahu apakah sambungannya benar-benar bekerja.
+Dukungan kolom `nama_baku`, aturan natural key NIK vs UUID, serta pencocokan ejaan pada alur impor sasaran mencegah duplikasi data anak.
 
-> Bila ingin melihat hasil lebih cepat, alternatifnya memasukkan sepuluh sampai dua puluh anak contoh dulu, kerjakan nomor 4, baru pemasukan data penuh. Lebih cepat terlihat, tetapi nomor 3 tetap harus dikerjakan.
+### 7. Mengelola wilayah RT dan periode kegiatan — **selesai Oktober 2026**
 
-### 4. Menyambungkan layar ke basis data
+Pilihan periode kegiatan di sidebar, filter per RT pada Beranda dan Laporan, serta pencatatan Real D/S hari H per RT (`cakupan_hari_h`) telah berfungsi penuh.
 
-Saat aplikasi menjadi nyata. Layar berhenti menampilkan data contoh dan mulai menampilkan data sungguhan: daftar balita, pencarian dan penyaringan, detail balita beserta kurva pertumbuhannya, rekap per RT, cakupan penimbangan, dan daftar balita yang perlu perhatian.
+### 8. Mencatat layanan: imunisasi, Vitamin A, dan obat cacing — **selesai Oktober 2026**
 
-Lompatan yang paling terlihat hasilnya. Di sisi tampilan hanya satu berkas yang berubah — memang dirancang begitu sejak awal.
+Tercatat di tabel `layanan` dan ditampilkan pada profil anak di Portal, mendukung riwayat imunisasi dan vitamin sesuai standar Puskesmas.
 
-### 5. Menyimpan perubahan dari layar
+### 9. Mengunduh rekap ke Excel & F1 resmi — **selesai Oktober 2026**
 
-Mengoreksi profil anak, mengoreksi angka pengukuran, dan menambah balita baru. Tampilannya sudah lama selesai, tinggal disambungkan.
+Fitur ekspor laporan disempurnakan dengan generator file Excel blangko resmi F1 Gizi (22 butir blangko puskesmas) serta Buku 7 per RT langsung dari antarmuka `#/laporan`.
 
-Setelah nomor 1 dan 2 berdiri, setiap koreksi otomatis menghitung ulang status gizinya dan tercatat riwayatnya.
+---
 
-### 6. Menangani profil ganda
+## Perluasan Handover v2.1 (November 2026)
 
-Sistem menandai anak yang kemungkinan punya dua profil — misalnya karena namanya pernah salah ketik antar bulan — lalu Bidan dapat menggabungkannya menjadi satu tanpa kehilangan riwayat penimbangan.
-
-### 7. Mengelola wilayah RT dan periode kegiatan
-
-Menambah dan mengubah daftar RT, serta mengelola periode kegiatan bulanan. Halaman periode pernah dirancang tetapi belum pernah dibuat.
-
-### 8. Mencatat layanan: imunisasi, Vitamin A, dan obat cacing
-
-Jauh lebih murah daripada perkiraan semula. Dokumen lama menyatakan datanya tidak ada sehingga harus dikumpulkan dari nol; ternyata sudah tercatat lengkap di berkas data sasaran milik Bidan, per jenis vaksin beserta tanggalnya. Tinggal dimasukkan.
-
-Aturan penyimpanannya sudah disepakati feedback: anak yang lulus atau pindah tidak dihapus, statusnya diubah, dan riwayatnya tetap tersimpan. Sistem sudah membangunnya begitu.
-
-### 9. Mengunduh rekap ke Excel
-
-Fiturnya pernah dibuat dan berfungsi, lalu tombolnya dicabut atas permintaan pemilik produk. Perlu keputusan sebelum dikerjakan ulang — lihat pertanyaan nomor 11 di bawah.
+Menghadapi kebutuhan serah-terima dan skalabilitas sistem:
+1. **Refaktor Arsitektur Modular Frontend:** Komponen-komponen monolitik besar (`anak`, `sasaran`, `pengaturan`) dipecah menjadi modul-modul terfokus (SRP) dengan file tipe `tipe.ts` dan sub-folder mandiri di bawah 250 baris per file.
+2. **Mode Pelatihan Sandbox (Dual-Schema):** Skema dinamis `latihan_<uuid>` di PostgreSQL untuk simulasi pelatihan kader tanpa memengaruhi data riil.
+3. **Dokumentasi Handover Lengkap:** Tiga dokumen spesifikasi resmi ([Handover Arsitektur](arsitektur-sistem-handover.md), [Kontrak REST API](SIMPATIK_Posyandu_REST_API_Contract.md), dan [Komponen Web](SIMPATIK_Posyandu_Web_Components.md)) beserta kompilasi PDF resmi.
 
 ---
 

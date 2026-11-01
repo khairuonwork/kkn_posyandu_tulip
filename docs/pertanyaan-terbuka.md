@@ -2,13 +2,34 @@
 
 | | |
 |---|---|
-| **Jenis** | Rujukan — isu terbuka |
-| **Status** | hidup |
-| **Perubahan berarti terakhir** | 29 September 2026 |
+| **Jenis** | Rujukan — status keputusan isu terbuka |
+| **Status** | Final Approved / v2.1-Modular |
+| **Perubahan berarti terakhir** | 1 November 2026 |
 
-Daftar hal yang **belum diputuskan** dan sengaja tidak ditebak di dalam kode. Setiap isu punya pemilik, dampak bila tidak selesai, dan apa yang dilakukan sistem sementara ini. Nomor isu disebut `OI-nn` (*open issue*).
+Daftar isu terbuka (*open issues*) SIMPATIK Posyandu. Sebagian besar isu arsitektural dan operasional utama telah **diselesaikan** selama implementasi Oktober 2026. Isu yang tersisa berkaitan dengan integrasi fase lanjutan (misal WhatsApp gateway mandiri dan portal publik orang tua).
 
-Status: `terbuka` · `menunggu konfirmasi` · `sebagian selesai`. Isu yang sudah terjawab dipindah ke [Pertanyaan yang sudah terjawab](riwayat/pertanyaan-terjawab.md); nomornya tidak dipakai ulang.
+### Ringkasan Status Isu Terbuka (OI)
+
+| Isu | Judul | Status Akhir | Keputusan & Implementasi |
+|---|---|---|---|
+| **OI-01** | Aturan NTOB & 1T/2T/3T | **Selesai** | Diterapkan pada indikator 2T+ kartu perhatian Beranda dan laporan bulanan. |
+| **OI-02** | Kategori "Balita Bersinar" | **Selesai** | Diputuskan tidak dijadikan kategori diagnosis gizi medis; hanya penanda program. |
+| **OI-03** | Aliran Data Portal ↔ Tablet | **Selesai** | REST API `/api/v1/pengukuran/sync` offline-first dengan transaksi atomik dan QR `SPT-<id>`. |
+| **OI-04** | Kategori status LILA/U | **Selesai** | Menampilkan label Normal/Gemuk/Kurus sesuai konfirmasi Bu Sri pada master laporan. |
+| **OI-05** | Kolom L konstan LMS BB/TB | **Selesai** | Menggunakan standar acuan baku WHO LMS 2006. |
+| **OI-06** | Target Deployment | **Selesai** | VM Ubuntu Server dengan systemd services, loopback port 4321, dan Cloudflare Quick Tunnel. |
+| **OI-07** | Format F1 Gizi dan Buku 7 | **Selesai** | Generator file Excel 22 butir F1 Gizi dan Buku 7 per RT via `/api/laporan/f1/ekspor`. |
+| **OI-09** | Nama Orang Tua Satu Sel | **Selesai** | Disimpan format `AYAH - IBU`, dipetakan ke `id_keluarga` UUID bersama. |
+| **OI-10** | Retensi & Jejak Audit | **Selesai** | Trigger audit 9 tabel operasional, snapshot JSON aman tanpa kata sandi hash. |
+| **OI-11** | Label Status Master Excel | **Selesai** | Normalisasi label sesuai PMK No. 2 Tahun 2020. |
+| **OI-12** | Privasi Data Demo | **Selesai** | Data demo dan mode pelatihan sandbox disamarkan (anonymized NIK 0099...). |
+| **OI-13** | Penyesuaian Desain Mockup | **Selesai** | Layout disempurnakan pada komponen React 19 Tailwind CSS v4. |
+| **OI-14** | Rujukan ke Puskesmas | **Selesai** | Algoritma ambang rujukan otomatis pada Detail Balita. |
+| **OI-15** | Pencatatan Imunisasi | **Selesai** | Dicatat di tabel `layanan` dan ditampilkan di profil balita. |
+| **OI-17** | Status Desil & Kategori Gakin | **Selesai** | Desil 1–4 G (Gakin) dan 5–10 NG (Non-Gakin), ditambah data `kb_ibu` (migrasi 024). |
+| **OI-18** | Checklist Stimulasi KIA | **Selesai** | Skema `survei_perkembangan_kia` (migrasi 017). |
+| **OI-19** | Persetujuan Lingkup Feedback | **Selesai** | Seluruh feedback disatukan di dokumen handover v2.1. |
+| **OI-20** | Input Lapangan vs Hak Kader | **Selesai** | Input ukur meja via tablet APK Android, validasi/koreksi/KMS di Portal Web. |
 
 ---
 
