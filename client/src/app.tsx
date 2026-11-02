@@ -8,7 +8,7 @@
  * yang dipresentasikan tidak bisa berbeda dari apa yang dipakai.
  */
 
-import { Loader2 } from 'lucide-react';
+import { HeartPulse, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { bacaRute, boleh, Cangkang, KartuAkun } from '@/app-shell';
@@ -98,14 +98,36 @@ function Memeriksa() {
     return (
         <div
             role="status"
-            className="flex min-h-screen flex-col items-center justify-center gap-3"
+            aria-live="polite"
+            className="flex min-h-screen flex-col items-center justify-center bg-surface-subtle p-6 text-center"
         >
-            <Loader2
-                className="size-7 animate-spin text-primary motion-reduce:[animation-duration:3s]"
-                strokeWidth={2.5}
-                aria-hidden="true"
-            />
-            <p className="text-base text-muted-foreground">Memeriksa sesi…</p>
+            <div className="flex max-w-sm flex-col items-center rounded-3xl border border-border bg-card p-8 shadow-sm">
+                <div
+                    className="mb-4 flex size-16 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary shadow-xs"
+                    aria-hidden="true"
+                >
+                    <HeartPulse className="size-8 animate-pulse text-primary" />
+                </div>
+                <h2 className="text-xl font-extrabold tracking-tight text-foreground">
+                    SIMPATIK Posyandu
+                </h2>
+                <p className="mt-1 text-xs font-semibold text-muted-foreground">
+                    Sistem Pemantauan Status Gizi &amp; Tumbuh Kembang Balita
+                </p>
+
+                <div className="mt-6 flex items-center justify-center gap-2.5 rounded-full border border-border bg-surface-subtle px-4 py-2 text-xs font-bold text-foreground">
+                    <Loader2
+                        className="size-4 animate-spin text-primary motion-reduce:[animation-duration:3s]"
+                        strokeWidth={2.5}
+                        aria-hidden="true"
+                    />
+                    <span>Memeriksa sesi &amp; hak akses kader…</span>
+                </div>
+
+                <div className="mt-5 text-[11px] font-semibold text-muted-foreground">
+                    Posyandu Tulip · RW 18
+                </div>
+            </div>
         </div>
     );
 }
@@ -172,17 +194,18 @@ function Portal({
     // Akun KMS mulai dari antrean pemeriksaan; peran lain dari Beranda. Ini
     // kenyamanan; penolakan yang mengikat ada di server.
     useEffect(() => {
-        if (!boleh(rute, peran)) {
+        if (!boleh(rute, peran, superAdmin)) {
             navigate(peran === 'kms' ? '/kms' : '/beranda');
         }
-    }, [peran, rute]);
+    }, [peran, rute, superAdmin]);
 
-    if (!boleh(rute, peran)) {
+    if (!boleh(rute, peran, superAdmin)) {
         return <Memeriksa />;
     }
 
     return (
         <Cangkang
+            superAdmin={superAdmin}
             peran={peran}
             cakupanPosyandu={
                 superAdmin

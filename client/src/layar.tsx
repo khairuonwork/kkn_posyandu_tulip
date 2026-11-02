@@ -10,6 +10,7 @@
 
 import { useState } from 'react';
 import type { Rute } from '@/app-shell';
+import StateHalaman from '@/components/state-halaman';
 import {
     balitaKartu,
     cakupanEnamBulan,
@@ -19,12 +20,14 @@ import {
     data,
     detailAnak,
     PENGATURAN_TERAKHIR_DIUBAH,
+    periodeSasaranDemo,
     periodeTerakhirTerisi,
     perluPerhatian,
     rekapPerRt,
     RIWAYAT_PENGATURAN_CONTOH,
     ringkasan,
     RT_KADER,
+    sasaranDemo,
     standarLms,
     statusGizi,
     sebaranIndeks,
@@ -387,12 +390,24 @@ export function Layar({
             return <TidakDitemukan />;
         }
 
+        if (detailServer?.status === 'galat') {
+            return (
+                <GalatData
+                    pesan="Detail balita belum dapat dimuat. Silakan coba lagi."
+                    onMuatUlang={() => window.location.reload()}
+                />
+            );
+        }
+
         const detail =
             detailServer?.status === 'siap'
                 ? {
                       anak: detailServer.anak,
                       pengukuran: detailServer.pengukuran,
-                      garisSd: detailServer.garisSd,
+                      garisSd:
+                          detailServer.garisSd.length > 0
+                              ? detailServer.garisSd
+                              : data.garisSdBbU,
                   }
                 : detailAnak(rute.id);
 
@@ -431,7 +446,11 @@ export function Layar({
                 peran={peran}
                 periode={periode}
                 ambang={ambang}
-                wilayahRt={wilayahRt}
+                wilayahRt={
+                    modeDataLive && detailServer?.status === 'siap'
+                        ? (detailServer.wilayahRt ?? wilayahRt)
+                        : wilayahRt
+                }
                 noWa={koreksi[rute.id]?.noWa ?? anak.noWa}
                 lembaga={LEMBAGA}
                 onSimpan={(patch) => onSimpanAnak(rute.id, patch)}
@@ -473,12 +492,22 @@ export function Layar({
     }
 
     if (rute.nama === 'sasaran') {
-        return <SasaranImpor />;
+        const demoSasaran = sasaranDemo(periodeId);
+        const demoPeriode = periodeSasaranDemo();
+
+        return (
+            <SasaranImpor
+                sasaranAwal={demoSasaran}
+                periodeAwal={demoPeriode}
+                wilayahRt={wilayahRt}
+            />
+        );
     }
 
     if (rute.nama === 'kms') {
         return (
             <PemeriksaanKms
+                demo={!modeDataLive}
                 periodeId={periodeId}
                 onSesiBerakhir={onSesiBerakhir}
             />
@@ -486,11 +515,27 @@ export function Layar({
     }
 
     if (rute.nama === 'kartu-sasaran') {
+        if (modeDataLive && statusAnakServer !== 'siap') {
+            return statusAnakServer === 'galat' ? (
+                <GalatData
+                    pesan="Daftar kartu belum dapat dimuat."
+                    onMuatUlang={
+                        onMuatUlangAnakServer ??
+                        (() => window.location.reload())
+                    }
+                />
+            ) : (
+                <MemuatData />
+            );
+        }
+
+        const balitaDaftar = modeDataLive
+            ? (kartuServer ?? [])
+            : balitaKartu(periodeId);
+
         return (
             <KartuSasaran
-                balita={
-                    modeDataLive ? (kartuServer ?? []) : balitaKartu(periodeId)
-                }
+                balita={balitaDaftar}
                 wilayahRt={wilayahRt}
                 terpilihAwal={rute.id}
                 lembaga={LEMBAGA}
@@ -510,8 +555,12 @@ export function Layar({
                 peran={peran}
                 pengguna={pengguna}
                 onSimpanPengguna={onSimpanPengguna}
-                terakhirDiubah={PENGATURAN_TERAKHIR_DIUBAH}
-                riwayat={RIWAYAT_PENGATURAN_CONTOH}
+                demo={!modeDataLive}
+                terakhirDiubah={
+                    modeDataLive ? undefined : PENGATURAN_TERAKHIR_DIUBAH
+                }
+                riwayat={modeDataLive ? [] : RIWAYAT_PENGATURAN_CONTOH}
+                riwayatTersedia={!modeDataLive}
             />
         );
     }
@@ -521,46 +570,16 @@ export function Layar({
 
 function TidakDitemukan() {
     return (
-        <div className="p-6">
-            <div className="rounded-lg border border-border bg-surface-subtle p-6">
-                <p className="text-base font-bold">Halaman tidak ditemukan</p>
-                <p className="mt-1 text-base text-muted-foreground">
-                    Alamat yang dibuka tidak dikenali. Pilih salah satu menu di
-                    samping.
-                </p>
-            </div>
-        </div>
+        <StateHalaman
+            jenis="kosong"
+            judul="Halaman tidak ditemukan"
+            pesan="Pilih menu di sidebar untuk melanjutkan."
+        />
     );
 }
 
 function MemuatData() {
-    return (
-        <div role="status" aria-live="polite" className="flex flex-1 flex-col">
-            <span className="sr-only">Memuat data anak…</span>
-            <div className="strip-kepala">
-                <div className="h-7 w-56 animate-pulse rounded-lg bg-surface-alt" />
-                <div className="mt-2 h-4 w-80 max-w-full animate-pulse rounded bg-surface-alt" />
-            </div>
-            <div className="space-y-4 p-5 sm:p-6">
-                <div className="grid gap-3 sm:grid-cols-4">
-                    {[0, 1, 2, 3].map((i) => (
-                        <div
-                            key={i}
-                            className="h-24 animate-pulse rounded-xl border border-border bg-card p-4"
-                        />
-                    ))}
-                </div>
-                <div className="kartu space-y-3 p-5">
-                    {[0, 1, 2, 3].map((i) => (
-                        <div
-                            key={i}
-                            className="h-13 animate-pulse rounded-lg bg-surface-subtle"
-                        />
-                    ))}
-                </div>
-            </div>
-        </div>
-    );
+    return <StateHalaman jenis="memuat" judul="Memuat data…" />;
 }
 
 function GalatData({
@@ -571,14 +590,11 @@ function GalatData({
     onMuatUlang: () => void;
 }) {
     return (
-        <div
-            role="alert"
-            className="m-6 rounded-xl border border-tone-amber bg-tone-amber-bg p-6"
+        <StateHalaman
+            jenis="galat"
+            judul="Data belum dapat dimuat"
+            pesan={pesan ?? 'Periksa koneksi, lalu coba lagi.'}
         >
-            <p className="font-bold">Data live belum dapat dimuat.</p>
-            <p className="mt-1 text-sm">
-                {pesan ?? 'Periksa sambungan API lalu coba lagi.'}
-            </p>
             <button
                 type="button"
                 onClick={onMuatUlang}
@@ -586,6 +602,6 @@ function GalatData({
             >
                 Coba lagi
             </button>
-        </div>
+        </StateHalaman>
     );
 }

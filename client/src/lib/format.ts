@@ -43,8 +43,8 @@ const BULAN_RINGKAS = [
 ];
 
 /** Koma sebagai pemisah desimal, dan tanda minus yang benar. */
-export function angka(nilai: number | null, desimal = 0): string {
-    if (nilai === null || Number.isNaN(nilai)) {
+export function angka(nilai: number | null | undefined, desimal = 0): string {
+    if (nilai === null || nilai === undefined || !Number.isFinite(nilai)) {
         return KOSONG;
     }
 
@@ -55,8 +55,8 @@ export function angka(nilai: number | null, desimal = 0): string {
 }
 
 /** Dua desimal, selalu bertanda: `−2,15` · `+0,60`. */
-export function zScore(nilai: number | null): string {
-    if (nilai === null) {
+export function zScore(nilai: number | null | undefined): string {
+    if (nilai === null || nilai === undefined || !Number.isFinite(nilai)) {
         return KOSONG;
     }
 

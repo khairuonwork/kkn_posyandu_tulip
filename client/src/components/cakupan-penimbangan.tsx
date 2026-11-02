@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import DialogGagal from '@/components/dialog-gagal';
 import { pecahan, persenSaja } from '@/lib/format';
 import type { CakupanPeriode } from '@/pages/dashboard';
 
@@ -35,20 +36,20 @@ export default function CakupanPenimbangan({
 
     return (
         <>
-            <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+            <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm font-medium">
                 <li className="flex items-center gap-2">
                     <span
-                        className="size-3 rounded-sm bg-input"
+                        className="size-3.5 rounded-sm bg-input"
                         aria-hidden="true"
                     />
-                    D/S termasuk sweeping
+                    Total ditimbang (D/S · termasuk sweeping)
                 </li>
                 <li className="flex items-center gap-2">
                     <span
-                        className="size-3 rounded-sm bg-primary"
+                        className="size-3.5 rounded-sm bg-primary"
                         aria-hidden="true"
                     />
-                    Real D/S · hadir hari H
+                    Hadir saat hari buka (Real D/S · hari H)
                 </li>
             </ul>
             <div
@@ -58,71 +59,83 @@ export default function CakupanPenimbangan({
                 aria-label="Perbandingan cakupan termasuk sweeping dan hadir hari H"
             >
                 <div className="grid min-w-[430px] grid-cols-6 gap-3">
-                    {rows.map((row) => (
-                        <div key={row.periodeId}>
-                            <div className="flex h-60 items-end justify-center gap-1.5 border-b border-border pt-8">
-                                {[
-                                    {
-                                        label: 'Termasuk sweeping',
-                                        jumlah: row.ditimbang,
-                                        warna: 'bg-input',
-                                        teks: 'text-muted-foreground',
-                                    },
-                                    {
-                                        label: 'Hadir hari H',
-                                        jumlah: row.hadirHariH,
-                                        warna: 'bg-primary',
-                                        teks: 'text-primary',
-                                    },
-                                ].map((seri) => {
-                                    const nilai =
-                                        seri.jumlah == null || row.sasaran === 0
-                                            ? null
-                                            : persenSaja(
-                                                  seri.jumlah,
-                                                  row.sasaran,
-                                              );
-                                    const label =
-                                        nilai === null
-                                            ? `${row.label}, ${seri.label}: data belum tersedia`
-                                            : `${row.label}, ${seri.label}: ${nilai}%, ${pecahan(seri.jumlah!, row.sasaran)}`;
+                    {rows.map((row) => {
+                        const aktif = row.periodeId === periodeId;
 
-                                    return (
-                                        <div
-                                            key={seri.label}
-                                            className="flex h-full min-w-0 flex-1 items-end"
-                                            title={label}
-                                        >
-                                            <div
-                                                aria-label={label}
-                                                role="img"
-                                                className={`relative w-full rounded-t-md ${nilai === null ? '' : seri.warna}`}
-                                                style={{
-                                                    height:
-                                                        nilai === null
-                                                            ? '2px'
-                                                            : `${Math.max(1, (nilai / puncak) * 100)}%`,
-                                                }}
-                                            >
-                                                <span
-                                                    className={`absolute bottom-full left-1/2 mb-1 -translate-x-1/2 text-xs font-bold whitespace-nowrap tabular-nums ${seri.teks}`}
-                                                >
-                                                    {nilai === null
-                                                        ? '—'
-                                                        : `${nilai}%`}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                            <p
-                                className={`mt-2 text-center text-sm ${row.periodeId === periodeId ? 'font-extrabold' : 'text-muted-foreground'}`}
+                        return (
+                            <div
+                                key={row.periodeId}
+                                className={
+                                    aktif
+                                        ? 'rounded-lg bg-accent/45 px-1.5 pt-1 pb-1.5 ring-1 ring-primary/20'
+                                        : 'px-0.5 pb-1.5'
+                                }
                             >
-                                {row.label.slice(0, 3)}
-                            </p>
-                        </div>
-                    ))}
+                                <div className="flex h-60 items-end justify-center gap-1.5 border-b border-border pt-8">
+                                    {[
+                                        {
+                                            label: 'Termasuk sweeping',
+                                            jumlah: row.ditimbang,
+                                            warna: 'bg-input',
+                                            teks: 'text-muted-foreground',
+                                        },
+                                        {
+                                            label: 'Hadir hari H',
+                                            jumlah: row.hadirHariH,
+                                            warna: 'bg-primary',
+                                            teks: 'text-primary',
+                                        },
+                                    ].map((seri) => {
+                                        const nilai =
+                                            seri.jumlah == null ||
+                                            row.sasaran === 0
+                                                ? null
+                                                : persenSaja(
+                                                      seri.jumlah,
+                                                      row.sasaran,
+                                                  );
+                                        const label =
+                                            nilai === null
+                                                ? `${row.label}, ${seri.label}: data belum tersedia`
+                                                : `${row.label}, ${seri.label}: ${nilai}%, ${pecahan(seri.jumlah!, row.sasaran)}`;
+
+                                        return (
+                                            <div
+                                                key={seri.label}
+                                                className="flex h-full min-w-0 flex-1 items-end"
+                                                title={label}
+                                            >
+                                                <div
+                                                    aria-label={label}
+                                                    role="img"
+                                                    className={`relative w-full rounded-t-md ${nilai === null ? '' : seri.warna}`}
+                                                    style={{
+                                                        height:
+                                                            nilai === null
+                                                                ? '2px'
+                                                                : `${Math.max(1, (nilai / puncak) * 100)}%`,
+                                                    }}
+                                                >
+                                                    <span
+                                                        className={`absolute bottom-full left-1/2 mb-1 -translate-x-1/2 text-xs font-bold whitespace-nowrap tabular-nums ${seri.teks}`}
+                                                    >
+                                                        {nilai === null
+                                                            ? '—'
+                                                            : `${nilai}%`}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <p
+                                    className={`mt-2 text-center text-xs ${aktif ? 'rounded bg-primary py-0.5 font-extrabold text-primary-foreground' : 'py-0.5 font-semibold text-muted-foreground'}`}
+                                >
+                                    {row.label.slice(0, 3)}
+                                </p>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
             <p className="mt-2 text-sm text-muted-foreground sm:hidden">
@@ -277,9 +290,11 @@ export function FormKehadiranHariH({
                 );
             })}
             {galat && (
-                <p role="alert" className="text-sm font-semibold text-tone-red">
-                    {galat}
-                </p>
+                <DialogGagal
+                    judul="Kehadiran belum tersimpan"
+                    pesan={galat}
+                    onTutup={() => setGalat('')}
+                />
             )}
             <div className="flex flex-wrap gap-3">
                 <button

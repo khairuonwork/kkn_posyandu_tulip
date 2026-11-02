@@ -80,7 +80,7 @@ export function wajibBoleh(aksi: Aksi | readonly Aksi[]): RequestHandler {
         }
 
         const daftarAksi = Array.isArray(aksi) ? aksi : [aksi];
-        const diizinkan = daftarAksi.some(a => boleh(req.pengguna!.peran, a));
+        const diizinkan = daftarAksi.some(a => boleh(req.pengguna!.peran, a, req.pengguna!.superAdmin));
 
         if (!diizinkan) {
             res.status(403).json({ galat: 'Tidak berhak' });

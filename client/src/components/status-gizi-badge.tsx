@@ -93,17 +93,7 @@ export function nadaKategori(kategori: string | null): Nada {
  * Daftar ini disusun dari status gizi saja — **bukan** dari 1T/2T/3T, yang
  * definisinya belum dikonfirmasi (OI-01).
  */
-export const PERLU_TINDAK_LANJUT = [
-    'Berat badan sangat kurang',
-    'Berat badan kurang',
-    'Sangat pendek',
-    'Pendek',
-    'Gizi buruk',
-    'Gizi kurang',
-    'Obesitas',
-    'Kurang',
-    'Sangat Kurang',
-];
+export { PERLU_TINDAK_LANJUT } from '@/lib/kategori-tindak-lanjut';
 
 type Props = {
     kategori: string | null;

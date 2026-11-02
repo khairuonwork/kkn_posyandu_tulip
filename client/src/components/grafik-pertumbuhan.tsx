@@ -2,6 +2,7 @@
  * Skor berasal dari hasil penilaian tersimpan; komponen hanya menggambar.
  */
 
+import { BookOpen, CircleCheck } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { KeyboardEvent, ReactNode } from 'react';
 import GrafikBeratTinggi from '@/components/grafik-berat-tinggi';
@@ -12,7 +13,6 @@ import {
     labelIndeks,
     satuan,
     tanggalRingkas,
-    umurPanjang,
     zScore,
 } from '@/lib/format';
 import { periodeGrafikBersambung, warnaGarisSd } from '@/lib/grafik-acuan';
@@ -28,6 +28,8 @@ export type Spek = {
     nama: string;
     /** Judul panjang untuk teks bantu dan label aksesibilitas. */
     judul: string;
+    /** Penjelasan praktis fungsi indeks untuk kader. */
+    tujuan?: string;
     unit: string;
     sumbu: string;
     /** Umur pertama yang dinilai. LILA/U baru sejak 6 bulan. */
@@ -44,6 +46,7 @@ export const SPEK: Spek[] = [
         indeks: 'BB_U',
         nama: 'Berat Badan',
         judul: 'Berat badan menurut umur',
+        tujuan: 'Deteksi Berat Kurang',
         unit: 'kg',
         sumbu: 'Berat badan, kg',
         mulai: 0,
@@ -55,6 +58,7 @@ export const SPEK: Spek[] = [
         indeks: 'TB_U',
         nama: 'Tinggi Badan',
         judul: 'Tinggi badan menurut umur',
+        tujuan: 'Deteksi Stunting',
         unit: 'cm',
         sumbu: 'Tinggi badan, cm',
         mulai: 0,
@@ -66,6 +70,7 @@ export const SPEK: Spek[] = [
         indeks: 'IMT_U',
         nama: 'Indeks Massa Tubuh',
         judul: 'Indeks massa tubuh menurut umur',
+        tujuan: 'Deteksi Gizi Lebih',
         unit: 'kg/m²',
         sumbu: 'Indeks massa tubuh, kg/m²',
         mulai: 0,
@@ -80,6 +85,7 @@ export const SPEK: Spek[] = [
         indeks: 'LILA_U',
         nama: 'Lingkar Lengan Atas',
         judul: 'Lingkar lengan atas menurut umur',
+        tujuan: 'Deteksi Risiko KEK',
         unit: 'cm',
         sumbu: 'Lingkar lengan atas, cm',
         mulai: 6,
@@ -91,6 +97,7 @@ export const SPEK: Spek[] = [
         indeks: 'LIKA_U',
         nama: 'Lingkar Kepala',
         judul: 'Lingkar kepala menurut umur',
+        tujuan: 'Ukuran Kepala & Otak',
         unit: 'cm',
         sumbu: 'Lingkar kepala, cm',
         mulai: 0,
@@ -200,7 +207,6 @@ type Props = {
 
 export default function GrafikPertumbuhan({
     kelamin,
-    nama,
     umurBalita,
     keterangan,
     pengukuran,
@@ -225,6 +231,15 @@ export default function GrafikPertumbuhan({
     // Panel dan titik yang diketuk tidak ikut berpindah saat indeks diganti.
     const [pin, setPin] = useState<string | null>(null);
     const [sorot, setSorot] = useState<string | null>(null);
+
+    // Pengukuran terbaru balita untuk indikator status pada masing-masing tombol indeks
+    const pengukuranTerbaru = useMemo(() => {
+        return (
+            pengukuran.find(
+                (p) => p.statusKehadiran === 'hadir' && p.umurBulan !== null,
+            ) ?? null
+        );
+    }, [pengukuran]);
 
     const spek = SPEK.find((s) => s.indeks === jenis) ?? SPEK[0];
     const berdiri = umurBalita !== null && umurBalita >= 24;
@@ -375,32 +390,40 @@ export default function GrafikPertumbuhan({
         <div className="overflow-hidden rounded-xl border border-border bg-card">
             <div className="strip-kepala flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-xl font-extrabold">
-                        Grafik Pertumbuhan
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-md bg-primary/15 px-2.5 py-0.5 text-xs font-bold text-primary">
+                            Standar Baku WHO 2006
+                        </span>
+                        <span className="rounded-md bg-surface-subtle px-2.5 py-0.5 text-xs font-bold text-muted-foreground">
+                            Kemenkes RI
+                        </span>
+                    </div>
+                    <h2 className="mt-1 text-xl font-extrabold text-foreground">
+                        Grafik Pertumbuhan Antropometri
                     </h2>
                     <p className="mt-0.5 text-sm text-muted-foreground">
                         {jenis === 'BB_TB'
-                            ? 'Berat badan menurut panjang/tinggi badan'
-                            : judulTampil(spek)}{' '}
-                        · WHO 2006
+                            ? 'Berat badan menurut panjang/tinggi badan (BB/PB atau BB/TB)'
+                            : `${judulTampil(spek)} (${kodeIndeks(spek)})`}{' '}
+                        · Pemantauan tren kurva Z-score
                     </p>
                 </div>
-                <p className="text-sm font-semibold text-muted-foreground">
-                    {nama} · {umurPanjang(umurBalita)}
-                </p>
             </div>
 
-            <p className="px-5 pt-4 text-sm text-muted-foreground sm:px-6">
-                {keterangan}
-            </p>
+            {/* Banner Edukasi & Panduan Ibu Kader */}
 
+            {/* Tombol Pilihan Indeks Pertumbuhan */}
             <div
                 role="group"
-                aria-label="Jenis grafik"
-                className="grid grid-cols-2 gap-2 px-5 pt-3 sm:px-6 md:grid-cols-3 xl:grid-cols-6"
+                aria-label="Pilih jenis grafik pertumbuhan"
+                className="grid grid-cols-2 gap-2.5 px-5 pt-3 sm:px-6 md:grid-cols-3 xl:grid-cols-6"
             >
                 {SPEK.map((s) => {
                     const aktif = s.indeks === jenis;
+                    const hasilTerbaru = pengukuranTerbaru?.penilaian[s.indeks];
+                    const labelHasil = hasilTerbaru?.kategori
+                        ? labelKategoriGizi(hasilTerbaru.kategori)
+                        : null;
 
                     return (
                         <button
@@ -411,40 +434,132 @@ export default function GrafikPertumbuhan({
                                 setJenis(s.indeks);
                                 setSorot(null);
                             }}
-                            className={`flex min-h-13 flex-col items-start justify-center rounded-lg border px-3.5 text-left ${
+                            className={`flex min-h-16 flex-col justify-between rounded-xl border p-3 text-left transition-all ${
                                 aktif
-                                    ? 'border-primary bg-primary text-primary-foreground'
-                                    : 'border-border-strong bg-surface'
+                                    ? 'border-primary bg-primary text-primary-foreground shadow-sm ring-2 ring-primary/25'
+                                    : 'border-border bg-card text-foreground hover:border-primary/50 hover:bg-surface-subtle'
                             }`}
                         >
-                            <span className="text-sm font-bold">
-                                {namaTampil(s)}
-                            </span>
-                            <span
-                                className={`text-xs font-semibold ${
-                                    aktif
-                                        ? 'text-primary-foreground/80'
-                                        : 'text-muted-foreground'
-                                }`}
-                            >
-                                {kodeIndeks(s)}
-                            </span>
+                            <div>
+                                <div className="flex items-center justify-between gap-1">
+                                    <span className="text-xs font-extrabold">
+                                        {kodeIndeks(s)}
+                                    </span>
+                                    {s.tujuan && (
+                                        <span
+                                            className={`py-0.2 rounded px-1.5 text-[10px] font-bold ${
+                                                aktif
+                                                    ? 'bg-primary-foreground/20 text-primary-foreground'
+                                                    : 'bg-surface-subtle text-muted-foreground'
+                                            }`}
+                                        >
+                                            {s.tujuan}
+                                        </span>
+                                    )}
+                                </div>
+                                <span className="mt-1 block text-sm leading-tight font-bold">
+                                    {namaTampil(s)}
+                                </span>
+                            </div>
+                            <div className="mt-2 border-t border-current/15 pt-1">
+                                {labelHasil ? (
+                                    <span
+                                        className={`inline-flex items-center gap-1.5 text-[11px] font-bold ${
+                                            aktif
+                                                ? 'text-primary-foreground'
+                                                : 'text-tone-green'
+                                        }`}
+                                    >
+                                        <CircleCheck
+                                            className="size-3.5 shrink-0"
+                                            aria-hidden="true"
+                                        />
+                                        <span>{labelHasil}</span>
+                                    </span>
+                                ) : (
+                                    <span
+                                        className={`text-[11px] font-semibold ${
+                                            aktif
+                                                ? 'text-primary-foreground/70'
+                                                : 'text-muted-foreground'
+                                        }`}
+                                    >
+                                        {s.indeks === 'LILA_U'
+                                            ? '≥ 6 bulan'
+                                            : 'WHO 2006'}
+                                    </span>
+                                )}
+                            </div>
                         </button>
                     );
                 })}
-                <button
-                    type="button"
-                    aria-pressed={jenis === 'BB_TB'}
-                    onClick={() => setJenis('BB_TB')}
-                    className={`flex min-h-13 flex-col items-start justify-center rounded-lg border px-3.5 text-left ${jenis === 'BB_TB' ? 'border-primary bg-primary text-primary-foreground' : 'border-border-strong bg-surface'}`}
-                >
-                    <span className="text-sm font-bold">
-                        Berat &amp; Tinggi
-                    </span>
-                    <span className="text-xs font-semibold">
-                        BB/PB atau BB/TB
-                    </span>
-                </button>
+                {(() => {
+                    const aktif = jenis === 'BB_TB';
+                    const hasilBbTb = pengukuranTerbaru?.penilaian.BB_TB;
+                    const labelBbTb = hasilBbTb?.kategori
+                        ? labelKategoriGizi(hasilBbTb.kategori)
+                        : null;
+
+                    return (
+                        <button
+                            type="button"
+                            aria-pressed={aktif}
+                            onClick={() => setJenis('BB_TB')}
+                            className={`flex min-h-16 flex-col justify-between rounded-xl border p-3 text-left transition-all ${
+                                aktif
+                                    ? 'border-primary bg-primary text-primary-foreground shadow-sm ring-2 ring-primary/25'
+                                    : 'border-border bg-card text-foreground hover:border-primary/50 hover:bg-surface-subtle'
+                            }`}
+                        >
+                            <div>
+                                <div className="flex items-center justify-between gap-1">
+                                    <span className="text-xs font-extrabold">
+                                        BB/PB · BB/TB
+                                    </span>
+                                    <span
+                                        className={`py-0.2 rounded px-1.5 text-[10px] font-bold ${
+                                            aktif
+                                                ? 'bg-primary-foreground/20 text-primary-foreground'
+                                                : 'bg-surface-subtle text-muted-foreground'
+                                        }`}
+                                    >
+                                        Deteksi Wasting
+                                    </span>
+                                </div>
+                                <span className="mt-1 block text-sm leading-tight font-bold">
+                                    Berat &amp; Tinggi
+                                </span>
+                            </div>
+                            <div className="mt-2 border-t border-current/15 pt-1">
+                                {labelBbTb ? (
+                                    <span
+                                        className={`inline-flex items-center gap-1.5 text-[11px] font-bold ${
+                                            aktif
+                                                ? 'text-primary-foreground'
+                                                : 'text-tone-green'
+                                        }`}
+                                    >
+                                        <CircleCheck
+                                            className="size-3.5 shrink-0"
+                                            aria-hidden="true"
+                                        />
+                                        <span>{labelBbTb}</span>
+                                    </span>
+                                ) : (
+                                    <span
+                                        className={`text-[11px] font-semibold ${
+                                            aktif
+                                                ? 'text-primary-foreground/70'
+                                                : 'text-muted-foreground'
+                                        }`}
+                                    >
+                                        Proporsi Tubuh
+                                    </span>
+                                )}
+                            </div>
+                        </button>
+                    );
+                })()}
             </div>
             {jenis === 'BB_TB' ? (
                 <GrafikBeratTinggi
@@ -455,27 +570,51 @@ export default function GrafikPertumbuhan({
                 />
             ) : (
                 <>
-                    <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-3 sm:px-6">
-                        <div className="flex flex-wrap gap-2">
-                            {panelTersedia.map((awal) => (
-                                <button
-                                    key={awal}
-                                    type="button"
-                                    onClick={() => setPanel(awal)}
-                                    aria-pressed={panel === awal}
-                                    className={`min-h-13 rounded-lg px-3.5 text-sm font-semibold ${
-                                        panel === awal
-                                            ? 'bg-primary text-primary-foreground'
-                                            : 'border border-muted-foreground text-foreground'
-                                    }`}
-                                >
-                                    {awal}-{awal + PANEL_BULAN} bulan
-                                </button>
-                            ))}
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 px-5 pt-4 pb-3 sm:px-6">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className="mr-1 text-xs font-bold text-muted-foreground">
+                                Lembar Umur:
+                            </span>
+                            {panelTersedia.map((awal) => {
+                                const jumlah = seri.filter(
+                                    (t) =>
+                                        t.umur >= awal &&
+                                        t.umur <= awal + PANEL_BULAN,
+                                ).length;
+                                const aktif = panel === awal;
+
+                                return (
+                                    <button
+                                        key={awal}
+                                        type="button"
+                                        onClick={() => setPanel(awal)}
+                                        aria-pressed={aktif}
+                                        className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-bold transition-all ${
+                                            aktif
+                                                ? 'bg-primary text-primary-foreground shadow-sm ring-2 ring-primary/25'
+                                                : 'border border-border bg-surface text-foreground hover:bg-surface-subtle'
+                                        }`}
+                                    >
+                                        <span>
+                                            {awal}–{awal + PANEL_BULAN} bulan
+                                        </span>
+                                        <span
+                                            className={`py-0.2 rounded-full px-1.5 text-[10px] font-extrabold ${
+                                                aktif
+                                                    ? 'bg-primary-foreground/20 text-primary-foreground'
+                                                    : 'bg-muted text-muted-foreground'
+                                            }`}
+                                        >
+                                            {jumlah} data
+                                        </span>
+                                    </button>
+                                );
+                            })}
                         </div>
-                        <p className="text-sm font-semibold text-muted-foreground">
-                            Acuan {acuan}, WHO 2006
-                        </p>
+                        <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                            <span className="inline-block size-2 rounded-full bg-emerald-500" />
+                            Acuan Standar {acuan}, WHO 2006
+                        </div>
                     </div>
 
                     {/* Tanpa satu pun titik, kurva acuan WHO tetap digambar: kader
@@ -697,6 +836,9 @@ export default function GrafikPertumbuhan({
 
                                 {dalamPanel.map((t, urutan) => {
                                     const dipilih = terpilih === t;
+                                    const isTerbaru =
+                                        seri.length > 0 &&
+                                        t === seri[seri.length - 1];
                                     const sesudah =
                                         dalamPanel[urutan + 1]?.umur === t.umur;
                                     const sebelum =
@@ -706,6 +848,18 @@ export default function GrafikPertumbuhan({
                                         <g
                                             key={`${t.umur}|${t.tanggal}|${urutan}`}
                                         >
+                                            {/* Cincin ganda hijau untuk titik pengukuran terbaru balita */}
+                                            {isTerbaru && (
+                                                <circle
+                                                    cx={x(t.umur)}
+                                                    cy={y(t.nilai)}
+                                                    r={13}
+                                                    fill="none"
+                                                    stroke="#10B981"
+                                                    strokeWidth={2.5}
+                                                    strokeDasharray="4 2"
+                                                />
+                                            )}
                                             {t.z !== null && (
                                                 <text
                                                     x={
@@ -718,7 +872,10 @@ export default function GrafikPertumbuhan({
                                                     }
                                                     y={Math.max(
                                                         ATAS + 16,
-                                                        y(t.nilai) - 12,
+                                                        y(t.nilai) -
+                                                            (isTerbaru
+                                                                ? 16
+                                                                : 12),
                                                     )}
                                                     textAnchor={
                                                         sesudah
@@ -732,11 +889,19 @@ export default function GrafikPertumbuhan({
                                                                 ? 'end'
                                                                 : 'middle'
                                                     }
-                                                    fontSize={13.5}
-                                                    fontWeight={700}
-                                                    fill={TINTA}
+                                                    fontSize={
+                                                        isTerbaru ? 14 : 13.5
+                                                    }
+                                                    fontWeight={
+                                                        isTerbaru ? 800 : 700
+                                                    }
+                                                    fill={
+                                                        isTerbaru
+                                                            ? '#047857'
+                                                            : TINTA
+                                                    }
                                                     stroke="#FFFFFF"
-                                                    strokeWidth={4}
+                                                    strokeWidth={4.5}
                                                     strokeLinejoin="round"
                                                     paintOrder="stroke"
                                                 >
@@ -746,12 +911,26 @@ export default function GrafikPertumbuhan({
                                             <circle
                                                 cx={x(t.umur)}
                                                 cy={y(t.nilai)}
-                                                r={dipilih ? 8.5 : 6}
+                                                r={
+                                                    dipilih
+                                                        ? 8.5
+                                                        : isTerbaru
+                                                          ? 7.5
+                                                          : 6
+                                                }
                                                 fill={
-                                                    dipilih ? TINTA : '#FFFFFF'
+                                                    dipilih
+                                                        ? TINTA
+                                                        : isTerbaru
+                                                          ? '#10B981'
+                                                          : '#FFFFFF'
                                                 }
                                                 stroke={
-                                                    dipilih ? '#FFFFFF' : TINTA
+                                                    dipilih
+                                                        ? '#FFFFFF'
+                                                        : isTerbaru
+                                                          ? '#FFFFFF'
+                                                          : TINTA
                                                 }
                                                 strokeWidth={3}
                                             />
@@ -913,75 +1092,156 @@ export default function GrafikPertumbuhan({
                             </p>
                         )}
 
-                        <ul className="flex flex-wrap gap-x-5 gap-y-1.5 px-5 pt-2 pb-3 text-sm sm:px-6">
-                            <Legenda
-                                warna={warnaGarisSd(0)}
-                                teks="Median, 0 SD"
-                            />
-                            <Legenda
-                                warna={warnaGarisSd(1)}
-                                teks="−1 dan +1 SD"
-                            />
-                            <Legenda
-                                warna={warnaGarisSd(2)}
-                                teks="−2 dan +2 SD"
-                            />
-                            <Legenda
-                                warna={warnaGarisSd(3)}
-                                teks="−3 dan +3 SD"
-                            />
-                            <Legenda
-                                warna={TINTA}
-                                teks="Garis balita, terputus pada bulan tanpa pengukuran"
-                            />
-                        </ul>
+                        {/* Panduan Membaca Warna Garis Baku WHO 2006 */}
+                        <div className="mx-5 my-3 rounded-xl border border-border bg-surface-subtle/70 p-3.5 text-xs sm:mx-6">
+                            <div className="mb-2 flex items-center justify-between">
+                                <span className="flex items-center gap-1.5 font-extrabold tracking-wide text-foreground uppercase">
+                                    <BookOpen
+                                        className="size-4 shrink-0 text-primary"
+                                        aria-hidden="true"
+                                    />
+                                    <span>Arti Garis Acuan Baku WHO 2006</span>
+                                </span>
+                                <span className="text-[11px] font-semibold text-muted-foreground">
+                                    Kemenkes RI
+                                </span>
+                            </div>
+                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                                <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50/80 px-2.5 py-1.5 text-emerald-950">
+                                    <span
+                                        aria-hidden="true"
+                                        className="size-3.5 shrink-0 rounded-xs"
+                                        style={{
+                                            backgroundColor: warnaGarisSd(0),
+                                        }}
+                                    />
+                                    <div className="text-[11px] leading-tight">
+                                        <span className="font-bold">
+                                            Garis Hijau (0 SD)
+                                        </span>
+                                        : Median ideal rata-rata
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50/80 px-2.5 py-1.5 text-amber-950">
+                                    <span
+                                        aria-hidden="true"
+                                        className="size-3.5 shrink-0 rounded-xs"
+                                        style={{
+                                            backgroundColor: warnaGarisSd(2),
+                                        }}
+                                    />
+                                    <div className="text-[11px] leading-tight">
+                                        <span className="font-bold">
+                                            Garis Kuning (±1 s/d ±2 SD)
+                                        </span>
+                                        : Rentang wajar
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50/80 px-2.5 py-1.5 text-red-950">
+                                    <span
+                                        aria-hidden="true"
+                                        className="size-3.5 shrink-0 rounded-xs"
+                                        style={{
+                                            backgroundColor: warnaGarisSd(3),
+                                        }}
+                                    />
+                                    <div className="text-[11px] leading-tight">
+                                        <span className="font-bold">
+                                            Garis Merah (±3 SD)
+                                        </span>
+                                        : Batas rujukan bahaya
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-1.5 text-slate-950">
+                                    <span
+                                        aria-hidden="true"
+                                        className="size-3.5 shrink-0 rounded-xs bg-[#16211C]"
+                                    />
+                                    <div className="text-[11px] leading-tight">
+                                        <span className="font-bold">
+                                            Garis &amp; Titik Balita
+                                        </span>
+                                        : Hasil ukur bulanan
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
                         {terpilih !== undefined && (
-                            <dl className="grid grid-cols-2 border-t border-border bg-surface lg:grid-cols-4">
-                                <Sel judul="Titik terpilih">
-                                    <span className="text-lg font-extrabold">
-                                        {tanggalRingkas(terpilih.tanggal)}
+                            <div className="border-t border-border bg-surface p-4 sm:p-5">
+                                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <span className="inline-flex size-2 rounded-full bg-primary" />
+                                        <h3 className="text-xs font-extrabold tracking-wider text-muted-foreground uppercase">
+                                            Rincian Titik Ukur Terpilih ·{' '}
+                                            {tanggalRingkas(terpilih.tanggal)}{' '}
+                                            (Umur {terpilih.umur} Bulan)
+                                        </h3>
+                                    </div>
+                                    <span className="text-xs font-semibold text-muted-foreground">
+                                        Ketuk titik mana saja di grafik untuk
+                                        berpindah periode
                                     </span>
-                                    <span className="text-sm text-muted-foreground">
-                                        Umur {terpilih.umur} bulan. Ketuk titik
-                                        lain pada grafik.
-                                    </span>
-                                </Sel>
-                                <Sel judul={namaTampil(spek)}>
-                                    <span className="text-lg font-extrabold">
-                                        {satuan(terpilih.nilai, spek.unit)}
-                                    </span>
-                                    <span className="text-sm text-muted-foreground">
-                                        {kodeIndeks(spek)} · WHO 2006
-                                    </span>
-                                </Sel>
-                                <Sel judul="Z-score">
-                                    <span
-                                        className={`text-lg font-extrabold ${WARNA_NADA[nadaKategori(terpilih.kategori)]}`}
-                                    >
-                                        {terpilih.z === null
-                                            ? KOSONG
-                                            : `${zScore(terpilih.z)} SD`}
-                                    </span>
-                                    <span
-                                        className={`text-sm font-bold ${WARNA_NADA[nadaKategori(terpilih.kategori)]}`}
-                                    >
-                                        {kategoriTeks(spek, terpilih)}
-                                    </span>
-                                </Sel>
-                                <Sel judul="Dibanding 2 bulan sebelumnya">
-                                    <span className="text-lg font-extrabold">
-                                        {duaBulanLalu === undefined
-                                            ? 'Tidak dapat dihitung'
-                                            : `${terpilih.nilai - duaBulanLalu.nilai >= 0 ? '+' : ''}${satuan(terpilih.nilai - duaBulanLalu.nilai, spek.unit)}`}
-                                    </span>
-                                    <span className="text-sm text-muted-foreground">
-                                        {duaBulanLalu === undefined
-                                            ? `Tidak ada pengukuran pada umur ${terpilih.umur - 2} bulan`
-                                            : `Umur ${duaBulanLalu.umur} bulan: ${satuan(duaBulanLalu.nilai, spek.unit)}`}
-                                    </span>
-                                </Sel>
-                            </dl>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                                    <div className="rounded-xl border border-border bg-card p-3 shadow-xs">
+                                        <span className="text-xs font-bold text-muted-foreground">
+                                            Tanggal &amp; Periode
+                                        </span>
+                                        <p className="mt-1 text-base font-extrabold text-foreground">
+                                            {tanggalRingkas(terpilih.tanggal)}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                            Umur {terpilih.umur} bulan (
+                                            {terpilih.periodeId})
+                                        </p>
+                                    </div>
+                                    <div className="rounded-xl border border-border bg-card p-3 shadow-xs">
+                                        <span className="text-xs font-bold text-muted-foreground">
+                                            Hasil Ukur {namaTampil(spek)}
+                                        </span>
+                                        <p className="mt-1 text-base font-extrabold text-primary">
+                                            {satuan(terpilih.nilai, spek.unit)}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                            Indeks {kodeIndeks(spek)} · Standar
+                                            WHO
+                                        </p>
+                                    </div>
+                                    <div className="rounded-xl border border-border bg-card p-3 shadow-xs">
+                                        <span className="text-xs font-bold text-muted-foreground">
+                                            Nilai Z-Score &amp; Status
+                                        </span>
+                                        <p
+                                            className={`mt-1 text-base font-extrabold ${WARNA_NADA[nadaKategori(terpilih.kategori)]}`}
+                                        >
+                                            {terpilih.z === null
+                                                ? KOSONG
+                                                : `${zScore(terpilih.z)} SD`}
+                                        </p>
+                                        <p
+                                            className={`text-xs font-bold ${WARNA_NADA[nadaKategori(terpilih.kategori)]}`}
+                                        >
+                                            {kategoriTeks(spek, terpilih)}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-xl border border-border bg-card p-3 shadow-xs">
+                                        <span className="text-xs font-bold text-muted-foreground">
+                                            Dibanding 2 Bulan Lalu
+                                        </span>
+                                        <p className="mt-1 text-base font-extrabold text-foreground">
+                                            {duaBulanLalu === undefined
+                                                ? 'Tidak dapat dihitung'
+                                                : `${terpilih.nilai - duaBulanLalu.nilai >= 0 ? '+' : ''}${satuan(terpilih.nilai - duaBulanLalu.nilai, spek.unit)}`}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                            {duaBulanLalu === undefined
+                                                ? `Belum ada data umur ${terpilih.umur - 2} bln`
+                                                : `Umur ${duaBulanLalu.umur} bln: ${satuan(duaBulanLalu.nilai, spek.unit)}`}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
                         )}
                     </>
                 </>

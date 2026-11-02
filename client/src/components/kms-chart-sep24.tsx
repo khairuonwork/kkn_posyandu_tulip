@@ -16,6 +16,7 @@
  * buku cetak, bukan menyamai aplikasi.
  */
 
+import { CircleCheck, Lightbulb, TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 import { nadaKategori } from '@/components/status-gizi-badge';
 import { angka, KOSONG, satuan, tanggalRingkas, zScore } from '@/lib/format';
@@ -263,36 +264,63 @@ export default function KmsChart({
 
     return (
         <div>
-            <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-accent/45 px-4 py-3">
                 <div>
-                    <p className="text-base font-bold">
+                    <p className="text-base font-extrabold text-foreground">
                         Timbanglah Anak Anda Setiap Bulan
                     </p>
-                    <p className="text-base font-bold">
+                    <p className="text-sm font-bold text-primary">
                         Anak Sehat, Tambah Umur, Tambah Berat, Tambah Pandai
                     </p>
                 </div>
-                <p className="text-sm font-semibold text-muted-foreground">
-                    Acuan {acuan}, WHO 2006
-                </p>
+                <span className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-bold text-muted-foreground">
+                    <Lightbulb className="size-3.5 shrink-0 text-amber-600" aria-hidden="true" />
+                    <span>Ketuk titik pada grafik untuk melihat rincian tanggal, berat &amp; Z-score</span>
+                </span>
             </div>
 
-            <div className="mt-3 flex flex-wrap gap-2">
-                {panelTampil.map((awal) => (
-                    <button
-                        key={awal}
-                        type="button"
-                        onClick={() => gantiPanel(awal)}
-                        aria-pressed={panel === awal}
-                        className={`min-h-13 rounded-lg px-3.5 text-sm font-semibold ${
-                            panel === awal
-                                ? 'bg-primary text-primary-foreground'
-                                : 'border border-muted-foreground text-foreground'
-                        }`}
-                    >
-                        {awal}-{awal + PANEL_BULAN} bulan
-                    </button>
-                ))}
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-extrabold tracking-wide text-muted-foreground uppercase">
+                        Lembar Usia Buku KIA:
+                    </span>
+                    {panelTampil.map((awal) => {
+                        const jumlahTitik = riwayat.filter(
+                            ([u]) => u >= awal && u <= awal + PANEL_BULAN,
+                        ).length;
+
+                        return (
+                            <button
+                                key={awal}
+                                type="button"
+                                onClick={() => gantiPanel(awal)}
+                                aria-pressed={panel === awal}
+                                className={`inline-flex min-h-11 items-center gap-2 rounded-lg px-3.5 text-sm font-extrabold transition-colors ${
+                                    panel === awal
+                                        ? 'bg-primary text-primary-foreground shadow-2xs'
+                                        : 'border border-border-strong bg-surface text-foreground hover:bg-surface-subtle'
+                                }`}
+                            >
+                                <span>
+                                    {awal}–{awal + PANEL_BULAN} bulan
+                                </span>
+                                <span
+                                    className={`rounded-md px-1.5 py-0.5 text-xs font-extrabold tabular-nums ${
+                                        panel === awal
+                                            ? 'bg-white/20 text-primary-foreground'
+                                            : 'bg-surface-subtle text-muted-foreground'
+                                    }`}
+                                >
+                                    {jumlahTitik} titik
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
+                <p className="text-xs font-bold text-muted-foreground">
+                    Standar acuan {acuan}, WHO 2006 ({dalamPanel.length}{' '}
+                    kunjungan di lembar ini)
+                </p>
             </div>
 
             {/* Grafik menggulir di dalam wadahnya sendiri; badan halaman tidak
@@ -477,47 +505,72 @@ export default function KmsChart({
 
                         {dalamPanel.map(([umur, kg], urutan) => {
                             const d = kunjungan[urutan];
+                            const titikTerbaru =
+                                urutan === dalamPanel.length - 1;
+                            const adaTitikSamaDiAtas =
+                                urutan < dalamPanel.length - 1 &&
+                                dalamPanel[urutan + 1][0] === umur;
                             // Label menumpang pada koordinat titik yang sama,
                             // bukan dua baris berselang yang tampak terpisah.
-                            const labelY = Math.max(ATAS + 16, y(kg) - 16);
+                            const labelY = adaTitikSamaDiAtas
+                                ? Math.min(ATAS + PLOT_TINGGI - 8, y(kg) + 22)
+                                : Math.max(ATAS + 18, y(kg) - 15);
                             const nilaiTitik =
                                 d?.z === null || d?.z === undefined
                                     ? null
                                     : `${zScore(d.z)} SD`;
+                            const labelKg = `${angka(kg, 1)} kg`;
 
                             return (
                                 <g key={`${kunciTitik(umur, kg)}|${urutan}`}>
-                                    {nilaiTitik !== null && (
-                                        <text
-                                            x={x(umur)}
-                                            y={labelY}
-                                            textAnchor={
-                                                umur === panel
-                                                    ? 'start'
-                                                    : umur ===
-                                                        panel + PANEL_BULAN
-                                                      ? 'end'
-                                                      : 'middle'
-                                            }
-                                            fontSize={15}
-                                            fontWeight={700}
-                                            fill={TINTA}
-                                            stroke="#FFFFFF"
-                                            strokeWidth={4}
-                                            strokeLinejoin="round"
-                                            paintOrder="stroke"
-                                        >
-                                            {nilaiTitik}
-                                        </text>
-                                    )}
+                                    <text
+                                        x={x(umur)}
+                                        y={labelY}
+                                        textAnchor={
+                                            umur === panel
+                                                ? 'start'
+                                                : umur === panel + PANEL_BULAN
+                                                  ? 'end'
+                                                  : 'middle'
+                                        }
+                                        fontSize={titikTerbaru ? 15 : 14}
+                                        fontWeight={800}
+                                        fill={TINTA}
+                                        stroke="#FFFFFF"
+                                        strokeWidth={4.5}
+                                        strokeLinejoin="round"
+                                        paintOrder="stroke"
+                                    >
+                                        {labelKg}
+                                    </text>
                                     <circle
                                         cx={x(umur)}
                                         cy={y(kg)}
-                                        r={umur === umurDisorot ? 10 : 7}
-                                        fill="#FFFFFF"
-                                        stroke={TINTA}
+                                        r={
+                                            umur === umurDisorot
+                                                ? 10
+                                                : titikTerbaru
+                                                  ? 8.5
+                                                  : 7
+                                        }
+                                        fill={
+                                            titikTerbaru ? '#1E8C34' : '#FFFFFF'
+                                        }
+                                        stroke={
+                                            titikTerbaru ? '#FFFFFF' : TINTA
+                                        }
                                         strokeWidth={3.5}
                                     />
+                                    {titikTerbaru && (
+                                        <circle
+                                            cx={x(umur)}
+                                            cy={y(kg)}
+                                            r={11.5}
+                                            fill="none"
+                                            stroke={TINTA}
+                                            strokeWidth={2}
+                                        />
+                                    )}
                                     {/* Sasaran sentuh yang lebih lebar dari
                                         titiknya. Rinciannya muncul saat
                                         disorot tetikus, diketuk, atau difokus
@@ -682,36 +735,87 @@ export default function KmsChart({
                 </p>
             )}
 
-            <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-sm">
-                <Legenda warna={PITA_HIJAU_TUA} teks="−1 sampai +1 SD" />
-                <Legenda
-                    warna={PITA_HIJAU_MUDA}
-                    teks="−2 sampai −1 dan +1 sampai +2 SD"
-                />
-                <Legenda
-                    warna={PITA_KUNING}
-                    teks="−3 sampai −2 dan +2 sampai +3 SD"
-                />
-                <Legenda warna={GARIS_MERAH} teks="Garis merah, −3 SD" />
-            </ul>
+            <div className="mt-4 rounded-xl border border-border bg-surface-subtle/60 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs font-extrabold tracking-wide text-muted-foreground uppercase">
+                        Arti Warna Pita KMS Buku KIA (Standar WHO 2006):
+                    </p>
+                    <span className="text-xs font-semibold text-muted-foreground">
+                        ● Titik hijau = penimbangan terakhir · ○ Titik putih =
+                        bulan sebelumnya
+                    </span>
+                </div>
+                <ul className="mt-2.5 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                    <Legenda
+                        warna={PITA_HIJAU_TUA}
+                        judul="Pita Hijau Tua (Ideal)"
+                        teks="−1 s/d +1 SD · Berat sangat ideal"
+                    />
+                    <Legenda
+                        warna={PITA_HIJAU_MUDA}
+                        judul="Pita Hijau Muda (Normal)"
+                        teks="−2 s/d −1 & +1 s/d +2 SD · Normal"
+                    />
+                    <Legenda
+                        warna={PITA_KUNING}
+                        judul="Pita Kuning (Waspada)"
+                        teks="−3 s/d −2 (Kurang) · +2 s/d +3 SD (Lebih)"
+                    />
+                    <Legenda
+                        warna={GARIS_MERAH}
+                        judul="Garis Merah (−3 SD / BGM)"
+                        teks="Di bawah garis merah: Sangat Kurang"
+                    />
+                </ul>
 
-            <p className="mt-2 text-sm text-muted-foreground">
-                Garis balita terputus pada bulan tanpa penimbangan. Pita
-                mengikuti standar WHO 2006 seperti KMS di Buku KIA.
-            </p>
+                <div className="mt-3 grid gap-2.5 border-t border-rule pt-3 text-xs sm:grid-cols-2">
+                    <div className="rounded-lg border border-primary/25 bg-accent/55 px-3 py-2">
+                        <strong className="flex items-center gap-1 font-extrabold text-tone-green mb-0.5">
+                            <CircleCheck className="size-3.5 shrink-0 text-tone-green" aria-hidden="true" />
+                            <span>Naik (N):</span>
+                        </strong>
+                        <span className="font-medium text-foreground">
+                            Garis pertumbuhan naik mengikuti pita warna atau
+                            berpindah ke pita di atasnya.
+                        </span>
+                    </div>
+                    <div className="rounded-lg border border-tone-amber/30 bg-tone-amber-bg/55 px-3 py-2">
+                        <strong className="flex items-center gap-1 font-extrabold text-tone-amber mb-0.5">
+                            <TriangleAlert className="size-3.5 shrink-0 text-tone-amber" aria-hidden="true" />
+                            <span>Tidak Naik (T):</span>
+                        </strong>
+                        <span className="font-medium text-foreground">
+                            Garis mendatar, menurun, atau naik tetapi pindah ke
+                            pita di bawahnya. Garis putus bila bulan tidak
+                            ditimbang.
+                        </span>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }
 
-function Legenda({ warna, teks }: { warna: string; teks: string }) {
+function Legenda({
+    warna,
+    judul,
+    teks,
+}: {
+    warna: string;
+    judul: string;
+    teks: string;
+}) {
     return (
-        <li className="flex items-center gap-2">
+        <li className="flex items-start gap-2.5 rounded-lg border border-border bg-card px-3 py-2 text-xs">
             <span
                 aria-hidden="true"
-                className="inline-block size-4 rounded-xs"
+                className="mt-0.5 inline-block size-4 shrink-0 rounded-xs"
                 style={{ backgroundColor: warna }}
             />
-            {teks}
+            <div>
+                <p className="font-extrabold text-foreground">{judul}</p>
+                <p className="mt-0.5 text-muted-foreground">{teks}</p>
+            </div>
         </li>
     );
 }

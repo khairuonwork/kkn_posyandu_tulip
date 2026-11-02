@@ -6,6 +6,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
+import { tentukanKesimpulan } from '../src/lib/kesimpulan-gizi.ts';
 import {
     kalimatKesimpulan,
     namaDepan,
@@ -75,6 +76,60 @@ describe('nomor WhatsApp', () => {
 });
 
 describe('susunPesan', () => {
+    test('kategori gizi lebih tidak menghasilkan kesimpulan pertumbuhan baik', () => {
+        for (const kategori of [
+            'Berisiko gizi lebih',
+            'Gizi lebih',
+            'Risiko Gizi Lebih',
+            'Gizi Lebih',
+        ]) {
+            const terbaru = ukur({
+                penilaian: {
+                    BB_U: {
+                        z: 0.4,
+                        kategori: 'Berat badan normal',
+                        tidakWajar: false,
+                    },
+                    TB_U: { z: 0.1, kategori: 'Normal', tidakWajar: false },
+                    BB_TB: { z: 1.7, kategori, tidakWajar: false },
+                },
+            });
+            const kesimpulan = tentukanKesimpulan(terbaru.penilaian, {
+                ambangWaspada: -1,
+                ambangRujukan: -1.96,
+            });
+            assert.equal(kesimpulan, 'dipantau');
+            const pesan = susunPesan(bahan({ terbaru, kesimpulan }));
+            assert.match(pesan, /Pertumbuhan Nayla perlu diperhatikan/);
+            assert.doesNotMatch(pesan, /Pertumbuhan Nayla baik/);
+        }
+    });
+
+    test('kesimpulan tetap mengikuti ambang rendah dan mengabaikan indeks tidak wajar', () => {
+        const ambang = { ambangWaspada: -1, ambangRujukan: -1.96 };
+        assert.equal(
+            tentukanKesimpulan(ukur({}).penilaian, ambang),
+            'dipantau',
+        );
+        assert.equal(
+            tentukanKesimpulan(
+                { TB_U: { z: -2.2, kategori: 'Pendek', tidakWajar: false } },
+                ambang,
+            ),
+            'diperiksa',
+        );
+        assert.equal(
+            tentukanKesimpulan(
+                {
+                    BB_TB: { z: 8, kategori: 'Gizi lebih', tidakWajar: true },
+                    TB_U: { z: 0, kategori: 'Normal', tidakWajar: false },
+                },
+                ambang,
+            ),
+            'sesuai',
+        );
+    });
+
     test('nama depan: huruf kapital semua dari arsip menjadi Judul', () => {
         assert.equal(namaDepan('ADITAMA ABQARY SYAHREZA'), 'Aditama');
         assert.equal(namaDepan('Nayla Putri'), 'Nayla');

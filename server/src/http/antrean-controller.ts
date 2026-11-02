@@ -6,6 +6,7 @@ import type { StatusAntrean } from "../repositories/antrean-repository.ts";
 import * as antreanRepo from "../repositories/antrean-repository.ts";
 import { dalamTransaksi } from "../db/transaksi.ts";
 import { wajibBoleh } from "./middleware.ts";
+import { boleh } from "../auth/peran.ts";
 
 const STATUS: readonly StatusAntrean[] = ["waiting", "called", "serving", "kms_review", "done", "cancelled"];
 const TANGGAL = /^\d{4}-\d{2}-\d{2}$/;
@@ -68,6 +69,10 @@ export function ruteAntrean(pool: Pool): Router {
     rute.patch("/antrean/:id", wajibBoleh("catat-pengukuran-lapangan"), async (req, res, next) => {
         const id = typeof req.params.id === "string" ? req.params.id : "";
         const status = req.body?.status;
+        if (status === "done" && !boleh(req.pengguna!.peran, "konfirmasi-kms", req.pengguna!.superAdmin)) {
+            gagal(res, 403, "Tidak berhak menyelesaikan pemeriksaan KMS.");
+            return;
+        }
         const catatan = req.body?.catatan;
         const urutanRaw = req.body?.urutan;
         const urutan = urutanRaw === undefined ? undefined : Number(urutanRaw);
@@ -85,7 +90,7 @@ export function ruteAntrean(pool: Pool): Router {
         } catch (error) { next(error); }
     });
 
-    rute.post("/antrean/:id/konfirmasi-kms", wajibBoleh(["konfirmasi-kms", "catat-pengukuran-lapangan"]), async (req, res, next) => {
+    rute.post("/antrean/:id/konfirmasi-kms", wajibBoleh("konfirmasi-kms"), async (req, res, next) => {
         const id = typeof req.params.id === "string" ? req.params.id : "";
         if (!/^antrean_\d{8}_\d+$/.test(id)) {
             gagal(res, 400, "ID antrean tidak valid.");
@@ -99,7 +104,7 @@ export function ruteAntrean(pool: Pool): Router {
         } catch (error) { next(error); }
     });
 
-    rute.post("/antrean/konfirmasi-semua-kms", wajibBoleh(["konfirmasi-kms", "catat-pengukuran-lapangan"]), async (req, res, next) => {
+    rute.post("/antrean/konfirmasi-semua-kms", wajibBoleh("konfirmasi-kms"), async (req, res, next) => {
         const periodeRaw = req.body?.periodeId;
         const periodeId = Number(periodeRaw);
         const tanggal = typeof req.body?.tanggal === "string" ? req.body.tanggal : "";

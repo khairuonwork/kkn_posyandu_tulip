@@ -150,7 +150,7 @@ export default function Halaman({
             </header>
 
             <div
-                className={`px-4 py-6 sm:px-7 sm:py-7 ${
+                className={`px-4 py-4 sm:px-7 sm:py-4 ${
                     penuh === false ? '' : KELAS_PENUH[penuh]
                 }`}
             >

@@ -69,11 +69,13 @@ type PengukuranApi = {
 export type DetailAnakServerState =
     | { status: 'memuat' }
     | { status: 'tidak-ada' }
+    | { status: 'galat' }
     | {
           status: 'siap';
           anak: Anak;
           pengukuran: Pengukuran[];
           garisSd: GarisSd[];
+          wilayahRt?: string[];
       };
 
 function umurBulan(tanggal: string): number {
@@ -372,6 +374,7 @@ export function useDetailAnakServer(
 
                 const detail = (await resAnak.json()) as {
                     anak: AnakDetailApi;
+                    wilayahRt?: string[];
                 };
                 const riwayat = (await resUkur.json()) as {
                     pengukuran: PengukuranApi[];
@@ -395,6 +398,7 @@ export function useDetailAnakServer(
                 setState({
                     status: 'siap',
                     anak,
+                    wilayahRt: hasil.detail.wilayahRt,
                     pengukuran: hasil.riwayat.pengukuran.map((p) =>
                         kePengukuran(anak, p),
                     ),
@@ -403,7 +407,7 @@ export function useDetailAnakServer(
             })
             .catch((galat: unknown) => {
                 if ((galat as { name?: string }).name !== 'AbortError') {
-                    setState({ status: 'tidak-ada' });
+                    setState({ status: 'galat' });
                 }
             });
 

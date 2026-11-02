@@ -265,17 +265,24 @@ export default function StatusTablet() {
                             aria-labelledby={`${id}-judul`}
                             tabIndex={-1}
                             style={posisi}
-                            className="fixed z-[61] flex flex-col overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground outline-none backdrop:bg-foreground/15"
+                            className="fixed z-[61] flex flex-col overflow-hidden rounded-2xl border border-border/80 bg-popover text-popover-foreground shadow-[0_24px_48px_rgba(15,23,20,0.28)] outline-none backdrop:bg-foreground/20 backdrop:backdrop-blur-xs"
                         >
-                            <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-3">
+                            <div className="flex shrink-0 items-center gap-3 border-b border-border bg-accent/40 px-5 py-3.5">
+                                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                    <Tablet
+                                        className="size-4.5"
+                                        strokeWidth={2.5}
+                                        aria-hidden="true"
+                                    />
+                                </div>
                                 <div className="min-w-0 flex-1">
                                     <h2
                                         id={`${id}-judul`}
-                                        className="text-base font-bold"
+                                        className="text-base font-extrabold text-[#0b4f31]"
                                     >
-                                        Perangkat Posyandu
+                                        Status perangkat
                                     </h2>
-                                    <p className="mt-1 text-xs text-muted-foreground">
+                                    <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
                                         {cakupan}
                                     </p>
                                 </div>
@@ -287,7 +294,7 @@ export default function StatusTablet() {
                                         setMembaca(true);
                                         void ambil();
                                     }}
-                                    className="flex size-11 shrink-0 items-center justify-center rounded-lg hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50"
+                                    className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-lg hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50"
                                 >
                                     <RefreshCw
                                         className={`size-5 ${membaca ? 'animate-spin motion-reduce:animate-none' : ''}`}
@@ -297,7 +304,7 @@ export default function StatusTablet() {
                                     type="button"
                                     aria-label="Tutup detail perangkat"
                                     onClick={() => setBuka(false)}
-                                    className="flex size-11 shrink-0 items-center justify-center rounded-lg hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary"
+                                    className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-lg hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary"
                                 >
                                     <X className="size-5" />
                                 </button>
@@ -397,17 +404,6 @@ export default function StatusTablet() {
                                                     </div>
                                                     <div className="mt-2 pl-8 text-xs leading-relaxed text-muted-foreground">
                                                         <p>
-                                                            ID{' '}
-                                                            {p.deviceId
-                                                                .slice(-6)
-                                                                .toUpperCase()}
-                                                        </p>
-                                                        <p>
-                                                            {p.namaPosyandu
-                                                                ? `${p.namaPosyandu} · RW ${p.rw ?? '—'}`
-                                                                : 'Akun lintas Posyandu'}
-                                                        </p>
-                                                        <p>
                                                             Laporan terakhir:{' '}
                                                             <time
                                                                 dateTime={
@@ -418,26 +414,6 @@ export default function StatusTablet() {
                                                                     p.terakhirAktif,
                                                                 )}
                                                             </time>
-                                                        </p>
-                                                        <p>
-                                                            {p.jenisPerangkat ===
-                                                            'web'
-                                                                ? 'Browser web'
-                                                                : 'Aplikasi Android'}{' '}
-                                                            ·{' '}
-                                                            {p.modeKoneksi ===
-                                                            'tailscale'
-                                                                ? 'Tailscale'
-                                                                : p.modeKoneksi ===
-                                                                    'tidak_diketahui'
-                                                                  ? 'Jalur belum dilaporkan'
-                                                                  : p.modeKoneksi ===
-                                                                      'lokal'
-                                                                    ? 'Jaringan lokal'
-                                                                    : 'Internet'}
-                                                            {p.versiAplikasi
-                                                                ? ` · ${p.versiAplikasi}`
-                                                                : ''}
                                                         </p>
                                                         {p.antreanTertunda >
                                                             0 && (
@@ -450,12 +426,49 @@ export default function StatusTablet() {
                                                                 terakhir
                                                             </p>
                                                         )}
-                                                        {!p.akunAktif && (
+                                                        <details className="mt-2">
+                                                            <summary className="flex min-h-[44px] cursor-pointer items-center font-semibold text-primary">
+                                                                Rincian
+                                                                perangkat
+                                                            </summary>
                                                             <p>
-                                                                Akun sudah
-                                                                dinonaktifkan.
+                                                                ID{' '}
+                                                                {p.deviceId
+                                                                    .slice(-6)
+                                                                    .toUpperCase()}
                                                             </p>
-                                                        )}
+                                                            <p>
+                                                                {p.namaPosyandu
+                                                                    ? `${p.namaPosyandu} · RW ${p.rw ?? '—'}`
+                                                                    : 'Akun lintas Posyandu'}
+                                                            </p>
+                                                            <p>
+                                                                {p.jenisPerangkat ===
+                                                                'web'
+                                                                    ? 'Browser web'
+                                                                    : 'Aplikasi Android'}{' '}
+                                                                ·{' '}
+                                                                {p.modeKoneksi ===
+                                                                'tailscale'
+                                                                    ? 'Tailscale'
+                                                                    : p.modeKoneksi ===
+                                                                        'tidak_diketahui'
+                                                                      ? 'Jalur belum dilaporkan'
+                                                                      : p.modeKoneksi ===
+                                                                          'lokal'
+                                                                        ? 'Jaringan lokal'
+                                                                        : 'Internet'}
+                                                                {p.versiAplikasi
+                                                                    ? ` · ${p.versiAplikasi}`
+                                                                    : ''}
+                                                            </p>
+                                                            {!p.akunAktif && (
+                                                                <p>
+                                                                    Akun sudah
+                                                                    dinonaktifkan.
+                                                                </p>
+                                                            )}
+                                                        </details>
                                                     </div>
                                                 </li>
                                             );
@@ -463,12 +476,24 @@ export default function StatusTablet() {
                                     </ul>
                                 )}
                             </div>
-                            <p className="shrink-0 border-t border-border px-4 py-3 text-xs leading-relaxed text-muted-foreground">
-                                Online: laporan ≤45 detik. Siaga: ≤2 menit.
-                                Offline: lebih dari 2 menit. Perangkat offline
-                                tetap tercatat; aktivitas tanpa jaringan baru
-                                diketahui setelah laporan terkirim kembali.
-                            </p>
+                            <div className="shrink-0 border-t border-border px-4 py-3 text-xs leading-relaxed text-muted-foreground">
+                                <p>
+                                    Status berdasarkan laporan terakhir, bukan
+                                    kepastian semua data sudah tersinkron.
+                                </p>
+                                <details>
+                                    <summary className="flex min-h-[44px] cursor-pointer items-center font-semibold text-primary">
+                                        Arti status perangkat
+                                    </summary>
+                                    <p>
+                                        Online: laporan hingga 45 detik lalu.
+                                        Siaga: hingga 2 menit. Offline: lebih
+                                        dari 2 menit. Aktivitas tanpa jaringan
+                                        baru terlihat setelah perangkat melapor
+                                        kembali.
+                                    </p>
+                                </details>
+                            </div>
                         </dialog>
                     </>,
                     document.body,

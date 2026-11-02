@@ -22,8 +22,8 @@ export default class BatasGalat extends Component<Props, State> {
 
     render() {
         if (!this.state.gagal) {
-return this.props.children;
-}
+            return this.props.children;
+        }
 
         return (
             <main className="flex min-h-screen items-center justify-center bg-background px-5 py-10 text-foreground">

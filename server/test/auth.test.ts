@@ -33,6 +33,13 @@ import {
 } from "../src/auth/sesi.ts";
 
 describe("matriks izin", () => {
+    test("konfirmasi KMS hanya untuk petugas KMS dan superadmin", () => {
+        assert.equal(boleh("kms", "konfirmasi-kms"), true);
+        assert.equal(boleh("admin", "konfirmasi-kms", true), true);
+        for (const peran of ["kader", "bidan", "admin"] as const) {
+            assert.equal(boleh(peran, "konfirmasi-kms"), false);
+        }
+    });
     /*
         Disalin dari docs/arsitektur.md bagian Otorisasi, sengaja ditulis ulang sebagai
         harapan dan bukan diimpor dari sumber yang sama dengan kodenya. Kalau

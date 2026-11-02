@@ -7,6 +7,7 @@
 
 import {
     ChartPie,
+    ChevronDown,
     ChevronRight,
     CloudOff,
     House,
@@ -28,6 +29,7 @@ import type {
 } from '@/components/cakupan-penimbangan';
 import EmptyState from '@/components/empty-state';
 import Halaman from '@/components/halaman';
+import StateHalaman from '@/components/state-halaman';
 import StatusGiziBadge, {
     IKON,
     KELAS,
@@ -190,11 +192,14 @@ export default function Dashboard({
         <Halaman
             ikon={House}
             judul="Beranda"
+            penuh={memuat ? 'lg' : false}
             /* Caveat periode ditulis satu tempat saja, tidak diulang tiap kartu. */
             subjudul={
-                sumberLive
-                    ? `${periode.label} · ${ringkasan.tanggalUkur === null ? 'belum ada pengukuran' : `data ukur terakhir ${tanggalTanpaTahun(ringkasan.tanggalUkur)}`} · Database live`
-                    : `${periode.label}, data per ${tanggalTanpaTahun(ringkasan.tanggalUkur)}. Data contoh.`
+                memuat
+                    ? `${periode.label} · Memuat data…`
+                    : sumberLive
+                      ? `${periode.label} · ${ringkasan.tanggalUkur === null ? 'belum ada pengukuran' : `data ukur terakhir ${tanggalTanpaTahun(ringkasan.tanggalUkur)}`} · Database live`
+                      : `${periode.label}, data per ${tanggalTanpaTahun(ringkasan.tanggalUkur)}. Data contoh.`
             }
             /* Kabar bahwa data tertahan duduk di bilah kepala, sebelum angka
                apa pun: sebagian angka di bawahnya belum lengkap selama
@@ -267,23 +272,29 @@ export default function Dashboard({
                     <div className="flex flex-wrap items-center gap-2.5">
                         <label
                             htmlFor="beranda-rt"
-                            className="text-sm font-semibold text-muted-foreground"
+                            className="text-sm font-bold text-foreground"
                         >
-                            RT
+                            Filter RT
                         </label>
-                        <select
-                            id="beranda-rt"
-                            className="isian"
-                            value={rtPilihan}
-                            onChange={(e) => onPilihRt(e.target.value)}
-                        >
-                            <option value="">Semua RT</option>
-                            {wilayahRt.map((rt) => (
-                                <option key={rt} value={rt}>
-                                    RT {rt}
-                                </option>
-                            ))}
-                        </select>
+                        <span className="relative inline-flex">
+                            <select
+                                id="beranda-rt"
+                                className="isian appearance-none bg-card pr-10 font-semibold"
+                                value={rtPilihan}
+                                onChange={(e) => onPilihRt(e.target.value)}
+                            >
+                                <option value="">Semua RT</option>
+                                {wilayahRt.map((rt) => (
+                                    <option key={rt} value={rt}>
+                                        RT {rt}
+                                    </option>
+                                ))}
+                            </select>
+                            <ChevronDown
+                                aria-hidden="true"
+                                className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground"
+                            />
+                        </span>
                     </div>
                 )}
             </div>
@@ -297,7 +308,7 @@ export default function Dashboard({
                     dapat dianggap cakupan sasaran resmi.
                 </p>
             )}
-            {memuat && <Skeleton />}
+            {memuat && <StateHalaman jenis="memuat" judul="Memuat beranda…" />}
 
             {!memuat && tabAktif === 'ringkasan' && ringkasan.sasaran === 0 && (
                 <EmptyState
@@ -325,7 +336,7 @@ export default function Dashboard({
                         hidden={tabAktif !== 'ringkasan'}
                         className={
                             tabAktif === 'ringkasan'
-                                ? 'flex min-w-0 flex-col gap-7'
+                                ? 'beranda-ringkas flex min-w-0 flex-col gap-4'
                                 : 'hidden'
                         }
                     >
@@ -335,11 +346,11 @@ export default function Dashboard({
                         keterangan pendek di sebelah angkanya. */}
                                 <div
                                     aria-label="Ringkasan periode"
-                                    className="grid grid-cols-2 gap-y-6 rounded-2xl border border-border bg-card py-6 xl:grid-cols-5"
+                                    className="beranda-kpi kartu grid grid-cols-2 gap-y-4 py-4 xl:grid-cols-5 xl:divide-x xl:divide-border"
                                 >
                                     <Kpi
                                         ikon={Users}
-                                        netral
+                                        nada="netral"
                                         label="Sasaran (S)"
                                         nilai={ringkasan.sasaran}
                                         keterangan={
@@ -382,66 +393,70 @@ export default function Dashboard({
                                     />
                                     <Kpi
                                         ikon={TrendingDown}
+                                        nada={
+                                            (ringkasan.tidakNaik ?? 0) > 0
+                                                ? 'oranye'
+                                                : 'netral'
+                                        }
                                         label="Berat tidak naik (T)"
                                         nilai={ringkasan.tidakNaik ?? 0}
                                         keterangan={`${persenSaja(ringkasan.tidakNaik ?? 0, ringkasan.ditimbang)}% dari D`}
                                     />
                                 </div>
 
-                                <div className="grid gap-6 lg:grid-cols-2">
+                                <div className="beranda-status grid gap-4 lg:grid-cols-2">
                                     {[
-                                        { judul: 'BB/U', rows: statusBbU },
                                         {
-                                            judul: 'PB/U atau TB/U',
+                                            judul: 'Status gizi BB/U',
+                                            sub: `Berat badan menurut umur · ${ringkasan.ditimbang} ditimbang`,
+                                            rows: statusBbU,
+                                        },
+                                        {
+                                            judul: 'Status gizi PB/U atau TB/U',
+                                            sub: `Tinggi/panjang badan menurut umur · ${ringkasan.ditimbang} ditimbang`,
                                             rows: statusTbU,
                                         },
-                                    ].map(({ judul, rows }) => (
-                                        <section
-                                            key={judul}
-                                            className="kartu p-5 sm:p-6"
-                                        >
-                                            <h2 className="text-xl font-bold">
-                                                Status gizi {judul}
-                                            </h2>
-                                            <p className="mt-1 text-sm text-muted-foreground">
-                                                {ringkasan.ditimbang} ditimbang
-                                            </p>
-                                            <dl className="mt-4 divide-y divide-border">
-                                                {rows.map((row) => (
-                                                    <div
-                                                        key={row.label}
-                                                        className="flex justify-between gap-3 py-3"
-                                                    >
-                                                        <dt>{row.label}</dt>
-                                                        <dd className="font-bold tabular-nums">
-                                                            {row.jumlah}
-                                                        </dd>
-                                                    </div>
-                                                ))}
-                                                <div className="flex justify-between gap-3 py-3">
-                                                    <dt>Belum dinilai</dt>
-                                                    <dd className="font-bold tabular-nums">
-                                                        {Math.max(
-                                                            0,
-                                                            ringkasan.ditimbang -
-                                                                rows.reduce(
-                                                                    (sum, r) =>
-                                                                        sum +
-                                                                        r.jumlah,
-                                                                    0,
-                                                                ),
-                                                        )}
-                                                    </dd>
-                                                </div>
-                                            </dl>
-                                        </section>
-                                    ))}
+                                    ].map(({ judul, sub, rows }) => {
+                                        const belumDinilai = Math.max(
+                                            0,
+                                            ringkasan.ditimbang -
+                                                rows.reduce(
+                                                    (sum, r) => sum + r.jumlah,
+                                                    0,
+                                                ),
+                                        );
+
+                                        return (
+                                            <section
+                                                key={judul}
+                                                className="kartu p-5 sm:p-6"
+                                            >
+                                                <KepalaKartu
+                                                    judul={judul}
+                                                    sub={sub}
+                                                />
+                                                <ul className="mt-4 divide-y divide-rule">
+                                                    {rows.map((row) => (
+                                                        <PetakGizi
+                                                            key={row.label}
+                                                            label={row.label}
+                                                            nilai={row.jumlah}
+                                                        />
+                                                    ))}
+                                                    <PetakGizi
+                                                        label="Belum dinilai"
+                                                        nilai={belumDinilai}
+                                                    />
+                                                </ul>
+                                            </section>
+                                        );
+                                    })}
                                 </div>
-                                <div className="grid items-start gap-6 xl:grid-cols-[minmax(300px,0.85fr)_minmax(0,1.5fr)]">
-                                    <section className="min-w-0 rounded-2xl border border-border bg-card p-5 sm:p-6">
+                                <div className="beranda-status grid items-start gap-4 xl:grid-cols-[minmax(300px,0.85fr)_minmax(0,1.5fr)]">
+                                    <section className="kartu min-w-0 p-5 sm:p-6">
                                         <KepalaKartu
-                                            judul="Status gizi"
-                                            sub={`BB/PB atau BB/TB · ${statusGizi.ditimbang} ditimbang`}
+                                            judul="Status gizi BB/PB atau BB/TB"
+                                            sub={`Berat menurut tinggi/panjang badan · ${statusGizi.ditimbang} ditimbang`}
                                         />
 
                                         <ul className="mt-4 divide-y divide-rule">
@@ -482,20 +497,11 @@ export default function Dashboard({
                                 : 'hidden'
                         }
                     >
-                        <div>
-                            <h2 className="text-xl font-bold">
-                                Statistik & Tren
-                            </h2>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                                Perbandingan cakupan penimbangan dan status gizi
-                                antarbulan · {rentang}
-                            </p>
-                        </div>
                         <div className="grid items-start gap-6 xl:grid-cols-2">
-                            <section className="flex min-w-0 flex-col rounded-2xl border border-border bg-card p-5 sm:p-6">
+                            <section className="kartu flex min-w-0 flex-col p-5 sm:p-6">
                                 <KepalaKartu
                                     judul="Cakupan penimbangan (D/S)"
-                                    sub={rentang}
+                                    sub={`${rentang} · Total ditimbang dibanding yang datang saat hari buka`}
                                 />
 
                                 <CakupanPenimbangan
@@ -505,16 +511,25 @@ export default function Dashboard({
                                 {bolehUbahHariH &&
                                     onSimpanHariH &&
                                     kehadiranHariH.length > 0 && (
-                                        <button
-                                            type="button"
-                                            className="tombol-kedua mt-4 self-start"
-                                            aria-expanded={formHariH}
-                                            onClick={() =>
-                                                setFormHariH((old) => !old)
-                                            }
-                                        >
-                                            Isi kehadiran hari H
-                                        </button>
+                                        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-rule pt-4">
+                                            <span className="text-sm font-medium text-muted-foreground">
+                                                Catat jumlah balita yang hadir
+                                                langsung pada hari buka
+                                                Posyandu:
+                                            </span>
+                                            <button
+                                                type="button"
+                                                className="tombol-kedua shrink-0 font-bold"
+                                                aria-expanded={formHariH}
+                                                onClick={() =>
+                                                    setFormHariH((old) => !old)
+                                                }
+                                            >
+                                                {formHariH
+                                                    ? 'Tutup isian hari H'
+                                                    : 'Isi kehadiran hari H'}
+                                            </button>
+                                        </div>
                                     )}
                                 {formHariH &&
                                     bolehUbahHariH &&
@@ -535,10 +550,10 @@ export default function Dashboard({
                             {/* Seluruh angka status gizi lain adalah potret
                                     satu bulan; kartu ini yang menjawab
                                     pertanyaan pembina: membaik atau memburuk. */}
-                            <section className="flex min-w-0 flex-col rounded-2xl border border-border bg-card p-5 sm:p-6">
+                            <section className="kartu flex min-w-0 flex-col p-5 sm:p-6">
                                 <KepalaKartu
-                                    judul="Tren status gizi"
-                                    sub={rentang}
+                                    judul="Tren status gizi (jumlah balita)"
+                                    sub={`${rentang} · Angka makin turun berarti makin membaik`}
                                 />
 
                                 <div className="mt-4 flex flex-col gap-4">
@@ -575,23 +590,38 @@ export default function Dashboard({
                                         warna={WARNA_TREN.amber}
                                     />
 
-                                    {/* Hanya ujung sumbu: enam label di
-                                            lajur 88 px saling berimpit. */}
                                     {bulanTren.length > 0 && (
                                         <div
                                             aria-hidden="true"
-                                            className="grid grid-cols-[minmax(0,1fr)_100px] gap-3 text-sm sm:grid-cols-[minmax(0,1fr)_160px]"
+                                            className="grid grid-cols-[minmax(0,1fr)_144px] gap-3 text-xs sm:grid-cols-[minmax(0,1fr)_222px]"
                                         >
-                                            <span />
-                                            <span className="flex justify-between">
-                                                <span className="text-muted-foreground">
-                                                    {bulanTren[0].slice(0, 3)}
-                                                </span>
-                                                <span className="font-extrabold">
-                                                    {bulanTren[
-                                                        bulanTren.length - 1
-                                                    ].slice(0, 3)}
-                                                </span>
+                                            <span className="text-muted-foreground">
+                                                Urutan 6 bulan terakhir:
+                                            </span>
+                                            <span
+                                                className="grid gap-[5px] text-center"
+                                                style={{
+                                                    gridTemplateColumns: `repeat(${bulanTren.length}, minmax(0, 1fr))`,
+                                                }}
+                                            >
+                                                {bulanTren.map((b, idx) => {
+                                                    const terakhir =
+                                                        idx ===
+                                                        bulanTren.length - 1;
+
+                                                    return (
+                                                        <span
+                                                            key={idx}
+                                                            className={
+                                                                terakhir
+                                                                    ? 'rounded bg-accent py-0.5 font-extrabold text-primary'
+                                                                    : 'py-0.5 font-semibold text-muted-foreground'
+                                                            }
+                                                        >
+                                                            {b.slice(0, 3)}
+                                                        </span>
+                                                    );
+                                                })}
                                             </span>
                                         </div>
                                     )}
@@ -682,24 +712,26 @@ function Kpi({
     label,
     nilai,
     keterangan,
-    netral = false,
+    nada = 'hijau',
 }: {
     ikon: ComponentType<{ className?: string; strokeWidth?: number }>;
     label: string;
     nilai: number | string;
     keterangan: string;
-    /** Petak ikon abu untuk Sasaran; angka hasil kegiatan berpetak hijau. */
-    netral?: boolean;
+    nada?: 'hijau' | 'netral' | 'oranye';
 }) {
+    const kelasIkon =
+        nada === 'netral'
+            ? 'bg-surface-alt text-muted-foreground'
+            : nada === 'oranye'
+              ? 'bg-tone-amber-bg text-tone-amber'
+              : 'bg-accent text-primary';
+
     return (
         <section className="flex min-w-0 items-start gap-3 px-5 sm:px-7">
             <span
                 aria-hidden="true"
-                className={`mt-0.5 hidden size-8 shrink-0 items-center justify-center rounded-lg sm:flex ${
-                    netral
-                        ? 'bg-surface-alt text-muted-foreground'
-                        : 'bg-accent text-primary'
-                }`}
+                className={`mt-0.5 hidden size-8 shrink-0 items-center justify-center rounded-lg sm:flex ${kelasIkon}`}
             >
                 <Ikon className="size-4.5" strokeWidth={2} />
             </span>
@@ -824,6 +856,7 @@ function BarisTren({
     const bulanLalu = bulan[bulan.length - 2] ?? '';
 
     // Untuk masalah gizi, bertambah berarti memburuk: merah saat naik.
+    const bulanPendek = bulanLalu.slice(0, 3);
     const [kelasSelisih, IkonSelisih, teksSelisih] =
         selisih === null
             ? [null, null, null]
@@ -831,27 +864,27 @@ function BarisTren({
               ? [
                     'bg-tone-red-bg text-tone-red',
                     TrendingUp,
-                    `+${selisih} dari ${bulanLalu}`,
+                    `Naik ${selisih} anak dari ${bulanPendek}`,
                 ]
               : selisih < 0
                 ? [
                       'bg-tone-green-bg text-tone-green',
                       TrendingDown,
-                      `−${-selisih} dari ${bulanLalu}`,
+                      `Turun ${-selisih} anak dari ${bulanPendek}`,
                   ]
                 : [
                       'bg-surface-alt text-muted-foreground',
                       Minus,
-                      `Sama dengan ${bulanLalu}`,
+                      `Tetap (${kini} anak) sejak ${bulanPendek}`,
                   ];
 
     return (
-        <div className="grid grid-cols-[minmax(0,1fr)_100px] items-end gap-3 border-b border-rule pb-3 sm:grid-cols-[minmax(0,1fr)_160px]">
+        <div className="grid grid-cols-[minmax(0,1fr)_144px] items-end gap-3 border-b border-rule pb-3 sm:grid-cols-[minmax(0,1fr)_222px]">
             <div className="min-w-0">
                 <p className="text-base leading-tight font-bold">{label}</p>
                 {IkonSelisih !== null && (
                     <span
-                        className={`mt-1 inline-flex items-center gap-1 rounded-md px-2 text-xs font-semibold ${kelasSelisih}`}
+                        className={`mt-1.5 inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-bold ${kelasSelisih}`}
                     >
                         <IkonSelisih
                             className="size-3.5"
@@ -866,7 +899,10 @@ function BarisTren({
             <div
                 role="img"
                 aria-label={`${label}: ${nilai.map((n, i) => `${bulan[i]} ${n}`).join(', ')}`}
-                className="grid h-20 grid-cols-6 items-end gap-[5px]"
+                className="grid h-20 items-end gap-[5px]"
+                style={{
+                    gridTemplateColumns: `repeat(${Math.max(1, nilai.length)}, minmax(0, 1fr))`,
+                }}
             >
                 {nilai.map((n, urutan) => {
                     const terakhir = urutan === nilai.length - 1;
@@ -918,7 +954,7 @@ function DaftarPerhatian({ anak }: { anak: AnakPerluPerhatian[] }) {
     return (
         <section
             aria-labelledby="judul-perlu"
-            className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-card"
+            className="beranda-perhatian kartu flex min-w-0 flex-col overflow-hidden"
         >
             <div className="flex flex-col gap-1.5 border-b border-rule px-5 py-5 sm:px-6">
                 <h2 id="judul-perlu" className="text-lg font-extrabold">
@@ -948,20 +984,20 @@ function DaftarPerhatian({ anak }: { anak: AnakPerluPerhatian[] }) {
                         >
                             <Link
                                 href={`/balita/${a.anakId}`}
-                                className="flex min-h-20 items-center gap-3 px-5 py-4 hover:bg-surface-subtle sm:px-6"
+                                className="flex min-h-20 items-center gap-3.5 px-5 py-4 hover:bg-surface-subtle sm:px-6"
                             >
                                 {/* Penanda tempat, bukan foto: tidak ada anak
                                     yang punya potret di arsip. */}
                                 <span
                                     aria-hidden="true"
-                                    className="hidden size-10 shrink-0 items-center justify-center rounded-full bg-surface-alt text-sm font-bold text-muted-foreground sm:flex"
+                                    className="hidden size-10 shrink-0 items-center justify-center rounded-full bg-tone-amber-bg text-sm font-extrabold text-tone-amber sm:flex"
                                 >
                                     {inisial(a.nama)}
                                 </span>
 
                                 <span className="flex min-w-0 grow flex-col gap-1">
                                     <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                                        <span className="text-sm font-bold break-words">
+                                        <span className="text-base font-extrabold break-words">
                                             {namaTampil(a.nama)}
                                         </span>
                                         <StatusGiziBadge
@@ -983,11 +1019,16 @@ function DaftarPerhatian({ anak }: { anak: AnakPerluPerhatian[] }) {
                                     </span>
                                 </span>
 
-                                <ChevronRight
-                                    className="size-5 shrink-0 text-muted-foreground"
-                                    strokeWidth={2.5}
+                                <span
                                     aria-hidden="true"
-                                />
+                                    className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-primary/25 bg-accent px-3 py-1.5 text-xs font-extrabold text-primary"
+                                >
+                                    Lihat detail
+                                    <ChevronRight
+                                        className="size-4"
+                                        strokeWidth={2.5}
+                                    />
+                                </span>
                             </Link>
                         </li>
                     ))}
@@ -1012,26 +1053,5 @@ function DaftarPerhatian({ anak }: { anak: AnakPerluPerhatian[] }) {
                 </div>
             )}
         </section>
-    );
-}
-
-/** Skeleton berbentuk kartu dan baris, bukan spinner (bagian 6.3). */
-function Skeleton() {
-    return (
-        <div className="flex animate-pulse flex-col gap-3.5" aria-hidden="true">
-            <div className="grid grid-cols-2 gap-3.5 md:grid-cols-4">
-                <div className="kartu h-19" />
-                <div className="kartu h-19" />
-                <div className="kartu h-19" />
-                <div className="kartu h-19" />
-            </div>
-            <div className="grid gap-4.5 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-                <div className="flex flex-col gap-3.5">
-                    <div className="kartu h-36" />
-                    <div className="kartu h-64" />
-                </div>
-                <div className="kartu h-100" />
-            </div>
-        </div>
     );
 }

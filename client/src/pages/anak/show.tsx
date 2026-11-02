@@ -11,8 +11,11 @@
 
 import {
     ArrowRight,
+    BarChart3,
+    Check,
     ChevronDown,
     CircleCheck,
+    CircleHelp,
     CreditCard,
     Info,
     Mars,
@@ -20,12 +23,14 @@ import {
     Printer,
     Save,
     ShieldCheck,
+    Sparkles,
     Syringe,
     TriangleAlert,
     Venus,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
+import BantuanDetail from '@/components/bantuan-detail';
 import BarisDefinisi from '@/components/baris-definisi';
 import Dialog, { KakiDialog } from '@/components/dialog';
 import DialogKirimWa from '@/components/dialog-kirim-wa';
@@ -35,7 +40,7 @@ import IkonWhatsApp from '@/components/ikon-whatsapp';
 import KartuBalita, { LembarCetak } from '@/components/kartu-balita';
 import KmsChart from '@/components/kms-chart-sep24';
 import PendampinganKia from '@/components/pendampingan-kia';
-import { nadaKategori } from '@/components/status-gizi-badge';
+import StatusGiziBadge, { nadaKategori } from '@/components/status-gizi-badge';
 import {
     Table,
     TableBody,
@@ -80,7 +85,6 @@ import type {
 } from '@/types/posyandu';
 
 /** Nomor uji WhatsApp dari client/.env.local; null di lingkungan sebenarnya. */
-const NOMOR_UJI = nomorBaku(import.meta.env.VITE_WA_NOMOR_UJI);
 
 const ARTI_NTOB: Record<string, string> = {
     N: 'N, naik',
@@ -235,10 +239,15 @@ export default function DetailAnak({
     kembaliKe = { href: '/balita', label: 'Data Balita' },
 }: Props) {
     const [umurDisorot, setUmurDisorot] = useState<number | null>(null);
+    const tombolBantuan = useRef<HTMLButtonElement>(null);
+    const [bantuanTerbuka, setBantuanTerbuka] = useState(false);
     const [tabAktif, setTabAktif] = useState<TabDetail>(
         peran === 'kms' ? 'kurva' : 'profil',
     );
-    const [dialog, setDialog] = useState<'ubah' | 'cetak' | 'wa' | null>(null);
+    const [dialog, setDialog] = useState<
+        'ubah' | 'cetak' | 'wa' | 'nomor-wa' | null
+    >(null);
+    const [fokusNomorWa, setFokusNomorWa] = useState(false);
     const [infoKiaWa, setInfoKiaWa] = useState<DiskusiKiaWa | null>(null);
     const bolehUbah =
         peran !== 'kms' &&
@@ -312,9 +321,9 @@ export default function DetailAnak({
             ? 'Data pengukuran ini perlu diperiksa atau diukur ulang bersama kader atau petugas kesehatan sebelum status gizi disimpulkan.'
             : kalimatKesimpulan(kesimpulanWa, nama).anjuran;
 
-    // Nomor uji (client/.env.local) menggantikan nomor orang tua, sehingga
-    // pengujian tidak pernah menyentuh nomor yang sebenarnya.
-    const nomorTujuan = NOMOR_UJI ?? nomorBaku(noWa);
+    const nomorTujuan = nomorBaku(noWa);
+    const mulaiKirimWa = () =>
+        setDialog(nomorTujuan === null ? 'nomor-wa' : 'wa');
 
     const umurTerbaru = terbaru?.umurBulan ?? null;
     const duaBulanLalu =
@@ -339,13 +348,7 @@ export default function DetailAnak({
 
     // Tombol kirim tidak dirender bila tak ada yang dapat dikirim; sebabnya
     // ditulis sebagai satu baris di bawah judul (docs/prd/feedback/F03).
-    const alasanTanpaWa =
-        alasanTanpaDataWa ??
-        (nomorTujuan !== null
-            ? null
-            : (noWa ?? '').trim() === ''
-              ? 'Nomor WhatsApp orang tua belum diisi. Isi lewat Ubah data, atau kirim dari bagian bawah tab Status Gizi.'
-              : 'Nomor WhatsApp orang tua tidak sah. Periksa lewat Ubah data.');
+    const alasanTanpaWa = alasanTanpaDataWa;
 
     // Titik kurva hanya dari pengukuran yang punya umur dan berat sekaligus.
     const riwayatKurva = pengukuran
@@ -407,13 +410,40 @@ export default function DetailAnak({
         <Halaman
             judul={nama}
             kembali={kembaliKe}
-            subjudul={`${umur !== null ? `${umurPanjang(umur)}, ` : ''}${
-                anak.rt === null
-                    ? 'RT belum tercatat'
-                    : `RT ${anak.rt.padStart(2, '0')}`
-            }. ${sumberLive ? 'Database live' : 'Data contoh'}.`}
+            subjudul={
+                <span className="detail-identitas">
+                    <span>
+                        {anak.jk === 'L'
+                            ? 'Laki-laki'
+                            : anak.jk === 'P'
+                              ? 'Perempuan'
+                              : 'Jenis kelamin belum tercatat'}
+                    </span>
+                    <span title={'Usia pada ' + periode.label}>
+                        {umur !== null
+                            ? umurPanjang(umur)
+                            : 'Usia belum tercatat'}
+                    </span>
+                    <span>
+                        {anak.rt !== null
+                            ? 'RT ' + anak.rt.padStart(2, '0')
+                            : 'RT belum tercatat'}
+                    </span>
+                </span>
+            }
             aksi={
                 <>
+                    <button
+                        type="button"
+                        className="tombol-kedua"
+                        aria-expanded={bantuanTerbuka}
+                        aria-controls="bantuan-detail"
+                        ref={tombolBantuan}
+                        onClick={() => setBantuanTerbuka((v) => !v)}
+                    >
+                        <CircleHelp className="size-4" aria-hidden="true" />
+                        Bantuan
+                    </button>
                     {bolehCetak && (
                         <button
                             type="button"
@@ -431,7 +461,10 @@ export default function DetailAnak({
                     {bolehUbah && (
                         <button
                             type="button"
-                            onClick={() => setDialog('ubah')}
+                            onClick={() => {
+                                setFokusNomorWa(false);
+                                setDialog('ubah');
+                            }}
                             className="tombol-kedua"
                         >
                             <Pencil
@@ -439,13 +472,13 @@ export default function DetailAnak({
                                 strokeWidth={2.5}
                                 aria-hidden="true"
                             />
-                            Ubah data
+                            Ubah data balita
                         </button>
                     )}
                     {peran !== 'kms' && alasanTanpaWa === null && (
                         <button
                             type="button"
-                            onClick={() => setDialog('wa')}
+                            onClick={mulaiKirimWa}
                             className="tombol-utama"
                         >
                             <IkonWhatsApp className="size-5" />
@@ -472,12 +505,12 @@ export default function DetailAnak({
             {/* Kategori ditata sebagai tab lembar kerja: satu kelompok data
                 tampil pada satu waktu, tetapi semua bagian tetap dapat dicapai
                 dalam satu langkah. */}
-            <div
-                className="bilah-tab mb-7"
-                role="tablist"
-                aria-label="Kategori detail anak"
-            >
-                <div className="flex flex-wrap gap-1.5">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+                <div
+                    className="bilah-tab flex-wrap gap-1.5"
+                    role="tablist"
+                    aria-label="Kategori detail anak"
+                >
                     {TAB_DETAIL.map((tab) => {
                         const aktif = tabAktif === tab.nilai;
 
@@ -490,604 +523,1380 @@ export default function DetailAnak({
                                 aria-selected={aktif}
                                 aria-controls={`panel-${tab.nilai}`}
                                 onClick={() => setTabAktif(tab.nilai)}
-                                className="tab"
+                                className="tab inline-flex items-center gap-2"
                             >
                                 {tab.label}
+                                {tab.nilai === 'riwayat' && (
+                                    <span
+                                        className={`rounded-full px-2 py-0.5 text-xs font-extrabold tabular-nums ${
+                                            aktif
+                                                ? 'bg-primary text-primary-foreground'
+                                                : 'bg-surface-alt text-muted-foreground'
+                                        }`}
+                                    >
+                                        {pengukuran.length}
+                                    </span>
+                                )}
                             </button>
                         );
                     })}
                 </div>
             </div>
 
-            {/* Identitas memimpin halaman, seperti artboard Detail: satu
+            <div
+                className={
+                    bantuanTerbuka
+                        ? 'detail-area bantuan-terbuka'
+                        : 'detail-area'
+                }
+            >
+                <div className="detail-utama">
+                    {' '}
+                    {/* Identitas memimpin halaman, seperti artboard Detail: satu
                 petak fakta registri yang dipisahkan garis tebal dari vonis di
                 bawahnya. Petak foto artboard tidak ikut — tidak ada satu pun
                 anak yang punya potret di arsip, dan kotak kosong bertuliskan
                 "Foto anak" pada 101 halaman adalah janji yang tidak ditepati. */}
-            <section
-                id="panel-profil"
-                role="tabpanel"
-                aria-labelledby="tab-profil"
-                hidden={tabAktif !== 'profil'}
-                className="mb-7 overflow-hidden rounded-xl border border-border bg-card"
-            >
-                <div className="flex flex-wrap items-center gap-4 bg-primary px-5 py-4 text-primary-foreground sm:px-6">
-                    <div
-                        aria-hidden="true"
-                        className="flex size-14 shrink-0 items-center justify-center rounded-full bg-card text-xl font-extrabold text-primary"
+                    <section
+                        id="panel-profil"
+                        role="tabpanel"
+                        aria-labelledby="tab-profil"
+                        hidden={tabAktif !== 'profil'}
+                        className="kartu mb-7 overflow-hidden p-0"
                     >
-                        {inisial || '—'}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                        <h2 className="text-xl font-extrabold">Profil anak</h2>
-                        <p className="mt-0.5 text-base text-primary-foreground/80">
-                            {nama}
-                        </p>
-                    </div>
-                    <p className="text-base font-semibold text-primary-foreground">
-                        {anak.jk === 'L'
-                            ? 'Laki-laki'
-                            : anak.jk === 'P'
-                              ? 'Perempuan'
-                              : KOSONG}
-                        {umur !== null && ` · ${umurPanjang(umur)}`}
-                    </p>
-                </div>
-
-                <div className="p-5 sm:p-6">
-                    <dl className="grid gap-x-10 gap-y-4 sm:grid-cols-2 xl:grid-cols-3">
-                        <BarisDefinisi label="Tanggal lahir">
-                            {tanggalPanjang(anak.tglLahir)}
-                        </BarisDefinisi>
-                        <BarisDefinisi label="NIK">
-                            {nik(anak.nik)}
-                            {!anak.nikLengkap && (
-                                <span className="block text-sm text-tone-amber">
-                                    NIK belum lengkap
-                                </span>
-                            )}
-                        </BarisDefinisi>
-                        <BarisDefinisi label="Berat lahir">
-                            {satuan(anak.bbLahirKg, 'kg', 2)}
-                            {anak.bbLahirMeragukan && (
-                                <span className="block text-sm text-tone-amber">
-                                    Angka di arsip meragukan
-                                </span>
-                            )}
-                        </BarisDefinisi>
-                        <BarisDefinisi label="Ibu">
-                            {anak.namaOrtu ?? KOSONG}
-                        </BarisDefinisi>
-                        <BarisDefinisi label="Kelompok Desil">
-                            {anak.desil == null
-                                ? 'Belum tercatat'
-                                : `Desil ${anak.desil} · ${anak.desil <= 4 ? 'G (Gakin)' : 'NG (Non Gakin)'}`}
-                        </BarisDefinisi>
-                        <BarisDefinisi label="Data KB Ibu">
-                            {anak.kbIbu == null
-                                ? 'Belum tercatat'
-                                : anak.kbIbu
-                                  ? 'Iya'
-                                  : 'Tidak'}
-                        </BarisDefinisi>
-                        <BarisDefinisi label="Alamat">
-                            {anak.rt === null
-                                ? KOSONG
-                                : `RT ${anak.rt.padStart(2, '0')}`}
-                            {anak.anakKe !== null && `, anak ke-${anak.anakKe}`}
-                        </BarisDefinisi>
-                    </dl>
-
-                    <div className="mt-6 border-t border-border pt-5">
-                        <h3 className="text-base font-bold">
-                            Skrining saat pendaftaran
-                        </h3>
-                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                            <div className="flex gap-3 rounded-lg bg-surface-subtle p-4">
-                                <ShieldCheck
-                                    className={`mt-0.5 size-5 shrink-0 ${
-                                        anak.bukuKia
-                                            ? 'text-tone-green'
-                                            : 'text-tone-amber'
-                                    }`}
-                                    strokeWidth={2.5}
-                                    aria-hidden="true"
-                                />
-                                <div>
-                                    <p className="font-bold">Buku KIA</p>
-                                    <p className="mt-0.5 text-sm text-muted-foreground">
-                                        {anak.bukuKia
-                                            ? 'Tercatat pada data sasaran.'
-                                            : 'Belum tercatat. Konfirmasi saat daftar.'}
+                        <div className="flex flex-wrap items-center gap-4 bg-primary px-5 py-4 text-primary-foreground sm:px-6">
+                            <div
+                                aria-hidden="true"
+                                className="flex size-14 shrink-0 items-center justify-center rounded-full bg-card text-xl font-extrabold text-primary"
+                            >
+                                {inisial || '—'}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <h2 className="text-xl font-extrabold break-words">
+                                    {nama}
+                                </h2>
+                                <p className="mt-1 text-sm text-primary-foreground/85">
+                                    <span className="detail-identitas">
+                                        <span>
+                                            {anak.jk === 'L'
+                                                ? 'Laki-laki'
+                                                : anak.jk === 'P'
+                                                  ? 'Perempuan'
+                                                  : 'Jenis kelamin belum tercatat'}
+                                        </span>
+                                        <span
+                                            title={'Usia pada ' + periode.label}
+                                        >
+                                            {umur !== null
+                                                ? umurPanjang(umur)
+                                                : 'Usia belum tercatat'}
+                                        </span>
+                                        <span>
+                                            {anak.rt !== null
+                                                ? 'RT ' +
+                                                  anak.rt.padStart(2, '0')
+                                                : 'RT belum tercatat'}
+                                        </span>
+                                    </span>
+                                </p>
+                            </div>
+                            {terbaru !== null && (
+                                <div className="profil-hasil rounded-xl bg-card px-4 py-3 text-foreground">
+                                    <p className="text-xs font-medium text-muted-foreground">
+                                        Pengukuran terakhir ·{' '}
+                                        {tanggalRingkas(terbaru.tanggalUkur)}
                                     </p>
+                                    <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-2">
+                                        <span className="text-sm tabular-nums">
+                                            <span className="text-muted-foreground">
+                                                BB{' '}
+                                            </span>
+                                            <strong>
+                                                {satuan(terbaru.bbKg, 'kg', 1)}
+                                            </strong>
+                                        </span>
+                                        <span className="text-sm tabular-nums">
+                                            <span className="text-muted-foreground">
+                                                {umur !== null && umur < 24
+                                                    ? 'PB'
+                                                    : 'TB'}{' '}
+                                            </span>
+                                            <strong>
+                                                {satuan(
+                                                    terbaru.tinggiCm,
+                                                    'cm',
+                                                    1,
+                                                )}
+                                            </strong>
+                                        </span>
+                                        {terbaru.penilaian.BB_TB?.kategori && (
+                                            <StatusGiziBadge
+                                                kategori={
+                                                    terbaru.penilaian.BB_TB
+                                                        .kategori
+                                                }
+                                            />
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="p-5 sm:p-6">
+                            <dl className="grid gap-x-10 gap-y-3 sm:grid-cols-2 xl:grid-cols-3">
+                                <BarisDefinisi label="Tanggal lahir">
+                                    {tanggalPanjang(anak.tglLahir)}
+                                </BarisDefinisi>
+                                <BarisDefinisi label="NIK">
+                                    {nik(anak.nik)}
+                                    {!anak.nikLengkap && (
+                                        <span className="block text-sm font-semibold text-tone-amber">
+                                            NIK belum lengkap
+                                        </span>
+                                    )}
+                                </BarisDefinisi>
+                                <BarisDefinisi label="Berat lahir">
+                                    <span>
+                                        {satuan(anak.bbLahirKg, 'kg', 2)}
+                                    </span>
+                                    {anak.bbLahirKg !== null && (
+                                        <span
+                                            className={`ml-2 inline-flex rounded px-2 py-0.5 text-xs font-extrabold ${
+                                                anak.bbLahirKg < 2.5
+                                                    ? 'bg-tone-amber-bg text-tone-amber'
+                                                    : 'bg-tone-green-bg text-tone-green'
+                                            }`}
+                                        >
+                                            {anak.bbLahirKg < 2.5
+                                                ? 'BBLR'
+                                                : 'Normal'}
+                                        </span>
+                                    )}
+                                    {anak.bbLahirMeragukan && (
+                                        <span className="block text-sm text-tone-amber">
+                                            Angka di arsip meragukan
+                                        </span>
+                                    )}
+                                </BarisDefinisi>
+                                <BarisDefinisi label="Nama ibu">
+                                    {anak.namaOrtu ?? KOSONG}
+                                </BarisDefinisi>
+                                <BarisDefinisi label="Kelompok Desil">
+                                    {anak.desil == null
+                                        ? 'Belum tercatat'
+                                        : `Desil ${anak.desil} · ${anak.desil <= 4 ? 'Keluarga Miskin (Gakin)' : 'Non-Gakin'}`}
+                                </BarisDefinisi>
+                                <BarisDefinisi label="Status KB Ibu">
+                                    {anak.kbIbu == null
+                                        ? 'Belum tercatat'
+                                        : anak.kbIbu
+                                          ? 'Ya (Peserta KB Aktif)'
+                                          : 'Tidak'}
+                                </BarisDefinisi>
+                                <BarisDefinisi label="Alamat & urutan">
+                                    {anak.rt === null
+                                        ? KOSONG
+                                        : `RT ${anak.rt.padStart(2, '0')}`}
+                                    {anak.anakKe !== null &&
+                                        `, anak ke-${anak.anakKe}`}
+                                </BarisDefinisi>
+                                <BarisDefinisi label="WhatsApp ortu">
+                                    {(noWa ?? '').trim() !== ''
+                                        ? noWa
+                                        : 'Belum diisi'}
+                                </BarisDefinisi>
+                                <BarisDefinisi label="Kode kartu QR">
+                                    <span className="font-mono text-sm font-extrabold text-primary">
+                                        {kodeKartuSasaran(anak)}
+                                    </span>
+                                </BarisDefinisi>
+                            </dl>
+
+                            <div className="mt-6 border-t border-border pt-5">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <h3 className="text-base font-extrabold">
+                                        Cek Kelengkapan Saat Pendaftaran (Meja
+                                        1)
+                                    </h3>
+                                    <span className="text-xs font-semibold text-muted-foreground">
+                                        Muncul otomatis saat Kartu QR Balita
+                                        dipindai
+                                    </span>
+                                </div>
+                                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                                    <div
+                                        className={`flex items-start justify-between gap-3 rounded-lg border p-4 ${
+                                            anak.bukuKia
+                                                ? 'border-primary/25 bg-accent/55'
+                                                : 'border-tone-amber/30 bg-tone-amber-bg/50'
+                                        }`}
+                                    >
+                                        <div className="flex gap-3">
+                                            <ShieldCheck
+                                                className={`mt-0.5 size-5 shrink-0 ${
+                                                    anak.bukuKia
+                                                        ? 'text-tone-green'
+                                                        : 'text-tone-amber'
+                                                }`}
+                                                strokeWidth={2.5}
+                                                aria-hidden="true"
+                                            />
+                                            <div>
+                                                <p className="font-extrabold text-foreground">
+                                                    Kepemilikan Buku KIA
+                                                </p>
+                                                <p className="mt-0.5 text-sm text-muted-foreground">
+                                                    {anak.bukuKia
+                                                        ? 'Buku KIA sudah dimiliki dan tercatat pada data sasaran.'
+                                                        : 'Belum tercatat. Tanyakan apakah ibu membawa Buku KIA.'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <span
+                                            className={`shrink-0 rounded-md px-2.5 py-1 text-xs font-extrabold ${
+                                                anak.bukuKia
+                                                    ? 'bg-tone-green-bg text-tone-green'
+                                                    : 'bg-tone-amber-bg text-tone-amber'
+                                            }`}
+                                        >
+                                            {anak.bukuKia ? (
+                                                <span className="inline-flex items-center gap-1">
+                                                    <CircleCheck
+                                                        className="size-3.5 shrink-0"
+                                                        aria-hidden="true"
+                                                    />
+                                                    <span>Sudah punya</span>
+                                                </span>
+                                            ) : (
+                                                'Perlu dicek'
+                                            )}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-start justify-between gap-3 rounded-lg border border-tone-amber/30 bg-tone-amber-bg/50 p-4">
+                                        <div className="flex gap-3">
+                                            <Syringe
+                                                className="mt-0.5 size-5 shrink-0 text-tone-amber"
+                                                strokeWidth={2.5}
+                                                aria-hidden="true"
+                                            />
+                                            <div>
+                                                <p className="font-extrabold text-foreground">
+                                                    Status Imunisasi Dasar
+                                                </p>
+                                                <p className="mt-0.5 text-sm text-muted-foreground">
+                                                    Belum dipastikan dari arsip
+                                                    ini. Tanyakan dan lengkapi
+                                                    saat daftar.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <span className="shrink-0 rounded-md bg-tone-amber-bg px-2.5 py-1 text-xs font-extrabold text-tone-amber">
+                                            Tanyakan saat daftar
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="flex gap-3 rounded-lg bg-surface-subtle p-4">
-                                <Syringe
-                                    className="mt-0.5 size-5 shrink-0 text-tone-amber"
-                                    strokeWidth={2.5}
-                                    aria-hidden="true"
-                                />
-                                <div>
-                                    <p className="font-bold">Imunisasi</p>
-                                    <p className="mt-0.5 text-sm text-muted-foreground">
-                                        Belum dipastikan dari arsip ini.
-                                        Konfirmasi dan lengkapi saat daftar.
-                                    </p>
+
+                            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-rule pt-4">
+                                <p className="text-sm font-medium text-muted-foreground">
+                                    Langkah berikutnya: lihat status gizi atau
+                                    kurva KMS.
+                                </p>
+                                <div className="flex flex-wrap items-center gap-2.5">
+                                    <button
+                                        type="button"
+                                        onClick={() => setTabAktif('kurva')}
+                                        className="tombol-kedua"
+                                    >
+                                        Lihat Kurva KMS
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setTabAktif('status')}
+                                        className="tombol-utama"
+                                    >
+                                        Lihat Status Gizi &amp; Buku KIA
+                                        <ArrowRight
+                                            className="size-4.5"
+                                            strokeWidth={2.5}
+                                            aria-hidden="true"
+                                        />
+                                    </button>
                                 </div>
                             </div>
                         </div>
-                        <p className="mt-3 max-w-[78ch] text-sm text-muted-foreground">
-                            Saat kartu sasaran dipindai, item yang belum lengkap
-                            ini muncul sebagai skrining awal sebelum anak
-                            dicatat hadir.
-                        </p>
-                    </div>
-                </div>
-            </section>
-
-            <>
-                {tabAktif === 'status' && terbaru === null && (
-                    <section
-                        id="panel-status"
-                        role="tabpanel"
-                        aria-labelledby="tab-status"
-                        className="kartu px-6 py-6"
-                    >
-                        <h2 className="text-xl font-extrabold">
-                            Belum ada penilaian untuk {periode.label}
-                        </h2>
-                        <p className="mt-2 max-w-[72ch] text-base text-muted-foreground">
-                            Pengukuran dari periode lain tidak dipakai sebagai
-                            status bulan ini.
-                            {hasilTerakhir !== undefined &&
-                                ` Riwayat terakhir tercatat ${tanggalPanjang(hasilTerakhir.tanggalUkur)}; lihat Kurva KMS atau Riwayat Ukur untuk konteksnya.`}
-                        </p>
                     </section>
-                )}
+                    <>
+                        {tabAktif === 'status' && terbaru === null && (
+                            <section
+                                id="panel-status"
+                                role="tabpanel"
+                                aria-labelledby="tab-status"
+                                className="kartu px-6 py-6"
+                            >
+                                <h2 className="text-xl font-extrabold">
+                                    Belum ada penilaian untuk {periode.label}
+                                </h2>
+                                <p className="mt-2 max-w-[72ch] text-base text-muted-foreground">
+                                    Pengukuran dari periode lain tidak dipakai
+                                    sebagai status bulan ini.
+                                    {hasilTerakhir !== undefined &&
+                                        ` Riwayat terakhir tercatat ${tanggalPanjang(hasilTerakhir.tanggalUkur)}; lihat Kurva KMS atau Riwayat Ukur untuk konteksnya.`}
+                                </p>
+                            </section>
+                        )}
 
-                {terbaru !== null && (
-                    <section
-                        id="panel-status"
-                        role="tabpanel"
-                        aria-labelledby="tab-status"
-                        hidden={tabAktif !== 'status'}
-                    >
-                        <h2 className="text-xl font-extrabold">
-                            Status pengukuran{' '}
-                            {tanggalPanjang(terbaru.tanggalUkur)}
-                        </h2>
+                        {terbaru !== null && (
+                            <section
+                                id="panel-status"
+                                role="tabpanel"
+                                aria-labelledby="tab-status"
+                                hidden={tabAktif !== 'status'}
+                                className="kartu p-6"
+                            >
+                                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+                                    <div>
+                                        <div className="flex flex-wrap items-center gap-2.5">
+                                            <h2 className="text-xl font-extrabold">
+                                                Status pengukuran{' '}
+                                                {tanggalPanjang(
+                                                    terbaru.tanggalUkur,
+                                                )}
+                                            </h2>
+                                            <span
+                                                className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-extrabold ${
+                                                    perluRujukan
+                                                        ? 'bg-tone-red-bg text-tone-red'
+                                                        : perluTindakLanjut
+                                                          ? 'bg-tone-amber-bg text-tone-amber'
+                                                          : 'bg-tone-green-bg text-tone-green'
+                                                }`}
+                                            >
+                                                {perluRujukan ? (
+                                                    <span className="inline-flex items-center gap-1">
+                                                        <TriangleAlert
+                                                            className="size-3.5 shrink-0"
+                                                            aria-hidden="true"
+                                                        />
+                                                        <span>
+                                                            Perlu Rujukan
+                                                            Puskesmas
+                                                        </span>
+                                                    </span>
+                                                ) : perluTindakLanjut ? (
+                                                    <span className="inline-flex items-center gap-1">
+                                                        <TriangleAlert
+                                                            className="size-3.5 shrink-0"
+                                                            aria-hidden="true"
+                                                        />
+                                                        <span>
+                                                            Perlu Tindak Lanjut
+                                                        </span>
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1">
+                                                        <CircleCheck
+                                                            className="size-3.5 shrink-0"
+                                                            aria-hidden="true"
+                                                        />
+                                                        <span>
+                                                            Pertumbuhan Sesuai
+                                                            Standar
+                                                        </span>
+                                                    </span>
+                                                )}
+                                            </span>
+                                        </div>
+                                        <p className="mt-1 text-sm font-medium text-muted-foreground">
+                                            Usia saat ukur:{' '}
+                                            <strong className="font-bold text-foreground">
+                                                {umurPanjang(
+                                                    terbaru.umurBulan ?? umur,
+                                                )}
+                                            </strong>
+                                            {terbaru.umurBulan !== null &&
+                                                ` (${terbaru.umurBulan} bulan)`}
+                                        </p>
+                                    </div>
 
-                        {/* Tiga kartu indeks berdampingan, susunan artboard.
+                                    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface-subtle px-3.5 py-2 text-sm">
+                                        {terbaru.bbKg !== null && (
+                                            <span className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1 font-bold text-foreground">
+                                                <span className="text-xs font-semibold text-muted-foreground">
+                                                    Berat:
+                                                </span>
+                                                <span className="tabular-nums">
+                                                    {satuan(terbaru.bbKg, 'kg')}
+                                                </span>
+                                            </span>
+                                        )}
+                                        {terbaru.tinggiCm !== null && (
+                                            <span className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1 font-bold text-foreground">
+                                                <span className="text-xs font-semibold text-muted-foreground">
+                                                    {umur !== null && umur < 24
+                                                        ? 'Panjang:'
+                                                        : 'Tinggi:'}
+                                                </span>
+                                                <span className="tabular-nums">
+                                                    {satuan(
+                                                        terbaru.tinggiCm,
+                                                        'cm',
+                                                    )}
+                                                </span>
+                                            </span>
+                                        )}
+                                        <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1 text-sm">
+                                            <span className="text-xs font-semibold text-muted-foreground">
+                                                KMS:
+                                            </span>
+                                            <StatusNaik
+                                                ntob={terbaru.ntob}
+                                                umurBulan={terbaru.umurBulan}
+                                            />
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Tiga kartu indeks berdampingan, susunan artboard.
                             Yang terberat tetap di depan: urutannya dihitung
                             dari nadanya, bukan dari urutan tulis — supaya mata
                             jatuh lebih dulu pada vonis yang menentukan. */}
-                        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                            {terurut.map((i) => (
-                                <KartuIndeks
-                                    key={i.label}
-                                    label={i.label}
-                                    nilai={i.nilai}
-                                />
-                            ))}
-                        </div>
-
-                        {indeksTidakWajar.length > 0 && (
-                            <p className="mt-4 rounded-xl bg-tone-amber-bg p-4 text-sm font-semibold text-tone-amber">
-                                {indeksTidakWajar.join(', ')} ditandai tidak
-                                wajar dalam arsip dan tidak dipakai untuk
-                                penilaian. Periksa ulang hasil ukur sebelum
-                                memberi arahan.
-                            </p>
-                        )}
-
-                        {/* Layar ini dulu tidak pernah menjawab pertanyaan yang
-                            jadi alasan keberadaannya: anak ini perlu
-                            ditindaklanjuti atau tidak. */}
-                        <p className="mt-4 text-base font-bold">
-                            {indeksTidakWajar.length > 0
-                                ? 'Sebagian hasil perlu verifikasi ulang sebelum keputusan tindak lanjut.'
-                                : indeks.every((i) => i.nilai === undefined)
-                                  ? 'Belum dapat dinilai dari data periode ini.'
-                                  : perluTindakLanjut
-                                    ? 'Perlu tindak lanjut bulan ini.'
-                                    : 'Lanjutkan pemantauan bulanan dan diskusi perkembangan sesuai usia.'}
-                        </p>
-
-                        <div
-                            className={`mt-5 rounded-xl p-5 ${
-                                perluRujukan
-                                    ? 'bg-tone-red-bg text-tone-red'
-                                    : 'bg-surface-subtle text-foreground'
-                            }`}
-                        >
-                            <h3 className="text-base font-extrabold">
-                                Diskusikan hasil gizi dengan keluarga
-                            </h3>
-                            <p className="mt-1 max-w-[76ch] text-base text-pretty">
-                                {edukasiKms}
-                            </p>
-                            {perluRujukan && (
-                                <p className="mt-2 text-sm font-semibold">
-                                    Ambang kerja rujukan: z-score ≤{' '}
-                                    {zScore(ambang.ambangRujukan)} SD. Perlu
-                                    pengesahan Puskesmas sebelum digunakan
-                                    sebagai aturan produksi.
-                                </p>
-                            )}
-                            {perluWaspada && !perluRujukan && (
-                                <p className="mt-2 text-sm font-semibold">
-                                    Zona waspada dimulai pada z-score ≤{' '}
-                                    {zScore(ambang.ambangWaspada)} SD.
-                                </p>
-                            )}
-                        </div>
-
-                        <p className="mt-2 max-w-[80ch] text-sm text-pretty text-muted-foreground">
-                            Acuan standar pertumbuhan WHO 2006, dihitung dari
-                            parameter LMS. Nilainya sama dengan tabel Permenkes
-                            No. 2 Tahun 2020. Indeks mengikuti umur anak: BB/PB
-                            di bawah 24 bulan, BB/TB untuk 24 bulan ke atas.
-                        </p>
-
-                        {/* Asumsi sistem harus terlihat di antarmuka, bukan hanya
-                            di basis data (prinsip P4). */}
-                        {terbaru.catatanUkur?.jenisUkur !== undefined && (
-                            <p className="mt-2 max-w-[80ch] text-sm text-muted-foreground">
-                                Cara ukur {terbaru.catatanUkur.jenisUkur}:{' '}
-                                {umur !== null && umur < 24
-                                    ? 'panjang badan, telentang'
-                                    : 'tinggi badan, berdiri'}
-                                . Berkas sumber tidak mencatatnya.
-                            </p>
-                        )}
-                    </section>
-                )}
-
-                {tabAktif === 'status' && (
-                    <PendampinganKia
-                        key={anak.id}
-                        anakId={anak.id}
-                        sumberLive={sumberLive ?? false}
-                        alasanTanpaWa={
-                            peran === 'kms' ? undefined : alasanTanpaDataWa
-                        }
-                        onInfoKiaChange={setInfoKiaWa}
-                        onKirimWa={
-                            peran === 'kms'
-                                ? undefined
-                                : (info) => {
-                                      setInfoKiaWa(info);
-                                      setDialog('wa');
-                                  }
-                        }
-                    />
-                )}
-
-                {/* Kurva dan riwayat adalah cerita yang sama, jadi jaraknya
-                        lebih rapat satu sama lain daripada ke bagian lain. */}
-                <section
-                    id="panel-kurva"
-                    role="tabpanel"
-                    aria-labelledby="tab-kurva"
-                    hidden={tabAktif !== 'kurva'}
-                >
-                    {riwayatKurva.length === 0 ? (
-                        <p className="mt-2 text-base text-muted-foreground">
-                            Belum ada pengukuran berat yang dapat digambarkan.
-                        </p>
-                    ) : (
-                        anak.jk !== null && (
-                            <div className="overflow-hidden rounded-xl border border-border bg-card">
-                                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-surface-subtle px-4 py-3 sm:px-5">
-                                    <div>
-                                        <h2 className="text-xl font-extrabold">
-                                            Kartu Menuju Sehat
-                                        </h2>
-                                        <p className="mt-0.5 text-sm text-muted-foreground">
-                                            Berat badan menurut umur · WHO 2006
-                                        </p>
-                                    </div>
-                                    <p className="text-sm font-semibold text-muted-foreground">
-                                        {nama} · {umurPanjang(umur)}
-                                    </p>
+                                <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                                    {terurut.map((i) => (
+                                        <KartuIndeks
+                                            key={i.label}
+                                            label={i.label}
+                                            nilai={i.nilai}
+                                        />
+                                    ))}
                                 </div>
-                                <div className="px-4 py-4 sm:px-5">
-                                    <p className="mb-3 text-sm text-muted-foreground">
-                                        {terbaru === null
-                                            ? `Kurva ini hanya menampilkan riwayat; belum ada pengukuran pada ${periode.label}.`
-                                            : `Hasil ${periode.label} tersedia pada tab Status Gizi.`}
-                                        {umur !== null &&
-                                            umur > 60 &&
-                                            ' Kurva BB/U WHO 2006 ini hanya mencakup usia 0–60 bulan.'}
-                                        {titikPerluVerifikasi > 0 &&
-                                            ` ${titikPerluVerifikasi} titik BB/U yang ditandai tidak wajar disisihkan dari gambar dan tetap tersimpan di Riwayat Ukur.`}
+
+                                {indeksTidakWajar.length > 0 && (
+                                    <p className="mt-4 rounded-xl bg-tone-amber-bg p-4 text-sm font-semibold text-tone-amber">
+                                        {indeksTidakWajar.join(', ')} ditandai
+                                        tidak wajar dalam arsip dan tidak
+                                        dipakai untuk penilaian. Periksa ulang
+                                        hasil ukur sebelum memberi arahan.
                                     </p>
-                                    <KmsChart
-                                        kelamin={anak.jk}
-                                        riwayat={riwayatKurva}
-                                        garisSd={garisSd}
-                                        umurDisorot={umurDisorot}
-                                        detail={pengukuran
-                                            .filter(
-                                                (
-                                                    p,
-                                                ): p is Pengukuran & {
-                                                    umurBulan: number;
-                                                    bbKg: number;
-                                                } =>
-                                                    p.umurBulan !== null &&
-                                                    p.umurBulan >= 0 &&
-                                                    p.umurBulan <= 60 &&
-                                                    p.bbKg !== null &&
-                                                    p.bbKg > 0 &&
-                                                    !p.penilaian.BB_U
-                                                        ?.tidakWajar,
-                                            )
-                                            .map((p) => ({
-                                                umurBulan: p.umurBulan,
-                                                beratKg: p.bbKg,
-                                                tanggal: p.tanggalUkur,
-                                                z: p.penilaian.BB_U?.z ?? null,
-                                                kategori:
-                                                    p.penilaian.BB_U
-                                                        ?.kategori ?? null,
-                                            }))}
-                                    />
-                                </div>
-                            </div>
-                        )
-                    )}
-                </section>
+                                )}
 
-                <section
-                    id="panel-grafik"
-                    role="tabpanel"
-                    aria-labelledby="tab-grafik"
-                    hidden={tabAktif !== 'grafik'}
-                >
-                    {anak.jk === null ? (
-                        <p className="mt-2 text-base text-muted-foreground">
-                            Jenis kelamin belum tercatat, sehingga grafik belum
-                            dapat digambarkan. Lengkapi lewat Ubah data.
-                        </p>
-                    ) : (
-                        <GrafikPertumbuhan
-                            kelamin={anak.jk}
-                            nama={nama}
-                            umurBalita={umur}
-                            keterangan={
-                                terbaru === null
-                                    ? `Grafik ini hanya menampilkan riwayat; belum ada pengukuran pada ${periode.label}.`
-                                    : `Hasil ${periode.label} tersedia pada tab Status Gizi.`
-                            }
-                            pengukuran={pengukuran}
-                            standar={standarLms}
-                        />
-                    )}
-                </section>
-
-                <section
-                    id="panel-riwayat"
-                    role="tabpanel"
-                    aria-labelledby="tab-riwayat"
-                    hidden={tabAktif !== 'riwayat'}
-                >
-                    <div className="kartu overflow-hidden">
-                        {/* Judul menyatu dengan kartunya di strip kepala,
-                                seperti artboard. */}
-                        <div className="strip-kepala">
-                            <h2 className="text-xl font-extrabold">
-                                Riwayat pengukuran
-                            </h2>
-                            {/* Mengklik baris menyorot titiknya di kurva.
-                                    Dulu tidak ada satu pun tanda bahwa itu
-                                    mungkin, dan <tr onClick> tidak bisa
-                                    dijangkau papan tombol sama sekali. */}
-                            <p className="mt-0.5 text-sm text-muted-foreground">
-                                Pilih tanggal untuk menyorot titiknya saat
-                                membuka tab Kurva KMS.
-                            </p>
-                            <p className="mt-2 text-sm text-muted-foreground md:hidden">
-                                Tabel ini lebih lebar daripada layar. Geser ke
-                                samping untuk melihat kolom z-score.
-                            </p>
-                        </div>
-
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead scope="col">Tanggal</TableHead>
-                                    <TableHead
-                                        scope="col"
-                                        className="hidden lg:table-cell"
-                                    >
-                                        Umur
-                                    </TableHead>
-                                    <TableHead scope="col">Berat</TableHead>
-                                    <TableHead scope="col">
-                                        Panjang atau Tinggi
-                                    </TableHead>
-                                    <TableHead scope="col">BB/U</TableHead>
-                                    <TableHead scope="col">
-                                        {labelIndeks('BB_TB', umur)}
-                                    </TableHead>
-                                    <TableHead scope="col">
-                                        {labelIndeks('TB_U', umur)}
-                                    </TableHead>
-                                    <TableHead
-                                        scope="col"
-                                        className="hidden md:table-cell"
-                                    >
-                                        Pertumbuhan
-                                    </TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {pengukuran.map((p, urutan) => {
-                                    const sebab =
-                                        p.statusKehadiran === 'hadir'
-                                            ? null
-                                            : (ARTI_KEHADIRAN[
-                                                  p.statusKehadiran
-                                              ] ?? null);
-                                    const peringatan = janggal(urutan);
-
-                                    return (
-                                        <TableRow
-                                            key={p.periodeId}
-                                            aria-current={
-                                                p.umurBulan === umurDisorot
-                                                    ? 'true'
-                                                    : undefined
-                                            }
-                                            className={
-                                                p.umurBulan === umurDisorot
-                                                    ? 'bg-accent'
-                                                    : ''
-                                            }
+                                <div
+                                    className={`mt-5 rounded-xl border p-5 ${
+                                        perluRujukan
+                                            ? 'border-tone-red/35 bg-tone-red-bg text-tone-red'
+                                            : perluTindakLanjut
+                                              ? 'border-tone-amber/35 bg-tone-amber-bg/70 text-foreground'
+                                              : 'border-primary/25 bg-accent/55 text-foreground'
+                                    }`}
+                                >
+                                    <div className="flex flex-wrap items-start justify-between gap-4">
+                                        <div className="max-w-[74ch]">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                {perluRujukan ||
+                                                perluTindakLanjut ? (
+                                                    <TriangleAlert
+                                                        className={`size-5 shrink-0 ${
+                                                            perluRujukan
+                                                                ? 'text-tone-red'
+                                                                : 'text-tone-amber'
+                                                        }`}
+                                                        strokeWidth={2.5}
+                                                        aria-hidden="true"
+                                                    />
+                                                ) : (
+                                                    <CircleCheck
+                                                        className="size-5 shrink-0 text-tone-green"
+                                                        strokeWidth={2.5}
+                                                        aria-hidden="true"
+                                                    />
+                                                )}
+                                                <h3 className="text-base font-extrabold">
+                                                    Diskusikan hasil gizi dengan
+                                                    keluarga
+                                                </h3>
+                                                <span className="rounded-md bg-card/85 px-2.5 py-0.5 text-xs font-extrabold text-foreground">
+                                                    {indeksTidakWajar.length > 0
+                                                        ? 'Perlu verifikasi ulang'
+                                                        : indeks.every(
+                                                                (i) =>
+                                                                    i.nilai ===
+                                                                    undefined,
+                                                            )
+                                                          ? 'Belum dapat dinilai'
+                                                          : perluTindakLanjut
+                                                            ? 'Perlu tindak lanjut bulan ini'
+                                                            : 'Lanjutkan pemantauan bulanan'}
+                                                </span>
+                                            </div>
+                                            <p className="mt-2 text-base font-medium text-pretty">
+                                                {edukasiKms}
+                                            </p>
+                                            {perluRujukan && (
+                                                <p className="mt-2 text-sm font-semibold">
+                                                    Ambang kerja rujukan:
+                                                    z-score ≤{' '}
+                                                    {zScore(
+                                                        ambang.ambangRujukan,
+                                                    )}{' '}
+                                                    SD. Perlu pengesahan
+                                                    Puskesmas sebelum digunakan
+                                                    sebagai aturan produksi.
+                                                </p>
+                                            )}
+                                            {perluWaspada && !perluRujukan && (
+                                                <p className="mt-2 text-sm font-semibold">
+                                                    Zona waspada dimulai pada
+                                                    z-score ≤{' '}
+                                                    {zScore(
+                                                        ambang.ambangWaspada,
+                                                    )}{' '}
+                                                    SD.
+                                                </p>
+                                            )}
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setTabAktif('kurva')}
+                                            className="tombol-kedua shrink-0 bg-card"
                                         >
-                                            <TableCell className="py-1">
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        setUmurDisorot(
-                                                            p.umurBulan,
-                                                        )
-                                                    }
-                                                    className="inline-flex min-h-13 items-center rounded-lg px-3 font-semibold text-primary underline"
-                                                >
-                                                    {tanggalRingkas(
-                                                        p.tanggalUkur,
+                                            Lihat Kurva KMS
+                                            <ArrowRight
+                                                className="size-4"
+                                                strokeWidth={2.5}
+                                                aria-hidden="true"
+                                            />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-rule pt-3 text-xs text-muted-foreground">
+                                    <p>
+                                        Acuan standar pertumbuhan WHO 2006
+                                        (parameter LMS, Permenkes No. 2 Tahun
+                                        2020). Indeks BB/PB untuk usia &lt; 24
+                                        bulan, BB/TB untuk ≥ 24 bulan.
+                                    </p>
+                                    {terbaru.catatanUkur?.jenisUkur !==
+                                        undefined && (
+                                        <p className="font-semibold">
+                                            Cara ukur{' '}
+                                            {terbaru.catatanUkur.jenisUkur}:{' '}
+                                            {umur !== null && umur < 24
+                                                ? 'panjang badan, telentang'
+                                                : 'tinggi badan, berdiri'}
+                                        </p>
+                                    )}
+                                </div>
+                            </section>
+                        )}
+
+                        {tabAktif === 'status' && (
+                            <PendampinganKia
+                                key={anak.id}
+                                anakId={anak.id}
+                                sumberLive={sumberLive ?? false}
+                                alasanTanpaWa={
+                                    peran === 'kms'
+                                        ? undefined
+                                        : alasanTanpaDataWa
+                                }
+                                onInfoKiaChange={setInfoKiaWa}
+                                onKirimWa={
+                                    peran === 'kms'
+                                        ? undefined
+                                        : (info) => {
+                                              setInfoKiaWa(info);
+                                              mulaiKirimWa();
+                                          }
+                                }
+                            />
+                        )}
+
+                        {/* Kurva dan riwayat adalah cerita yang sama, jadi jaraknya
+                        lebih rapat satu sama lain daripada ke bagian lain. */}
+                        <section
+                            id="panel-kurva"
+                            role="tabpanel"
+                            aria-labelledby="tab-kurva"
+                            hidden={tabAktif !== 'kurva'}
+                        >
+                            {riwayatKurva.length === 0 ? (
+                                <p className="mt-2 text-base text-muted-foreground">
+                                    Belum ada pengukuran berat yang dapat
+                                    digambarkan.
+                                </p>
+                            ) : (
+                                anak.jk !== null && (
+                                    <div className="overflow-hidden rounded-xl border border-border bg-card">
+                                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-surface-subtle px-5 py-4">
+                                            <div>
+                                                <div className="flex flex-wrap items-center gap-2.5">
+                                                    <h2 className="text-xl font-extrabold">
+                                                        Kartu Menuju Sehat (KMS)
+                                                    </h2>
+                                                    <span className="rounded-md bg-primary/15 px-2.5 py-0.5 text-xs font-extrabold text-primary">
+                                                        Lembar KMS{' '}
+                                                        {anak.jk === 'P'
+                                                            ? 'Perempuan'
+                                                            : 'Laki-laki'}{' '}
+                                                        · WHO 2006
+                                                    </span>
+                                                </div>
+                                                <p className="mt-0.5 text-sm font-medium text-muted-foreground">
+                                                    Grafik berat badan menurut
+                                                    umur (0–60 bulan) sesuai
+                                                    Buku KIA ·{' '}
+                                                    <strong className="font-bold text-foreground">
+                                                        {nama} (
+                                                        {umurPanjang(umur)})
+                                                    </strong>
+                                                </p>
+                                            </div>
+                                            {hasilTerakhir !== undefined && (
+                                                <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card px-3.5 py-2 text-sm shadow-2xs">
+                                                    <span className="font-semibold text-muted-foreground">
+                                                        Ukur terakhir (
+                                                        {tanggalRingkas(
+                                                            hasilTerakhir.tanggalUkur,
+                                                        )}
+                                                        ):
+                                                    </span>
+                                                    {hasilTerakhir.bbKg !==
+                                                        null && (
+                                                        <span className="rounded-md bg-surface-subtle px-2 py-0.5 font-extrabold text-foreground tabular-nums">
+                                                            BB{' '}
+                                                            {satuan(
+                                                                hasilTerakhir.bbKg,
+                                                                'kg',
+                                                            )}
+                                                        </span>
                                                     )}
-                                                </button>
-                                                {/* Baris kosong sekarang
-                                                        menyebutkan sebabnya. */}
-                                                {sebab !== null && (
-                                                    <span className="block px-3 pb-1 text-sm text-muted-foreground">
-                                                        {sebab}
+                                                    <span className="inline-flex items-center gap-1 rounded-md bg-surface-subtle px-2 py-0.5">
+                                                        <StatusNaik
+                                                            ntob={
+                                                                hasilTerakhir.ntob
+                                                            }
+                                                            umurBulan={
+                                                                hasilTerakhir.umurBulan
+                                                            }
+                                                        />
                                                     </span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="hidden whitespace-nowrap lg:table-cell">
-                                                {umurRingkas(p.umurBulan)}
-                                            </TableCell>
-                                            <TableCell className="whitespace-nowrap">
-                                                {satuan(p.bbKg, 'kg', 2)}
-                                            </TableCell>
-                                            <TableCell>
-                                                {satuan(p.tinggiCm, 'cm')}
-                                                {/* Keterangan cara ukur
-                                                        hanya bila ada angkanya:
-                                                        dulu ia tetap dicetak di
-                                                        bawah pengukuran yang
-                                                        tidak pernah terjadi. */}
-                                                {p.tinggiCm !== null && (
-                                                    <span className="block text-sm text-muted-foreground">
-                                                        {p.umurBulan !== null &&
-                                                        p.umurBulan < 24
-                                                            ? 'panjang badan'
-                                                            : 'tinggi badan'}
-                                                    </span>
-                                                )}
-                                                {peringatan !== null && (
-                                                    <span className="mt-1 flex items-start gap-1.5 text-sm text-tone-amber">
-                                                        <TriangleAlert
-                                                            className="mt-0.5 size-4 shrink-0"
+                                                    {kbmKg(
+                                                        hasilTerakhir.umurBulan,
+                                                    ) !== null && (
+                                                        <span className="rounded-md border border-border px-2 py-0.5 text-xs font-bold text-muted-foreground">
+                                                            Syarat KBM ≥{' '}
+                                                            {angka(
+                                                                (kbmKg(
+                                                                    hasilTerakhir.umurBulan,
+                                                                ) ?? 0) * 1000,
+                                                                0,
+                                                            )}{' '}
+                                                            gram
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="px-5 py-4">
+                                            {(terbaru === null ||
+                                                (umur !== null && umur > 60) ||
+                                                titikPerluVerifikasi > 0) && (
+                                                <p className="mb-3 rounded-lg bg-surface-subtle px-3.5 py-2 text-sm font-medium text-muted-foreground">
+                                                    {terbaru === null &&
+                                                        `Kurva ini menampilkan riwayat; belum ada pengukuran pada ${periode.label}.`}
+                                                    {umur !== null &&
+                                                        umur > 60 &&
+                                                        ' Kurva BB/U WHO 2006 ini hanya mencakup usia 0–60 bulan.'}
+                                                    {titikPerluVerifikasi > 0 &&
+                                                        ` ${titikPerluVerifikasi} titik BB/U yang ditandai tidak wajar disisihkan dari gambar dan tetap tersimpan di Riwayat Ukur.`}
+                                                </p>
+                                            )}
+                                            <KmsChart
+                                                kelamin={anak.jk}
+                                                riwayat={riwayatKurva}
+                                                garisSd={garisSd}
+                                                umurDisorot={umurDisorot}
+                                                detail={pengukuran
+                                                    .filter(
+                                                        (
+                                                            p,
+                                                        ): p is Pengukuran & {
+                                                            umurBulan: number;
+                                                            bbKg: number;
+                                                        } =>
+                                                            p.umurBulan !==
+                                                                null &&
+                                                            p.umurBulan >= 0 &&
+                                                            p.umurBulan <= 60 &&
+                                                            p.bbKg !== null &&
+                                                            p.bbKg > 0 &&
+                                                            !p.penilaian.BB_U
+                                                                ?.tidakWajar,
+                                                    )
+                                                    .map((p) => ({
+                                                        umurBulan: p.umurBulan,
+                                                        beratKg: p.bbKg,
+                                                        tanggal: p.tanggalUkur,
+                                                        z:
+                                                            p.penilaian.BB_U
+                                                                ?.z ?? null,
+                                                        kategori:
+                                                            p.penilaian.BB_U
+                                                                ?.kategori ??
+                                                            null,
+                                                    }))}
+                                            />
+                                            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-rule pt-4">
+                                                <p className="text-sm font-medium text-muted-foreground">
+                                                    Ingin memeriksa kurva tinggi
+                                                    badan (PB/U), proporsi
+                                                    (BB/PB), atau tabel riwayat
+                                                    lengkap?
+                                                </p>
+                                                <div className="flex flex-wrap items-center gap-2.5">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            setTabAktif(
+                                                                'grafik',
+                                                            )
+                                                        }
+                                                        className="tombol-kedua"
+                                                    >
+                                                        Lihat Grafik Pertumbuhan
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            setTabAktif(
+                                                                'riwayat',
+                                                            )
+                                                        }
+                                                        className="tombol-utama"
+                                                    >
+                                                        Lihat Tabel Riwayat Ukur
+                                                        <ArrowRight
+                                                            className="size-4.5"
                                                             strokeWidth={2.5}
                                                             aria-hidden="true"
                                                         />
-                                                        {peringatan}
-                                                    </span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
-                                                <ZScoreCell
-                                                    nilai={p.penilaian.BB_U}
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <ZScoreCell
-                                                    nilai={p.penilaian.BB_TB}
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <ZScoreCell
-                                                    nilai={p.penilaian.TB_U}
-                                                />
-                                            </TableCell>
-                                            <TableCell className="hidden md:table-cell">
-                                                {p.ntob === null
-                                                    ? KOSONG
-                                                    : (ARTI_NTOB[
-                                                          p.ntob.toUpperCase()
-                                                      ] ?? p.ntob)}
-                                            </TableCell>
-                                        </TableRow>
-                                    );
-                                })}
-                            </TableBody>
-                        </Table>
-                    </div>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )
+                            )}
+                        </section>
 
-                    <p className="mt-3 max-w-[80ch] text-sm text-muted-foreground">
-                        Kolom Pertumbuhan menampilkan huruf N, T, O, dan B apa
-                        adanya dari arsip. Aturan 1T/2T/3T belum diterapkan
-                        karena definisinya masih dikonfirmasi.
-                    </p>
-                </section>
-            </>
+                        <section
+                            id="panel-grafik"
+                            role="tabpanel"
+                            aria-labelledby="tab-grafik"
+                            hidden={tabAktif !== 'grafik'}
+                        >
+                            {anak.jk === null ? (
+                                <p className="mt-2 text-base text-muted-foreground">
+                                    Jenis kelamin belum tercatat, sehingga
+                                    grafik belum dapat digambarkan. Lengkapi
+                                    lewat Ubah data.
+                                </p>
+                            ) : (
+                                <div className="space-y-4">
+                                    <GrafikPertumbuhan
+                                        kelamin={anak.jk}
+                                        nama={nama}
+                                        umurBalita={umur}
+                                        keterangan={
+                                            terbaru === null
+                                                ? `Grafik ini hanya menampilkan riwayat; belum ada pengukuran pada ${periode.label}.`
+                                                : `Hasil ${periode.label} tersedia pada tab Status Gizi.`
+                                        }
+                                        pengukuran={pengukuran}
+                                        standar={standarLms}
+                                    />
+                                    {/* Strip Navigasi Langkah Berikutnya untuk Kader */}
+                                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 sm:px-6">
+                                        <div className="flex items-center gap-2.5">
+                                            <span className="inline-flex size-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                                                9
+                                            </span>
+                                            <div>
+                                                <p className="text-sm font-bold text-foreground">
+                                                    Langkah berikutnya: lihat
+                                                    riwayat ukur
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Bandingkan hasil ukur dari
+                                                    kunjungan sebelumnya.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-wrap items-center gap-2.5">
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setTabAktif('kurva')
+                                                }
+                                                className="tombol-kedua text-sm"
+                                            >
+                                                ← Kembali ke Kurva KMS
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setTabAktif('riwayat')
+                                                }
+                                                className="tombol-utama text-sm"
+                                            >
+                                                Buka Riwayat Pengukuran
+                                                <ArrowRight
+                                                    className="size-4"
+                                                    strokeWidth={2.5}
+                                                    aria-hidden="true"
+                                                />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </section>
 
-            {/* Tombol yang hanya memunculkan window.alert("Belum
+                        <section
+                            id="panel-riwayat"
+                            role="tabpanel"
+                            aria-labelledby="tab-riwayat"
+                            hidden={tabAktif !== 'riwayat'}
+                        >
+                            <div className="space-y-4">
+                                <div className="kartu overflow-hidden">
+                                    {/* Strip Kepala Informatif */}
+                                    <div className="strip-kepala flex flex-wrap items-center justify-between gap-3">
+                                        <div>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <span className="rounded-md bg-primary/15 px-2.5 py-0.5 text-xs font-bold text-primary">
+                                                    Rekap Bulanan
+                                                </span>
+                                                <span className="rounded-md bg-surface-subtle px-2.5 py-0.5 text-xs font-bold text-muted-foreground">
+                                                    Buku KIA Kemenkes
+                                                </span>
+                                            </div>
+                                            <h2 className="mt-1 text-xl font-extrabold text-foreground">
+                                                Riwayat Penimbangan &amp;
+                                                Antropometri
+                                            </h2>
+                                            <p className="mt-0.5 text-sm text-muted-foreground">
+                                                Arsip lengkap hasil pengukuran
+                                                bulanan · Klik tanggal untuk
+                                                menyorot titik pada Kurva KMS
+                                            </p>
+                                        </div>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1 text-xs font-bold text-foreground">
+                                                <BarChart3
+                                                    className="size-3.5 text-primary"
+                                                    aria-hidden="true"
+                                                />
+                                                <span>
+                                                    {pengukuran.length} Kali
+                                                    Pengukuran Tercatat
+                                                </span>
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Banner Panduan Ibu Kader */}
+
+                                    <div className="riwayat-wadah p-5 sm:p-6">
+                                        <Table
+                                            containerClassName="riwayat-gulir"
+                                            className="riwayat-tabel"
+                                        >
+                                            <TableHeader>
+                                                <TableRow className="border-b border-border bg-surface-subtle/50">
+                                                    <TableHead
+                                                        scope="col"
+                                                        className="font-bold"
+                                                    >
+                                                        Tanggal &amp; Periode
+                                                    </TableHead>
+                                                    <TableHead
+                                                        scope="col"
+                                                        className="hidden font-bold lg:table-cell"
+                                                    >
+                                                        Umur
+                                                    </TableHead>
+                                                    <TableHead
+                                                        scope="col"
+                                                        className="font-bold"
+                                                    >
+                                                        Berat (kg)
+                                                    </TableHead>
+                                                    <TableHead
+                                                        scope="col"
+                                                        className="font-bold"
+                                                    >
+                                                        PB / TB (cm)
+                                                    </TableHead>
+                                                    <TableHead
+                                                        scope="col"
+                                                        className="font-bold"
+                                                    >
+                                                        <span>BB/U</span>
+                                                        <span className="block text-[10px] font-normal text-muted-foreground">
+                                                            Berat/Umur
+                                                        </span>
+                                                    </TableHead>
+                                                    <TableHead
+                                                        scope="col"
+                                                        className="font-bold"
+                                                    >
+                                                        <span>
+                                                            {labelIndeks(
+                                                                'BB_TB',
+                                                                umur,
+                                                            )}
+                                                        </span>
+                                                        <span className="block text-[10px] font-normal text-muted-foreground">
+                                                            Gizi/Wasting
+                                                        </span>
+                                                    </TableHead>
+                                                    <TableHead
+                                                        scope="col"
+                                                        className="font-bold"
+                                                    >
+                                                        <span>
+                                                            {labelIndeks(
+                                                                'TB_U',
+                                                                umur,
+                                                            )}
+                                                        </span>
+                                                        <span className="block text-[10px] font-normal text-muted-foreground">
+                                                            Stunting
+                                                        </span>
+                                                    </TableHead>
+                                                    <TableHead
+                                                        scope="col"
+                                                        className="hidden font-bold md:table-cell"
+                                                    >
+                                                        <span>Pertumbuhan</span>
+                                                        <span className="block text-[10px] font-normal text-muted-foreground">
+                                                            Buku KIA (N/T)
+                                                        </span>
+                                                    </TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {pengukuran.map((p, urutan) => {
+                                                    const sebab =
+                                                        p.statusKehadiran ===
+                                                        'hadir'
+                                                            ? null
+                                                            : (ARTI_KEHADIRAN[
+                                                                  p
+                                                                      .statusKehadiran
+                                                              ] ?? null);
+                                                    const peringatan =
+                                                        janggal(urutan);
+                                                    const disorot =
+                                                        p.umurBulan ===
+                                                        umurDisorot;
+                                                    const isTerbaru =
+                                                        urutan === 0;
+
+                                                    return (
+                                                        <TableRow
+                                                            key={p.periodeId}
+                                                            aria-current={
+                                                                disorot
+                                                                    ? 'true'
+                                                                    : undefined
+                                                            }
+                                                            className={`transition-colors ${
+                                                                disorot
+                                                                    ? 'bg-primary/10 font-medium ring-1 ring-primary/30 ring-inset'
+                                                                    : isTerbaru
+                                                                      ? 'bg-emerald-50/40'
+                                                                      : 'hover:bg-surface-subtle'
+                                                            }`}
+                                                        >
+                                                            <TableCell className="py-2.5">
+                                                                <div className="flex flex-wrap items-center gap-1.5">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() =>
+                                                                            setUmurDisorot(
+                                                                                p.umurBulan,
+                                                                            )
+                                                                        }
+                                                                        className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-sm font-bold transition-all ${
+                                                                            disorot
+                                                                                ? 'bg-primary text-primary-foreground shadow-xs'
+                                                                                : 'text-primary underline underline-offset-2 hover:bg-primary/10'
+                                                                        }`}
+                                                                    >
+                                                                        <span>
+                                                                            {tanggalRingkas(
+                                                                                p.tanggalUkur,
+                                                                            )}
+                                                                        </span>
+                                                                    </button>
+                                                                    {isTerbaru && (
+                                                                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800">
+                                                                            Terbaru
+                                                                        </span>
+                                                                    )}
+                                                                    {disorot &&
+                                                                        !isTerbaru && (
+                                                                            <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-extrabold text-primary">
+                                                                                <Sparkles
+                                                                                    className="size-3 shrink-0"
+                                                                                    aria-hidden="true"
+                                                                                />
+                                                                                <span>
+                                                                                    Disorot
+                                                                                </span>
+                                                                            </span>
+                                                                        )}
+                                                                </div>
+                                                                {sebab !==
+                                                                    null && (
+                                                                    <span className="block px-2.5 pt-1 text-xs text-muted-foreground">
+                                                                        {sebab}
+                                                                    </span>
+                                                                )}
+                                                            </TableCell>
+                                                            <TableCell className="hidden text-sm font-semibold whitespace-nowrap lg:table-cell">
+                                                                {umurRingkas(
+                                                                    p.umurBulan,
+                                                                )}
+                                                            </TableCell>
+                                                            <TableCell className="text-sm font-extrabold whitespace-nowrap text-foreground">
+                                                                {satuan(
+                                                                    p.bbKg,
+                                                                    'kg',
+                                                                    2,
+                                                                )}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <span className="text-sm font-extrabold text-foreground">
+                                                                    {satuan(
+                                                                        p.tinggiCm,
+                                                                        'cm',
+                                                                    )}
+                                                                </span>
+                                                                {p.tinggiCm !==
+                                                                    null && (
+                                                                    <span className="block text-xs text-muted-foreground">
+                                                                        {p.umurBulan !==
+                                                                            null &&
+                                                                        p.umurBulan <
+                                                                            24
+                                                                            ? 'panjang badan (terlentang)'
+                                                                            : 'tinggi badan (berdiri)'}
+                                                                    </span>
+                                                                )}
+                                                                {peringatan !==
+                                                                    null && (
+                                                                    <span className="mt-1 flex items-start gap-1.5 text-xs font-semibold text-tone-amber">
+                                                                        <TriangleAlert
+                                                                            className="mt-0.5 size-3.5 shrink-0"
+                                                                            strokeWidth={
+                                                                                2.5
+                                                                            }
+                                                                            aria-hidden="true"
+                                                                        />
+                                                                        {
+                                                                            peringatan
+                                                                        }
+                                                                    </span>
+                                                                )}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <ZScoreCell
+                                                                    nilai={
+                                                                        p
+                                                                            .penilaian
+                                                                            .BB_U
+                                                                    }
+                                                                />
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <ZScoreCell
+                                                                    nilai={
+                                                                        p
+                                                                            .penilaian
+                                                                            .BB_TB
+                                                                    }
+                                                                />
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <ZScoreCell
+                                                                    nilai={
+                                                                        p
+                                                                            .penilaian
+                                                                            .TB_U
+                                                                    }
+                                                                />
+                                                            </TableCell>
+                                                            <TableCell className="hidden md:table-cell">
+                                                                {(() => {
+                                                                    const raw =
+                                                                        p.ntob?.toUpperCase() ??
+                                                                        null;
+
+                                                                    if (
+                                                                        raw ===
+                                                                        'N'
+                                                                    ) {
+                                                                        return (
+                                                                            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800">
+                                                                                <CircleCheck
+                                                                                    className="size-3.5 shrink-0 text-emerald-600"
+                                                                                    aria-hidden="true"
+                                                                                />
+                                                                                <span>
+                                                                                    Naik
+                                                                                    (N)
+                                                                                </span>
+                                                                            </span>
+                                                                        );
+                                                                    }
+
+                                                                    if (
+                                                                        raw ===
+                                                                        'T'
+                                                                    ) {
+                                                                        return (
+                                                                            <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-900">
+                                                                                <TriangleAlert
+                                                                                    className="size-3.5 shrink-0 text-amber-600"
+                                                                                    aria-hidden="true"
+                                                                                />
+                                                                                <span>
+                                                                                    Tidak
+                                                                                    Naik
+                                                                                    (T)
+                                                                                </span>
+                                                                            </span>
+                                                                        );
+                                                                    }
+
+                                                                    if (
+                                                                        raw ===
+                                                                        'B'
+                                                                    ) {
+                                                                        return (
+                                                                            <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-bold text-sky-900">
+                                                                                Baru
+                                                                                (B)
+                                                                            </span>
+                                                                        );
+                                                                    }
+
+                                                                    if (
+                                                                        raw ===
+                                                                        'O'
+                                                                    ) {
+                                                                        return (
+                                                                            <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
+                                                                                Tidak
+                                                                                Hadir
+                                                                                (O)
+                                                                            </span>
+                                                                        );
+                                                                    }
+
+                                                                    return p.ntob ===
+                                                                        null
+                                                                        ? KOSONG
+                                                                        : (ARTI_NTOB[
+                                                                              raw
+                                                                          ] ??
+                                                                              p.ntob);
+                                                                })()}
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    );
+                                                })}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+
+                                    {/* Pedoman N/T/O/B Buku KIA */}
+                                </div>
+
+                                {/* Bilah Navigasi Penutup Detail Balita */}
+                                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 sm:px-6">
+                                    <div className="flex items-center gap-2.5">
+                                        <span className="inline-flex size-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                                            10
+                                        </span>
+                                        <div>
+                                            <p className="text-sm font-bold text-foreground">
+                                                Langkah berikutnya: tinjau hasil
+                                                atau kembali ke daftar
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                                Buka kembali grafik bila perlu,
+                                                atau kembali ke daftar balita.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-2.5">
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setTabAktif('grafik')
+                                            }
+                                            className="tombol-kedua text-sm"
+                                        >
+                                            ← Grafik Pertumbuhan
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setTabAktif('kurva')}
+                                            className="tombol-kedua text-sm"
+                                        >
+                                            Kurva KMS
+                                        </button>
+                                        <a
+                                            href="#/balita"
+                                            className="tombol-utama text-sm"
+                                        >
+                                            Kembali ke Daftar Balita
+                                            <ArrowRight
+                                                className="size-4"
+                                                strokeWidth={2.5}
+                                                aria-hidden="true"
+                                            />
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </>
+                    {/* Tombol yang hanya memunculkan window.alert("Belum
                 tersedia di demo") dibuang. Kontrol yang menjanjikan sesuatu
                 lalu menolaknya lebih buruk daripada kontrol yang tidak ada;
                 kalimat di atas sudah menyebut keadaannya. */}
-            {dialog === 'ubah' && (
-                <DialogUbah
-                    anak={anak}
-                    periodeId={periode.id}
-                    noWa={noWa}
-                    wilayahRt={wilayahRt}
-                    onTutup={() => setDialog(null)}
-                    onSimpan={async (patch) => {
-                        await onSimpan?.(patch);
-                        setDialog(null);
+                    {dialog === 'ubah' && (
+                        <DialogUbah
+                            anak={anak}
+                            periodeId={periode.id}
+                            noWa={noWa}
+                            wilayahRt={wilayahRt}
+                            fokusNomor={fokusNomorWa}
+                            onTutup={() => setDialog(null)}
+                            onSimpan={async (patch) => {
+                                await onSimpan?.(patch);
+                                setDialog(null);
+                            }}
+                        />
+                    )}
+                    {dialog === 'nomor-wa' && (
+                        <Dialog
+                            judul={
+                                (noWa ?? '').trim() === ''
+                                    ? 'Nomor WhatsApp belum diisi'
+                                    : 'Nomor WhatsApp belum valid'
+                            }
+                            ikon={TriangleAlert}
+                            lebar="w-[520px]"
+                            onTutup={() => setDialog(null)}
+                        >
+                            <div className="px-7 py-5">
+                                <p>
+                                    Isi nomor WhatsApp orang tua di profil
+                                    balita sebelum membuka pesan.
+                                </p>
+                                {(noWa ?? '').trim() !== '' && (
+                                    <p className="mt-2 text-sm text-muted-foreground">
+                                        Gunakan nomor seluler dengan awalan 08
+                                        atau +62.
+                                    </p>
+                                )}
+                                {!bolehUbah && (
+                                    <p className="mt-2 text-sm text-muted-foreground">
+                                        Minta petugas yang dapat mengubah profil
+                                        untuk melengkapi nomor tersebut.
+                                    </p>
+                                )}
+                            </div>
+                            <KakiDialog>
+                                <button
+                                    type="button"
+                                    className="tombol-kedua"
+                                    onClick={() => setDialog(null)}
+                                >
+                                    Tutup
+                                </button>
+                                {bolehUbah && (
+                                    <button
+                                        type="button"
+                                        className="tombol-utama"
+                                        onClick={() => {
+                                            setFokusNomorWa(true);
+                                            setDialog('ubah');
+                                        }}
+                                    >
+                                        {(noWa ?? '').trim() === ''
+                                            ? 'Isi nomor WhatsApp'
+                                            : 'Perbaiki nomor WhatsApp'}
+                                    </button>
+                                )}
+                            </KakiDialog>
+                        </Dialog>
+                    )}
+                    {dialog === 'wa' &&
+                        terbaru !== null &&
+                        nomorTujuan !== null && (
+                            <DialogKirimWa
+                                nama={nama}
+                                nomor={nomorTujuan}
+                                susun={(tautan) =>
+                                    susunPesan({
+                                        nama,
+                                        umurBulan: umur,
+                                        terbaru,
+                                        duaBulanLalu,
+                                        kesimpulan: kesimpulanWa,
+                                        diskusiKia: infoKiaWa,
+                                        tautan,
+                                        lembaga,
+                                    })
+                                }
+                                // Tautan butuh server; di demo barisnya dihilangkan.
+                                buatTautan={
+                                    sumberLive
+                                        ? () =>
+                                              buatTautanLembar(
+                                                  anak.id,
+                                                  periode.id,
+                                              )
+                                        : undefined
+                                }
+                                onTutup={() => setDialog(null)}
+                            />
+                        )}
+                    {dialog === 'cetak' && (
+                        <DialogCetak
+                            anak={anak}
+                            lembaga={lembaga}
+                            onTutup={() => setDialog(null)}
+                        />
+                    )}
+                </div>
+                <BantuanDetail
+                    bagian={tabAktif}
+                    terbuka={bantuanTerbuka}
+                    onTutup={() => {
+                        setBantuanTerbuka(false);
+                        tombolBantuan.current?.focus();
                     }}
                 />
-            )}
-            {dialog === 'wa' && terbaru !== null && (
-                <DialogKirimWa
-                    nama={nama}
-                    nomor={nomorTujuan}
-                    modeUji={NOMOR_UJI !== null}
-                    susun={(tautan) =>
-                        susunPesan({
-                            nama,
-                            umurBulan: umur,
-                            terbaru,
-                            duaBulanLalu,
-                            kesimpulan: kesimpulanWa,
-                            diskusiKia: infoKiaWa,
-                            tautan,
-                            lembaga,
-                        })
-                    }
-                    // Tautan butuh server; di demo barisnya dihilangkan.
-                    buatTautan={
-                        sumberLive
-                            ? () => buatTautanLembar(anak.id, periode.id)
-                            : undefined
-                    }
-                    onTutup={() => setDialog(null)}
-                />
-            )}
-            {dialog === 'cetak' && (
-                <DialogCetak
-                    anak={anak}
-                    lembaga={lembaga}
-                    onTutup={() => setDialog(null)}
-                />
-            )}
+            </div>
         </Halaman>
     );
 }
@@ -1106,21 +1915,68 @@ function KartuIndeks({
     nilai: PenilaianGizi | undefined;
 }) {
     const kesimpulan = kesimpulanZScore(nilai?.kategori, nilai?.z);
-    const warna = WARNA_NADA[nadaKategori(kesimpulan)];
+    const nada = nadaKategori(kesimpulan);
+    const warna = WARNA_NADA[nada];
+    const artiLabel =
+        label === 'BB/PB'
+            ? 'Proporsi berat & panjang badan'
+            : label === 'BB/TB'
+              ? 'Proporsi berat & tinggi badan'
+              : label === 'BB/U'
+                ? 'Berat badan menurut umur'
+                : label === 'PB/U'
+                  ? 'Panjang badan menurut umur'
+                  : 'Tinggi badan menurut umur';
+    const batasNormal =
+        label === 'PB/U' || label === 'TB/U'
+            ? 'Rentang normal: −2,00 s/d +3,00 SD'
+            : 'Rentang normal: −2,00 s/d +1,00 SD';
+    const kelasLencana =
+        nada === 'merah'
+            ? 'bg-tone-red-bg text-tone-red'
+            : nada === 'oranye'
+              ? 'bg-tone-amber-bg text-tone-amber'
+              : nada === 'biru'
+                ? 'bg-tone-blue-bg text-tone-blue'
+                : nada === 'hijau'
+                  ? 'bg-tone-green-bg text-tone-green'
+                  : 'bg-surface-subtle text-muted-foreground';
 
     return (
-        <div className="kartu p-5">
-            <p className="text-sm font-bold text-muted-foreground">{label}</p>
-            <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
+        <div className="flex flex-col justify-between rounded-xl border border-border bg-surface-subtle/55 p-4">
+            <div className="flex items-start justify-between gap-2">
+                <div>
+                    <span className="inline-flex items-center rounded-md bg-secondary px-2 py-0.5 text-xs font-extrabold text-foreground">
+                        {label}
+                    </span>
+                    <p className="mt-1 text-xs font-semibold text-muted-foreground">
+                        {artiLabel}
+                    </p>
+                </div>
                 <span
-                    className={`text-3xl leading-none font-extrabold ${warna}`}
+                    className={`inline-flex shrink-0 items-center gap-1 rounded-md px-2.5 py-1 text-xs font-extrabold ${kelasLencana}`}
+                >
+                    {nada === 'hijau' && (
+                        <Check
+                            className="size-3.5 shrink-0"
+                            aria-hidden="true"
+                        />
+                    )}
+                    <span>{kesimpulan}</span>
+                </span>
+            </div>
+            <p className="mt-3 flex flex-wrap items-baseline gap-x-1.5">
+                <span
+                    className={`text-3xl leading-none font-extrabold tabular-nums ${warna}`}
                 >
                     {nilai === undefined ? KOSONG : zScore(nilai.z)}
                 </span>
-                <span className="text-sm text-muted-foreground">SD</span>
+                <span className="text-xs font-bold text-muted-foreground">
+                    SD (Z-score)
+                </span>
             </p>
-            <p className={`mt-1.5 text-base font-bold text-pretty ${warna}`}>
-                {kesimpulan}
+            <p className="mt-2 border-t border-rule pt-2 text-xs font-medium text-muted-foreground">
+                {batasNormal}
             </p>
         </div>
     );
@@ -1146,6 +2002,7 @@ function DialogUbah({
     periodeId,
     noWa,
     wilayahRt,
+    fokusNomor = false,
     onTutup,
     onSimpan,
 }: {
@@ -1153,10 +2010,11 @@ function DialogUbah({
     periodeId: string;
     noWa: string | null;
     wilayahRt: string[];
+    fokusNomor?: boolean;
     onTutup: () => void;
     onSimpan: (patch: PatchAnak) => void | Promise<void>;
 }) {
-    const [isi, setIsi] = useState<IsianUbah>({
+    const [isiAwal] = useState<IsianUbah>({
         nama: anak.nama ?? '',
         jk: anak.jk ?? 'P',
         tglLahir: anak.tglLahir ?? '',
@@ -1170,11 +2028,26 @@ function DialogUbah({
         namaOrtu: anak.namaOrtu ?? '',
         noWa: noWa ?? '',
     });
+    const [isi, setIsi] = useState(isiAwal);
+    const rtTersedia = Array.from(
+        new Set([...wilayahRt, ...(anak.rt ? [anak.rt] : [])]),
+    ).sort();
     const [galat, setGalat] = useState<
         Partial<Record<keyof IsianUbah, string>>
     >({});
     const [galatSimpan, setGalatSimpan] = useState('');
     const [menyimpan, setMenyimpan] = useState(false);
+    useEffect(() => {
+        if (!fokusNomor) {
+            return;
+        }
+
+        const frame = requestAnimationFrame(() =>
+            document.getElementById('ubah-noWa')?.focus(),
+        );
+
+        return () => cancelAnimationFrame(frame);
+    }, [fokusNomor]);
 
     const ubah = <K extends keyof IsianUbah>(kunci: K, nilai: IsianUbah[K]) => {
         setIsi((lama) => ({ ...lama, [kunci]: nilai }));
@@ -1197,6 +2070,16 @@ function DialogUbah({
 
         if (isi.tglLahir === '') {
             salah.tglLahir = 'Tanggal lahir wajib diisi.';
+        }
+
+        if (isi.noWa.trim() !== '' && nomorBaku(isi.noWa) === null) {
+            salah.noWa =
+                'Nomor WhatsApp belum valid. Gunakan awalan 08 atau +62.';
+        }
+
+        if (!isi.rt) {
+            salah.rt =
+                'RT belum tersedia. Muat ulang halaman sebelum menyimpan.';
         }
 
         if (digit !== '' && digit.length !== 16) {
@@ -1253,12 +2136,29 @@ function DialogUbah({
 
     return (
         <Dialog
-            judul={`Ubah data ${namaTampil(anak.nama)}`}
-            keterangan="Hasil ukur tidak diubah di sini. Setiap perubahan dicatat: siapa yang mengubah dan kapan."
+            ikon={Pencil}
+            judul="Ubah data balita"
+            keterangan={`${namaTampil(anak.nama)} · Hasil ukur tidak diubah di sini.`}
             lebar="w-[920px]"
             onTutup={onTutup}
+            berubah={JSON.stringify(isi) !== JSON.stringify(isiAwal)}
+            menyimpan={menyimpan}
+            galat={galatSimpan}
+            onTutupGalat={() => setGalatSimpan('')}
+            onCobaLagi={() => {
+                setGalatSimpan('');
+                document
+                    .getElementById('form-ubah-balita')
+                    ?.dispatchEvent(
+                        new Event('submit', {
+                            bubbles: true,
+                            cancelable: true,
+                        }),
+                    );
+            }}
         >
             <form
+                id="form-ubah-balita"
                 noValidate
                 onSubmit={simpan}
                 className="flex min-h-0 flex-1 flex-col"
@@ -1386,7 +2286,7 @@ function DialogUbah({
                                     </span>
                                 </div>
                             </Kolom>
-                            <Kolom id="ubah-rt" label="RT">
+                            <Kolom id="ubah-rt" label="RT" galat={galat.rt}>
                                 <div className="relative">
                                     <select
                                         id="ubah-rt"
@@ -1396,7 +2296,12 @@ function DialogUbah({
                                         }
                                         className="isian w-full cursor-pointer appearance-none pr-11"
                                     >
-                                        {wilayahRt.map((w) => (
+                                        {rtTersedia.length === 0 && (
+                                            <option value="">
+                                                RT belum tersedia
+                                            </option>
+                                        )}
+                                        {rtTersedia.map((w) => (
                                             <option key={w} value={w}>
                                                 RT {w.padStart(2, '0')}
                                             </option>
@@ -1514,6 +2419,7 @@ function DialogUbah({
                             id="ubah-noWa"
                             label="Nomor WhatsApp orang tua"
                             keterangan="(boleh kosong)"
+                            galat={galat.noWa}
                         >
                             <input
                                 id="ubah-noWa"
@@ -1544,6 +2450,7 @@ function DialogUbah({
                     <button
                         type="button"
                         onClick={onTutup}
+                        data-tutup-dialog
                         disabled={menyimpan}
                         className="tombol-kedua px-5.5"
                     >

@@ -9,6 +9,7 @@
 import { Router } from "express";
 import type { Response } from "express";
 import type { Pool } from "pg";
+import { daftarRt } from "../repositories/beranda-repository.ts";
 
 import { wajibBoleh } from "./middleware.ts";
 import {
@@ -132,7 +133,8 @@ export function ruteAnak(pool: Pool): Router {
         }
 
         try {
-            res.json({ anak: await ambil(pool, req.pengguna!, id, typeof req.query.periode === 'string' ? req.query.periode : undefined) });
+            const anak = await ambil(pool, req.pengguna!, id, typeof req.query.periode === 'string' ? req.query.periode : undefined);
+            res.json({ anak, wilayahRt: await daftarRt(pool, req.pengguna!) });
         } catch (galat) {
             try {
                 jawabGalat(galat, res);

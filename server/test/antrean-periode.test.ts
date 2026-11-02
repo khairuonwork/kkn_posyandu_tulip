@@ -4,6 +4,39 @@ import { test } from 'node:test';
 import express from 'express';
 import type { Pool } from 'pg';
 import { ruteAntrean } from '../src/http/antrean-controller.ts';
+import type { PenggunaAktif } from '../src/auth/peran.ts';
+
+test('konfirmasi KMS menolak peran lain pada seluruh jalur penyelesaian', async () => {
+    let pengguna: PenggunaAktif = {id: 1, peran: 'admin', rt: null, aktif: true, superAdmin: false};
+    const app = express();
+    app.use(express.json());
+    app.use((req, _res, next) => { req.pengguna = pengguna; next(); });
+    app.use(ruteAntrean({} as Pool));
+    const server = app.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    const base = `http://127.0.0.1:${address.port}`;
+    try {
+        for (const peran of ['kader', 'bidan', 'admin'] as const) {
+            pengguna = {...pengguna, peran, superAdmin: false};
+            for (const path of ['/antrean/salah/konfirmasi-kms', '/antrean/konfirmasi-semua-kms']) {
+                const res = await fetch(base + path, {method:'POST',headers:{'content-type':'application/json'},body:'{}'});
+                assert.equal(res.status, 403, `${peran} ${path}`);
+            }
+            const patch = await fetch(base + '/antrean/salah', {method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({status:'done'})});
+            assert.equal(patch.status, 403, `${peran} PATCH done`);
+        }
+        for (const p of [{peran:'kms' as const,superAdmin:false},{peran:'admin' as const,superAdmin:true}]) {
+            pengguna = {...pengguna,...p};
+            const res = await fetch(base + '/antrean/salah/konfirmasi-kms', {method:'POST',headers:{'content-type':'application/json'},body:'{}'});
+            assert.equal(res.status, 400, `${p.peran} melewati otorisasi`);
+        }
+    } finally {
+        server.closeAllConnections();
+        await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+    }
+});
 
 test('KMS menerima periode portal dan mempertahankan ID tablet', async () => {
     const calls: unknown[][] = [];

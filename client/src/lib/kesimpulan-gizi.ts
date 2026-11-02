@@ -5,10 +5,21 @@
  * Hanya tiga indeks yang menentukan: BB/TB, BB/U, dan TB/U.
  */
 
-import { PERLU_TINDAK_LANJUT } from '@/components/status-gizi-badge';
-import { penilaianLayak } from '@/lib/penilaian-utama';
-import type { Kesimpulan } from '@/lib/pesan-wa';
-import type { Pengukuran } from '@/types/posyandu';
+import type { Pengukuran } from '../types/posyandu.ts';
+import { PERLU_TINDAK_LANJUT } from './kategori-tindak-lanjut.ts';
+import { penilaianLayak } from './penilaian-utama.ts';
+import type { Kesimpulan } from './pesan-wa.ts';
+
+const PERLU_PEMANTAUAN = [
+    ...PERLU_TINDAK_LANJUT,
+    'Risiko berat badan lebih',
+    'Berisiko gizi lebih',
+    'Gizi lebih',
+    'BB Lebih',
+    'Risiko Gizi Lebih',
+    'Gizi Lebih',
+    'Gemuk',
+];
 
 export type AmbangGizi = { ambangWaspada: number; ambangRujukan: number };
 
@@ -24,8 +35,7 @@ export function tandaGizi(
         perluRujukan: nilai.some((n) => n.z <= ambang.ambangRujukan),
         perluWaspada: nilai.some((n) => n.z <= ambang.ambangWaspada),
         perluTindakLanjut: nilai.some(
-            (n) =>
-                n.kategori !== null && PERLU_TINDAK_LANJUT.includes(n.kategori),
+            (n) => n.kategori !== null && PERLU_PEMANTAUAN.includes(n.kategori),
         ),
     };
 }

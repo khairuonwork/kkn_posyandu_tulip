@@ -1,7 +1,15 @@
-import { BookOpen, ChevronDown, Save } from 'lucide-react';
+import {
+    BookOpen,
+    Check,
+    ChevronDown,
+    Save,
+    TriangleAlert,
+} from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
+import DialogGagal from '@/components/dialog-gagal';
 import IkonWhatsApp from '@/components/ikon-whatsapp';
+import StateHalaman from '@/components/state-halaman';
 import { tanggalPanjang } from '@/lib/format';
 import {
     ambilPendampinganKia,
@@ -82,8 +90,11 @@ export default function PendampinganKia({
                     Mode contoh tidak menyimpan jawaban anak.
                 </p>
             ) : galat ? (
-                <div className="px-6 py-5" role="alert">
-                    <p>{galat}</p>
+                <StateHalaman
+                    jenis="galat"
+                    judul="Panduan belum dapat dimuat"
+                    pesan="Periksa koneksi, lalu coba lagi."
+                >
                     <button
                         type="button"
                         className="tombol-kedua mt-3"
@@ -94,7 +105,7 @@ export default function PendampinganKia({
                     >
                         Coba muat lagi
                     </button>
-                </div>
+                </StateHalaman>
             ) : data ? (
                 <IsiPendampingan
                     key={`${anakId}-${data.tanggal}-${data.kelompok?.id ?? 'tanpa'}`}
@@ -106,10 +117,10 @@ export default function PendampinganKia({
                     alasanTanpaWa={alasanTanpaWa}
                 />
             ) : (
-                <div className="px-6 py-5" role="status" aria-live="polite">
-                    <p>Menyiapkan panduan sesuai usia anak…</p>
-                    <div className="mt-3 h-3 w-2/3 rounded bg-surface-subtle" />
-                </div>
+                <StateHalaman
+                    jenis="memuat"
+                    judul="Memuat panduan sesuai usia anak…"
+                />
             )}
         </section>
     );
@@ -262,48 +273,92 @@ function IsiPendampingan({
     return (
         <>
             <div className="px-6 py-5">
-                <p className="text-sm text-muted-foreground">
-                    Usia hari ini · {tanggalPanjang(data.tanggal)}
-                </p>
-                <p className="mt-1 text-lg font-bold">
-                    {data.umur?.label ?? 'Tanggal lahir perlu diperiksa'}
-                </p>
-                <p className="mt-1 max-w-[78ch] text-sm text-muted-foreground">
-                    Panduan mengikuti usia hari ini, bukan bulan laporan yang
-                    dipilih di sidebar.
-                </p>
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-surface-subtle px-4 py-2.5 text-sm">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-semibold text-muted-foreground">
+                            Usia hari ini ({tanggalPanjang(data.tanggal)}):
+                        </span>
+                        <span className="rounded-md bg-primary px-2.5 py-0.5 text-xs font-extrabold text-primary-foreground">
+                            {data.umur?.label ??
+                                'Tanggal lahir perlu diperiksa'}
+                        </span>
+                        {kelompok && (
+                            <span className="rounded-md border border-border bg-card px-2.5 py-0.5 text-xs font-bold text-foreground">
+                                Kelompok Buku KIA: {kelompok.label}
+                            </span>
+                        )}
+                    </div>
+                    <span className="text-xs font-medium text-muted-foreground">
+                        Panduan otomatis menyesuaikan usia anak saat ini
+                    </span>
+                </div>
                 {kelompok ? (
                     <>
-                        <div className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-surface p-4 sm:px-5">
+                        <div className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-primary/25 bg-accent/45 p-4 sm:px-5">
                             <div>
-                                <h3 className="text-lg font-extrabold">
-                                    {kelompok.jenis === 'perawatan'
-                                        ? 'Checklist diskusi perawatan'
-                                        : 'Survei penanda perkembangan'}{' '}
-                                    · {kelompok.label}
-                                </h3>
+                                <div className="flex flex-wrap items-center gap-2.5">
+                                    <h3 className="text-lg font-extrabold">
+                                        {kelompok.jenis === 'perawatan'
+                                            ? 'Checklist diskusi perawatan'
+                                            : 'Survei penanda perkembangan'}{' '}
+                                        · {kelompok.label}
+                                    </h3>
+                                    <span
+                                        className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-extrabold ${
+                                            data.terkini?.dibahas
+                                                ? 'bg-tone-green-bg text-tone-green'
+                                                : data.terkini
+                                                  ? 'bg-tone-amber-bg text-tone-amber'
+                                                  : 'bg-surface-subtle text-muted-foreground'
+                                        }`}
+                                    >
+                                        {data.terkini ? (
+                                            data.terkini.dibahas ? (
+                                                <span className="inline-flex items-center gap-1">
+                                                    <Check
+                                                        className="size-3.5 shrink-0"
+                                                        aria-hidden="true"
+                                                    />
+                                                    <span>
+                                                        Selesai dibahas hari ini
+                                                    </span>
+                                                </span>
+                                            ) : (
+                                                'Belum selesai dibahas'
+                                            )
+                                        ) : (
+                                            'Belum diisi hari ini'
+                                        )}
+                                    </span>
+                                    {hitung.total > 0 && (
+                                        <span className="rounded-md border border-border bg-card px-2.5 py-1 text-xs font-bold text-foreground">
+                                            {hitung.ya}/{hitung.total} Sesuai
+                                            (Ya)
+                                        </span>
+                                    )}
+                                </div>
                                 <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
                                     <a
-                                        className="inline-flex min-h-[38px] items-center text-base font-semibold text-primary underline underline-offset-4"
+                                        className="inline-flex min-h-[38px] items-center text-sm font-bold text-primary underline underline-offset-4"
                                         href={`${data.sumber.url}#page=${kelompok.halamanPdf}`}
                                         target="_blank"
                                         rel="noreferrer"
                                     >
-                                        Buku KIA 2024, halaman{' '}
+                                        Buka Buku KIA 2024 · Halaman{' '}
                                         {kelompok.halaman}
                                     </a>
-                                    <span className="text-base text-muted-foreground">
+                                    <span className="text-sm font-medium text-muted-foreground">
                                         {data.terkini
                                             ? data.terkini.dibahas
-                                                ? 'Diskusi hari ini sudah ditandai selesai.'
+                                                ? 'Diskusi hari ini sudah ditandai selesai bersama orang tua.'
                                                 : 'Catatan hari ini tersimpan; diskusi belum selesai.'
-                                            : 'Belum ada catatan diskusi hari ini.'}
+                                            : 'Klik tombol di kanan untuk mengisi bersama orang tua.'}
                                     </span>
                                 </div>
                             </div>
                             <button
                                 type="button"
-                                className="tombol-kedua shrink-0 px-5 text-lg font-bold"
+                                className="tombol-kedua shrink-0 bg-card px-5 text-base font-extrabold"
                                 aria-expanded={terbuka}
                                 aria-controls="form-survei-kia"
                                 onClick={() => setTerbuka((v) => !v)}
@@ -529,13 +584,15 @@ function IsiPendampingan({
                                         lanjutnya.
                                     </p>
                                     {galat && (
-                                        <p
-                                            role="alert"
-                                            className="mt-4 max-w-[76ch] text-base font-semibold text-tone-red"
-                                        >
-                                            {galat} Jawaban di formulir belum
-                                            dibuang.
-                                        </p>
+                                        <DialogGagal
+                                            judul="Catatan belum tersimpan"
+                                            pesan={`${galat} Jawaban tetap ada di formulir.`}
+                                            onTutup={() => setGalat('')}
+                                            onCobaLagi={() => {
+                                                setGalat('');
+                                                void simpanData();
+                                            }}
+                                        />
                                     )}
                                     {pesan && (
                                         <p
@@ -600,59 +657,96 @@ function IsiPendampingan({
             {kelompok && (
                 <div className="grid border-t border-border lg:grid-cols-2">
                     <div className="px-6 py-5">
-                        <h3 className="text-lg font-bold">
-                            Yang dapat dilakukan di rumah
-                        </h3>
-                        <h4 className="mt-4 text-base font-bold">
-                            Makan dan menyusu sesuai usia
+                        <div className="flex items-center gap-2.5">
+                            <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-extrabold text-primary-foreground">
+                                1
+                            </span>
+                            <h3 className="text-lg font-extrabold">
+                                Yang dapat dilakukan di rumah (Makan &amp; ASI)
+                            </h3>
+                        </div>
+                        <h4 className="mt-3 text-sm font-bold text-muted-foreground">
+                            Makan dan menyusu sesuai usia:
                         </h4>
-                        <ul className="mt-2 list-disc space-y-2 pl-5 text-base">
+                        <ul className="mt-2 list-disc space-y-2 pl-5 text-base font-medium">
                             {data.makan?.isi.map((teks) => (
                                 <li key={teks}>{teks}</li>
                             ))}
                         </ul>
                         {data.makan && (
                             <a
-                                className="inline-flex min-h-[44px] items-center text-sm text-primary underline underline-offset-4"
+                                className="mt-2 inline-flex min-h-[38px] items-center text-sm font-bold text-primary underline underline-offset-4"
                                 href={`${data.sumber.url}#page=${data.makan.halamanPdf}`}
                                 target="_blank"
                                 rel="noreferrer"
                             >
-                                Panduan makan · halaman {data.makan.halaman}
+                                Buka panduan makan · halaman{' '}
+                                {data.makan.halaman}
                             </a>
                         )}
-                        <p className="mt-3 max-w-[65ch] text-sm text-muted-foreground">
+                        <p className="mt-2 max-w-[65ch] text-xs text-muted-foreground">
                             Ini panduan umum sesuai usia. Kebutuhan khusus atau
                             kekhawatiran dari hasil ukur perlu dibahas bersama
                             tenaga kesehatan.
                         </p>
                     </div>
                     <div className="border-t border-border px-6 py-5 lg:border-t-0 lg:border-l">
-                        <h3 className="text-lg font-bold">
-                            Stimulasi dan kunjungan berikutnya
-                        </h3>
-                        <ul className="mt-4 list-disc space-y-2 pl-5 text-base">
+                        <div className="flex items-center gap-2.5">
+                            <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-extrabold text-primary-foreground">
+                                2
+                            </span>
+                            <h3 className="text-lg font-extrabold">
+                                Stimulasi dan kunjungan berikutnya
+                            </h3>
+                        </div>
+                        <h4 className="mt-3 text-sm font-bold text-muted-foreground">
+                            Latihan &amp; rangsangan tumbuh kembang di rumah:
+                        </h4>
+                        <ul className="mt-2 list-disc space-y-2 pl-5 text-base font-medium">
                             {kelompok.stimulasi.map((teks) => (
                                 <li key={teks}>{teks}</li>
                             ))}
                         </ul>
-                        <p className="mt-4 max-w-[65ch] text-base">
-                            {data.layanan}
-                        </p>
+                        <div className="mt-4 rounded-lg border border-border bg-surface-subtle px-3.5 py-2.5 text-sm">
+                            <span className="font-bold text-foreground">
+                                Layanan kunjungan berikutnya:{' '}
+                            </span>
+                            <span className="text-muted-foreground">
+                                {data.layanan}
+                            </span>
+                        </div>
                     </div>
                 </div>
             )}
-            <div className="border-t border-border px-6 py-5">
-                <details>
-                    <summary className="flex min-h-[44px] cursor-pointer items-center gap-2 font-bold">
+            <div className="border-t border-border px-6 py-4">
+                <div className="flex items-start gap-3 rounded-xl border border-tone-red/30 bg-tone-red-bg/55 px-4 py-3 text-sm text-tone-red">
+                    <TriangleAlert
+                        className="mt-0.5 size-5 shrink-0"
+                        strokeWidth={2.5}
+                        aria-hidden="true"
+                    />
+                    <p className="max-w-[88ch]">
+                        <strong className="font-extrabold">
+                            Tanda Bahaya — Jangan tunggu jadwal berikutnya:
+                        </strong>{' '}
+                        <span className="font-medium text-foreground">
+                            {data.bahaya.pesan}
+                        </span>{' '}
+                        <span className="font-semibold text-muted-foreground">
+                            (Buku KIA, halaman {data.bahaya.halaman}).
+                        </span>
+                    </p>
+                </div>
+                <details className="mt-3">
+                    <summary className="flex min-h-[40px] cursor-pointer items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground">
                         <ChevronDown className="size-4" aria-hidden="true" />
-                        Riwayat diskusi ·{' '}
+                        Riwayat diskusi tersimpan ·{' '}
                         {data.riwayat.length === 12
                             ? '12 catatan terakhir'
                             : `${data.riwayat.length} catatan`}
                     </summary>
                     {data.riwayat.length === 0 ? (
-                        <p className="mt-2 text-muted-foreground">
+                        <p className="mt-2 text-sm text-muted-foreground">
                             Belum ada catatan survei tersimpan. Jawaban akan
                             muncul di sini setelah kader menyimpan diskusi.
                         </p>
@@ -664,21 +758,14 @@ function IsiPendampingan({
                         </div>
                     )}
                 </details>
-                <p className="mt-4 max-w-[88ch] text-sm">
-                    <strong>Jangan tunggu jadwal berikutnya.</strong>{' '}
-                    {data.bahaya.pesan}{' '}
-                    <span className="text-muted-foreground">
-                        Buku KIA, halaman {data.bahaya.halaman}.
-                    </span>
-                </p>
             </div>
             {onKirimWa !== undefined && (
-                <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border bg-surface-subtle px-6 py-5">
+                <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border bg-accent/45 px-6 py-5">
                     <div className="max-w-[70ch]">
-                        <h3 className="text-lg font-extrabold">
-                            Kirim Ringkasan Hasil & Rekomendasi ke Orang Tua
+                        <h3 className="text-lg font-extrabold text-foreground">
+                            Kirim Ringkasan Hasil &amp; Rekomendasi ke Orang Tua
                         </h3>
-                        <p className="mt-1 text-base text-muted-foreground">
+                        <p className="mt-1 text-sm font-medium text-muted-foreground">
                             {alasanTanpaWa ??
                                 'Bagikan ringkasan status gizi, hasil diskusi tumbuh kembang, rekomendasi asupan makan & stimulasi di rumah, beserta tautan pratinjau lembar PDF dan kurva KMS.'}
                         </p>
@@ -691,7 +778,7 @@ function IsiPendampingan({
                             className="tombol-utama shrink-0 px-5.5 text-base font-bold disabled:opacity-50"
                         >
                             <IkonWhatsApp className="size-5" />
-                            Kirim Hasil & Rekomendasi via WhatsApp
+                            Kirim Hasil &amp; Rekomendasi via WhatsApp
                         </button>
                     )}
                 </div>

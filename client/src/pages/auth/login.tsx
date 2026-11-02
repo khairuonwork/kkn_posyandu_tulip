@@ -49,12 +49,9 @@ export default function Login({
     const [galat, setGalat] = useState<string | null>(null);
 
     const kosong = username.trim() === '' || sandi === '';
-    // Galat "belum diisi" hanya menandai kotak yang memang kosong; galat lain
-    // (mis. sandi salah) menandai keduanya.
     const galatKosong = galat === PESAN_KOSONG;
-    const merahNama =
-        galat !== null && (!galatKosong || username.trim() === '');
-    const merahSandi = galat !== null && (!galatKosong || sandi === '');
+    const merahNama = galatKosong && username.trim() === '';
+    const merahSandi = galatKosong && sandi === '';
 
     const kirim = (peristiwa: FormEvent) => {
         peristiwa.preventDefault();
@@ -125,14 +122,27 @@ export default function Login({
                             {galat !== null && (
                                 <div
                                     role="alert"
-                                    className="mb-6 flex items-start gap-2.5 rounded-lg border border-tone-red bg-tone-red-bg p-4 text-base font-semibold text-tone-red"
+                                    className="mb-6 rounded-2xl border border-tone-red/30 bg-tone-red-bg p-4.5 text-foreground shadow-sm"
                                 >
-                                    <TriangleAlert
-                                        className="mt-0.5 size-5 shrink-0"
-                                        strokeWidth={2.5}
-                                        aria-hidden="true"
-                                    />
-                                    {galat}
+                                    <div className="flex items-start gap-3">
+                                        <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-tone-red/15 text-tone-red">
+                                            <TriangleAlert
+                                                className="size-5"
+                                                strokeWidth={2.5}
+                                                aria-hidden="true"
+                                            />
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-sm font-extrabold text-tone-red">
+                                                {galatKosong
+                                                    ? 'Lengkapi Data Masuk'
+                                                    : 'Gagal Masuk ke Aplikasi'}
+                                            </p>
+                                            <p className="mt-0.5 text-sm leading-relaxed font-medium text-foreground">
+                                                {galat}
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 
@@ -161,9 +171,25 @@ export default function Login({
                                             setUsername(e.target.value)
                                         }
                                         className={`isian mt-2 w-full bg-card text-base placeholder:text-base placeholder:text-muted-foreground/75 disabled:opacity-60 ${
-                                            merahNama ? 'border-tone-red' : ''
+                                            merahNama
+                                                ? 'border-tone-red ring-2 ring-tone-red/10 focus:ring-tone-red'
+                                                : ''
                                         }`}
                                     />
+                                    {merahNama && (
+                                        <p
+                                            className="mt-1.5 flex items-center gap-1.5 text-xs font-bold text-tone-red"
+                                            role="alert"
+                                        >
+                                            <TriangleAlert
+                                                className="size-3.5 shrink-0"
+                                                aria-hidden="true"
+                                            />
+                                            <span>
+                                                Nama pengguna belum diisi
+                                            </span>
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div>
@@ -188,9 +214,9 @@ export default function Login({
                                             onChange={(e) =>
                                                 setSandi(e.target.value)
                                             }
-                                            className={`isian w-full bg-card pr-26 text-base placeholder:text-base placeholder:text-muted-foreground/75 disabled:opacity-60 ${
+                                            className={`isian w-full bg-card pr-18 text-base placeholder:text-base placeholder:text-muted-foreground/75 disabled:opacity-60 ${
                                                 merahSandi
-                                                    ? 'border-tone-red'
+                                                    ? 'border-tone-red ring-2 ring-tone-red/10 focus:ring-tone-red'
                                                     : ''
                                             }`}
                                         />
@@ -199,12 +225,13 @@ export default function Login({
                                             onClick={() =>
                                                 setSandiTerbaca(!sandiTerbaca)
                                             }
+                                            aria-pressed={sandiTerbaca}
                                             aria-label={
                                                 sandiTerbaca
                                                     ? 'Sembunyikan kata sandi'
                                                     : 'Tampilkan kata sandi'
                                             }
-                                            className="absolute top-1/2 right-2 flex h-10 -translate-y-1/2 items-center gap-1.5 rounded-md border border-border bg-surface-subtle px-3 text-sm font-bold text-foreground hover:bg-accent hover:text-primary"
+                                            className="absolute top-1/2 right-2 flex size-13 -translate-y-1/2 items-center justify-center rounded-md border border-border bg-surface-subtle text-sm font-bold text-foreground hover:bg-accent hover:text-primary"
                                         >
                                             {sandiTerbaca ? (
                                                 <EyeOff
@@ -219,13 +246,20 @@ export default function Login({
                                                     aria-hidden="true"
                                                 />
                                             )}
-                                            <span aria-hidden="true">
-                                                {sandiTerbaca
-                                                    ? 'Tutup'
-                                                    : 'Lihat'}
-                                            </span>
                                         </button>
                                     </div>
+                                    {merahSandi && (
+                                        <p
+                                            className="mt-1.5 flex items-center gap-1.5 text-xs font-bold text-tone-red"
+                                            role="alert"
+                                        >
+                                            <TriangleAlert
+                                                className="size-3.5 shrink-0"
+                                                aria-hidden="true"
+                                            />
+                                            <span>Kata sandi belum diisi</span>
+                                        </p>
+                                    )}
                                 </div>
                             </div>
 

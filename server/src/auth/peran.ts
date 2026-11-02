@@ -76,13 +76,13 @@ export const SEMUA_PERAN: readonly Peran[] = ["kader", "bidan", "admin", "kms"];
 
 export const SEMUA_AKSI: readonly Aksi[] = Object.keys(MINIMUM) as Aksi[];
 
-export function boleh(peran: Peran, aksi: Aksi): boolean {
+export function boleh(peran: Peran, aksi: Aksi, superAdmin = false): boolean {
+    if (aksi === "konfirmasi-kms") return peran === "kms" || (peran === "admin" && superAdmin);
     // Role KMS bersifat terfokus: dapat membaca analisa anak dan hanya KMS
     // yang berhak menutup tahap pemeriksaan. Ia tidak mewarisi hak input kader.
     if (peran === "kms") {
         return ["lihat-dashboard", "lihat-anak", "lihat-kms", "konfirmasi-kms", "catat-survei-kia"].includes(aksi);
     }
-    if (aksi === "konfirmasi-kms") return false;
     return TINGKAT[peran] >= TINGKAT[MINIMUM[aksi]];
 }
 

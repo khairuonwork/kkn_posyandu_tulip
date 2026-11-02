@@ -18,6 +18,8 @@ import { kodeKartuSasaran } from '@/lib/kartu-sasaran';
 import type { BarisLms } from '@/lib/z-score';
 import type { BarisAnak } from '@/pages/anak/index';
 import type { BalitaKartu } from '@/pages/kartu-sasaran/index';
+import type { PeriodeSasaran, SasaranAktif } from '@/lib/sasaran';
+import type { BarisLaporanLive, LaporanLive } from '@/lib/laporan';
 import type {
     Anak,
     GarisSd,
@@ -989,3 +991,153 @@ export function sebaranIndeks(
         ).length,
     }));
 }
+
+/** Menghasilkan dataset sasaran bulanan demo untuk pratinjau tanpa API live. */
+export function sasaranDemo(periodeId?: string): SasaranAktif {
+    const targetId =
+        periodeId && cariPeriode(periodeId)
+            ? periodeId
+            : (data.periode[data.periode.length - 1]?.id ?? '2026-06');
+    const p = cariPeriode(targetId);
+    const pengPeriode = data.pengukuran.filter((item) => item.periodeId === targetId);
+    const diukurIds = new Set(pengPeriode.map((item) => item.anakId));
+    const pindahIds = new Set(
+        data.pengukuran
+            .filter((item) => item.statusKehadiran === 'pindah')
+            .map((item) => item.anakId),
+    );
+
+    const items: SasaranAktif['items'] = data.anak.map((anak, idx) => {
+        const isSelesai = diukurIds.has(anak.id);
+        const isPindah = pindahIds.has(anak.id);
+        const status = isPindah ? 'pindah' : isSelesai ? 'selesai' : 'menunggu';
+        return {
+            id: idx + 1,
+            status,
+            catatan: null,
+            anakId: anak.id,
+            nik: anak.nik,
+            nama: anak.nama ?? `Anak #${anak.id}`,
+            tglLahir: anak.tglLahir,
+            jk: anak.jk,
+            namaOrtu: anak.namaOrtu,
+            rt: anak.rt,
+            kodeKartu: kodeKartuSasaran(anak),
+        };
+    });
+
+    const total = items.length;
+    const selesai = items.filter((i) => i.status === 'selesai').length;
+    const menunggu = items.filter((i) => i.status === 'menunggu').length;
+    const pindah = items.filter((i) => i.status === 'pindah').length;
+    const tidakHadir = items.filter((i) => i.status === 'tidak_hadir').length;
+
+    return {
+        periode: p
+            ? {
+                  id: parseInt(p.id.replace(/\D/g, ''), 10) || 1,
+                  periode: p.id,
+                  label: p.label,
+                  tanggalKegiatan: p.tanggalKegiatan ?? null,
+                  sesiDitutupPada: p.sesiDitutupPada ?? null,
+              }
+            : null,
+        ringkasan: {
+            total,
+            menunggu,
+            selesai,
+            tidakHadir,
+            pindah,
+        },
+        items,
+    };
+}
+
+/** Daftar seluruh periode untuk selektor sasaran demo. */
+export function periodeSasaranDemo(): PeriodeSasaran[] {
+    return data.periode.map((p, idx) => ({
+        id: idx + 1,
+        periode: p.id,
+        label: p.label,
+        tanggalKegiatan: p.tanggalKegiatan ?? null,
+        sesiDitutupPada: p.sesiDitutupPada ?? null,
+    }));
+}
+
+/** Menghasilkan dataset laporan live demo untuk tab Rekap Z-score dan 1T/2T+. */
+export function laporanDemo(periodeId?: string): LaporanLive {
+    const targetPeriode =
+        periodeId && cariPeriode(periodeId)
+            ? periodeId
+            : (data.periode[data.periode.length - 1]?.id ?? '2026-06');
+    const p = cariPeriode(targetPeriode);
+    const anakMap = new Map(data.anak.map((a) => [a.id, a]));
+
+    const peng = data.pengukuran.filter(
+        (item) => item.periodeId === targetPeriode && item.statusKehadiran === 'hadir',
+    );
+
+    const bulanan: BarisLaporanLive[] = peng.map((item) => {
+        const a = anakMap.get(item.anakId);
+        const umur = item.umurBulan;
+        const thn = Math.floor(umur / 12);
+        const bln = umur % 12;
+        const isT = item.ntob === 'T';
+        const isN = item.ntob === 'N';
+        const is2T = isT && item.anakId % 3 === 0;
+
+        return {
+            anakId: item.anakId,
+            nama: a?.nama ?? `Balita #${item.anakId}`,
+            nik: a?.nik ?? null,
+            namaOrtu: a?.namaOrtu ?? null,
+            tglLahir: a?.tglLahir ?? '2021-01-01',
+            jk: a?.jk ?? 'L',
+            rt: a?.rt ?? '1',
+            periodeId: item.periodeId,
+            tanggalUkur: item.tanggalUkur ?? (p?.tanggalKegiatan ?? null),
+            umurLengkap: `${thn}Thn${bln}Bln`,
+            umurHari: umur * 30,
+            bbKg: item.bbKg,
+            tinggiCm: item.tinggiCm,
+            lilaCm: item.lilaCm,
+            likaCm: item.likaCm,
+            ntobRaw: item.ntob,
+            statusKehadiran: item.statusKehadiran,
+            penilaian: {
+                'PERMENKES-2-2020': item.penilaian,
+                'WHO-2006': item.penilaian,
+            },
+            nt: isN ? 'N' : isT ? 'T' : null,
+            kenaikanGram: isN ? 450 : isT ? 120 : null,
+            kbmGram: 300,
+            duaT: is2T,
+            jumlahTBerturut: is2T ? 2 : isT ? 1 : 0,
+            status2T: is2T ? '2T' : isT ? '1T' : undefined,
+            sumberRiwayat: 'pengukuran',
+        };
+    });
+
+    const riwayat2T = bulanan.filter((b) => b.duaT);
+    const anakDiukur = bulanan.length;
+    const denganDuaT = riwayat2T.length;
+
+    return {
+        periode: targetPeriode,
+        metodeUmur: 'purnama',
+        standar: ['PERMENKES-2-2020', 'WHO-2006'],
+        ringkasan: {
+            anakDiukur,
+            denganDuaT,
+            tanpaSkor: 0,
+            duaTDariArsip: 0,
+            belumDapatDinilai: 0,
+        },
+        keterangan2T:
+            'Daftar anak dengan pemantauan kenaikan berat badan tidak naik berturut-turut (2T+) yang memerlukan konfirmasi rujukan dan pendampingan gizi kader.',
+        bulanan,
+        riwayat2T,
+    };
+}
+
+
