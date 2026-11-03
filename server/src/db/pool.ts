@@ -31,7 +31,7 @@ export function dapatkanPool(): pg.Pool {
         throw new Error('DATABASE_URL belum diatur. Salin .env.example menjadi .env.');
     }
 
-    const maksimum = Number(process.env.DB_POOL_MAX ?? 3);
+    const maksimum = Number(process.env.DB_POOL_MAX ?? 10);
     if (!Number.isSafeInteger(maksimum) || maksimum < 1 || maksimum > 50) {
         throw new Error('DB_POOL_MAX harus berupa bilangan bulat antara 1 dan 50.');
     }
@@ -40,7 +40,18 @@ export function dapatkanPool(): pg.Pool {
         connectionString: url,
         max: maksimum,
         connectionTimeoutMillis: 10_000,
+        keepAlive: true,
+        keepAliveInitialDelayMillis: 10_000,
         application_name: 'simpatik',
+    });
+    // pg membuang klien idle yang rusak sebelum mengirim event ini. Tanpa
+    // listener, putus jaringan sementara menjadi uncaught error dan mematikan
+    // seluruh API. Permintaan berikutnya boleh membuka koneksi pengganti.
+    pool.on('error', (error: Error & { code?: string }) => {
+        // Jangan mencetak objek driver: dapat memuat konfigurasi dan kredensial.
+        console.warn('[Database] Koneksi idle terputus; akan disambungkan kembali.', {
+            kode: error.code ?? 'UNKNOWN',
+        });
     });
 
     return pool;

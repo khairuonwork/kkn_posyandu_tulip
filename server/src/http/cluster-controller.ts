@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { Router } from 'express';
 import type { Pool } from 'pg';
 import { wajibMasuk } from './middleware.ts';
+import { konteksPelatihan } from './pelatihan-context.ts';
 
 /** Menyediakan kunci komunikasi lokal hanya untuk anggota Posyandu yang aktif. */
 export function ruteCluster(pool: Pool): Router {
@@ -38,7 +39,7 @@ export function ruteCluster(pool: Pool): Router {
       if (!row) throw new Error('Kunci cluster gagal dibuat');
       res.set('Cache-Control', 'no-store');
       res.json({
-        workspaceId: `posyandu:${posyandu.id}`,
+        workspaceId: konteksPelatihan.getStore()?.id ? `pelatihan:${konteksPelatihan.getStore()!.id}:posyandu:${posyandu.id}` : `posyandu:${posyandu.id}`,
         posyanduId: Number(posyandu.id),
         namaPosyandu: posyandu.nama,
         rw: posyandu.rw,

@@ -141,7 +141,7 @@ Hak akses ditentukan oleh dua hal: peran dan cluster Posyandu/RW pada akun. Kade
 | Tutup sesi sasaran (menandai sasaran tersisa tidak hadir) | ❌ | ❌ | ✅ | ❌ |
 | Konfirmasi tahap penjelasan KMS selesai | ❌ | ❌ | ❌ | ✅ |
 
-Matriks ini **ditulis sekali** di [`server/src/auth/peran.ts`](../server/src/auth/peran.ts) dan tidak disalin ke mana pun. Tiap aksi menyebut peran terendah yang boleh melakukannya, bukan daftar peran — daftar yang ditulis tangan cepat atau lambat punya satu baris yang lupa diperbarui.
+Konfirmasi KMS juga tersedia bagi superadmin. Sumber kebenaran hak akses adalah [`server/src/auth/peran.ts`](../server/src/auth/peran.ts); tabel ini merupakan ringkasan.
 
 Penegakan berlapis:
 
@@ -200,7 +200,7 @@ Alamatnya memakai hash (`#/balita/12`), bukan path. Router dan penjaga rutenya a
 | `#/balita` | `anak/index.tsx` | semua | Data Balita: tabel, pencarian nama anak/ibu, filter balita aktif (<60 bln) vs arsip, filter RT, tambah dan ubah |
 | `#/balita/{id}` | `anak/show.tsx` | semua | Detail Balita: identitas (termasuk kelompok Desil dan KB Ibu), kurva KMS, grafik pertumbuhan 6 indeks (dengan kurva acuan KIA untuk BB/PB dan BB/TB), status gizi & diskusi Buku KIA, dialog Ubah data dan Cetak kartu |
 | `#/balita/{id}/riwayat` | `anak/riwayat.tsx` | semua | Seluruh hasil ukur satu balita beserta z-score |
-| `#/kms` | `kms/index.tsx` | KMS, admin | Pemeriksaan KMS: antrean anak menunggu penjelasan hasil ukur, riwayat balita, dan konfirmasi selesai |
+| `#/kms` | `kms/index.tsx` | petugas KMS, superadmin | Pemeriksaan KMS: antrean anak menunggu penjelasan hasil ukur, riwayat balita, dan konfirmasi selesai |
 | `#/kartu-sasaran`, `#/kartu-sasaran/{id}` | `kartu-sasaran/index.tsx` | bidan, admin | Kartu Balita: pilih balita, pratinjau, cetak kartu ber-QR |
 | `#/laporan` | `laporan/index.tsx` | semua | Rekap SKDN per RT, bulanan atau enam bulan |
 | `#/sasaran` | `sasaran/index.tsx` | admin | Sasaran & Impor: rancangan alur impor data Puskesmas, belum membaca berkas |
@@ -221,7 +221,7 @@ Daftar lengkapnya di [UI/UX bagian 4](rujukan/ui-ux.md#4-inventory-komponen). Du
 
 | Komponen | Keterangan |
 |---|---|
-| `components/kms-chart.tsx` | Kurva KMS: pita SD sebagai latar, titik penimbangan di atasnya, panah untuk berpindah rentang umur. **SVG langsung, tanpa pustaka grafik.** |
+| `components/grafik-pertumbuhan.tsx` | Grafik pertumbuhan dan kurva KMS BB/U; menggambar titik pengukuran dan acuan sebagai SVG. |
 | `components/ui/table.tsx` | Tabel dari shadcn/ui, satu-satunya komponen yang diambil dari sana. Dipakai lima layar bertabel. |
 
 ### Kartu balita
@@ -238,13 +238,14 @@ Angka `1` adalah versi format; pemindai menolak versi yang tidak dikenalnya. Men
 ### Konvensi
 
 - Navigasi memakai `Link`, `navigate`, dan `useAlamat` dari `client/src/lib/nav.tsx` — router berbasis alamat hash, tanpa pustaka. Alamat hash dipilih supaya hasil build dapat disajikan static host mana pun tanpa aturan *rewrite*.
+- **Desain Modular Komponen (v2.1-Modular):** Halaman-halaman besar di `client/src/pages/` diorganisir menggunakan pola *Single Responsibility Principle* (SRP). File `index.tsx` dan `show.tsx` berfungsi sebagai *orchestrator*, sedangkan sub-komponen dialog, tab, filter, dan tabel dipecah ke subdirektori modular (`anak/daftar/`, `anak/detail/`, `sasaran/komponen/`, `pengaturan/bagian/`) dengan kontrak antarmuka tipe data terisolasi di file `tipe.ts` masing-masing.
 - Form adalah form React biasa. Pesan kesalahan datang dari server sebagai JSON `{ galat }`, dalam bahasa Indonesia.
 - Sesi dibaca lewat `useSesi()` di `client/src/lib/sesi.ts`; token sesinya cookie `httpOnly` dan tidak pernah terjangkau JavaScript.
-- Daftar akun dimuat dan disimpan lewat `usePenggunaServer()` di `client/src/lib/pengguna.ts`. Jawaban 401 dari server mengembalikan aplikasi ke layar Masuk; demo memakai daftar contoh di memori dengan bentuk props yang sama.
+- Komunikasi data menggunakan domain custom hooks (`useAnakServer`, `useDetailAnakServer`, `useBerandaServer`, `useLaporanServer`, `usePenggunaServer`). Rincian lengkap pemetaan endpoint ada di [Spesifikasi Kontrak REST API](SIMPATIK_Posyandu_REST_API_Contract.md) dan [Spesifikasi Komponen Web](SIMPATIK_Posyandu_Web_Components.md).
 - Tipe data dari server dideklarasikan di `client/src/types/posyandu.ts`.
-- Props tiap halaman dipasok satu tempat, `client/src/layar.tsx` — itulah yang berubah saat endpoint data datang. Bentuk props tiap halaman adalah kontrak untuk endpoint REST-nya nanti: field baru masuk `client/src/types/posyandu.ts`, tidak diketik ulang per halaman.
-- Tanpa pustaka router, chart, atau state manager. Grafik memakai SVG langsung dan state memakai `useState` serta `useMemo`. Setiap dependensi yang ditambahkan adalah dependensi yang harus dipelihara.
-- Aset lokal saja: huruf `.woff2` di `client/src/assets/fonts/`, ikon dari paket `lucide-react`. Tidak ada rujukan ke CDN, supaya demo tetap utuh tanpa Wi-Fi.
+- Props tiap halaman dipasok satu tempat, `client/src/layar.tsx` — itulah yang berubah saat endpoint data datang. Bentuk props tiap halaman adalah kontrak untuk endpoint REST-nya: field baru masuk `client/src/types/posyandu.ts`, tidak diketik ulang per halaman.
+- Tanpa pustaka router, chart, atau state manager eksternal. Grafik pertumbuhan memakai SVG dan state memakai hooks React.
+- Aset lokal saja: huruf `.woff2` di `client/src/assets/fonts/`, ikon dari paket `lucide-react`. Tidak ada rujukan ke CDN, sehingga aplikasi tetap utuh saat offline di LAN.
 
 ### TypeScript
 

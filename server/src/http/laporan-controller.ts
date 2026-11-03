@@ -5,9 +5,20 @@ import { workbookLaporan } from "../services/laporan-export.ts";
 import { laporan } from "../services/laporan-service.ts";
 import { dataF1 } from '../services/f1-service.ts';
 import { workbookF1 } from '../services/f1-export.ts';
+import { laporanTumbuhKembang } from '../services/laporan-tumbuh-kembang.ts';
 
 export function ruteLaporan(pool: Pool): Router {
     const rute = Router();
+    rute.get('/laporan/tumbuh-kembang', wajibBoleh('lihat-rekap'), async (req, res, next) => {
+        try {
+            const periode = typeof req.query.periode === 'string' ? req.query.periode : '';
+            res.set('Cache-Control', 'no-store');
+            res.json(await laporanTumbuhKembang(pool, req.pengguna!, periode));
+        } catch (error) {
+            if (error instanceof RangeError) { res.status(400).json({ galat: error.message }); return; }
+            next(error);
+        }
+    });
     rute.get('/laporan/f1/unduh', wajibBoleh('unduh-rekap'), async (req,res,next) => {
         try {
             const periode=typeof req.query.periode==='string'?req.query.periode:'';

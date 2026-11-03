@@ -203,6 +203,8 @@ type Props = {
     keterangan: string;
     pengukuran: Pengukuran[];
     standar: BarisLms[];
+    modeKms?: boolean;
+    umurDisorot?: number | null;
 };
 
 export default function GrafikPertumbuhan({
@@ -211,6 +213,8 @@ export default function GrafikPertumbuhan({
     keterangan,
     pengukuran,
     standar,
+    modeKms = false,
+    umurDisorot = null,
 }: Props) {
     const tabel = useMemo(() => susunTabel(standar), [standar]);
     const umurTerakhir = pengukuran.reduce(
@@ -225,11 +229,18 @@ export default function GrafikPertumbuhan({
 
     const [jenis, setJenis] = useState<JenisGrafik | 'BB_TB'>('BB_U');
     const [panel, setPanel] = useState(
-        panelTersedia[panelTersedia.length - 1] ?? 0,
+        umurDisorot !== null
+            ? (panelTersedia.filter((awal) => awal <= umurDisorot).at(-1) ?? 0)
+            : (panelTersedia[panelTersedia.length - 1] ?? 0),
     );
     // Titik yang diketuk tetap terbuka; titik di bawah tetikus ikut menyala.
     // Panel dan titik yang diketuk tidak ikut berpindah saat indeks diganti.
-    const [pin, setPin] = useState<string | null>(null);
+    const [pin, setPin] = useState<string | null>(
+        () =>
+            pengukuran.find(
+                (p) => umurDisorot !== null && p.umurBulan === umurDisorot,
+            )?.periodeId ?? null,
+    );
     const [sorot, setSorot] = useState<string | null>(null);
 
     // Pengukuran terbaru balita untuk indikator status pada masing-masing tombol indeks
@@ -399,7 +410,9 @@ export default function GrafikPertumbuhan({
                         </span>
                     </div>
                     <h2 className="mt-1 text-xl font-extrabold text-foreground">
-                        Grafik Pertumbuhan Antropometri
+                        {modeKms
+                            ? 'Kurva KMS'
+                            : 'Grafik Pertumbuhan Antropometri'}
                     </h2>
                     <p className="mt-0.5 text-sm text-muted-foreground">
                         {jenis === 'BB_TB'
@@ -407,45 +420,118 @@ export default function GrafikPertumbuhan({
                             : `${judulTampil(spek)} (${kodeIndeks(spek)})`}{' '}
                         · Pemantauan tren kurva Z-score
                     </p>
+                    {modeKms && <p className="mt-1 text-sm text-muted-foreground">{keterangan}</p>}
                 </div>
             </div>
 
             {/* Banner Edukasi & Panduan Ibu Kader */}
 
             {/* Tombol Pilihan Indeks Pertumbuhan */}
-            <div
-                role="group"
-                aria-label="Pilih jenis grafik pertumbuhan"
-                className="grid grid-cols-2 gap-2.5 px-5 pt-3 sm:px-6 md:grid-cols-3 xl:grid-cols-6"
-            >
-                {SPEK.map((s) => {
-                    const aktif = s.indeks === jenis;
-                    const hasilTerbaru = pengukuranTerbaru?.penilaian[s.indeks];
-                    const labelHasil = hasilTerbaru?.kategori
-                        ? labelKategoriGizi(hasilTerbaru.kategori)
-                        : null;
+            {!modeKms && (
+                <div
+                    role="group"
+                    aria-label="Pilih jenis grafik pertumbuhan"
+                    className="grid grid-cols-2 gap-2.5 px-5 pt-3 sm:px-6 md:grid-cols-3 xl:grid-cols-6"
+                >
+                    {SPEK.map((s) => {
+                        const aktif = s.indeks === jenis;
+                        const hasilTerbaru =
+                            pengukuranTerbaru?.penilaian[s.indeks];
+                        const labelHasil = hasilTerbaru?.kategori
+                            ? labelKategoriGizi(hasilTerbaru.kategori)
+                            : null;
 
-                    return (
-                        <button
-                            key={s.indeks}
-                            type="button"
-                            aria-pressed={aktif}
-                            onClick={() => {
-                                setJenis(s.indeks);
-                                setSorot(null);
-                            }}
-                            className={`flex min-h-16 flex-col justify-between rounded-xl border p-3 text-left transition-all ${
-                                aktif
-                                    ? 'border-primary bg-primary text-primary-foreground shadow-sm ring-2 ring-primary/25'
-                                    : 'border-border bg-card text-foreground hover:border-primary/50 hover:bg-surface-subtle'
-                            }`}
-                        >
-                            <div>
-                                <div className="flex items-center justify-between gap-1">
-                                    <span className="text-xs font-extrabold">
-                                        {kodeIndeks(s)}
+                        return (
+                            <button
+                                key={s.indeks}
+                                type="button"
+                                aria-pressed={aktif}
+                                onClick={() => {
+                                    setJenis(s.indeks);
+                                    setSorot(null);
+                                }}
+                                className={`flex min-h-16 flex-col justify-between rounded-xl border p-3 text-left transition-all ${
+                                    aktif
+                                        ? 'border-primary bg-primary text-primary-foreground shadow-sm ring-2 ring-primary/25'
+                                        : 'border-border bg-card text-foreground hover:border-primary/50 hover:bg-surface-subtle'
+                                }`}
+                            >
+                                <div>
+                                    <div className="flex items-center justify-between gap-1">
+                                        <span className="text-xs font-extrabold">
+                                            {kodeIndeks(s)}
+                                        </span>
+                                        {s.tujuan && (
+                                            <span
+                                                className={`py-0.2 rounded px-1.5 text-[10px] font-bold ${
+                                                    aktif
+                                                        ? 'bg-primary-foreground/20 text-primary-foreground'
+                                                        : 'bg-surface-subtle text-muted-foreground'
+                                                }`}
+                                            >
+                                                {s.tujuan}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <span className="mt-1 block text-sm leading-tight font-bold">
+                                        {namaTampil(s)}
                                     </span>
-                                    {s.tujuan && (
+                                </div>
+                                <div className="mt-2 border-t border-current/15 pt-1">
+                                    {labelHasil ? (
+                                        <span
+                                            className={`inline-flex items-center gap-1.5 text-[11px] font-bold ${
+                                                aktif
+                                                    ? 'text-primary-foreground'
+                                                    : 'text-tone-green'
+                                            }`}
+                                        >
+                                            <CircleCheck
+                                                className="size-3.5 shrink-0"
+                                                aria-hidden="true"
+                                            />
+                                            <span>{labelHasil}</span>
+                                        </span>
+                                    ) : (
+                                        <span
+                                            className={`text-[11px] font-semibold ${
+                                                aktif
+                                                    ? 'text-primary-foreground/70'
+                                                    : 'text-muted-foreground'
+                                            }`}
+                                        >
+                                            {s.indeks === 'LILA_U'
+                                                ? '≥ 6 bulan'
+                                                : 'WHO 2006'}
+                                        </span>
+                                    )}
+                                </div>
+                            </button>
+                        );
+                    })}
+                    {(() => {
+                        const aktif = jenis === 'BB_TB';
+                        const hasilBbTb = pengukuranTerbaru?.penilaian.BB_TB;
+                        const labelBbTb = hasilBbTb?.kategori
+                            ? labelKategoriGizi(hasilBbTb.kategori)
+                            : null;
+
+                        return (
+                            <button
+                                type="button"
+                                aria-pressed={aktif}
+                                onClick={() => setJenis('BB_TB')}
+                                className={`flex min-h-16 flex-col justify-between rounded-xl border p-3 text-left transition-all ${
+                                    aktif
+                                        ? 'border-primary bg-primary text-primary-foreground shadow-sm ring-2 ring-primary/25'
+                                        : 'border-border bg-card text-foreground hover:border-primary/50 hover:bg-surface-subtle'
+                                }`}
+                            >
+                                <div>
+                                    <div className="flex items-center justify-between gap-1">
+                                        <span className="text-xs font-extrabold">
+                                            BB/PB · BB/TB
+                                        </span>
                                         <span
                                             className={`py-0.2 rounded px-1.5 text-[10px] font-bold ${
                                                 aktif
@@ -453,114 +539,45 @@ export default function GrafikPertumbuhan({
                                                     : 'bg-surface-subtle text-muted-foreground'
                                             }`}
                                         >
-                                            {s.tujuan}
+                                            Deteksi Wasting
+                                        </span>
+                                    </div>
+                                    <span className="mt-1 block text-sm leading-tight font-bold">
+                                        Berat &amp; Tinggi
+                                    </span>
+                                </div>
+                                <div className="mt-2 border-t border-current/15 pt-1">
+                                    {labelBbTb ? (
+                                        <span
+                                            className={`inline-flex items-center gap-1.5 text-[11px] font-bold ${
+                                                aktif
+                                                    ? 'text-primary-foreground'
+                                                    : 'text-tone-green'
+                                            }`}
+                                        >
+                                            <CircleCheck
+                                                className="size-3.5 shrink-0"
+                                                aria-hidden="true"
+                                            />
+                                            <span>{labelBbTb}</span>
+                                        </span>
+                                    ) : (
+                                        <span
+                                            className={`text-[11px] font-semibold ${
+                                                aktif
+                                                    ? 'text-primary-foreground/70'
+                                                    : 'text-muted-foreground'
+                                            }`}
+                                        >
+                                            Proporsi Tubuh
                                         </span>
                                     )}
                                 </div>
-                                <span className="mt-1 block text-sm leading-tight font-bold">
-                                    {namaTampil(s)}
-                                </span>
-                            </div>
-                            <div className="mt-2 border-t border-current/15 pt-1">
-                                {labelHasil ? (
-                                    <span
-                                        className={`inline-flex items-center gap-1.5 text-[11px] font-bold ${
-                                            aktif
-                                                ? 'text-primary-foreground'
-                                                : 'text-tone-green'
-                                        }`}
-                                    >
-                                        <CircleCheck
-                                            className="size-3.5 shrink-0"
-                                            aria-hidden="true"
-                                        />
-                                        <span>{labelHasil}</span>
-                                    </span>
-                                ) : (
-                                    <span
-                                        className={`text-[11px] font-semibold ${
-                                            aktif
-                                                ? 'text-primary-foreground/70'
-                                                : 'text-muted-foreground'
-                                        }`}
-                                    >
-                                        {s.indeks === 'LILA_U'
-                                            ? '≥ 6 bulan'
-                                            : 'WHO 2006'}
-                                    </span>
-                                )}
-                            </div>
-                        </button>
-                    );
-                })}
-                {(() => {
-                    const aktif = jenis === 'BB_TB';
-                    const hasilBbTb = pengukuranTerbaru?.penilaian.BB_TB;
-                    const labelBbTb = hasilBbTb?.kategori
-                        ? labelKategoriGizi(hasilBbTb.kategori)
-                        : null;
-
-                    return (
-                        <button
-                            type="button"
-                            aria-pressed={aktif}
-                            onClick={() => setJenis('BB_TB')}
-                            className={`flex min-h-16 flex-col justify-between rounded-xl border p-3 text-left transition-all ${
-                                aktif
-                                    ? 'border-primary bg-primary text-primary-foreground shadow-sm ring-2 ring-primary/25'
-                                    : 'border-border bg-card text-foreground hover:border-primary/50 hover:bg-surface-subtle'
-                            }`}
-                        >
-                            <div>
-                                <div className="flex items-center justify-between gap-1">
-                                    <span className="text-xs font-extrabold">
-                                        BB/PB · BB/TB
-                                    </span>
-                                    <span
-                                        className={`py-0.2 rounded px-1.5 text-[10px] font-bold ${
-                                            aktif
-                                                ? 'bg-primary-foreground/20 text-primary-foreground'
-                                                : 'bg-surface-subtle text-muted-foreground'
-                                        }`}
-                                    >
-                                        Deteksi Wasting
-                                    </span>
-                                </div>
-                                <span className="mt-1 block text-sm leading-tight font-bold">
-                                    Berat &amp; Tinggi
-                                </span>
-                            </div>
-                            <div className="mt-2 border-t border-current/15 pt-1">
-                                {labelBbTb ? (
-                                    <span
-                                        className={`inline-flex items-center gap-1.5 text-[11px] font-bold ${
-                                            aktif
-                                                ? 'text-primary-foreground'
-                                                : 'text-tone-green'
-                                        }`}
-                                    >
-                                        <CircleCheck
-                                            className="size-3.5 shrink-0"
-                                            aria-hidden="true"
-                                        />
-                                        <span>{labelBbTb}</span>
-                                    </span>
-                                ) : (
-                                    <span
-                                        className={`text-[11px] font-semibold ${
-                                            aktif
-                                                ? 'text-primary-foreground/70'
-                                                : 'text-muted-foreground'
-                                        }`}
-                                    >
-                                        Proporsi Tubuh
-                                    </span>
-                                )}
-                            </div>
-                        </button>
-                    );
-                })()}
-            </div>
+                            </button>
+                        );
+                    })()}
+                </div>
+            )}
             {jenis === 'BB_TB' ? (
                 <GrafikBeratTinggi
                     kelamin={kelamin}
@@ -1132,7 +1149,7 @@ export default function GrafikPertumbuhan({
                                     />
                                     <div className="text-[11px] leading-tight">
                                         <span className="font-bold">
-                                            Garis Kuning (±1 s/d ±2 SD)
+                                            Garis Merah (±2 SD)
                                         </span>
                                         : Rentang wajar
                                     </div>
@@ -1147,7 +1164,7 @@ export default function GrafikPertumbuhan({
                                     />
                                     <div className="text-[11px] leading-tight">
                                         <span className="font-bold">
-                                            Garis Merah (±3 SD)
+                                            Garis Hitam (±3 SD)
                                         </span>
                                         : Batas rujukan bahaya
                                     </div>

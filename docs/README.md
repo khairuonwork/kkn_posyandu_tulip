@@ -3,12 +3,24 @@
 | | |
 |---|---|
 | **Jenis** | Orientasi — peta dokumentasi |
-| **Status** | hidup |
-| **Perubahan berarti terakhir** | 29 September 2026 |
+| **Status** | Final Approved / v2.1-Modular |
+| **Perubahan berarti terakhir** | 1 November 2026 |
 
-**SIMPATIK Posyandu** — sistem pencatatan, pemantauan, dan pelaporan status gizi balita Posyandu Tulip RW 18, Kelurahan Citeureup. Dokumen yang lebih lama menyebutnya Portal Posyandu Tulip, atau cukup Portal.
+**SIMPATIK Posyandu** — sistem pencatatan, pemantauan, dan pelaporan status gizi balita Posyandu Tulip RW 18, Kelurahan Citeureup.
 
 Halaman ini memberi tahu **mana yang perlu dibaca dan mana yang tidak**.
+
+---
+
+## Dokumen teknis tambahan
+
+Dokumen berikut melengkapi rujukan utama. Periksa implementasi ketika rincian berbeda dengan kode atau dokumen rujukan.
+
+| Dokumen | Format Dokumen | Menjawab & Menjelaskan |
+|---|---|---|
+| **[Handover arsitektur](arsitektur-sistem-handover.md)** | Markdown | Gambaran arsitektur dan operasional untuk serah terima. |
+| **[Kontrak REST API](SIMPATIK_Posyandu_REST_API_Contract.md)** | Markdown | Rincian endpoint dan payload; lihat juga [ringkasan API](api/portal-v1.md). |
+| **[Komponen web](SIMPATIK_Posyandu_Web_Components.md)** | Markdown | Peta komponen dan hubungan ke API. |
 
 ---
 
@@ -42,6 +54,7 @@ Tim yang menerima pengelolaan host/API dapat mulai dari [Panduan serah-terima se
 | **[PRD](prd/README.md)** | Apa yang akan dibangun: kontrak produk, fitur dasar, fitur dari feedback |
 | **[Status lingkup](prd/prd-utama.md#13-status-lingkup)** | Persetujuan dan target rilis; dibaca terpisah dari prioritas dan status pengerjaan |
 | **[Panduan Kirim ke WhatsApp](panduan-kirim-whatsapp.md)** | Menyiapkan tombol kirim hasil dan tautan Lembar Hasil: kunci, alamat, nomor uji, dan cara mengecek |
+| **[Sesi pelatihan](sesi-pelatihan.md)** | Menyiapkan, menjalankan, dan mengakhiri latihan terisolasi |
 | **[Panduan penulisan](panduan-penulisan.md)** | Cara menulis dokumen di repo ini. Baca sebelum menambah atau menyunting apa pun di sini |
 
 ---
@@ -79,7 +92,7 @@ Satu berkas untuk satu keputusan yang **mahal kalau dibalik** — bukan cara ker
 
 ## Jarang perlu dibuka
 
-Berkas di [`riwayat/`](riwayat) bertanda status `beku`: isinya sudah tidak diperbarui, dan sebagian menyebut hal yang sekarang tidak ada lagi. Dibuka kalau kamu perlu menelusuri asal-usul sebuah keputusan.
+Berkas di [`riwayat/`](riwayat) bertanda status `beku`: isinya adalah catatan historis, log insiden/deployment yang sudah selesai, atau desain lama yang sudah digantikan. Dibuka kalau kamu perlu menelusuri asal-usul sebuah keputusan.
 
 - [Catatan tahap demo](riwayat/catatan-tahap-demo.md) — catatan pengerjaan demo frontend, beserta keputusan yang waktu itu ditunda
 - [Teks yang dicabut dari layar](riwayat/teks-dicabut-dari-layar.md) — kalimat, tombol, dan kartu yang dihapus atas permintaan pemilik produk, beserta risiko yang ditinggalkannya
@@ -87,6 +100,9 @@ Berkas di [`riwayat/`](riwayat) bertanda status `beku`: isinya sudah tidak diper
 - [Rencana struktur halaman](riwayat/rencana-struktur-halaman.md) — susunan menu dan halaman yang direncanakan sebelum kesembilan layar dibangun
 - [Pertanyaan yang sudah terjawab](riwayat/pertanyaan-terjawab.md) — isu dari Pertanyaan terbuka yang sudah selesai
 - [Backlog feedback](riwayat/backlog-feedback.md) — daftar tugas awal dari feedback lapangan, sebelum dipecah menjadi PRD F01–F13
+- [Log Deployment VM (23 Okt 2026)](riwayat/deployment-vm-2026-10-23.md) — log pemindahan server web/API ke Ubuntu VM dan Cloudflare Quick Tunnel
+- [Log Tindak Lanjut Masukan Bu Sri (30 Okt 2026)](riwayat/tindak-lanjut-bu-sri-2026-10-30.md) — catatan verifikasi 17 masukan lapangan Bu Sri (D/S hari H, KB Ibu, Desil)
+- [Log Pemulihan API (31 Okt 2026)](riwayat/pemulihan-api-2026-10-31.md) — penanganan galat koneksi idle pg.Pool EHOSTUNREACH dan systemd user service
 
 Folder [`design/`](design/README.md) berisi salinan artboard prototipe. Nilai token warna dan tipografi yang berlaku ada di [UI/UX](rujukan/ui-ux.md), bukan di berkas-berkas itu.
 

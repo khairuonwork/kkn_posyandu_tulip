@@ -1,4 +1,4 @@
-import { CircleAlert, Inbox, LoaderCircle } from 'lucide-react';
+import { CircleAlert, Inbox, RefreshCw } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 export default function StateHalaman({
@@ -14,7 +14,7 @@ export default function StateHalaman({
 }) {
     const Ikon =
         jenis === 'memuat'
-            ? LoaderCircle
+            ? RefreshCw
             : jenis === 'galat'
               ? CircleAlert
               : Inbox;
@@ -28,19 +28,21 @@ export default function StateHalaman({
                 aria-hidden="true"
                 className={
                     jenis === 'memuat'
-                        ? 'size-8 animate-spin text-primary motion-reduce:animate-none'
+                        ? 'size-12 animate-spin text-primary motion-reduce:animate-none'
                         : jenis === 'galat'
                           ? 'size-10 text-tone-red'
                           : 'size-10 text-muted-foreground'
                 }
             />
             {jenis === 'memuat' ? (
-                <p className="text-muted-foreground">{judul}</p>
+                <p className="text-xl font-bold text-foreground">{judul}</p>
             ) : (
                 <h3 className="text-lg font-bold">{judul}</h3>
             )}
             {pesan && (
-                <p className="max-w-md text-sm text-muted-foreground">
+                <p
+                    className={`max-w-md text-muted-foreground ${jenis === 'memuat' ? 'text-base' : 'text-sm'}`}
+                >
                     {pesan}
                 </p>
             )}

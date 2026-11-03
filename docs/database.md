@@ -3,14 +3,12 @@
 | | |
 |---|---|
 | **Jenis** | Rujukan |
-| **Status** | hidup |
-| **Perubahan berarti terakhir** | 29 Oktober 2026 |
+| **Status** | Final Approved / v2.1-Modular |
+| **Perubahan berarti terakhir** | 1 November 2026 |
 
-Bentuk tabel, relasi antar tabel, dan aturan integritas SIMPATIK Posyandu. Inilah yang mengikat berkas migrasi di `server/db/migrations/`.
+Bentuk tabel, relasi antar tabel, dan aturan integritas SIMPATIK Posyandu. Migrasi berada di `server/db/migrations/`; migrasi hingga `029_profil_keluarga_pelatihan.sql` mencakup profil keluarga dan skema pelatihan.
 
 Kenapa bentuknya begini dan bukan yang lain, ada di [ADR-0001](adr/0001-primary-key-strategy.md) (kunci utama) dan [ADR-0006](adr/0006-pindah-ke-express-react-postgres.md) (pindah ke PostgreSQL). Aturan data yang mengikat seluruh sistem — DR-01 sampai DR-11 yang berkali-kali dirujuk di bawah — ada di [PRD utama](prd/prd-utama.md).
-
-Dokumen ini dulu bagian 2 dari `03-sdd.md`, dipisah 22 September 2026 supaya skema basis data punya tempatnya sendiri.
 
 ---
 
@@ -34,6 +32,9 @@ erDiagram
     PERIODE ||--o{ CAKUPAN_HARI_H : "mewadahi"
     WILAYAH_RT ||--o{ CAKUPAN_HARI_H : "memiliki"
     IMPORT_BATCH ||--o{ IMPORT_KONFLIK : "menghasilkan"
+    PENGGUNA ||--o{ PELATIHAN_SESI : "menginisiasi"
+    PERIODE ||--o{ PELATIHAN_SESI : "disalin sebagai sumber"
+    PENGGUNA ||--o{ PERANGKAT_POSYANDU : "melaporkan status"
 
     POSYANDU {
         id id PK
@@ -309,6 +310,52 @@ Rekap kehadiran fisik hari H per RT untuk periode tertentu. Digunakan untuk meng
 | `dicatat_oleh` | FK → `pengguna` `nullable` | Petugas pencatat konfirmasi (`ON DELETE SET NULL`). |
 
 *Primary key:* `(periode_id, wilayah_rt_id)` · *Audit:* trigger `cakupan_hari_h_catat_audit` aktif.
+
+### `perangkat_posyandu`
+
+Merekam laporan status perangkat (tablet Android & browser web) yang terhubung. Ditambahkan pada migrasi `022_status_perangkat_posyandu.sql`.
+
+| Kolom | Tipe | Aturan |
+|---|---|---|
+| `pengguna_id` | FK → `pengguna` | Pengguna yang sedang masuk. |
+| `device_id` | `text` | Pengenal unik perangkat (UUID per instalasi/browser). |
+| `posyandu_id` | FK → `posyandu` `nullable` | Wilayah Posyandu binaan akun. |
+| `device_name` | `text` | Nama model (mis. `Samsung SM-S711B`) atau browser. |
+| `app_version` | `text` | Versi APK (mis. `1.12.4`) atau versi Web. |
+| `transport` | `text` | Jalur koneksi: `lan`, `cloudflare`, atau `direct`. |
+| `last_seen_at` | `timestamptz` | Waktu ping heartbeat terakhir diterima server. |
+
+*Primary key:* `(pengguna_id, device_id)`. Perangkat dianggap online bila `last_seen_at <= 45 detik`, siaga bila `<= 120 detik`, dan offline bila lebih dari 120 detik.
+
+### `pelatihan_sesi`
+
+Metadata kendali sesi mode simulasi/pelatihan kader. Ditambahkan pada migrasi `027_pelatihan.sql`.
+
+| Kolom | Tipe | Aturan |
+|---|---|---|
+| `id` | `uuid` PK | ID sesi pelatihan. |
+| `nomor` | `bigint` | Generated always as identity unique. |
+| `skema` | `text` UNIQUE | Nama skema PostgreSQL khusus sesi: `latihan_<uuid_32hex>`. |
+| `periode_id` | FK → `periode` | Periode sumber yang disalin sasaran pelatihannya. |
+| `dibuat_oleh` | FK → `pengguna` | Superadmin pembuat sesi (hanya `super_admin=true`). |
+| `jumlah_sasaran` | `integer` | Jumlah sasaran anak latihan yang disalin. |
+| `mulai_pada` | `timestamptz` | Waktu sesi dimulai. |
+| `selesai_pada` | `timestamptz` `nullable` | Waktu sesi diakhiri (`NULL` bila sedang aktif). |
+
+*Aturan integritas:* indeks unik parsial `pelatihan_satu_aktif` memastikan **hanya ada satu sesi aktif** pada satu waktu di server.
+
+---
+
+## Skema Dinamis Mode Pelatihan (Dual-Schema Sandbox `latihan_<uuid>`)
+
+Untuk menjamin keamanan data riil Posyandu tanpa risiko salah hapus atau polusi saat kader berlatih:
+1. Saat sesi dimulai via `POST /api/v1/pelatihan/mulai`, server membuat skema PostgreSQL baru: `latihan_<uuid>`.
+2. Struktur tabel clone dari skema `public` dibuat di dalam skema tersebut.
+3. Sasaran anak disalin dengan NIK khusus berawalan `0099...` dan nama keluarga yang disamarkan.
+4. Token sesi yang masuk dalam mode latihan diberi tanda konteks sandbox. Seluruh query dialihkan secara dinamis dengan mengeset `search_path = latihan_<uuid>` pada koneksi transaksi.
+5. Saat superadmin mengakhiri sesi via `POST /api/v1/pelatihan/akhiri`, server menghapus skema latihan. Metadata minimal sesi dipertahankan; lihat [panduan sesi pelatihan](sesi-pelatihan.md).
+
+---
 
 ### `audit`
 

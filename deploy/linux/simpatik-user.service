@@ -1,0 +1,23 @@
+[Unit]
+Description=SIMPATIK API dan web (layanan pengguna)
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+WorkingDirectory=%h/simpatik/server
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=4321
+Environment=TRUST_PROXY=loopback
+Environment=WEB_DIST=client/dist
+# Saat boot, dahulukan unit sistem yang sudah terpasang. Jangan berebut porta.
+ExecCondition=/bin/sh -c 'sleep 3; ! /usr/bin/systemctl is-active --quiet simpatik.service'
+ExecStart=%h/simpatik-runtime/node/bin/node --env-file=%h/.config/simpatik/server.env src/http/server.ts
+Restart=always
+RestartSec=5
+TimeoutStopSec=15
+UMask=0077
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target

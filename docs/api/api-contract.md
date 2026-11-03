@@ -1,10 +1,13 @@
 # Kontrak REST API — SIMPATIK Posyandu Tulip
 
-| Status | Draf |
+> [!NOTE]
+> Dokumen ini adalah draf spesifikasi historis (Oktober 2026). Spesifikasi kontrak REST API terlengkap, mutakhir, dan berstandar resmi telah dipindahkan ke **[Dokumen Spesifikasi Kontrak REST API](../SIMPATIK_Posyandu_REST_API_Contract.md)**.
+
+| Status | Diperbarui / Terintegrasi |
 |---|---|
-| Terakhir diperbarui | 9 Oktober 2026 |
-| Backend | Express + PostgreSQL |
-| Client | Portal React dan aplikasi tablet |
+| Terakhir diperbarui | 1 November 2026 |
+| Backend | Express 5 + PostgreSQL 16/17 |
+| Client | Portal React 19 dan aplikasi tablet |
 
 ## 1. Arsitektur dan channel
 

@@ -22,7 +22,7 @@ try {
             await c.query('BEGIN');
             for (const {s,cocok} of pairs) await c.query(`INSERT INTO sumber_f1(anak_id,periode,gng,desil,asi_eksklusif,sumber)
                 VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT(anak_id,periode) DO UPDATE SET
-                gng=EXCLUDED.gng,desil=EXCLUDED.desil,asi_eksklusif=EXCLUDED.asi_eksklusif,sumber=EXCLUDED.sumber,updated_at=now()`,
+                gng=EXCLUDED.gng,desil=EXCLUDED.desil,desil_kelompok=NULL,asi_eksklusif=EXCLUDED.asi_eksklusif,sumber=EXCLUDED.sumber,updated_at=now()`,
                 [cocok[0].id,periode,s.gng,s.desil,s.asi,basename(file)+' / RAW DATA FOR F1_ALL']);
             await c.query('COMMIT');
             console.log('Sumber F1 tersimpan. Hasil pengukuran dan sasaran tidak diubah.');

@@ -13,7 +13,7 @@ export async function dasarF1(pool: Pool, user: PenggunaAktif, periode: string) 
         EXISTS(SELECT 1 FROM pengukuran prev JOIN periode pp ON pp.id=prev.periode_id
             WHERE prev.anak_id=a.id AND prev.bb_kg IS NOT NULL AND prev.status_kehadiran='hadir'
             AND make_date(pp.tahun,pp.bulan,1)<($1||'-01')::date) AS "pernahDiukur",
-        ekonomi.gng,ekonomi.desil,ekonomi.sumber AS "sumberEkonomi",ekonomi.periode AS "periodeEkonomi",
+        ekonomi.gng,ekonomi.desil,ekonomi.desil_kelompok AS "desilKelompok",ekonomi.sumber AS "sumberEkonomi",ekonomi.periode AS "periodeEkonomi",
         asi.asi_eksklusif AS asi
         FROM sasaran s JOIN periode pe ON pe.id=s.periode_id
         JOIN posyandu ps ON ps.id=pe.posyandu_id JOIN anak a ON a.id=s.anak_id

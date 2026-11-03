@@ -11,6 +11,7 @@
 import type { Pool, PoolClient } from 'pg';
 
 import type { Peran, PenggunaAktif } from '../auth/peran.ts';
+import { fiturPelatihan } from '../services/pelatihan.ts';
 
 type BarisSesi = {
     id: number;
@@ -28,7 +29,10 @@ export async function simpan(
     kedaluwarsa: Date,
 ): Promise<void> {
     await pool.query(
-        'INSERT INTO sesi (ringkasan, pengguna_id, kedaluwarsa) VALUES ($1, $2, $3)',
+        fiturPelatihan()
+            ? `INSERT INTO sesi (ringkasan,pengguna_id,kedaluwarsa,pelatihan_id)
+               VALUES($1,$2,$3,(SELECT id FROM public.pelatihan_sesi WHERE selesai_pada IS NULL))`
+            : 'INSERT INTO sesi (ringkasan, pengguna_id, kedaluwarsa) VALUES ($1, $2, $3)',
         [ringkasan, penggunaId, kedaluwarsa],
     );
 }

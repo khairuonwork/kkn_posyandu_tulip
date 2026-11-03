@@ -3,16 +3,21 @@
 | | |
 |---|---|
 | **Jenis** | Orientasi |
-| **Status** | hidup |
-| **Perubahan berarti terakhir** | 29 Oktober 2026 |
+| **Status** | Final Approved / v2.1-Modular |
+| **Perubahan berarti terakhir** | 1 November 2026 |
 
 Halaman pertama bagi anggota tim baru. Isinya: aplikasi ini apa, layarnya apa saja, siapa yang memakainya, dan apa yang dibaca berikutnya. Sekitar sepuluh menit.
+
+Dokumen teknis komprehensif pelengkap:
+- [Handover arsitektur](arsitektur-sistem-handover.md)
+- [Kontrak REST API](SIMPATIK_Posyandu_REST_API_Contract.md)
+- [Komponen web](SIMPATIK_Posyandu_Web_Components.md)
 
 ---
 
 ## Aplikasi ini apa
 
-**SIMPATIK Posyandu** adalah aplikasi web internal Posyandu Tulip, RW 18 Kelurahan Citeureup. Kader, bidan, dan admin memakainya untuk mengelola sasaran, memantau status gizi, dan menyusun laporan bulanan. Pengukuran balita dicatat melalui aplikasi Android, bukan website. Sistem ini menggantikan puluhan berkas Excel yang selama ini dicocokkan dengan tangan.
+**SIMPATIK Posyandu** adalah aplikasi web internal Posyandu Tulip, RW 18 Kelurahan Citeureup. Kader, bidan, petugas KMS, dan admin memakainya untuk mengelola sasaran, memantau status gizi, mengelola antrean KMS, dan menyusun laporan bulanan. Pengukuran balita dicatat di meja ukur melalui aplikasi Android (APK v1.6) yang tersinkronisasi offline-first secara atomik ke server. Sistem ini menggantikan puluhan berkas Excel yang selama ini dicocokkan dengan tangan.
 
 Status gizi dihitung otomatis dari standar WHO 2006 dengan kategori PMK No. 2 Tahun 2020.
 
@@ -22,11 +27,12 @@ Dokumen yang lebih lama menyebutnya **Portal Posyandu Tulip**, atau cukup **Port
 
 | Bagian | Keadaan |
 |---|---|
-| Masuk, keluar, dan empat peran (Kader, Bidan, Admin, Petugas KMS) | Tersambung ke basis data; hak akses ditegakkan server |
-| Pengaturan › Pengguna dan peran | Tersambung ke basis data |
-| Perhitungan status gizi | Berjalan di server dan teruji terhadap 2.076 kasus acuan |
-| Data Balita & Profil | Tersambung ke REST API live; memuat filter aktif/arsip, kelompok Desil, dan KB Ibu |
-| Beranda, Laporan, Sasaran, dan KMS | Tersambung ke basis data live; filter RT, Real D/S hari H, ekspor F1, antrean KMS |
+| Masuk, keluar, dan lima peran (Kader, Bidan, Admin, Petugas KMS, Superadmin) | Tersambung ke basis data; hak akses RBAC ditegakkan server |
+| Pengaturan › Pengguna dan peran | Tersambung ke basis data dengan jejak audit |
+| Perhitungan status gizi | Berjalan di server dan teruji terhadap 2.076 kasus acuan WHO LMS |
+| Data Balita & Profil | Tersambung ke REST API live; arsitektur modular (`pages/anak/`), filter aktif/arsip, kelompok Desil, KB Ibu, dan grafik kurva KIA |
+| Beranda, Laporan, Sasaran, dan KMS | Tersambung ke basis data live; filter RT, Real D/S hari H, ekspor resmi Excel F1, antrean KMS real-time |
+| Sesi Pelatihan Sandbox | Terisolasi di skema PostgreSQL `latihan_<uuid>` tanpa mencemari data riil produksi |
 | Input pengukuran | Di aplikasi Android; sinkronisasi server terintegrasi dengan transaksi atomik dan dedup |
 
 Rinciannya di [Fitur](fitur.md).
@@ -35,22 +41,23 @@ Rinciannya di [Fitur](fitur.md).
 
 ## Peta layar
 
-Sembilan layar setelah masuk, ditambah layar Masuk. Alamatnya memakai tanda `#`, misalnya `#/balita/19`. Berkas halamannya ada di `client/src/pages/`.
+Sepuluh layar setelah masuk, ditambah layar Masuk. Alamatnya memakai tanda `#`, misalnya `#/balita/19`. Berkas halamannya ada di `client/src/pages/`. Struktur komponen menganut arsitektur modular (Single Responsibility Principle) dengan sub-komponen terisolasi di folder masing-masing.
 
 | No. | Layar (nama menu) | Alamat | Peran | Untuk apa | Berkas |
 |---|---|---|---|---|---|
 | — | Masuk | — | semua | Nama pengguna dan kata sandi | `auth/login.tsx` |
 | 1 | Beranda | `#/beranda` | K · B · A | Ringkasan bulan berjalan, filter RT, sebaran status gizi, dan Real D/S | `dashboard.tsx` |
-| 2 | Data Balita | `#/balita` | K · B · A | Daftar balita: cari, saring aktif/arsip/RT, tambah, dan ubah | `anak/index.tsx` |
-| 3 | Detail Balita | `#/balita/{id}` | K · B · A | Identitas (Desil, KB), KMS, grafik 6 indeks kurva KIA, status gizi & KIA | `anak/show.tsx` |
-| 4 | Detail riwayat penimbangan | `#/balita/{id}/riwayat` | K · B · A | Semua hasil ukur satu balita | `anak/riwayat.tsx` |
-| 5 | Pemeriksaan KMS | `#/kms` | KMS · A | Antrean balita menunggu penjelasan hasil ukur dan konfirmasi selesai | `kms/index.tsx` |
-| 6 | Kartu Balita | `#/kartu-sasaran` | B · A | Pilih balita, lalu cetak kartu ber-QR | `kartu-sasaran/index.tsx` |
-| 7 | Laporan | `#/laporan` | K · B · A | Rekap SKDN per RT, z-score, riwayat 2T+, dan ekspor F1 | `laporan/index.tsx` |
-| 8 | Sasaran & Impor | `#/sasaran` | A | Pratinjau dan penerbitan sasaran dari berkas Excel | `sasaran/index.tsx` |
-| 9 | Pengaturan | `#/pengaturan` | B · A | Batas angka ukur, ambang rujukan, akun, dan standar perhitungan | `pengaturan/index.tsx` |
+| 2 | Data Balita | `#/balita` | K · B · A | Daftar balita: cari, saring aktif/arsip/RT, tambah, dan ubah | `anak/index.tsx` (modular) |
+| 3 | Detail Balita | `#/balita/{id}` | K · B · A | Identitas (Desil, KB), KMS, grafik 6 indeks kurva KIA, status gizi & KIA | `anak/show.tsx` (modular) |
+| 4 | Detail riwayat penimbangan | `#/balita/{id}/riwayat` | K · B · A | Semua hasil ukur satu balita | `anak/riwayat.tsx` (modular) |
+| 5 | Pemeriksaan KMS | `#/kms` | KMS · A | Antrean balita real-time menunggu penjelasan hasil ukur dan konfirmasi selesai | `kms/index.tsx` |
+| 6 | Kartu Balita | `#/kartu-sasaran` | B · A | Pilih balita, lalu cetak kartu ber-QR A4 (8 kartu/lembar) | `kartu-sasaran/index.tsx` |
+| 7 | Laporan | `#/laporan` | K · B · A | Rekap SKDN per RT, z-score, riwayat 2T+, dan ekspor resmi Excel F1 & Buku 7 | `laporan/index.tsx` |
+| 8 | Sasaran & Impor | `#/sasaran` | A | Pratinjau staging, validasi, dan penerbitan sasaran live dari berkas Excel | `sasaran/index.tsx` (modular) |
+| 9 | Pengaturan | `#/pengaturan` | B · A | Batas angka ukur, ambang rujukan, akun pengguna, dan standar perhitungan | `pengaturan/index.tsx` (modular) |
+| 10 | Sesi Pelatihan | `#/pelatihan` | Superadmin (Mirae) | Kontrol simulasi mode pelatihan dual-schema PostgreSQL tanpa mengubah data riil | `pelatihan/index.tsx` |
 
-K = Kader, B = Bidan, A = Admin, KMS = Petugas KMS. Detail Balita dan Detail riwayat penimbangan tidak punya menu sendiri; keduanya dibuka dari Data Balita atau Beranda.
+K = Kader, B = Bidan, A = Admin, KMS = Petugas KMS, Superadmin = Pengelola Global (Mirae). Detail Balita dan Detail riwayat penimbangan tidak punya menu sendiri; keduanya dibuka dari Data Balita atau Beranda.
 
 Tangkapan di bawah diambil dari demo sebagai Admin pada 1280 × 800 px (tablet mendatar), 29 September 2026. Semua nama dan NIK di dalamnya sudah diganti.
 
@@ -100,13 +107,21 @@ Rekap SKDN per RT: S, D, D/S, N, N/D, T, O, B, dan BGM. Bisa untuk bulan terpili
 
 ![Sasaran & Impor](gambar/sasaran-impor.png)
 
-Rancangan alur memasukkan data sasaran dari Puskesmas: unggah, tinjau, terbitkan. Berkasnya belum dibaca; langkah-langkahnya hanya diperagakan. Aturan impor yang sebenarnya ada di [Migrasi data](rujukan/migrasi-data.md).
+Alur memasukkan dan sinkronisasi data sasaran: unggah file Excel resmi Puskesmas/Posyandu, analisis dan staging per baris (mendeteksi NIK duplikat, anak baru, perubahan RT), pratinjau verifikasi, dan penerbitan sasaran live ke basis data dalam transaksi atomik.
 
 ### 8. Pengaturan
 
 ![Pengaturan](gambar/pengaturan.png)
 
-Lima bagian: Batas angka ukur, Ambang rujukan, Pengguna dan peran (khusus admin), Standar perhitungan, dan Riwayat perubahan. Hanya Pengguna dan peran yang sudah tersimpan ke basis data.
+Lima bagian yang kini tersusun modular: Batas angka ukur, Ambang rujukan, Pengguna dan peran (khusus admin/superadmin), Standar perhitungan (WHO LMS 2006 & PMK 2/2020), dan Riwayat perubahan (audit log). Pengelolaan akun tersambung live ke basis data dengan audit trigger.
+
+### 9. Pemeriksaan KMS & Antrean Meja
+
+Layar antrean real-time balita yang baru saja ditimbang di meja ukur tablet Android. Petugas KMS dapat memanggil anak, membuka grafik kurva pertumbuhan KIA, menjelaskan status gizi kepada orang tua, dan menekan konfirmasi selesai untuk memajukan antrean.
+
+### 10. Sesi Pelatihan (Sandbox)
+
+Fitur khusus Superadmin (`#/pelatihan`) untuk mengaktifkan lingkungan simulasi pelatihan kader. Sistem membuat skema dinamis terisolasi `latihan_<uuid>` di PostgreSQL sehingga kegiatan pelatihan tidak memengaruhi data riil operasional.
 
 ---
 
@@ -114,11 +129,13 @@ Lima bagian: Batas angka ukur, Ambang rujukan, Pengguna dan peran (khusus admin)
 
 | Peran | Siapa | Menu yang tampil |
 |---|---|---|
-| **Kader** | Relawan RT, umumnya bukan pengguna komputer harian | Beranda, Data Balita, Laporan. Datanya terbatas pada RT binaannya |
-| **Bidan** | Penanggung jawab kebenaran data dan keputusan klinis | Menu kader, ditambah Kartu Balita dan Pengaturan |
-| **Admin** | Pengelola teknis, misalnya mahasiswa KKN | Semua menu, termasuk Sasaran & Impor dan Pengguna dan peran |
+| **Kader** | Relawan RT, umumnya bukan pengguna komputer harian | Beranda, Data Balita, Laporan. Datanya dibatasi pada RT binaannya |
+| **Petugas KMS** | Kader/petugas yang bertugas di meja edukasi KMS | Menu Pemeriksaan KMS (`#/kms`) untuk memanggil dan mengedukasi balita dari antrean ukur |
+| **Bidan** | Penanggung jawab kebenaran data dan keputusan klinis | Seluruh menu kader, ditambah Kartu Balita dan Pengaturan |
+| **Admin** | Pengelola teknis, misalnya mahasiswa KKN | Seluruh menu operasional posyandu, termasuk Sasaran & Impor dan Pengguna dan peran |
+| **Superadmin (Mirae)** | Pengelola global sistem multi-cluster | Seluruh menu sistem, termasuk Sesi Pelatihan Sandbox dan pemantauan perangkat |
 
-Peran yang lebih tinggi mewarisi hak peran di bawahnya. Menyembunyikan menu hanya kenyamanan; penolakan yang mengikat ada di server ([Arsitektur — Otorisasi](arsitektur.md#otorisasi)).
+Peran yang lebih tinggi mewarisi hak peran di bawahnya. Menyembunyikan menu di antarmuka hanyalah kenyamanan visual; penolakan dan otorisasi yang mengikat ditegakkan secara ketat di server ([Arsitektur — Otorisasi](arsitektur.md#otorisasi)).
 
 ---
 

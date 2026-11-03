@@ -25,6 +25,8 @@ import { ruteCluster } from "./cluster-controller.ts";
 import { rutePerangkat } from './perangkat-controller.ts';
 import { muatKonfigurasi } from "../config.ts";
 import type { KonfigurasiServer } from "../config.ts";
+import { rutePelatihan } from './pelatihan-controller.ts';
+import { lingkupPelatihan, poolOperasional } from './pelatihan-context.ts';
 
 export function buatApp(
     pool: Pool,
@@ -32,6 +34,8 @@ export function buatApp(
 ): Express {
     const app = express();
     const folderWeb = konfigurasi.folderWeb;
+    const authPool = pool;
+    pool = poolOperasional(authPool);
 
     // Di balik proxy Vite saat pengembangan, dan kemungkinan di balik proxy
     // lain saat produksi (atur lewat TRUST_PROXY). Tanpa ini `req.ip` selalu
@@ -64,7 +68,7 @@ export function buatApp(
     // Content-Type/CSRF yang sama. Parser menegakkan batas file 3 MB.
     app.use(express.json({ limit: "4mb" }));
     app.use(wajibJson);
-    app.use(sesiMiddleware(pool));
+    app.use(sesiMiddleware(authPool));
 
     // HTML tablet dibundel sebagai file lokal WebView sehingga origin-nya
     // `null`. Hanya API v1 bertoken yang dibuka untuk origin tersebut.
@@ -90,14 +94,29 @@ export function buatApp(
         next();
     });
 
-    app.use("/api", ruteAuth(pool));
-    app.use("/api", rutePengguna(pool));
+    // Jejak tulis ringkas (tanpa isi body) agar kiriman APK yang gagal terlihat di log.
+    app.use("/api", (req, res, next) => {
+        res.once("finish", () => {
+            if (/\/masuk/.test(req.path)) return;
+            if (req.method === "GET" && res.statusCode < 400 && !/antrean|sinkronisasi|sasaran/.test(req.path)) return;
+            console.log(
+                `[Tulis] ${req.method} ${req.originalUrl.split("?")[0]} -> ${res.statusCode} mode=${res.getHeader("X-Simpatik-Mode") ?? "-"} ua=${String(req.headers["user-agent"] ?? "-").slice(0, 60)}`,
+            );
+            if (res.statusCode >= 400) {
+                console.log(`[Galat Tulis ${res.statusCode}] ${req.method} ${req.originalUrl} user=${(req as any).pengguna?.id}:${(req as any).pengguna?.username} body=${JSON.stringify(req.body)}`);
+            }
+        });
+        next();
+    });
+
+    app.use('/api/v1',rutePelatihan(authPool));
+    app.use("/api", ruteAuth(authPool));
 
     // Dipakai aplikasi Android untuk memeriksa jalur PC -> API -> PostgreSQL
     // sebelum kader mencoba masuk. Tidak mengungkap DSN atau rincian database.
     app.get("/api/v1/kesehatan", async (_req, res, next) => {
         try {
-            await pool.query("SELECT 1");
+            await authPool.query("SELECT 1");
             res.json({
                 status: "siap",
                 database: "terhubung",
@@ -108,6 +127,8 @@ export function buatApp(
         }
     });
 
+    app.use('/api',lingkupPelatihan(authPool));
+    app.use('/api',rutePengguna(pool));
     app.use('/api/v1', rutePerangkat(pool));
 
     app.use("/api/v1", ruteAnak(pool));

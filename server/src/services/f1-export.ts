@@ -43,7 +43,7 @@ function raw(w:ExcelJS.Workbook,name:string,g:KelompokF1,periode:string,rows:Ana
             s.getCell('F'+r).style=gayaF1(reference,a.gng==='NG'?'F7':'F6');
             s.getCell('G'+r).style=gayaF1(reference,'G6');
             if(!origin)for(const [c,list] of [['E','N,T,O,B'],['F','NG'],['G','G'],['N','Y,T']])s.getCell(c+r).dataValidation={type:'list',allowBlank:true,formulae:['"'+list+'"']};
-            [a.anakId,a.desil,a.sumberEkonomi,a.periodeEkonomi,a.tanggal,a.tidakHadir?'Ya':null].forEach((v,j)=>text(s,col(29+j)+r,v));
+            [a.anakId,a.desilKelompok??a.desil,a.sumberEkonomi,a.periodeEkonomi,a.tanggal,a.tidakHadir?'Ya':null].forEach((v,j)=>text(s,col(29+j)+r,v));
         });
         const end=Math.max(base,base+block.length-1);
         let sr=base-2;

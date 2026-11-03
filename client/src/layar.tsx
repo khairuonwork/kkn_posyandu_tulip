@@ -143,6 +143,12 @@ function terapkanIdentitas(
             patch.bbLahirKg === undefined ? anak.bbLahirMeragukan : false,
         bukuKia: patch.bukuKia ?? anak.bukuKia,
         kbIbu: patch.kbIbu === undefined ? anak.kbIbu : patch.kbIbu,
+        jenisKb: patch.jenisKb === undefined ? anak.jenisKb : patch.jenisKb,
+        desilKelompok:
+            patch.periodeId === periodeId &&
+            (patch.desil !== undefined || patch.desilKelompok !== undefined)
+                ? (patch.desilKelompok ?? null)
+                : anak.desilKelompok,
         desil:
             patch.desil !== undefined && patch.periodeId === periodeId
                 ? patch.desil
@@ -497,7 +503,7 @@ export function Layar({
 
         return (
             <SasaranImpor
-                sasaranAwal={demoSasaran}
+                sasaranAwal={modeDataLive ? undefined : demoSasaran}
                 periodeAwal={demoPeriode}
                 wilayahRt={wilayahRt}
             />
@@ -525,7 +531,7 @@ export function Layar({
                     }
                 />
             ) : (
-                <MemuatData />
+                <MemuatData judul="Memuat kartu balita…" />
             );
         }
 
@@ -578,8 +584,8 @@ function TidakDitemukan() {
     );
 }
 
-function MemuatData() {
-    return <StateHalaman jenis="memuat" judul="Memuat data…" />;
+function MemuatData({ judul = 'Memuat data…' }: { judul?: string }) {
+    return <StateHalaman jenis="memuat" judul={judul} />;
 }
 
 function GalatData({

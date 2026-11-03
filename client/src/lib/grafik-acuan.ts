@@ -1,4 +1,4 @@
-/** Garis acuan KIA; Kurva KMS memakai paletnya sendiri. */
+/** Warna garis SD bersama untuk grafik pertumbuhan dan Kurva KMS. */
 export function warnaGarisSd(z: number): string {
     if (Math.abs(z) === 3) {
         return '#16211C';
@@ -23,8 +23,8 @@ export function periodeGrafikBersambung(
     const format = /^\d{4}-(0[1-9]|1[0-2])$/;
 
     if (!format.test(sebelum) || !format.test(sesudah)) {
-return false;
-}
+        return false;
+    }
 
     const bulan = (p: string) =>
         Number(p.slice(0, 4)) * 12 + Number(p.slice(5));

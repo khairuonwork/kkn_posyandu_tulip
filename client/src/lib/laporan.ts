@@ -157,5 +157,6 @@ export function useLaporanServer(
         pesanGalat,
         muatUlang,
         unduh,
+        onSesiBerakhir,
     };
 }

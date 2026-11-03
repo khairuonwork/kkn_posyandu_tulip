@@ -273,6 +273,8 @@ Prototipe desain tidak memuat satu pun atribut `aria`. Itu batas kanvas desain, 
 
 ## 9. Aturan penulisan antarmuka
 
+Halaman yang memuat data, gagal dimuat, atau kosong perlu memberi informasi yang terlihat dan tindakan yang sesuai. Pesan gagal simpan atau hapus menyebut tindakan yang gagal; isian yang belum disimpan tetap dipertahankan. Hindari menyatakan bahwa data aman atau tersimpan apabila hasilnya belum diketahui.
+
 | Konteks | Aturan | Contoh |
 |---|---|---|
 | Nilai kosong | `—`, tidak pernah `0` atau kosong melompong | `BB: —` |

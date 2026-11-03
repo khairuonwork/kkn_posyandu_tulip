@@ -7,6 +7,7 @@ import { dalamTransaksi } from "../db/transaksi.ts";
 import * as anakRepo from "../repositories/anak-repository.ts";
 import { hitungDanSimpanDalamTransaksi } from "./gizi-service.ts";
 import { muatTabelStandar } from '../repositories/standar-lms-repository.ts';
+import { validasiProfilKeluarga } from './profil-keluarga.ts';
 
 export class GalatAnak extends Error {
     readonly status: 400 | 404 | 409;
@@ -45,9 +46,15 @@ export async function ubahProfil(
             ? null
             : Number(String(bbRaw).replace(",", "."));
     const bukuKia = data.bukuKia;
+    let keluarga: ReturnType<typeof validasiProfilKeluarga>;
+    try {
+        keluarga = validasiProfilKeluarga(data, namaOrtu);
+    } catch (error) {
+        throw new GalatAnak(400, (error as Error).message);
+    }
     if (data.desil !== undefined && data.desil !== null && (typeof data.desil !== 'number' || !Number.isInteger(data.desil) || data.desil < 1 || data.desil > 10))
         throw new GalatAnak(400, 'Kelompok Desil harus bilangan 1 sampai 10.');
-    if (data.desil !== undefined && (typeof data.periodeId !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(data.periodeId)))
+    if ((data.desil !== undefined || data.desilKelompok !== undefined) && (typeof data.periodeId !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(data.periodeId)))
         throw new GalatAnak(400, 'Pilih periode berlaku untuk Kelompok Desil.');
     if (data.kbIbu !== undefined && data.kbIbu !== null && typeof data.kbIbu !== 'boolean')
         throw new GalatAnak(400, 'Data KB Ibu harus Iya atau Tidak.');
@@ -95,6 +102,7 @@ export async function ubahProfil(
                     bbLahirKg,
                     bukuKia,
                     kbIbu: data.kbIbu as boolean | null | undefined,
+                    ...keluarga,
                     desil: data.desil as number | null | undefined,
                     periodeId: data.periodeId as string | undefined,
                 }),

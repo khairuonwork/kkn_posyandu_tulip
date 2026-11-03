@@ -56,6 +56,7 @@ export type HasilImpor = {
     anakBaru: number;
     anakDiperbarui: number;
     perluVerifikasi: number;
+    pengukuran?: { tersimpan: number; sudahAda: number; ditahan: { baris: number; alasan: string }[]; tidakDiukur: number };
 };
 
 export type StatusSasaran = SasaranAktif['items'][number]['status'];

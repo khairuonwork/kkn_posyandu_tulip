@@ -24,6 +24,7 @@ export default function DialogKirimWa({
     susun,
     buatTautan,
     nomor,
+    modeUji = false,
     onTutup,
 }: {
     nama: string;
@@ -33,6 +34,7 @@ export default function DialogKirimWa({
     buatTautan?: () => Promise<string | null>;
     /** Nomor baku `62…` yang sudah divalidasi dari profil orang tua. */
     nomor: string;
+    modeUji?: boolean;
     onTutup: () => void;
 }) {
     const [tahap, setTahap] = useState<Tahap>(
@@ -84,14 +86,13 @@ export default function DialogKirimWa({
             <div className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-7 py-4.5">
                 <div>
                     <p className="text-sm font-semibold text-muted-foreground">
-                        Nomor WhatsApp orang tua
+                        {modeUji ? 'Nomor WhatsApp uji' : 'Nomor WhatsApp orang tua'}
                     </p>
                     <p className="mt-1 text-base font-bold tabular-nums">
                         {nomorTampil(nomor)}
                     </p>
                     <p className="mt-1 text-sm text-muted-foreground">
-                        Nomor tujuan mengikuti profil anak. Ubah melalui Ubah
-                        data balita jika perlu diperbarui.
+                        {modeUji ? 'Pesan akan dikirim ke nomor uji.' : 'Nomor tujuan mengikuti profil anak. Ubah melalui Ubah data balita jika perlu diperbarui.'}
                     </p>
                 </div>
 

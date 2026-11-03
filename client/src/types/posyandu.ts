@@ -66,6 +66,8 @@ export type Anak = {
     pbLahirCm: number | null;
     bukuKia: boolean;
     kbIbu?: boolean | null;
+    jenisKb?: string | null;
+    desilKelompok?: '6-10' | null;
     desil?: number | null;
     imd: boolean;
     rt: string | null;

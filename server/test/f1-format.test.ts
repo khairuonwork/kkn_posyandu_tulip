@@ -8,6 +8,13 @@ const anak=(id:number,rt:string,code:string):AnakF1=>({anakId:id,nama:'Anak uji 
     sumberEkonomi:'Fixture',periodeEkonomi:'2026-09',tidakHadir:false});
 const build=(rows:AnakF1[])=>workbookF1({periode:'2026-09',kelompok:[{id:1,nama:'Tulip',rw:'18',kelurahan:'Citeureup',tanggal:'2026-09-12',anak:rows}]});
 
+test('F1 mengekspor kelompok 6-10 sebagai teks dan menjaga angka desil lama', async () => {
+    const w = await build([{ ...anak(1, '01', 'N'), desil: null, desilKelompok: '6-10' }, anak(2, '01', 'N')]);
+    const s = w.getWorksheet('RAW DATA FOR F1_ALL')!;
+    assert.equal(s.getCell('AD6').value, '6-10');
+    assert.equal(s.getCell('AD7').value, 6);
+});
+
 test('F1 keeps official print bounds, merged headings, month/date and original column dimensions',async()=>{
     const w=await build([anak(1,'01','N')]);const s=w.worksheets[0];
     assert.equal(s.name,'F1_SEPTEMBER 2026');

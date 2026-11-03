@@ -1007,7 +1007,7 @@ export function sasaranDemo(periodeId?: string): SasaranAktif {
             .map((item) => item.anakId),
     );
 
-    const items: SasaranAktif['items'] = data.anak.map((anak, idx) => {
+    const items: SasaranAktif['items'] = data.anak.filter((anak) => anak.tglLahir !== null && anak.jk !== null).map((anak, idx) => {
         const isSelesai = diukurIds.has(anak.id);
         const isPindah = pindahIds.has(anak.id);
         const status = isPindah ? 'pindah' : isSelesai ? 'selesai' : 'menunggu';
@@ -1018,8 +1018,8 @@ export function sasaranDemo(periodeId?: string): SasaranAktif {
             anakId: anak.id,
             nik: anak.nik,
             nama: anak.nama ?? `Anak #${anak.id}`,
-            tglLahir: anak.tglLahir,
-            jk: anak.jk,
+            tglLahir: anak.tglLahir!,
+            jk: anak.jk!,
             namaOrtu: anak.namaOrtu,
             rt: anak.rt,
             kodeKartu: kodeKartuSasaran(anak),
@@ -1039,7 +1039,7 @@ export function sasaranDemo(periodeId?: string): SasaranAktif {
                   periode: p.id,
                   label: p.label,
                   tanggalKegiatan: p.tanggalKegiatan ?? null,
-                  sesiDitutupPada: p.sesiDitutupPada ?? null,
+                  sesiDitutupPada: null,
               }
             : null,
         ringkasan: {
@@ -1060,7 +1060,7 @@ export function periodeSasaranDemo(): PeriodeSasaran[] {
         periode: p.id,
         label: p.label,
         tanggalKegiatan: p.tanggalKegiatan ?? null,
-        sesiDitutupPada: p.sesiDitutupPada ?? null,
+        sesiDitutupPada: null,
     }));
 }
 
@@ -1080,8 +1080,8 @@ export function laporanDemo(periodeId?: string): LaporanLive {
     const bulanan: BarisLaporanLive[] = peng.map((item) => {
         const a = anakMap.get(item.anakId);
         const umur = item.umurBulan;
-        const thn = Math.floor(umur / 12);
-        const bln = umur % 12;
+        const thn = umur === null ? null : Math.floor(umur / 12);
+        const bln = umur === null ? null : umur % 12;
         const isT = item.ntob === 'T';
         const isN = item.ntob === 'N';
         const is2T = isT && item.anakId % 3 === 0;
@@ -1096,8 +1096,8 @@ export function laporanDemo(periodeId?: string): LaporanLive {
             rt: a?.rt ?? '1',
             periodeId: item.periodeId,
             tanggalUkur: item.tanggalUkur ?? (p?.tanggalKegiatan ?? null),
-            umurLengkap: `${thn}Thn${bln}Bln`,
-            umurHari: umur * 30,
+            umurLengkap: umur === null ? '–' : `${thn}Thn${bln}Bln`,
+            umurHari: umur === null ? null : umur * 30,
             bbKg: item.bbKg,
             tinggiCm: item.tinggiCm,
             lilaCm: item.lilaCm,

@@ -12,6 +12,7 @@ import {
     BadgeCheck,
     CreditCard,
     FileText,
+    FlaskConical,
     House,
     LogOut,
     Menu as MenuIcon,
@@ -37,7 +38,8 @@ export type Rute =
     | { nama: 'sasaran' }
     | { nama: 'kartu-sasaran'; id?: number }
     | { nama: 'pengaturan' }
-    | { nama: 'kms' };
+    | { nama: 'kms' }
+    | { nama: 'pelatihan' };
 
 /** Router portal, seluruhnya, tanpa pustaka tambahan. */
 export function bacaRute(alamat: string): Rute {
@@ -76,6 +78,8 @@ export function bacaRute(alamat: string): Rute {
 
         case '/kms':
             return { nama: 'kms' };
+        case '/pelatihan':
+            return { nama: 'pelatihan' };
 
         default:
             return { nama: 'beranda' };
@@ -201,34 +205,47 @@ export function Cangkang({
     const menu = (
         <nav aria-label="Menu utama" className="flex flex-col gap-0.5">
             {/* Butir yang tidak berhak dihapus dari DOM, bukan dinonaktifkan. */}
-            {NAV.filter(
-                (butir) =>
-                    butir.peran.includes(peran) &&
-                    (butir.href !== '/kms' || peran === 'kms' || superAdmin),
-            ).map((butir) => {
-                const aktif = alamat.startsWith(butir.href);
-                const Ikon = butir.ikon;
+            {[
+                ...NAV,
+                ...(superAdmin
+                    ? [
+                          {
+                              href: '/pelatihan',
+                              label: 'Sesi Pelatihan',
+                              ikon: FlaskConical,
+                              peran: ['admin'] as Peran[],
+                          },
+                      ]
+                    : []),
+            ]
+                .filter((butir) => butir.peran.includes(peran) && (butir.href !== '/kms' || peran === 'kms' || superAdmin))
+                .map((butir) => {
+                    const aktif = alamat.startsWith(butir.href);
+                    const Ikon = butir.ikon;
 
-                return (
-                    <Link
-                        key={butir.href}
-                        href={butir.href}
-                        aria-current={aktif ? 'page' : undefined}
-                        // Memilih menu berarti selesai dengan laci, termasuk
-                        // saat menu yang dipilih adalah layar yang sedang
-                        // terbuka. Di sidebar, `close()` tidak berbuat apa-apa.
-                        onClick={() => laci.current?.close()}
-                        className={`flex min-h-14 items-center gap-3.5 rounded-lg px-3.5 text-base pendek:pointer-fine:min-h-10 ${
-                            aktif
-                                ? 'bg-primary font-bold text-primary-foreground'
-                                : 'font-medium text-foreground'
-                        }`}
-                    >
-                        <Ikon className="size-5 shrink-0" strokeWidth={2.5} />
-                        {butir.label}
-                    </Link>
-                );
-            })}
+                    return (
+                        <Link
+                            key={butir.href}
+                            href={butir.href}
+                            aria-current={aktif ? 'page' : undefined}
+                            // Memilih menu berarti selesai dengan laci, termasuk
+                            // saat menu yang dipilih adalah layar yang sedang
+                            // terbuka. Di sidebar, `close()` tidak berbuat apa-apa.
+                            onClick={() => laci.current?.close()}
+                            className={`flex min-h-14 items-center gap-3.5 rounded-lg px-3.5 text-base pendek:pointer-fine:min-h-10 ${
+                                aktif
+                                    ? 'bg-primary font-bold text-primary-foreground'
+                                    : 'font-medium text-foreground'
+                            }`}
+                        >
+                            <Ikon
+                                className="size-5 shrink-0"
+                                strokeWidth={2.5}
+                            />
+                            {butir.label}
+                        </Link>
+                    );
+                })}
         </nav>
     );
 

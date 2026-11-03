@@ -20,6 +20,7 @@ import { CircleCheck, Lightbulb, TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 import { nadaKategori } from '@/components/status-gizi-badge';
 import { angka, KOSONG, satuan, tanggalRingkas, zScore } from '@/lib/format';
+import { warnaGarisSd } from '@/lib/grafik-acuan';
 import type { GarisSd, JenisKelamin } from '@/types/posyandu';
 
 const LEBAR = 1500;
@@ -40,7 +41,6 @@ const PANEL_AWAL = [0, 12, 24, 36, 48];
 const PITA_KUNING = '#F2C300';
 const PITA_HIJAU_MUDA = '#6FB63C';
 const PITA_HIJAU_TUA = '#1E8C34';
-const GARIS_MERAH = '#D92B0C';
 const TINTA = '#16211C';
 const TEKS_SEKUNDER = '#4A5750';
 
@@ -274,8 +274,14 @@ export default function KmsChart({
                     </p>
                 </div>
                 <span className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-bold text-muted-foreground">
-                    <Lightbulb className="size-3.5 shrink-0 text-amber-600" aria-hidden="true" />
-                    <span>Ketuk titik pada grafik untuk melihat rincian tanggal, berat &amp; Z-score</span>
+                    <Lightbulb
+                        className="size-3.5 shrink-0 text-amber-600"
+                        aria-hidden="true"
+                    />
+                    <span>
+                        Ketuk titik pada grafik untuk melihat rincian tanggal,
+                        berat &amp; Z-score
+                    </span>
                 </span>
             </div>
 
@@ -405,7 +411,7 @@ export default function KmsChart({
                                 key={`sd${z}`}
                                 points={garisKe(titikSd(z))}
                                 fill="none"
-                                stroke={z === -3 ? GARIS_MERAH : TINTA}
+                                stroke={warnaGarisSd(z)}
                                 strokeWidth={
                                     z === -3 ? 2.4 : z === 0 ? 1.6 : 1.2
                                 }
@@ -762,16 +768,19 @@ export default function KmsChart({
                         teks="−3 s/d −2 (Kurang) · +2 s/d +3 SD (Lebih)"
                     />
                     <Legenda
-                        warna={GARIS_MERAH}
-                        judul="Garis Merah (−3 SD / BGM)"
-                        teks="Di bawah garis merah: Sangat Kurang"
+                        warna={warnaGarisSd(2)}
+                        judul="Garis Merah (−2 dan +2 SD)"
+                        teks="Garis ±1 SD cokelat, median hijau, ±3 SD hitam. BGM tetap di bawah −3 SD."
                     />
                 </ul>
 
                 <div className="mt-3 grid gap-2.5 border-t border-rule pt-3 text-xs sm:grid-cols-2">
                     <div className="rounded-lg border border-primary/25 bg-accent/55 px-3 py-2">
-                        <strong className="flex items-center gap-1 font-extrabold text-tone-green mb-0.5">
-                            <CircleCheck className="size-3.5 shrink-0 text-tone-green" aria-hidden="true" />
+                        <strong className="mb-0.5 flex items-center gap-1 font-extrabold text-tone-green">
+                            <CircleCheck
+                                className="size-3.5 shrink-0 text-tone-green"
+                                aria-hidden="true"
+                            />
                             <span>Naik (N):</span>
                         </strong>
                         <span className="font-medium text-foreground">
@@ -780,8 +789,11 @@ export default function KmsChart({
                         </span>
                     </div>
                     <div className="rounded-lg border border-tone-amber/30 bg-tone-amber-bg/55 px-3 py-2">
-                        <strong className="flex items-center gap-1 font-extrabold text-tone-amber mb-0.5">
-                            <TriangleAlert className="size-3.5 shrink-0 text-tone-amber" aria-hidden="true" />
+                        <strong className="mb-0.5 flex items-center gap-1 font-extrabold text-tone-amber">
+                            <TriangleAlert
+                                className="size-3.5 shrink-0 text-tone-amber"
+                                aria-hidden="true"
+                            />
                             <span>Tidak Naik (T):</span>
                         </strong>
                         <span className="font-medium text-foreground">

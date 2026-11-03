@@ -38,8 +38,9 @@ import {
 import { angka, persenSaja, tanggalRingkas, zScore } from '@/lib/format';
 import { kesimpulanZScore } from '@/lib/kategori';
 import type { useLaporanServer } from '@/lib/laporan';
-import { Link } from '@/lib/nav';
+import { Link, useAlamat } from '@/lib/nav';
 import type { Periode } from '@/types/posyandu';
+import TabTumbuhKembang from './tab-tumbuh-kembang';
 
 export type BarisRekapRt = {
     rt: string;
@@ -126,6 +127,7 @@ export default function Laporan({
     laporanLive,
     bolehUnduh = false,
 }: Props) {
+    const alamat = useAlamat();
     const [rt, setRt] = useState('');
     const [urut, setUrut] = useState<{ kolom: Kolom; naik: boolean }>({
         kolom: 'rt',
@@ -147,6 +149,16 @@ export default function Laporan({
         urut.kolom === 'rt'
             ? `urut nomor RT${urut.naik ? '' : ', terbesar dulu'}`
             : `urut ${KOLOM.find((k) => k.kunci === urut.kolom)?.kode} ${urut.naik ? 'naik' : 'turun'}`;
+
+    if (new URLSearchParams(alamat.split('?')[1]).get('tab') === 'tumbuh-kembang') {
+        return (
+            <TabTumbuhKembang
+                periode={periode}
+                modeLive={laporanLive !== undefined}
+                onSesiBerakhir={laporanLive?.onSesiBerakhir}
+            />
+        );
+    }
 
     if (laporanLive !== undefined) {
         return (
@@ -199,6 +211,14 @@ export default function Laporan({
                 </div>
             }
         >
+            <nav aria-label="Jenis laporan" className="mb-5 flex flex-wrap gap-2">
+                <Link className="tab" href="/laporan" aria-current="page">
+                    Rekap Bulanan
+                </Link>
+                <Link className="tab" href="/laporan?tab=tumbuh-kembang">
+                    Tumbuh Kembang
+                </Link>
+            </nav>
             {total.s === 0 ? (
                 <EmptyState
                     sebab={`Belum ada penimbangan di ${periode.label}.`}
@@ -529,6 +549,9 @@ function LaporanDataLive({
                 subjudul={periode.label}
                 penuh="lg"
             >
+                <Link className="tombol-kedua mb-4" href="/laporan?tab=tumbuh-kembang">
+                    Tumbuh Kembang
+                </Link>
                 <StateHalaman
                     jenis={laporan.status === 'memuat' ? 'memuat' : 'galat'}
                     judul={
@@ -844,6 +867,14 @@ function LaporanDataLive({
                                     />
                                     <span>Riwayat 1T & 2T+ ({totalT})</span>
                                 </button>
+                                <Link
+                                    href="/laporan?tab=tumbuh-kembang"
+                                    role="tab"
+                                    aria-selected={false}
+                                    className="tab font-extrabold"
+                                >
+                                    Tumbuh Kembang
+                                </Link>
                             </div>
 
                             {tab === 'zscore' ? (

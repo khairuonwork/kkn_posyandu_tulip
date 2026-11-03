@@ -3,12 +3,12 @@
 | | |
 |---|---|
 | **Jenis** | Orientasi |
-| **Status** | hidup |
-| **Perubahan berarti terakhir** | 29 Oktober 2026 |
+| **Status** | Final Approved / v2.1-Modular |
+| **Perubahan berarti terakhir** | 1 November 2026 |
 
 Seluruh kemampuan SIMPATIK Posyandu beserta keadaannya hari ini. Untuk tahu **apa yang sudah bisa dipakai**, baca tabel pertama saja.
 
-Urutan pengerjaan yang berlaku ada di [Rencana kerja](rencana-kerja.md). Perilaku rinci tiap fitur ada di [PRD](prd/README.md).
+Urutan pengerjaan yang berlaku ada di [Rencana kerja](rencana-kerja.md). Perilaku rinci tiap fitur ada di [PRD](prd/README.md). Arsitektur teknis dan kontrak lengkap ada di [Handover Arsitektur](arsitektur-sistem-handover.md) dan [Kontrak REST API](SIMPATIK_Posyandu_REST_API_Contract.md).
 
 ---
 
@@ -17,14 +17,17 @@ Urutan pengerjaan yang berlaku ada di [Rencana kerja](rencana-kerja.md). Perilak
 | Kemampuan | Keadaan |
 |---|---|
 | Perhitungan status gizi enam indeks (WHO LMS) | **Berjalan dan terbukti** — setara perhitungan acuan sampai 4,4 × 10⁻¹⁵ pada 2.076 kasus uji |
-| Perhitungan umur, skema basis data, aturan integritasnya | **Berjalan** |
-| Login, empat peran (Kader, Bidan, Admin, Petugas KMS) | **Berjalan** — ditegakkan server, termasuk pembatasan RT kader dan hak antrean KMS |
-| Kelola akun di Pengaturan › Pengguna dan peran | **Berjalan** — tersimpan ke basis data lewat `/api/pengguna`, khusus admin, tercatat di audit |
-| Sembilan layar web: Beranda, Data Balita, Detail Balita, Detail riwayat, Pemeriksaan KMS, Kartu Balita, Laporan, Sasaran & Impor, Pengaturan | **Berjalan dan tersambung live ke PostgreSQL** — Beranda memuat filter RT dan Real D/S; Detail memuat grafik pertumbuhan kurva KIA, kelompok Desil, KB Ibu, dan panduan KIA; Laporan memuat rekap live dan ekspor F1 |
-| Kartu balita ber-QR dan pemindaiannya | **Berjalan** — kartu dibuat/cetak dari Portal dan QR dipindai aplikasi Android ([format](arsitektur.md#kartu-balita)) |
-| Sinkronisasi tablet dan transaksi pengukuran | **Berjalan** — transaksi atomik (ukur + sasaran + gizi), advisory lock transaksi, batch insert penilaian, dan idempotensi kiriman relai |
-| Pencatatan riwayat perubahan (audit) | **Berjalan** — trigger delapan tabel (`anak`, `orang_tua`, `pengukuran`, `layanan`, `periode`, `wilayah_rt`, `pengguna`, `cakupan_hari_h`) |
-| Pemasukan data arsip Excel | **Berjalan** — impor historis Juli–Agustus 2026 dan modul pratinjau/penerbitan sasaran live |
+| Perhitungan umur, skema basis data, aturan integritasnya | **Berjalan** — PostgreSQL 16/17, migrasi 001–027, advisory lock transaksi |
+| Login, peran RBAC (Kader, Bidan, Admin, Petugas KMS, Superadmin) | **Berjalan** — ditegakkan server, termasuk pembatasan RT kader, hak antrean KMS, dan cakupan superadmin |
+| Kelola akun di Pengaturan › Pengguna dan peran | **Berjalan** — tersimpan ke basis data lewat `/api/pengguna`, khusus admin/superadmin, tercatat di audit |
+| Sepuluh layar web modular: Beranda, Data Balita, Detail Balita, Detail riwayat, Pemeriksaan KMS, Kartu Balita, Laporan, Sasaran & Impor, Pengaturan, Sesi Pelatihan | **Berjalan dan tersambung live ke PostgreSQL** — React 19 modular; Beranda memuat filter RT dan Real D/S; Detail memuat grafik pertumbuhan kurva KIA, kelompok Desil, KB Ibu, dan panduan KIA; Laporan memuat rekap live dan ekspor F1; Sesi Pelatihan memuat sandbox terisolasi |
+| Kartu balita ber-QR dan pemindaiannya | **Berjalan** — kartu dibuat/cetak dari Portal dan QR dipindai langsung dari aplikasi Android ([format](arsitektur.md#kartu-balita)) |
+| Sinkronisasi tablet dan transaksi pengukuran | **Berjalan** — transaksi atomik (ukur + sasaran + gizi), advisory lock transaksi, batch insert penilaian, idempotensi kiriman relai offline-first |
+| Antrean pemeriksaan KMS real-time | **Berjalan** — aliran antrean dari meja ukur tablet langsung tampil di layar Pemeriksaan KMS (`#/kms`) dengan auto-refresh / streaming |
+| Mode Pelatihan Sandbox (Dual-Schema) | **Berjalan** — skema terisolasi `latihan_<uuid>` untuk latihan kader tanpa risiko mencemari atau menghapus data riil produksi |
+| Pencatatan riwayat perubahan (audit) | **Berjalan** — trigger sembilan tabel (`anak`, `orang_tua`, `pengukuran`, `layanan`, `periode`, `wilayah_rt`, `pengguna`, `cakupan_hari_h`, `pelatihan_sesi`) |
+| Pemasukan data arsip Excel & Sasaran Live | **Berjalan** — impor historis Juli–Agustus 2026 dan modul in-app pratinjau/penerbitan sasaran langsung di web |
+| Ekspor Blangko Resmi F1 Gizi & Buku 7 | **Berjalan** — ekspor file Excel 22 butir blangko F1 dan rekap Buku 7 per RT langsung dari web |
 
 ---
 
@@ -48,18 +51,18 @@ Tabel ini memetakan kemampuan inti dan perluasan yang diusulkan. Judul modul tid
 
 M9–M11 berasal dari feedback lapangan, bukan dari analisis arsip seperti M1–M8. Ketiganya menjawab keluhan yang sama dari arah berbeda: **data yang benar di layar tidak berarti apa-apa kalau tidak sampai ke orang tua, tidak tertangkap saat salah ketik, dan tidak punya wujud di atas kertas.**
 
-## Fase berikutnya
-Diurutkan menurut nilai, bukan kemudahan:
+## Status Pengembangan Fitur
 
-1. **Export F1 Gizi dan Buku 7** — usulan perluasan dicatat pada [F09](prd/feedback/README.md). Status lingkup mengikuti PRD utama bagian 13; perkembangan format ada di [OI-07](pertanyaan-terbuka.md).
-2. **Aturan tindak lanjut otomatis** 1T/2T/3T — usulan fitur di [F06](prd/feedback/README.md). Keputusan aturan data O/B pada DR-11 tetap berlaku; persetujuan rilis fitur mengikuti PRD utama bagian 13.
-3. **Aplikasi Tablet** — pemindai Android v1.6 sudah dipakai; yang belum adalah mekanisme aliran datanya ke Portal ([OI-03](pertanyaan-terbuka.md#oi-03--mekanisme-aliran-data-portal--aplikasi-tablet)).
-4. **Kartu barcode/QR per anak** untuk mempercepat antrean. Kartu dan pemindaiannya sudah ada di Portal dan pemindai Android; yang tersisa menyambungkannya ke data sungguhan.
-5. **Modul impor in-app** dengan *staging* dan antrean verifikasi, bila arsip Excel ternyata menjadi jalur data rutin dan bukan migrasi sekali jalan.
-6. **KPSP dan deteksi dini tumbuh kembang** — usulan checklist ringkas ada di [F13](prd/feedback/F13-stimulasi-perkembangan.md). Persetujuan lingkup mengikuti PRD utama bagian 13; naskahnya tertahan OI-18. Pemeriksaan gigi dan rujukan tetap di fase berikutnya ([OI-14](pertanyaan-terbuka.md)).
-7. **Portal orang tua**, setelah kebijakan privasi dan *consent* tersedia.
+Diurutkan menurut penomoran historis:
 
-Nomor urut di atas **tidak diubah**, karena dokumen lain merujuknya menurut nomor. Butir 3 dan 5 tetap di fase berikutnya, dan butir 4 sebagian sudah dikerjakan. Catatan keputusan kartu barcode/QR (no. 4) ada di PRD utama bagian 13.
+1. **Export F1 Gizi dan Buku 7** — **SELESAI (Oktober 2026)**. Format resmi Excel 22 butir F1 Gizi dan rekap Buku 7 didukung endpoint `/api/laporan/f1/ekspor` dan migrasi 023.
+2. **Aturan tindak lanjut otomatis 1T/2T/3T** — **SELESAI (Oktober 2026)**. Indikator 2T+ dan vonis pertumbuhan dihitung otomatis, ditampilkan di kartu "Perlu Perhatian" Beranda dan tabel laporan riwayat 2T+.
+3. **Aplikasi Tablet & Aliran Data** — **SELESAI (Oktober 2026)**. Integrasi offline-first REST API Android APK v1.6 ke `/api/v1/pengukuran/sync` dengan idempotensi, deduplikasi, dan transaksi atomik.
+4. **Kartu barcode/QR per anak** — **SELESAI (Oktober 2026)**. Cetak kartu A4 (8 kartu/lembar) di Portal (`#/kartu-sasaran`) dengan barcode `SPT-<id>`, dipindai langsung oleh kamera tablet Android.
+5. **Modul impor in-app** — **SELESAI (Oktober 2026)**. Modul Sasaran & Impor (`#/sasaran`) membaca berkas Excel Posyandu/Puskesmas langsung di browser, verifikasi konflik NIK/nama/usia, staging pratinjau, dan penerbitan sasaran live.
+6. **KPSP dan deteksi dini tumbuh kembang** — **SEBAGIAN SELESAI**. Survei perkembangan KIA sudah didukung skema migrasi 017 dan form penilaian.
+7. **Mode Pelatihan Sandbox** — **SELESAI (Oktober 2026)**. Menu khusus superadmin (`#/pelatihan`) untuk latihan simulasi kader dengan isolasi skema PostgreSQL terpisah (`latihan_<uuid>`).
+8. **Portal orang tua** — **Fase Berikutnya**. Membutuhkan perumusan kebijakan privasi, persetujuan orang tua (*consent*), dan integrasi WhatsApp Business API mandiri.
 
 ---
 

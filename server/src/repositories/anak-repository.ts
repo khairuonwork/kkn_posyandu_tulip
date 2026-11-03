@@ -51,12 +51,16 @@ export type AnakDetail = Omit<
     bukuKia: boolean;
     imd: boolean;
     kbIbu: boolean | null;
+    jenisKb: string | null;
+    desilKelompok: '6-10' | null;
     desil: number | null;
     noWa: string | null;
 };
 
 export type PerubahanProfilAnak = {
     kbIbu?: boolean | null;
+    jenisKb?: string | null;
+    desilKelompok?: '6-10' | null;
     desil?: number | null;
     periodeId?: string;
     nama: string;
@@ -267,7 +271,11 @@ export async function ambil(
                 o.nama AS "namaOrtu", o.nik AS "nikOrtu", o.no_wa AS "noWa",
                 a.anak_ke AS "anakKe",
                 a.bb_lahir_kg::float8 AS "bbLahirKg", a.pb_lahir_cm::float8 AS "pbLahirCm",
-                a.buku_kia AS "bukuKia", a.imd, o.kb_ibu AS "kbIbu",
+                a.buku_kia AS "bukuKia", a.imd, o.kb_ibu AS "kbIbu", o.jenis_kb AS "jenisKb",
+                (SELECT sf.desil_kelompok FROM sumber_f1 sf WHERE sf.anak_id=a.id
+                    AND ($5::text IS NULL OR sf.periode<=$5)
+                    AND (sf.desil IS NOT NULL OR sf.gng IS NOT NULL OR sf.sumber LIKE 'Profil Anak%')
+                    ORDER BY sf.periode DESC LIMIT 1) AS "desilKelompok",
                 (SELECT sf.desil FROM sumber_f1 sf WHERE sf.anak_id=a.id
                     AND ($5::text IS NULL OR sf.periode<=$5)
                     AND (sf.desil IS NOT NULL OR sf.gng IS NOT NULL OR sf.sumber LIKE 'Profil Anak%')
@@ -350,14 +358,15 @@ export async function ubahProfilAnak(
     if (data.namaOrtu !== "") {
         if (orangTuaId === null) {
             const orangTua = await db.query<{ id: number }>(
-                `INSERT INTO orang_tua(nama,no_wa,kb_ibu) VALUES($1,$2,$3) RETURNING id`,
-                [data.namaOrtu, data.noWa, data.kbIbu ?? null],
+                `INSERT INTO orang_tua(nama,no_wa,kb_ibu,jenis_kb) VALUES($1,$2,$3,$4) RETURNING id`,
+                [data.namaOrtu, data.noWa, data.kbIbu ?? null, data.jenisKb ?? null],
             );
             orangTuaId = orangTua.rows[0].id;
         } else {
             await db.query(
-                `UPDATE orang_tua SET nama=$2,no_wa=$3,kb_ibu=CASE WHEN $5::boolean THEN $4::boolean ELSE kb_ibu END,updated_at=now() WHERE id=$1`,
-                [orangTuaId, data.namaOrtu, data.noWa, data.kbIbu ?? null, data.kbIbu !== undefined],
+                `UPDATE orang_tua SET nama=$2,no_wa=$3,kb_ibu=CASE WHEN $5::boolean THEN $4::boolean ELSE kb_ibu END,
+                    jenis_kb=CASE WHEN $7::boolean THEN $6::varchar ELSE jenis_kb END,updated_at=now() WHERE id=$1`,
+                [orangTuaId, data.namaOrtu, data.noWa, data.kbIbu ?? null, data.kbIbu !== undefined, data.jenisKb ?? null, data.jenisKb !== undefined],
             );
         }
     } else {
@@ -383,12 +392,12 @@ export async function ubahProfilAnak(
             data.bukuKia,
         ],
     );
-    if (data.desil !== undefined) {
-        await db.query(`INSERT INTO sumber_f1(anak_id,periode,desil,gng,sumber)
-            VALUES($1,$2,$3,$4,'Profil Anak / Kelompok Desil')
+    if (data.desil !== undefined || data.desilKelompok !== undefined) {
+        await db.query(`INSERT INTO sumber_f1(anak_id,periode,desil,gng,desil_kelompok,sumber)
+            VALUES($1,$2,$3,$4,$5,'Profil Anak / Kelompok Desil')
             ON CONFLICT(anak_id,periode) DO UPDATE SET desil=EXCLUDED.desil,gng=EXCLUDED.gng,
-                sumber=EXCLUDED.sumber,updated_at=now()`,
-            [anakId,data.periodeId,data.desil,data.desil === null ? null : data.desil <= 4 ? 'G' : 'NG']);
+                desil_kelompok=EXCLUDED.desil_kelompok,sumber=EXCLUDED.sumber,updated_at=now()`,
+            [anakId,data.periodeId,data.desil ?? null,data.desilKelompok === '6-10' ? 'NG' : data.desil == null ? null : data.desil <= 4 ? 'G' : 'NG',data.desilKelompok ?? null]);
     }
     return "berhasil";
 }
@@ -553,7 +562,9 @@ export async function upsertPengukuran(
            FROM anak a
            JOIN wilayah_rt w ON w.id = a.wilayah_rt_id
           WHERE (($1::bigint IS NOT NULL AND a.id = $1)
-                 OR ($2::text IS NOT NULL AND a.nik = $2))
+                 OR ($2::text IS NOT NULL AND a.nik = $2)
+                 OR ($1::bigint >= 1000000000000 AND (a.id % 1000000) = ($1::bigint % 1000000))
+                 OR ($2::text ~ '^0099[0-9]{12}$' AND substring(a.nik from 11) = substring($2 from 11)))
             AND a.deleted_at IS NULL
             AND (
                 $3::text IS NULL
@@ -569,7 +580,7 @@ export async function upsertPengukuran(
                 )
             )
             AND ($5::boolean OR w.posyandu_id=ANY($6::bigint[]))
-          ORDER BY (a.id = $1) DESC
+          ORDER BY (a.id = $1) DESC, (a.nik = $2) DESC
           LIMIT 1`,
         [data.anakId, data.nik, rt, data.tanggalUkur, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
     );
@@ -705,6 +716,55 @@ export async function upsertPengukuran(
             susulan,
         ],
     );
+
+    // Otomatis sinkronkan status antrean agar anak langsung muncul di Web KMS
+    if (data.statusKehadiran === "hadir") {
+        const sasaranRow = await db.query<{ id: number }>(
+            `SELECT id FROM sasaran WHERE periode_id=$1 AND anak_id=$2 LIMIT 1`,
+            [periode.rows[0].id, anak.rows[0].id],
+        );
+        if (sasaranRow.rows[0]) {
+            const sid = Number(sasaranRow.rows[0].id);
+            const idAntrean = `antrean_${data.tanggalUkur.replaceAll("-", "")}_${sid}`;
+            const antreanAda = await db.query<{ id: string; status: string }>(
+                `SELECT id, status FROM antrean_layanan WHERE periode_id=$1 AND tanggal=$2::date AND sasaran_id=$3`,
+                [periode.rows[0].id, data.tanggalUkur, sid],
+            );
+            if (antreanAda.rows[0]) {
+                if (antreanAda.rows[0].status !== "done") {
+                    await db.query(
+                        `UPDATE antrean_layanan
+                            SET status='kms_review',
+                                called_at=coalesce(called_at, now()),
+                                updated_by=$2, updated_at=now()
+                          WHERE id=$1`,
+                        [antreanAda.rows[0].id, pengguna.id],
+                    );
+                }
+            } else {
+                const urut = await db.query<{ nomor: number; urutan: number }>(
+                    `SELECT coalesce(max(nomor),0)::int AS nomor, coalesce(max(urutan),0)::int AS urutan
+                       FROM antrean_layanan WHERE periode_id=$1 AND tanggal=$2::date`,
+                    [periode.rows[0].id, data.tanggalUkur],
+                );
+                await db.query(
+                    `INSERT INTO antrean_layanan
+                        (id, periode_id, sasaran_id, tanggal, nomor, urutan, status, called_at, created_by, updated_by)
+                     VALUES ($1,$2,$3,$4::date,$5,$6,'kms_review',now(),$7,$7)
+                     ON CONFLICT (id) DO UPDATE SET status='kms_review', updated_at=now()`,
+                    [
+                        idAntrean,
+                        periode.rows[0].id,
+                        sid,
+                        data.tanggalUkur,
+                        urut.rows[0].nomor + 1,
+                        urut.rows[0].urutan + 1,
+                        pengguna.id,
+                    ],
+                );
+            }
+        }
+    }
     return { id: pengukuranId, susulan, berubah: true };
 }
 
@@ -742,7 +802,10 @@ export async function paketSinkronisasi(pool: Pool, pengguna: PenggunaAktif) {
                 o.id_keluarga AS id_keluarga, a.nik,
                 s.id AS id_sasaran, s.status AS status_sasaran,
                 s.catatan AS catatan_sasaran,
-                'SPT-' || lpad(a.id::text, 8, '0') AS kode_kartu,
+                coalesce(
+                    to_jsonb(a)->>'kode_kartu',
+                    'SPT-' || lpad(a.id::text, GREATEST(8, length(a.id::text)), '0')
+                ) AS kode_kartu,
                 a.nama AS nama_anak, to_char(a.tgl_lahir, 'YYYY-MM-DD') AS tgl_lahir,
                 a.jk, o.nama AS nama_ortu, o.nik AS nik_ortu, w.rt,
                 a.anak_ke, a.bb_lahir_kg::text AS bb_lahir,
