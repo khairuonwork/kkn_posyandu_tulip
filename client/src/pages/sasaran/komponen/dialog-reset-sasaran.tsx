@@ -1,4 +1,5 @@
 import { AlertTriangle, RefreshCw, Trash2, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import type { RingkasanResetHariIni } from '@/lib/sasaran';
 
 export function DialogResetSasaran({
@@ -8,6 +9,9 @@ export function DialogResetSasaran({
     konfirmasiReset,
     setKonfirmasiReset,
     jalankanResetHariIni,
+    pemicuReset,
+    galat,
+    resetSelesai,
 }: {
     pratinjauReset: RingkasanResetHariIni | null;
     setPratinjauReset: (pratinjau: RingkasanResetHariIni | null) => void;
@@ -15,29 +19,78 @@ export function DialogResetSasaran({
     konfirmasiReset: string;
     setKonfirmasiReset: (konfirmasi: string) => void;
     jalankanResetHariIni: () => void | Promise<void>;
+    pemicuReset: React.RefObject<HTMLElement | null>;
+    galat: string;
+    resetSelesai: boolean;
 }) {
+    const dialog = useRef<HTMLDialogElement>(null);
+    const tombolBatal = useRef<HTMLButtonElement>(null);
+    const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [menutup, setMenutup] = useState(false);
+    useEffect(() => {
+        if (!pratinjauReset) {
+            return;
+        }
+
+        const elemen = dialog.current;
+        const pemicu = pemicuReset.current;
+        elemen?.showModal();
+        tombolBatal.current?.focus();
+
+        return () => {
+            if (timer.current) {
+                clearTimeout(timer.current);
+            }
+
+            elemen?.close();
+
+            if (pemicu?.isConnected) {
+                pemicu.focus();
+            }
+        };
+    }, [pratinjauReset, pemicuReset]);
+
     if (pratinjauReset === null) {
         return null;
     }
 
+    const tutup = () => {
+        if (menjalankanReset || timer.current) {
+            return;
+        }
+
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            setPratinjauReset(null);
+
+            return;
+        }
+
+        setMenutup(true);
+        timer.current = setTimeout(() => setPratinjauReset(null), 210);
+    };
+
     return (
-        <div
-            className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/55 p-4"
-            onMouseDown={(event) => {
-                if (
-                    event.target === event.currentTarget &&
-                    !menjalankanReset
-                ) {
-                    setPratinjauReset(null);
-                }
+        <dialog
+            ref={dialog}
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="judul-reset-harian"
+            aria-describedby="keterangan-reset-harian"
+            onCancel={(event) => {
+                event.preventDefault();
+                tutup();
             }}
+            className={`sasaran-reset-dialog ${menutup || resetSelesai ? 'sasaran-reset-keluar' : 'sasaran-reset-masuk'} m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-xl overflow-y-auto rounded-2xl border border-border bg-card p-6 text-foreground shadow-2xl backdrop:bg-black/55`}
         >
-            <section
-                role="alertdialog"
-                aria-modal="true"
-                aria-labelledby="judul-reset-harian"
-                className="my-auto w-full max-w-xl rounded-2xl border border-border bg-card p-6 shadow-2xl"
-            >
+            <section>
+                {galat && (
+                    <p
+                        role="alert"
+                        className="mb-4 rounded-lg bg-tone-red-bg p-3 text-tone-red"
+                    >
+                        {galat}
+                    </p>
+                )}
                 <div className="flex items-start gap-3">
                     <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-tone-red-bg text-tone-red">
                         <AlertTriangle className="size-6" aria-hidden="true" />
@@ -49,7 +102,10 @@ export function DialogResetSasaran({
                         >
                             Reset data sesi hari ini?
                         </h2>
-                        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                        <p
+                            id="keterangan-reset-harian"
+                            className="mt-2 text-sm leading-6 text-muted-foreground"
+                        >
                             Aksi admin ini akan menghapus{' '}
                             <strong className="text-foreground">
                                 {pratinjauReset.jumlahPengukuran} catatan
@@ -69,7 +125,7 @@ export function DialogResetSasaran({
                     <button
                         type="button"
                         aria-label="Tutup"
-                        onClick={() => setPratinjauReset(null)}
+                        onClick={tutup}
                         disabled={menjalankanReset}
                         className="rounded-lg p-2 text-muted-foreground hover:bg-surface-subtle"
                     >
@@ -86,12 +142,11 @@ export function DialogResetSasaran({
                             </div>
                         )}
                         <p className="mt-4 text-sm font-semibold">
-                            Data master balita dan pengukuran tanggal lain
-                            tidak dihapus. Pastikan semua tablet sudah
-                            tersinkron; data lokal yang masih menunggu
-                            sinkronisasi dapat mengirim ulang hasil ukur.
-                            Setelah reset, muat ulang antrean pada semua
-                            tablet sebelum check-in kembali.
+                            Data master balita dan pengukuran tanggal lain tidak
+                            dihapus. Pastikan semua tablet sudah tersinkron;
+                            data lokal yang masih menunggu sinkronisasi dapat
+                            mengirim ulang hasil ukur. Setelah reset, muat ulang
+                            antrean pada semua tablet sebelum check-in kembali.
                         </p>
                         <label
                             className="mt-4 block text-sm font-semibold"
@@ -122,7 +177,8 @@ export function DialogResetSasaran({
                 <div className="mt-6 flex flex-wrap justify-end gap-2">
                     <button
                         type="button"
-                        onClick={() => setPratinjauReset(null)}
+                        ref={tombolBatal}
+                        onClick={tutup}
                         disabled={menjalankanReset}
                         className="tombol-kedua"
                     >
@@ -146,10 +202,7 @@ export function DialogResetSasaran({
                                     aria-hidden="true"
                                 />
                             ) : (
-                                <Trash2
-                                    className="size-4"
-                                    aria-hidden="true"
-                                />
+                                <Trash2 className="size-4" aria-hidden="true" />
                             )}
                             {menjalankanReset
                                 ? 'Mereset data…'
@@ -158,6 +211,6 @@ export function DialogResetSasaran({
                     )}
                 </div>
             </section>
-        </div>
+        </dialog>
     );
 }

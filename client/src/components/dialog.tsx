@@ -23,6 +23,8 @@ export default function Dialog({
     galat,
     onTutupGalat,
     onCobaLagi,
+    animasiDetail = false,
+    onAksiTutup,
     children,
 }: {
     judul: string;
@@ -36,6 +38,8 @@ export default function Dialog({
     galat?: string | null;
     onTutupGalat?: () => void;
     onCobaLagi?: () => void;
+    animasiDetail?: boolean;
+    onAksiTutup?: (aksi: string) => void;
     /** Badan dan `KakiDialog`. */
     children: ReactNode;
 }) {
@@ -45,6 +49,22 @@ export default function Dialog({
     const lanjutMengisi = useRef<HTMLButtonElement>(null);
     const fokusSebelumnya = useRef<HTMLElement | null>(null);
     const tombolTutupGalat = useRef<HTMLButtonElement>(null);
+    const [menutup, setMenutup] = useState(false);
+    const timerTutup = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const tutup = () => {
+        if (!animasiDetail || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            onTutup();
+
+            return;
+        }
+
+        if (timerTutup.current !== null) {
+return;
+}
+
+        setMenutup(true);
+        timerTutup.current = setTimeout(onTutup, 210);
+    };
     useEffect(() => {
         if (!galat) {
 return;
@@ -77,7 +97,7 @@ sebelumnya.focus();
             fokusSebelumnya.current = document.activeElement as HTMLElement;
             setKonfirmasiTutup(true);
         } else {
-            onTutup();
+            tutup();
         }
     };
 
@@ -88,7 +108,18 @@ sebelumnya.focus();
     }, [konfirmasiTutup]);
 
     useEffect(() => {
+        const pemicu = document.activeElement as HTMLElement | null;
         ref.current?.showModal();
+
+        return () => {
+            if (timerTutup.current !== null) {
+clearTimeout(timerTutup.current);
+}
+
+            if (pemicu?.isConnected) {
+pemicu.focus();
+}
+        };
     }, []);
 
     return (
@@ -108,13 +139,20 @@ sebelumnya.focus();
                 }
             }}
             onClickCapture={(e) => {
-                if ((e.target as Element).closest('[data-tutup-dialog]')) {
+                const tombol = (e.target as Element).closest<HTMLElement>('[data-tutup-dialog]');
+
+                if (tombol) {
                     e.preventDefault();
                     e.stopPropagation();
+
+                    if (tombol.dataset.tutupDialog) {
+onAksiTutup?.(tombol.dataset.tutupDialog);
+}
+
                     mintaTutup();
                 }
             }}
-            className={`m-auto max-h-[calc(100dvh-2rem)] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-border/60 bg-card p-0 text-foreground shadow-[0_24px_50px_rgba(15,23,20,0.32)] backdrop:bg-foreground/50 backdrop:backdrop-blur-xs open:flex ${galat ? 'w-[420px]' : lebar}`}
+            className={`m-auto max-h-[calc(100dvh-2rem)] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-border/60 bg-card p-0 text-foreground shadow-[0_24px_50px_rgba(15,23,20,0.32)] backdrop:bg-foreground/50 backdrop:backdrop-blur-xs open:flex ${animasiDetail ? (menutup ? 'detail-dialog-keluar' : 'detail-dialog-masuk') : ''} ${galat ? 'w-[420px]' : lebar}`}
         >
             {galat && (
                 <div role="alert" className="state-halaman">
@@ -219,7 +257,7 @@ sebelumnya.focus();
                         <button
                             type="button"
                             className="tombol-kedua"
-                            onClick={onTutup}
+                            onClick={tutup}
                         >
                             Buang perubahan
                         </button>

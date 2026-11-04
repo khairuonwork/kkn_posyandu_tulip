@@ -17,6 +17,7 @@ export function FormTambah({
     onSimpan: (baru: AnakBaru) => void;
 }) {
     const [nama, setNama] = useState('');
+    const [galat, setGalat] = useState(false);
     const [tglLahir, setTglLahir] = useState('');
     const [jk, setJk] = useState<JenisKelamin>('P');
     const [namaOrtu, setNamaOrtu] = useState('');
@@ -98,19 +99,28 @@ export function FormTambah({
                     <button
                         type="button"
                         disabled={!lengkap}
-                        onClick={() =>
-                            onSimpan({
-                                nama: nama.trim(),
-                                tglLahir,
-                                jk,
-                                namaOrtu: namaOrtu.trim(),
-                                rt,
-                            })
-                        }
+                        onClick={() => {
+                            try {
+                                onSimpan({
+                                    nama: nama.trim(),
+                                    tglLahir,
+                                    jk,
+                                    namaOrtu: namaOrtu.trim(),
+                                    rt,
+                                });
+                            } catch {
+                                setGalat(true);
+                            }
+                        }}
                         className="tombol-utama disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
                     >
                         Simpan balita baru
                     </button>
+                    {galat && (
+                        <p role="alert" className="pesan-balita">
+                            Gagal menyimpan data. Coba lagi.
+                        </p>
+                    )}
                     <button
                         type="button"
                         onClick={onBatal}

@@ -220,7 +220,9 @@ export function Cangkang({
             ]
                 .filter((butir) => butir.peran.includes(peran) && (butir.href !== '/kms' || peran === 'kms' || superAdmin))
                 .map((butir) => {
-                    const aktif = alamat.startsWith(butir.href);
+                    const aktif = butir.href === '/beranda'
+                        ? bacaRute(alamat).nama === 'beranda'
+                        : alamat.startsWith(butir.href);
                     const Ikon = butir.ikon;
 
                     return (
@@ -400,7 +402,9 @@ export function Cangkang({
                 )
                     .slice(0, 5)
                     .map((butir) => {
-                        const aktif = alamat.startsWith(butir.href);
+                        const aktif = butir.href === '/beranda'
+                            ? bacaRute(alamat).nama === 'beranda'
+                            : alamat.startsWith(butir.href);
                         const Ikon = butir.ikon;
 
                         return (

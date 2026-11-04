@@ -22,6 +22,7 @@ export function BilahSimpan({
                 role="status"
                 className="flex min-w-0 flex-1 basis-64 items-center gap-3.5"
             >
+                <div key={ada ? 'berubah' : 'awal'} className="pesan-masuk flex min-w-0 items-center gap-3.5">
                 {ada ? (
                     <>
                         <span
@@ -38,7 +39,7 @@ export function BilahSimpan({
                                 {perubahan.length === 1
                                     ? perubahan[0]
                                     : `${perubahan[0].slice(0, -1)}, dan ${perubahan.length - 1} perubahan lainnya.`}{' '}
-                                Berlaku mulai penimbangan berikutnya.
+                                Perubahan belum diterapkan.
                             </span>
                         </span>
                     </>
@@ -49,6 +50,7 @@ export function BilahSimpan({
                             : 'Belum ada perubahan.'}
                     </span>
                 )}
+                </div>
             </div>
             <div className="flex shrink-0 gap-2.5">
                 {ada && (

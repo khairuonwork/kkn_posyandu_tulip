@@ -83,13 +83,15 @@ export default function PemeriksaanKms({
     );
     const [pesan, setPesan] = useState<string | null>(null);
     const [versi, setVersi] = useState(0);
+    const [itemBerhasil, setItemBerhasil] = useState<string | null>(null);
+    const permintaan = useRef(0);
+    const konfirmasiAktif = useRef(false);
 
     const muatUlang = useCallback(() => {
         if (demo) {
             return;
         }
 
-        setStatus('memuat');
         setVersi((v) => v + 1);
     }, [demo]);
 
@@ -100,39 +102,61 @@ export default function PemeriksaanKms({
 
         const controller = new AbortController();
         let hidup = true;
-        void ambilAntreanHariIni(periodeId, controller.signal, onSesiBerakhir)
-            .then((data) => {
-                if (!hidup) {
-                    return;
-                }
+        const ambil = () => {
+            if (konfirmasiAktif.current) {
+                return;
+            }
 
-                setItems(data);
-                setStatus('siap');
-                setGalat(null);
-            })
-            .catch((error: unknown) => {
-                if (!hidup || (error as Error).name === 'AbortError') {
-                    return;
-                }
+            const urutan = ++permintaan.current;
+            void ambilAntreanHariIni(
+                periodeId,
+                controller.signal,
+                onSesiBerakhir,
+            )
+                .then((data) => {
+                    if (
+                        !hidup ||
+                        urutan !== permintaan.current ||
+                        konfirmasiAktif.current
+                    ) {
+                        return;
+                    }
 
-                setStatus('galat');
-                setGalat(
-                    'Antrean belum dapat dimuat. Periksa koneksi, lalu muat ulang.',
-                );
-            });
-        const timer = window.setInterval(muatUlang, 20_000);
+                    setItems(data);
+                    setStatus('siap');
+                })
+                .catch((error: unknown) => {
+                    if (
+                        !hidup ||
+                        urutan !== permintaan.current ||
+                        (error as Error).name === 'AbortError'
+                    ) {
+                        return;
+                    }
+
+                    setStatus((lama) => (lama === 'siap' ? lama : 'galat'));
+                });
+        };
+        ambil();
+        const timer = window.setInterval(ambil, 20_000);
 
         return () => {
             hidup = false;
             controller.abort();
             window.clearInterval(timer);
         };
-    }, [periodeId, versi, onSesiBerakhir, muatUlang, demo]);
+    }, [periodeId, versi, onSesiBerakhir, demo]);
 
     const menunggu = items.filter((item) => item.status === 'kms_review');
     const selesai = items.filter((item) => item.status === 'done');
 
     const konfirmasi = async (item: AntreanKms) => {
+        if (konfirmasiAktif.current) {
+            return;
+        }
+
+        konfirmasiAktif.current = true;
+        ++permintaan.current;
         setSedangKonfirmasi(item.id);
         setPesan(null);
         setGalat(null);
@@ -144,20 +168,28 @@ export default function PemeriksaanKms({
                 ),
             );
             setPesan(`Simulasi pemeriksaan ${item.nama} selesai.`);
+            setItemBerhasil(item.id);
             setSedangKonfirmasi(null);
+            konfirmasiAktif.current = false;
 
             return;
         }
 
         try {
             await konfirmasiSelesaiKms(item.id, onSesiBerakhir);
+            setItems((lama) =>
+                lama.map((it) =>
+                    it.id === item.id ? { ...it, status: 'done' } : it,
+                ),
+            );
+            setItemBerhasil(item.id);
             setPesan(`Pemeriksaan ${item.nama} telah dikonfirmasi selesai.`);
-            muatUlang();
         } catch {
             setGalat(
                 'Konfirmasi belum tersimpan. Periksa koneksi, lalu coba lagi.',
             );
         } finally {
+            konfirmasiAktif.current = false;
             setSedangKonfirmasi(null);
         }
     };
@@ -188,7 +220,7 @@ export default function PemeriksaanKms({
                         aria-label="Muat ulang antrean KMS"
                     >
                         <RefreshCw
-                            className={`size-4 ${status === 'memuat' ? 'animate-spin' : ''}`}
+                            className={`size-4 ${status === 'memuat' ? 'motion-safe:animate-spin' : ''}`}
                             aria-hidden="true"
                         />
                         <span>Muat ulang antrean</span>
@@ -199,8 +231,8 @@ export default function PemeriksaanKms({
             <div
                 className={
                     bantuanTerbuka
-                        ? 'detail-area bantuan-terbuka'
-                        : 'detail-area'
+                        ? 'detail-area kms-area bantuan-terbuka'
+                        : 'detail-area kms-area'
                 }
             >
                 <div className="detail-utama flex flex-1 flex-col gap-5">
@@ -221,7 +253,7 @@ export default function PemeriksaanKms({
                     {pesan && (
                         <div
                             role="status"
-                            className="flex items-center gap-3 rounded-xl border border-tone-green/20 bg-tone-green-bg px-4.5 py-3 text-sm font-semibold text-tone-green shadow-2xs"
+                            className="pesan-masuk flex items-center gap-3 rounded-xl border border-tone-green/20 bg-tone-green-bg px-4.5 py-3 text-sm font-semibold text-tone-green shadow-2xs"
                         >
                             <CircleCheck className="size-5 shrink-0" />
                             <span className="flex-1">{pesan}</span>
@@ -231,9 +263,10 @@ export default function PemeriksaanKms({
                         <DialogGagal
                             pesan={galat}
                             onTutup={() => setGalat(null)}
+                            animasiDialog
                         />
                     )}
-                    {galat && status === 'galat' && (
+                    {status === 'galat' && (
                         <StateHalaman
                             jenis="galat"
                             judul="Antrean belum dapat dimuat"
@@ -362,7 +395,7 @@ export default function PemeriksaanKms({
                                                 }
                                             >
                                                 <CircleCheck
-                                                    className={`size-4 ${sedangKonfirmasi === item.id ? 'animate-spin' : ''}`}
+                                                    className={`size-4 ${sedangKonfirmasi === item.id ? 'motion-safe:animate-spin' : ''}`}
                                                     aria-hidden="true"
                                                 />
                                                 <span>
@@ -404,7 +437,12 @@ export default function PemeriksaanKms({
                                 {selesai.map((item) => (
                                     <li
                                         key={item.id}
-                                        className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 text-sm transition-colors hover:bg-surface-subtle/50"
+                                        className={`flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 text-sm transition-colors hover:bg-surface-subtle/50 ${itemBerhasil === item.id ? 'kms-item-berhasil' : ''}`}
+                                        onAnimationEnd={() =>
+                                            setItemBerhasil((id) =>
+                                                id === item.id ? null : id,
+                                            )
+                                        }
                                     >
                                         <div className="flex items-center gap-3">
                                             <span className="flex size-7 items-center justify-center rounded-lg border border-border bg-surface-subtle text-xs font-extrabold text-foreground">

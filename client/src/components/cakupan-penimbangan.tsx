@@ -291,6 +291,7 @@ export function FormKehadiranHariH({
             })}
             {galat && (
                 <DialogGagal
+                    animasiPesan
                     judul="Kehadiran belum tersimpan"
                     pesan={galat}
                     onTutup={() => setGalat('')}

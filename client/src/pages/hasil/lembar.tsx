@@ -92,25 +92,31 @@ export default function LembarHasil({ token }: { token: string }) {
                         Memuat hasil…
                     </p>
                 )}
-                {lembar.status === 'siap' && <Isi data={lembar.data} />}
-                {lembar.status === 'kedaluwarsa' && (
-                    <Pesan judul="Tautan ini sudah tidak berlaku">
-                        Tautan hasil penimbangan hanya berlaku selama 20 hari.
-                        Untuk mendapatkan hasilnya lagi, silakan minta tautan
-                        baru kepada kader atau bidan Posyandu Tulip.
-                    </Pesan>
-                )}
-                {lembar.status === 'tidak-sah' && (
-                    <Pesan judul="Tautan tidak dikenali">
-                        Periksa kembali tautan yang dikirim, atau minta tautan
-                        baru kepada kader atau bidan Posyandu Tulip.
-                    </Pesan>
-                )}
-                {lembar.status === 'galat' && (
-                    <Pesan judul="Hasil belum dapat dimuat">
-                        Terjadi gangguan saat memuat hasil. Silakan coba lagi
-                        beberapa saat lagi.
-                    </Pesan>
+                {lembar.status !== 'memuat' && (
+                    <div className="hasil-pergantian" key={lembar.status}>
+                        {lembar.status === 'siap' && <Isi data={lembar.data} />}
+                        {lembar.status === 'kedaluwarsa' && (
+                            <Pesan judul="Tautan ini sudah tidak berlaku">
+                                Tautan hasil penimbangan hanya berlaku selama 20
+                                hari. Untuk mendapatkan hasilnya lagi, silakan
+                                minta tautan baru kepada kader atau bidan
+                                Posyandu Tulip.
+                            </Pesan>
+                        )}
+                        {lembar.status === 'tidak-sah' && (
+                            <Pesan judul="Tautan tidak dikenali">
+                                Periksa kembali tautan yang dikirim, atau minta
+                                tautan baru kepada kader atau bidan Posyandu
+                                Tulip.
+                            </Pesan>
+                        )}
+                        {lembar.status === 'galat' && (
+                            <Pesan judul="Hasil belum dapat dimuat">
+                                Terjadi gangguan saat memuat hasil. Silakan coba
+                                lagi beberapa saat lagi.
+                            </Pesan>
+                        )}
+                    </div>
                 )}
             </main>
         </div>
@@ -625,11 +631,44 @@ function Dokumen({
     kodeTb: string;
 }) {
     const dialog = useRef<HTMLDialogElement>(null);
+    const [menutup, setMenutup] = useState(false);
+    const posisiBaca = useRef(0);
+    const pemicu = useRef<HTMLElement | null>(null);
     useEffect(() => {
         const node = dialog.current;
-        if (pratinjau && node && !node.open) node.showModal();
-        if (!pratinjau && node?.open) node.close();
+
+        if (pratinjau && node && !node.open) {
+            posisiBaca.current = window.scrollY;
+            pemicu.current =
+                document.activeElement instanceof HTMLElement
+                    ? document.activeElement
+                    : null;
+            node.showModal();
+        }
+
+        if (!pratinjau && node?.open) {
+            node.close();
+            pemicu.current?.focus({ preventScroll: true });
+            window.scrollTo({ top: posisiBaca.current, behavior: 'instant' });
+        }
     }, [pratinjau]);
+    useEffect(() => {
+        if (!menutup) {
+return;
+}
+
+        const durasi = window.matchMedia('(prefers-reduced-motion: reduce)')
+            .matches
+            ? 0
+            : 210;
+        const timer = window.setTimeout(() => {
+            onTutup();
+            setMenutup(false);
+        }, durasi);
+
+        return () => window.clearTimeout(timer);
+    }, [menutup, onTutup]);
+    const tutup = () => setMenutup(true);
     const nama = data.anak.namaDepan;
     const umur = terbaru.umurBulan;
     const berbaring = umur !== null && umur < 24;
@@ -735,11 +774,11 @@ function Dokumen({
     return (
         <dialog
             ref={dialog}
-            className={`lembar-cetak lembar-hasil-edukatif ${pratinjau ? 'pratinjau-hasil' : ''}`}
+            className={`lembar-cetak lembar-hasil-edukatif ${pratinjau ? 'pratinjau-hasil' : ''} ${menutup ? 'pratinjau-hasil--menutup' : ''}`}
             aria-label="Pratinjau tata letak cetak"
             onCancel={(event) => {
                 event.preventDefault();
-                onTutup();
+                tutup();
             }}
         >
             {pratinjau && (
@@ -776,7 +815,7 @@ function Dokumen({
                         type="button"
                         className="tombol-kedua"
                         autoFocus
-                        onClick={onTutup}
+                        onClick={tutup}
                     >
                         Tutup pratinjau
                     </button>

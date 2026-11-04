@@ -25,6 +25,7 @@ export default function DialogKirimWa({
     buatTautan,
     nomor,
     modeUji = false,
+    animasiDetail = false,
     onTutup,
 }: {
     nama: string;
@@ -35,6 +36,7 @@ export default function DialogKirimWa({
     /** Nomor baku `62…` yang sudah divalidasi dari profil orang tua. */
     nomor: string;
     modeUji?: boolean;
+    animasiDetail?: boolean;
     onTutup: () => void;
 }) {
     const [tahap, setTahap] = useState<Tahap>(
@@ -76,6 +78,7 @@ export default function DialogKirimWa({
 
     return (
         <Dialog
+            animasiDetail={animasiDetail}
             judul="Pratinjau pesan WhatsApp"
             keterangan={`${nama}. Periksa nomor dan isi pesan. Setelah WhatsApp terbuka, tekan Kirim di sana.`}
             lebar="w-[720px]"
@@ -99,7 +102,7 @@ export default function DialogKirimWa({
                 {tahap === 'tanpa-tautan' && (
                     <p
                         role="status"
-                        className="flex items-start gap-2.5 text-base text-muted-foreground"
+                        className="pesan-masuk flex items-start gap-2.5 text-base text-muted-foreground"
                     >
                         <Info
                             className="mt-0.5 size-4 shrink-0"

@@ -7,7 +7,7 @@
  */
 
 import { Baby, UserPlus } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Halaman from '@/components/halaman';
 import { susunTabel } from '@/lib/z-score';
 import { FilterAnak } from './daftar/filter-anak';
@@ -21,6 +21,7 @@ import type {
     KolomUrut,
     PatchAnak,
 } from './daftar/tipe';
+import { useKehadiran } from './daftar/use-kehadiran';
 
 export type { BarisAnak, PatchAnak, AnakBaru };
 
@@ -48,6 +49,10 @@ export default function DaftarAnak({
     const [hanyaRisiko, setHanyaRisiko] = useState(false);
     const [dibuka, setDibuka] = useState<number | null>(null);
     const [menambah, setMenambah] = useState(false);
+    const [pesanSimpan, setPesanSimpan] = useState('');
+    const form = useKehadiran(menambah ? true : null);
+    const hasilRef = useRef<HTMLDivElement>(null);
+    const filterAwal = useRef(true);
     const [urut, setUrut] = useState<{ kolom: KolomUrut; naik: boolean }>({
         kolom: 'nama',
         naik: true,
@@ -55,6 +60,28 @@ export default function DaftarAnak({
 
     const bolehUbah = peran !== 'kader' && sumberData === 'contoh';
     const rtAktif = rtTerkunci ?? rt;
+    useEffect(() => {
+        if (filterAwal.current) {
+            filterAwal.current = false;
+
+            return;
+        }
+
+        const elemen = hasilRef.current;
+
+        if (
+            !elemen ||
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        ) {
+            return;
+        }
+
+        elemen.getAnimations().forEach((animasi) => animasi.cancel());
+        elemen.animate([{ opacity: 0.35 }, { opacity: 1 }], {
+            duration: 210,
+            easing: 'cubic-bezier(.16, 1, .3, 1)',
+        });
+    }, [tabAktif, lingkup, rtAktif, hanyaPerhatian, hanyaRisiko]);
     const kataCari = tabAktif === 'hari-ini' ? cariHariIni : cariSemua;
     const hariIni = tanggalLokalISO();
     const terlihat =
@@ -222,47 +249,86 @@ export default function DaftarAnak({
                         setHanyaRisiko={setHanyaRisiko}
                     />
 
-                    {menambah && (
-                        <FormTambah
-                            wilayahRt={wilayahRt}
-                            rtAwal={rtTerkunci ?? ''}
-                            onBatal={() => setMenambah(false)}
-                            onSimpan={(baru) => {
-                                onTambahAnak?.(baru);
-                                setMenambah(false);
-                            }}
-                        />
+                    {form.tampil && (
+                        <div
+                            className={
+                                form.menutup
+                                    ? 'panel-balita-keluar'
+                                    : 'panel-balita-masuk'
+                            }
+                            inert={form.menutup}
+                        >
+                            <FormTambah
+                                wilayahRt={wilayahRt}
+                                rtAwal={rtTerkunci ?? ''}
+                                onBatal={() => setMenambah(false)}
+                                onSimpan={(baru) => {
+                                    if (!onTambahAnak) {
+                                        throw new Error(
+                                            'Penyimpanan tidak tersedia',
+                                        );
+                                    }
+
+                                    onTambahAnak(baru);
+                                    setPesanSimpan(
+                                        'Data balita berhasil ditambahkan.',
+                                    );
+                                    setMenambah(false);
+                                }}
+                            />
+                        </div>
                     )}
 
-                    <TabelAnak
-                        hasilTampil={hasilTampil}
-                        sumberData={sumberData}
-                        statusMuat={statusMuat}
-                        pesanGalat={pesanGalat}
-                        onMuatUlang={onMuatUlang}
-                        anakCount={anak.length}
-                        adaSaringan={adaSaringan}
-                        tabAktif={tabAktif}
-                        setTabAktif={setTabAktif}
-                        kataCari={kataCari}
-                        setCariHariIni={setCariHariIni}
-                        setCariSemua={setCariSemua}
-                        lingkupRt={lingkupRt}
-                        rtTerkunci={rtTerkunci}
-                        setRt={setRt}
-                        setHanyaPerhatian={setHanyaPerhatian}
-                        setHanyaRisiko={setHanyaRisiko}
-                        urut={urut}
-                        setUrut={setUrut}
-                        bolehUbah={bolehUbah}
-                        dibuka={dibuka}
-                        setDibuka={setDibuka}
-                        setMenambah={setMenambah}
-                        periode={periode}
-                        wilayahRt={wilayahRt}
-                        tabelLms={tabelLms}
-                        onSimpanAnak={onSimpanAnak}
-                    />
+                    {pesanSimpan && (
+                        <p role="status" className="pesan-balita px-5 py-3">
+                            {pesanSimpan}
+                        </p>
+                    )}
+                    <div
+                        ref={hasilRef}
+                        className="flex min-h-0 flex-1 flex-col"
+                    >
+                        <TabelAnak
+                            hasilTampil={hasilTampil}
+                            sumberData={sumberData}
+                            statusMuat={statusMuat}
+                            pesanGalat={pesanGalat}
+                            onMuatUlang={onMuatUlang}
+                            anakCount={anak.length}
+                            adaSaringan={adaSaringan}
+                            tabAktif={tabAktif}
+                            setTabAktif={setTabAktif}
+                            kataCari={kataCari}
+                            setCariHariIni={setCariHariIni}
+                            setCariSemua={setCariSemua}
+                            lingkupRt={lingkupRt}
+                            rtTerkunci={rtTerkunci}
+                            setRt={setRt}
+                            setHanyaPerhatian={setHanyaPerhatian}
+                            setHanyaRisiko={setHanyaRisiko}
+                            urut={urut}
+                            setUrut={setUrut}
+                            bolehUbah={bolehUbah}
+                            dibuka={dibuka}
+                            setDibuka={setDibuka}
+                            setMenambah={setMenambah}
+                            periode={periode}
+                            wilayahRt={wilayahRt}
+                            tabelLms={tabelLms}
+                            onSimpanAnak={(id, patch) => {
+                                if (!onSimpanAnak) {
+                                    throw new Error(
+                                        'Penyimpanan tidak tersedia',
+                                    );
+                                }
+
+                                onSimpanAnak(id, patch);
+                                setPesanSimpan(
+                                    'Perubahan data balita berhasil disimpan.',
+                                );
+                            }}
+                        />
+                    </div>
 
                     <p
                         aria-live="polite"

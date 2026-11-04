@@ -3,7 +3,7 @@
  */
 
 import { Lock, Save } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Dialog, { KakiDialog } from '@/components/dialog';
 import Halaman from '@/components/halaman';
 import { angka, tanggalPanjang } from '@/lib/format';
@@ -59,6 +59,7 @@ export default function Pengaturan({
     const [rumus, setRumus] = useState(standarisasi);
     /** Alamat yang dituju saat perubahan belum disimpan. */
     const [tujuan, setTujuan] = useState<string | null>(null);
+    const aksiPindah = useRef<'buang' | 'simpan' | null>(null);
 
     const nilai = Object.fromEntries(
         KUNCI_ANGKA.map((k) => [k, keAngka(teks[k])]),
@@ -77,9 +78,10 @@ export default function Pengaturan({
 
     // Kalimat tiap perubahan, dipakai bilah Simpan dan dialog pindah bagian.
     const perubahan = [
-        ...KUNCI_ANGKA.filter(diubah).map(
-            (k) =>
-                `${ANGKA[k].label} diubah dari ${angka(ambang[k], ANGKA[k].desimal)} menjadi ${angka(nilai[k], ANGKA[k].desimal)} ${ANGKA[k].satuan}.`,
+        ...KUNCI_ANGKA.filter((k) => diubah(k) || (nilai[k] === null && teks[k] !== teksAwal()[k])).map(
+            (k) => nilai[k] === null
+                ? `${ANGKA[k].label} berisi angka yang belum valid.`
+                : `${ANGKA[k].label} diubah dari ${angka(ambang[k], ANGKA[k].desimal)} menjadi ${angka(nilai[k], ANGKA[k].desimal)} ${ANGKA[k].satuan}.`,
         ),
         ...(rumus.standar !== standarisasi.standar
             ? [
@@ -135,17 +137,26 @@ export default function Pengaturan({
 
             if (
                 href === null ||
-                href.startsWith('http') ||
-                href.startsWith('#') ||
+                (href.startsWith('#') && (!href.startsWith('#/') || href === window.location.hash)) ||
+                target.target === '_blank' ||
+                e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey ||
                 href.startsWith('mailto:') ||
                 href.startsWith('tel:')
             ) {
                 return;
             }
 
+            const url = new URL(href, window.location.href);
+
+            if (url.origin !== window.location.origin ||
+                (url.pathname === window.location.pathname && url.search === window.location.search &&
+                    (!url.hash.startsWith('#/') || url.hash === window.location.hash))) {
+return;
+}
+
             e.preventDefault();
             e.stopPropagation();
-            setTujuan(href);
+            setTujuan(href.startsWith('#/') ? href.slice(1) : href);
         };
 
         const tangkapTutup = (e: BeforeUnloadEvent) => {
@@ -230,6 +241,7 @@ export default function Pengaturan({
                         </p>
                     </div>
 
+                    <div key={bagian} className="pengaturan-bagian flex min-h-0 flex-1 flex-col">
                     {bagian === 'batas' && (
                         <BagianBatas
                             teks={teks}
@@ -268,6 +280,7 @@ export default function Pengaturan({
                     {bagian === 'riwayat' && (
                         <BagianRiwayat riwayat={riwayat} />
                     )}
+                    </div>
 
                     {bagian !== 'riwayat' && (
                         <BilahSimpan
@@ -286,7 +299,28 @@ export default function Pengaturan({
                     judul={`${perubahan.length} perubahan belum disimpan.`}
                     keterangan="Perubahan ini hilang bila Anda pindah tanpa menyimpan."
                     lebar="w-[560px]"
-                    onTutup={() => setTujuan(null)}
+                    animasiDetail
+                    onAksiTutup={(aksi) => {
+ aksiPindah.current = aksi === 'buang' ? 'buang' : 'simpan'; 
+}}
+                    onTutup={() => {
+                        const aksi = aksiPindah.current;
+                        aksiPindah.current = null;
+
+                        if (aksi === 'buang') {
+batalkan();
+}
+
+                        if (aksi === 'simpan') {
+simpan();
+}
+
+                        setTujuan(null);
+
+                        if (aksi) {
+navigate(tujuan);
+}
+                    }}
                 >
                     <ul className="flex list-disc flex-col gap-1 overflow-y-auto px-7 py-4.5 pl-12 text-base">
                         {perubahan.map((p) => (
@@ -296,13 +330,7 @@ export default function Pengaturan({
                     <KakiDialog>
                         <button
                             type="button"
-                            onClick={() => {
-                                const ke = tujuan;
-
-                                batalkan();
-                                setTujuan(null);
-                                navigate(ke);
-                            }}
+                            data-tutup-dialog="buang"
                             className="tombol-kedua"
                         >
                             Pindah tanpa menyimpan
@@ -310,13 +338,7 @@ export default function Pengaturan({
                         <button
                             type="button"
                             disabled={!bisaSimpan}
-                            onClick={() => {
-                                const ke = tujuan;
-
-                                simpan();
-                                setTujuan(null);
-                                navigate(ke);
-                            }}
+                            data-tutup-dialog="simpan"
                             className="tombol-utama disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
                         >
                             <Save

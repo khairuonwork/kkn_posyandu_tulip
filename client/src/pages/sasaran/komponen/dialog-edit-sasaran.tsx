@@ -38,6 +38,7 @@ export function DialogEditSasaran({
                 <button
                     type="button"
                     onClick={() => setEditId(null)}
+                    disabled={menyimpanEdit}
                     className="tombol-kedua min-h-9 px-3"
                 >
                     <X className="size-4" aria-hidden="true" /> Batal
@@ -49,9 +50,7 @@ export function DialogEditSasaran({
                     <select
                         value={editStatus}
                         onChange={(event) =>
-                            setEditStatus(
-                                event.target.value as StatusSasaran,
-                            )
+                            setEditStatus(event.target.value as StatusSasaran)
                         }
                         className="mt-1 min-h-11 w-full rounded-lg border border-border-strong bg-surface px-3 text-base"
                     >
@@ -72,9 +71,7 @@ export function DialogEditSasaran({
                     <input
                         value={editCatatan}
                         maxLength={500}
-                        onChange={(event) =>
-                            setEditCatatan(event.target.value)
-                        }
+                        onChange={(event) => setEditCatatan(event.target.value)}
                         placeholder="Contoh: orang tua tidak hadir"
                         className="mt-1 min-h-11 w-full rounded-lg border border-border-strong bg-surface px-3 text-base"
                     />

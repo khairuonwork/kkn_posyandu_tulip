@@ -244,13 +244,7 @@ export function BagianPengguna({
                         .map((p) => p.username)}
                     onTutup={() => setDialog(null)}
                     onSimpan={async (isian) => {
-                        const galat = await onSimpan(diubah?.id ?? null, isian);
-
-                        if (galat === null) {
-                            setDialog(null);
-                        }
-
-                        return galat;
+                        return onSimpan(diubah?.id ?? null, isian);
                     }}
                 />
             )}

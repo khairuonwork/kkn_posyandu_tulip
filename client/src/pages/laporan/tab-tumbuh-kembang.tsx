@@ -5,6 +5,7 @@ import { tanggalPanjang } from '@/lib/format';
 import { useLaporanTumbuhKembang } from '@/lib/laporan-tumbuh-kembang';
 import { Link } from '@/lib/nav';
 import type { Periode } from '@/types/posyandu';
+import TabLaporan from './tab-laporan';
 
 export default function TabTumbuhKembang({
     periode,
@@ -38,107 +39,108 @@ export default function TabTumbuhKembang({
                 </button>
             }
         >
-            <nav
-                aria-label="Jenis laporan"
-                className="mb-5 flex flex-wrap gap-2"
-            >
-                <Link className="tab" href="/laporan">
-                    Rekap Z-score Bulanan
-                </Link>
-                <Link className="tab" href="/laporan?tab=2t">
-                    Riwayat 1T &amp; 2T+
-                </Link>
-                <Link
-                    className="tab bg-primary text-primary-foreground"
-                    href="/laporan?tab=tumbuh-kembang"
-                    aria-current="page"
+            <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                <nav
+                    aria-label="Jenis laporan"
+                    className="border-b border-border bg-surface-subtle/60 px-5 py-4 sm:px-6"
                 >
-                    Tumbuh Kembang
-                </Link>
-            </nav>
-            <p className="mb-5 text-sm text-muted-foreground">
-                Semua survei perkembangan pada {periode.label} yang memiliki
-                jawaban “Tidak”, termasuk catatan yang belum selesai dibahas.
-                Usia mengikuti saat survei dicatat.
-            </p>
-            {laporan.status !== 'siap' ? (
-                <StateHalaman
-                    jenis={laporan.status === 'galat' ? 'galat' : 'memuat'}
-                    judul={
-                        laporan.status === 'galat'
-                            ? 'Laporan tumbuh kembang belum dapat dimuat'
-                            : 'Memuat laporan tumbuh kembang…'
-                    }
-                    pesan={laporan.pesanGalat ?? undefined}
-                >
-                    {laporan.status === 'galat' && (
-                        <button
-                            type="button"
-                            className="tombol-utama"
-                            onClick={laporan.muatUlang}
+                    <TabLaporan aktif="tumbuh-kembang" />
+                </nav>
+                <div key={`${periode.id}-${laporan.status}`} className="laporan-ganti p-5 sm:p-6">
+                    <p className="mb-5 text-sm text-muted-foreground">
+                        Semua survei perkembangan pada {periode.label} yang
+                        memiliki jawaban “Tidak”, termasuk catatan yang belum
+                        selesai dibahas. Usia mengikuti saat survei dicatat.
+                    </p>
+                    {laporan.status !== 'siap' ? (
+                        <StateHalaman
+                            jenis={
+                                laporan.status === 'galat' ? 'galat' : 'memuat'
+                            }
+                            judul={
+                                laporan.status === 'galat'
+                                    ? 'Laporan tumbuh kembang belum dapat dimuat'
+                                    : 'Memuat laporan tumbuh kembang…'
+                            }
+                            pesan={laporan.pesanGalat ?? undefined}
                         >
-                            Coba lagi
-                        </button>
-                    )}
-                </StateHalaman>
-            ) : laporan.data?.balita.length === 0 ? (
-                <p
-                    role="status"
-                    className="rounded-xl border border-border bg-card p-6"
-                >
-                    Tidak ada balita dengan jawaban ‘Tidak’ pada survei tumbuh
-                    kembang bulan ini.
-                </p>
-            ) : (
-                <div className="space-y-5">
-                    {laporan.data?.balita.map((anak) => (
-                        <section
-                            key={anak.anakId}
-                            aria-labelledby={`survei-anak-${anak.anakId}`}
-                            className="overflow-hidden rounded-xl border border-border bg-card"
-                        >
-                            <h2
-                                id={`survei-anak-${anak.anakId}`}
-                                className="border-b border-border bg-surface-subtle px-5 py-4 text-lg font-bold break-words"
-                            >
-                                <Link
-                                    href={`/balita/${anak.anakId}`}
-                                    className="text-primary underline underline-offset-4"
+                            {laporan.status === 'galat' && (
+                                <button
+                                    type="button"
+                                    className="tombol-utama"
+                                    onClick={laporan.muatUlang}
                                 >
-                                    {anak.nama}
-                                </Link>
-                            </h2>
-                            <div className="divide-y divide-border">
-                                {anak.survei.map((survei) => (
-                                    <article
-                                        key={survei.surveiId}
-                                        className="p-5"
+                                    Coba lagi
+                                </button>
+                            )}
+                        </StateHalaman>
+                    ) : laporan.data?.balita.length === 0 ? (
+                        <p
+                            role="status"
+                            className="rounded-xl border border-border bg-card p-6"
+                        >
+                            Tidak ada balita dengan jawaban ‘Tidak’ pada survei
+                            tumbuh kembang bulan ini.
+                        </p>
+                    ) : (
+                        <div className="space-y-5">
+                            {laporan.data?.balita.map((anak) => (
+                                <section
+                                    key={anak.anakId}
+                                    aria-labelledby={`survei-anak-${anak.anakId}`}
+                                    className="overflow-hidden rounded-xl border border-border bg-card"
+                                >
+                                    <h2
+                                        id={`survei-anak-${anak.anakId}`}
+                                        className="border-b border-border bg-surface-subtle px-5 py-4 text-lg font-bold break-words"
                                     >
-                                        <h3 className="font-bold">
-                                            {tanggalPanjang(survei.tanggal)}
-                                        </h3>
-                                        <p className="mt-1 text-sm text-muted-foreground">
-                                            Usia saat survei: {survei.umurBulan}{' '}
-                                            bulan · Kelompok{' '}
-                                            {survei.kelompokLabel}
-                                        </p>
-                                        <ul className="mt-3 list-disc space-y-2 pl-5">
-                                            {survei.kemampuan.map((k) => (
-                                                <li
-                                                    key={k.pertanyaanId}
-                                                    className="break-words"
-                                                >
-                                                    {k.keterangan}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </article>
-                                ))}
-                            </div>
-                        </section>
-                    ))}
+                                        <Link
+                                            href={`/balita/${anak.anakId}`}
+                                            className="text-primary underline underline-offset-4"
+                                        >
+                                            {anak.nama}
+                                        </Link>
+                                    </h2>
+                                    <div className="divide-y divide-border">
+                                        {anak.survei.map((survei) => (
+                                            <article
+                                                key={survei.surveiId}
+                                                className="p-5"
+                                            >
+                                                <h3 className="font-bold">
+                                                    {tanggalPanjang(
+                                                        survei.tanggal,
+                                                    )}
+                                                </h3>
+                                                <p className="mt-1 text-sm text-muted-foreground">
+                                                    Usia saat survei:{' '}
+                                                    {survei.umurBulan} bulan ·
+                                                    Kelompok{' '}
+                                                    {survei.kelompokLabel}
+                                                </p>
+                                                <ul className="mt-3 list-disc space-y-2 pl-5">
+                                                    {survei.kemampuan.map(
+                                                        (k) => (
+                                                            <li
+                                                                key={
+                                                                    k.pertanyaanId
+                                                                }
+                                                                className="break-words"
+                                                            >
+                                                                {k.keterangan}
+                                                            </li>
+                                                        ),
+                                                    )}
+                                                </ul>
+                                            </article>
+                                        ))}
+                                    </div>
+                                </section>
+                            ))}
+                        </div>
+                    )}
                 </div>
-            )}
+            </section>
         </Halaman>
     );
 }

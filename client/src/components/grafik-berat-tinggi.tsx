@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from 'react';
+import { useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { nadaKategori } from '@/components/status-gizi-badge';
 import { angka, satuan, tanggalRingkas, zScore } from '@/lib/format';
 import { periodeGrafikBersambung, warnaGarisSd } from '@/lib/grafik-acuan';
@@ -24,6 +24,15 @@ export default function GrafikBeratTinggi({
     const [pilih, setPilih] = useState<string | null>(null);
     const [sorot, setSorot] = useState<string | null>(null);
     const clipId = useId();
+    const bukaan = useRef<SVGRectElement>(null);
+    useLayoutEffect(() => {
+        if (!bukaan.current || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        const animasi = bukaan.current.animate(
+            [{ width: '0px' }, { width: '820px' }],
+            { duration: 700, easing: 'ease-out' },
+        );
+        return () => animasi.cancel();
+    }, [jenis]);
     const tabel = useMemo(() => susunTabel(standar), [standar]);
     const bawahX = jenis === 'PB' ? 45 : 65;
     const atasX = jenis === 'PB' ? 110 : 120;
@@ -165,7 +174,7 @@ export default function GrafikBeratTinggi({
                     >
                         <defs>
                             <clipPath id={clipId}>
-                                <rect x={62} y={20} width={820} height={320} />
+                                <rect ref={bukaan} x={62} y={20} width={820} height={320} />
                             </clipPath>
                         </defs>
                         {sumbuX.map((v) => (

@@ -149,6 +149,7 @@ export function DialogUbah({
 
     return (
         <Dialog
+            animasiDetail
             judul={`Ubah data ${namaTampil(anak.nama)}`}
             keterangan="Hasil ukur tidak diubah di sini. Setiap perubahan dicatat: siapa yang mengubah dan kapan."
             lebar="w-[920px]"
@@ -428,16 +429,18 @@ export function DialogUbah({
                 </div>
 
                 {galatSimpan !== '' && (
-                    <p
+                    <div
                         role="alert"
-                        className="mx-7 mb-3 rounded-lg bg-tone-red-bg px-4 py-3 text-sm font-semibold text-tone-red"
+                        className="pesan-masuk mx-7 mb-3 flex items-center justify-between gap-3 rounded-lg bg-tone-red-bg px-4 py-3 text-sm font-semibold text-tone-red"
                     >
-                        {galatSimpan}
-                    </p>
+                        <span>{galatSimpan}</span>
+                        <button type="button" onClick={() => setGalatSimpan('')} className="underline">Tutup</button>
+                    </div>
                 )}
                 <KakiDialog>
                     <button
                         type="button"
+                        data-tutup-dialog
                         onClick={onTutup}
                         disabled={menyimpan}
                         className="tombol-kedua px-5.5"
@@ -496,7 +499,7 @@ function Kolom({
             </label>
             <div className="mt-1.5">{children}</div>
             {galat !== undefined && (
-                <p className="mt-1.5 text-sm font-semibold text-tone-red">
+                <p role="alert" className="pesan-masuk mt-1.5 text-sm font-semibold text-tone-red">
                     {galat}
                 </p>
             )}

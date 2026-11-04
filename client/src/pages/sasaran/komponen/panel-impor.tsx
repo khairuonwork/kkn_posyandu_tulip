@@ -66,6 +66,9 @@ export function PanelImpor({
                         <input
                             id="berkas-sasaran"
                             type="file"
+                            disabled={
+                                tahap === 'memeriksa' || tahap === 'mengimpor'
+                            }
                             accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                             onChange={(event) => {
                                 setFile(event.target.files?.[0] ?? null);
@@ -98,9 +101,7 @@ export function PanelImpor({
                     </button>
                 </div>
                 <aside className="rounded-xl bg-primary p-5 text-primary-foreground">
-                    <h3 className="font-bold">
-                        Yang berubah saat diterbitkan
-                    </h3>
+                    <h3 className="font-bold">Yang berubah saat diterbitkan</h3>
                     <ul className="mt-4 space-y-3 text-sm text-primary-foreground/85">
                         <li>Daftar sasaran periode terpilih diganti.</li>
                         <li>Anak baru ditambahkan ke master Data Balita.</li>
@@ -116,7 +117,7 @@ export function PanelImpor({
             </div>
 
             {sheets.length > 0 && (
-                <div className="border-t border-border p-5 sm:p-6">
+                <div className="sasaran-hasil-masuk border-t border-border p-5 sm:p-6">
                     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
                         <div>
                             <label
@@ -149,7 +150,10 @@ export function PanelImpor({
                             </p>
                         </div>
                         {sheetAktif !== undefined && (
-                            <dl className="grid grid-cols-3 gap-3 rounded-xl bg-surface-subtle p-4 text-center">
+                            <dl
+                                key={sheetAktif.sheet}
+                                className="sasaran-hasil-masuk grid grid-cols-3 gap-3 rounded-xl bg-surface-subtle p-4 text-center"
+                            >
                                 <div>
                                     <dt className="text-xs text-muted-foreground">
                                         Terbaca
@@ -179,7 +183,10 @@ export function PanelImpor({
                     </div>
                     {sheetAktif !== undefined &&
                         sheetAktif.jumlahPerluVerifikasi > 0 && (
-                            <div className="mt-4 rounded-lg bg-tone-amber-bg p-3 text-sm text-tone-amber">
+                            <div
+                                key={sheetAktif.sheet}
+                                className="sasaran-hasil-masuk mt-4 rounded-lg bg-tone-amber-bg p-3 text-sm text-tone-amber"
+                            >
                                 <p className="flex items-start gap-2">
                                     <AlertTriangle
                                         className="mt-0.5 size-4 shrink-0"
@@ -188,9 +195,9 @@ export function PanelImpor({
                                     <span>
                                         {sheetAktif.jumlahDitahan > 0 && (
                                             <>
-                                                {sheetAktif.jumlahDitahan}{' '}
-                                                baris dengan NIK duplikat akan
-                                                ditahan dan tidak diterbitkan.{' '}
+                                                {sheetAktif.jumlahDitahan} baris
+                                                dengan NIK duplikat akan ditahan
+                                                dan tidak diterbitkan.{' '}
                                             </>
                                         )}
                                         {sheetAktif.jumlahPerluVerifikasi -
@@ -214,9 +221,9 @@ export function PanelImpor({
                                                         ' — ditahan'}
                                                 </p>
                                                 <p className="mt-0.5 text-xs">
-                                                    {(
-                                                        baris.masalah ?? []
-                                                    ).join(' · ')}
+                                                    {(baris.masalah ?? []).join(
+                                                        ' · ',
+                                                    )}
                                                 </p>
                                             </li>
                                         ),
@@ -240,10 +247,7 @@ export function PanelImpor({
                                     aria-hidden="true"
                                 />
                             ) : (
-                                <Upload
-                                    className="size-5"
-                                    aria-hidden="true"
-                                />
+                                <Upload className="size-5" aria-hidden="true" />
                             )}
                             {tahap === 'mengimpor'
                                 ? 'Mengganti sasaran…'
@@ -257,7 +261,10 @@ export function PanelImpor({
             )}
 
             {hasil !== null && (
-                <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border bg-tone-green-bg px-5 py-4 text-tone-green sm:px-6">
+                <div
+                    role="status"
+                    className="sasaran-hasil-masuk flex flex-wrap items-center justify-between gap-4 border-t border-border bg-tone-green-bg px-5 py-4 text-tone-green sm:px-6"
+                >
                     <p className="flex items-center gap-2 font-semibold">
                         <CheckCircle2 className="size-5" aria-hidden="true" />
                         {hasil.jumlahSasaran} sasaran {hasil.labelPeriode} sudah
@@ -268,9 +275,9 @@ export function PanelImpor({
                         diperbarui · {hasil.perluVerifikasi} perlu verifikasi
                         {hasil.pengukuran && (
                             <span className="mt-2 block">
-                                Hasil ukur: {hasil.pengukuran.tersimpan} disimpan ·{' '}
-                                {hasil.pengukuran.sudahAda} sudah ada ·{' '}
-                                {hasil.pengukuran.ditahan.length} ditahan
+                                Hasil ukur: {hasil.pengukuran.tersimpan}{' '}
+                                disimpan · {hasil.pengukuran.sudahAda} sudah ada
+                                · {hasil.pengukuran.ditahan.length} ditahan
                             </span>
                         )}
                     </p>

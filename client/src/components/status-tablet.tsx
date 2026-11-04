@@ -58,6 +58,7 @@ const waktu = (iso: string) =>
 export default function StatusTablet() {
     const [data, setData] = useState<Respons | null>(null);
     const [buka, setBuka] = useState(false);
+    const [menutup, setMenutup] = useState(false);
     const [membaca, setMembaca] = useState(true);
     const [gagal, setGagal] = useState(false);
     const [cari, setCari] = useState('');
@@ -80,6 +81,23 @@ export default function StatusTablet() {
     const hidup = useRef(false);
     const permintaan = useRef<AbortController | null>(null);
     const id = useId();
+    useEffect(() => {
+        if (!menutup) {
+            return;
+        }
+
+        const timer = window.setTimeout(
+            () => {
+                setBuka(false);
+                setMenutup(false);
+            },
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches
+                ? 0
+                : 210,
+        );
+
+        return () => window.clearTimeout(timer);
+    }, [menutup]);
 
     const ambil = useCallback(async () => {
         if (permintaan.current) {
@@ -213,7 +231,7 @@ export default function StatusTablet() {
             <button
                 ref={tombol}
                 type="button"
-                onClick={() => setBuka((v) => !v)}
+                onClick={() => (buka ? setMenutup(true) : setBuka(true))}
                 aria-expanded={buka}
                 aria-haspopup="dialog"
                 aria-controls={buka ? id : undefined}
@@ -244,7 +262,10 @@ export default function StatusTablet() {
                             ref={pasangPanel}
                             id={id}
                             role="dialog"
-                            onCancel={() => setBuka(false)}
+                            onCancel={(event) => {
+                                event.preventDefault();
+                                setMenutup(true);
+                            }}
                             onClick={(e) => {
                                 if (e.target !== e.currentTarget) {
                                     return;
@@ -259,13 +280,13 @@ export default function StatusTablet() {
                                     e.clientY < r.top ||
                                     e.clientY > r.bottom
                                 ) {
-                                    setBuka(false);
+                                    setMenutup(true);
                                 }
                             }}
                             aria-labelledby={`${id}-judul`}
                             tabIndex={-1}
                             style={posisi}
-                            className="fixed z-[61] flex flex-col overflow-hidden rounded-2xl border border-border/80 bg-popover text-popover-foreground shadow-[0_24px_48px_rgba(15,23,20,0.28)] outline-none backdrop:bg-foreground/20 backdrop:backdrop-blur-xs"
+                            className={`fixed z-[61] flex flex-col overflow-hidden rounded-2xl border border-border/80 bg-popover text-popover-foreground shadow-[0_24px_48px_rgba(15,23,20,0.28)] outline-none backdrop:bg-foreground/20 backdrop:backdrop-blur-xs ${menutup ? 'perangkat-keluar' : 'perangkat-masuk'}`}
                         >
                             <div className="flex shrink-0 items-center gap-3 border-b border-border bg-accent/40 px-5 py-3.5">
                                 <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -303,7 +324,7 @@ export default function StatusTablet() {
                                 <button
                                     type="button"
                                     aria-label="Tutup detail perangkat"
-                                    onClick={() => setBuka(false)}
+                                    onClick={() => setMenutup(true)}
                                     className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-lg hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary"
                                 >
                                     <X className="size-5" />

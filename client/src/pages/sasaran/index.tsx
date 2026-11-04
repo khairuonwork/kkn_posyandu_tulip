@@ -1,5 +1,5 @@
 import { AlertTriangle, Upload } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Halaman from '@/components/halaman';
 import { sasaranDemo } from '@/data/contoh/store';
 import {
@@ -30,8 +30,17 @@ import { TabelSasaran } from './komponen/tabel-sasaran';
 import { formatPeriode, periodeJakartaSekarang } from './komponen/tipe';
 import type { Tahap } from './komponen/tipe';
 
-export default function SasaranImpor({ sasaranAwal, periodeAwal = [] }: { sasaranAwal?: SasaranAktif; periodeAwal?: PeriodeSasaran[]; wilayahRt?: string[] } = {}) {
-    const [sasaran, setSasaran] = useState<SasaranAktif | null>(sasaranAwal ?? null);
+export default function SasaranImpor({
+    sasaranAwal,
+    periodeAwal = [],
+}: {
+    sasaranAwal?: SasaranAktif;
+    periodeAwal?: PeriodeSasaran[];
+    wilayahRt?: string[];
+} = {}) {
+    const [sasaran, setSasaran] = useState<SasaranAktif | null>(
+        sasaranAwal ?? null,
+    );
     const [statusMuat, setStatusMuat] = useState<'memuat' | 'siap' | 'galat'>(
         sasaranAwal ? 'siap' : 'memuat',
     );
@@ -48,50 +57,87 @@ export default function SasaranImpor({ sasaranAwal, periodeAwal = [] }: { sasara
     const [cariCalon, setCariCalon] = useState('');
     const [calon, setCalon] = useState<CalonSasaran[]>([]);
     const [memuatCalon, setMemuatCalon] = useState(false);
+    const [sudahCariCalon, setSudahCariCalon] = useState(false);
     const [anakDitambahkan, setAnakDitambahkan] = useState<number | null>(null);
     const [editId, setEditId] = useState<number | null>(null);
     const [editStatus, setEditStatus] = useState<StatusSasaran>('menunggu');
     const [editCatatan, setEditCatatan] = useState('');
     const [menyimpanEdit, setMenyimpanEdit] = useState(false);
-    const [periodeDitampilkan, setPeriodeDitampilkan] = useState(sasaranAwal?.periode?.periode ?? '');
-    const [pilihanPeriode, setPilihanPeriode] = useState<PeriodeSasaran[]>(periodeAwal);
+    const [periodeDitampilkan, setPeriodeDitampilkan] = useState(
+        sasaranAwal?.periode?.periode ?? '',
+    );
+    const [pilihanPeriode, setPilihanPeriode] =
+        useState<PeriodeSasaran[]>(periodeAwal);
     const [pratinjauReset, setPratinjauReset] =
         useState<RingkasanResetHariIni | null>(null);
     const [memuatPratinjauReset, setMemuatPratinjauReset] = useState(false);
     const [konfirmasiReset, setKonfirmasiReset] = useState('');
     const [menjalankanReset, setMenjalankanReset] = useState(false);
+    const [resetSelesai, setResetSelesai] = useState(false);
+    const pemicuReset = useRef<HTMLElement | null>(null);
+    const [tambahMenutup, setTambahMenutup] = useState(false);
+    const [editMenutup, setEditMenutup] = useState(false);
+    const timerPanel = useRef<ReturnType<typeof setTimeout>[]>([]);
+    useEffect(() => () => timerPanel.current.forEach(clearTimeout), []);
+    const tutupPanel = (
+        selesai: () => void,
+        animasi: (nilai: boolean) => void,
+    ) => {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            selesai();
 
-    const muat = useCallback(async (periode?: string) => {
-        if (sasaranAwal) {
-            const data = sasaranDemo(periode ?? sasaranAwal.periode?.periode);
-            setSasaran(data);
-            setPeriodeDitampilkan(data.periode?.periode ?? '');
-            setStatusMuat('siap');
             return;
         }
-        try {
-            setStatusMuat('memuat');
-            setGalat('');
-            const data = await ambilSasaran(periode || undefined);
-            const periodeTersedia = await ambilPeriodeSasaran().catch(() =>
-                data.periode === null ? [] : [data.periode],
-            );
-            setSasaran(data);
-            setPilihanPeriode(periodeTersedia);
-            setPeriodeDitampilkan(data.periode?.periode ?? '');
-            setStatusMuat('siap');
-        } catch (error) {
-            setGalat(
-                error instanceof Error
-                    ? error.message
-                    : 'Daftar sasaran tidak dapat dimuat.',
-            );
-            setStatusMuat('galat');
-        }
-    }, [sasaranAwal]);
+
+        animasi(true);
+        timerPanel.current.push(
+            setTimeout(() => {
+                selesai();
+                animasi(false);
+            }, 180),
+        );
+    };
+
+    const muat = useCallback(
+        async (periode?: string) => {
+            if (sasaranAwal) {
+                const data = sasaranDemo(
+                    periode ?? sasaranAwal.periode?.periode,
+                );
+                setSasaran(data);
+                setPeriodeDitampilkan(data.periode?.periode ?? '');
+                setStatusMuat('siap');
+
+                return;
+            }
+
+            try {
+                setStatusMuat('memuat');
+                setGalat('');
+                const data = await ambilSasaran(periode || undefined);
+                const periodeTersedia = await ambilPeriodeSasaran().catch(() =>
+                    data.periode === null ? [] : [data.periode],
+                );
+                setSasaran(data);
+                setPilihanPeriode(periodeTersedia);
+                setPeriodeDitampilkan(data.periode?.periode ?? '');
+                setStatusMuat('siap');
+            } catch (error) {
+                setGalat(
+                    error instanceof Error
+                        ? error.message
+                        : 'Daftar sasaran tidak dapat dimuat.',
+                );
+                setStatusMuat('galat');
+            }
+        },
+        [sasaranAwal],
+    );
 
     useEffect(() => {
-        if (!sasaranAwal) void Promise.resolve().then(() => muat());
+        if (!sasaranAwal) {
+            void Promise.resolve().then(() => muat());
+        }
     }, [muat]);
 
     const sheetAktif = sheets.find((item) => item.sheet === sheetDipilih);
@@ -118,6 +164,8 @@ export default function SasaranImpor({ sasaranAwal, periodeAwal = [] }: { sasara
         try {
             setGalat('');
             setHasil(null);
+            setSheets([]);
+            setIsiBase64('');
             setTahap('memeriksa');
             const data = await periksaFileSasaran(file);
             setIsiBase64(data.isiBase64);
@@ -198,6 +246,7 @@ export default function SasaranImpor({ sasaranAwal, periodeAwal = [] }: { sasara
             setCalon(
                 await cariCalonSasaran(sasaran.periode.id, cariCalon.trim()),
             );
+            setSudahCariCalon(true);
         } catch (error) {
             setGalat(
                 error instanceof Error
@@ -241,6 +290,10 @@ export default function SasaranImpor({ sasaranAwal, periodeAwal = [] }: { sasara
     };
 
     const mulaiEdit = (item: SasaranAktif['items'][number]) => {
+        if (editMenutup) {
+            return;
+        }
+
         setEditId(item.id);
         setEditStatus(item.status);
         setEditCatatan(item.catatan ?? '');
@@ -258,7 +311,7 @@ export default function SasaranImpor({ sasaranAwal, periodeAwal = [] }: { sasara
             setMenyimpanEdit(true);
             await perbaruiSasaran(editId, editStatus, editCatatan);
             setPesanMutasi('Status dan catatan sasaran berhasil diperbarui.');
-            setEditId(null);
+            tutupPanel(() => setEditId(null), setEditMenutup);
             await muat(sasaran?.periode?.periode);
         } catch (error) {
             setGalat(
@@ -276,13 +329,14 @@ export default function SasaranImpor({ sasaranAwal, periodeAwal = [] }: { sasara
             return;
         }
 
+        pemicuReset.current = document.activeElement as HTMLElement | null;
+
         try {
             setGalat('');
             setMemuatPratinjauReset(true);
+            setResetSelesai(false);
             setKonfirmasiReset('');
-            setPratinjauReset(
-                await pratinjauResetHariIni(sasaran.periode.id),
-            );
+            setPratinjauReset(await pratinjauResetHariIni(sasaran.periode.id));
         } catch (error) {
             setGalat(
                 error instanceof Error
@@ -311,6 +365,14 @@ export default function SasaranImpor({ sasaranAwal, periodeAwal = [] }: { sasara
                 pratinjauReset.jumlahPengukuran,
                 pratinjauReset.jumlahAntrean,
             );
+            setResetSelesai(true);
+
+            if (
+                !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            ) {
+                await new Promise<void>((resolve) => setTimeout(resolve, 210));
+            }
+
             setPratinjauReset(null);
             setKonfirmasiReset('');
             setPesanMutasi(
@@ -335,22 +397,26 @@ export default function SasaranImpor({ sasaranAwal, periodeAwal = [] }: { sasara
             subjudul="Kelola daftar layanan bulanan tanpa menghapus master Data Balita atau riwayat pengukuran."
         >
             <div className="w-full space-y-6">
-                {galat !== '' && (
-                    <div
-                        role="alert"
-                        className="flex items-start gap-3 rounded-xl bg-tone-red-bg p-4 text-tone-red"
-                    >
-                        <AlertTriangle
-                            className="mt-0.5 size-5 shrink-0"
-                            strokeWidth={2.5}
-                            aria-hidden="true"
-                        />
-                        <div className="min-w-0">
-                            <p className="font-bold">Proses belum berhasil</p>
-                            <p className="mt-0.5 text-sm">{galat}</p>
+                {galat !== '' &&
+                    statusMuat !== 'galat' &&
+                    pratinjauReset === null && (
+                        <div
+                            role="alert"
+                            className="flex items-start gap-3 rounded-xl bg-tone-red-bg p-4 text-tone-red"
+                        >
+                            <AlertTriangle
+                                className="mt-0.5 size-5 shrink-0"
+                                strokeWidth={2.5}
+                                aria-hidden="true"
+                            />
+                            <div className="min-w-0">
+                                <p className="font-bold">
+                                    Proses belum berhasil
+                                </p>
+                                <p className="mt-0.5 text-sm">{galat}</p>
+                            </div>
                         </div>
-                    </div>
-                )}
+                    )}
                 {pesanMutasi !== '' && (
                     <p
                         role="status"
@@ -390,8 +456,29 @@ export default function SasaranImpor({ sasaranAwal, periodeAwal = [] }: { sasara
                     muat={muat}
                     memuatPratinjauReset={memuatPratinjauReset}
                     bukaPratinjauReset={bukaPratinjauReset}
-                    setTambahTerbuka={setTambahTerbuka}
-                    setCalon={setCalon}
+                    setTambahTerbuka={(value) => {
+                        const next =
+                            typeof value === 'function'
+                                ? value(tambahTerbuka)
+                                : value;
+
+                        if (tambahMenutup) {
+                            return;
+                        }
+
+                        if (next) {
+                            setTambahTerbuka(true);
+                        } else if (!tambahMenutup) {
+                            tutupPanel(
+                                () => setTambahTerbuka(false),
+                                setTambahMenutup,
+                            );
+                        }
+                    }}
+                    setCalon={(items) => {
+                        setCalon(items);
+                        setSudahCariCalon(false);
+                    }}
                     setGalat={setGalat}
                     cari={cari}
                     setCari={setCari}
@@ -400,38 +487,84 @@ export default function SasaranImpor({ sasaranAwal, periodeAwal = [] }: { sasara
                     periodeAktifSekarang={periodeJakartaSekarang()}
                 />
 
-                <DialogTambahSasaran
-                    tambahTerbuka={tambahTerbuka}
-                    setTambahTerbuka={setTambahTerbuka}
-                    cariCalon={cariCalon}
-                    setCariCalon={setCariCalon}
-                    cariAnakMaster={cariAnakMaster}
-                    memuatCalon={memuatCalon}
-                    calon={calon}
-                    tambahAnak={tambahAnak}
-                    anakDitambahkan={anakDitambahkan}
-                />
+                {tambahTerbuka && (
+                    <div
+                        className={
+                            tambahMenutup
+                                ? 'sasaran-panel-keluar'
+                                : 'sasaran-panel-masuk'
+                        }
+                    >
+                        <DialogTambahSasaran
+                            tambahTerbuka={tambahTerbuka}
+                            setTambahTerbuka={(terbuka) =>
+                                terbuka
+                                    ? setTambahTerbuka(true)
+                                    : !tambahMenutup &&
+                                      tutupPanel(
+                                          () => setTambahTerbuka(false),
+                                          setTambahMenutup,
+                                      )
+                            }
+                            cariCalon={cariCalon}
+                            setCariCalon={(nilai) => {
+                                setCariCalon(nilai);
+                                setSudahCariCalon(false);
+                                setCalon([]);
+                            }}
+                            cariAnakMaster={cariAnakMaster}
+                            memuatCalon={memuatCalon}
+                            calon={calon}
+                            tambahAnak={tambahAnak}
+                            anakDitambahkan={anakDitambahkan}
+                            sudahCariCalon={sudahCariCalon}
+                        />
+                    </div>
+                )}
 
-                <DialogEditSasaran
-                    editId={editId}
-                    setEditId={setEditId}
-                    editStatus={editStatus}
-                    setEditStatus={setEditStatus}
-                    editCatatan={editCatatan}
-                    setEditCatatan={setEditCatatan}
-                    simpanEdit={simpanEdit}
-                    menyimpanEdit={menyimpanEdit}
-                />
+                {editId !== null && (
+                    <div
+                        className={
+                            editMenutup
+                                ? 'sasaran-panel-keluar'
+                                : 'sasaran-panel-masuk'
+                        }
+                    >
+                        <DialogEditSasaran
+                            editId={editId}
+                            setEditId={(id) =>
+                                id === null
+                                    ? !editMenutup &&
+                                      tutupPanel(
+                                          () => setEditId(null),
+                                          setEditMenutup,
+                                      )
+                                    : setEditId(id)
+                            }
+                            editStatus={editStatus}
+                            setEditStatus={setEditStatus}
+                            editCatatan={editCatatan}
+                            setEditCatatan={setEditCatatan}
+                            simpanEdit={simpanEdit}
+                            menyimpanEdit={menyimpanEdit}
+                        />
+                    </div>
+                )}
             </div>
 
-            <DialogResetSasaran
-                pratinjauReset={pratinjauReset}
-                setPratinjauReset={setPratinjauReset}
-                menjalankanReset={menjalankanReset}
-                konfirmasiReset={konfirmasiReset}
-                setKonfirmasiReset={setKonfirmasiReset}
-                jalankanResetHariIni={jalankanResetHariIni}
-            />
+            {pratinjauReset && (
+                <DialogResetSasaran
+                    pratinjauReset={pratinjauReset}
+                    setPratinjauReset={setPratinjauReset}
+                    menjalankanReset={menjalankanReset}
+                    konfirmasiReset={konfirmasiReset}
+                    setKonfirmasiReset={setKonfirmasiReset}
+                    jalankanResetHariIni={jalankanResetHariIni}
+                    pemicuReset={pemicuReset}
+                    galat={galat}
+                    resetSelesai={resetSelesai}
+                />
+            )}
         </Halaman>
     );
 }

@@ -18,7 +18,7 @@ import {
     TrendingUp,
     Users,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import CakupanPenimbangan, {
     FormKehadiranHariH,
@@ -158,9 +158,77 @@ export default function Dashboard({
     sasaranHistoris = false,
 }: Props) {
     const [formHariH, setFormHariH] = useState(false);
+    const [formMenutup, setFormMenutup] = useState(false);
+    const [pesanHariH, setPesanHariH] = useState(false);
     const [tabAktif, setTabAktif] = useState<'ringkasan' | 'statistik'>(
         'ringkasan',
     );
+    const konten = useRef<HTMLDivElement>(null);
+    const tabSebelumnya = useRef(tabAktif);
+    useEffect(() => {
+        if (tabAktif === tabSebelumnya.current) {
+            return;
+        }
+
+        tabSebelumnya.current = tabAktif;
+
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            return;
+        }
+
+        const panel = document.getElementById(`beranda-panel-${tabAktif}`);
+        panel?.animate(
+            [
+                {
+                    opacity: 0,
+                    transform: `translateX(${tabAktif === 'statistik' ? 28 : -28}px)`,
+                },
+                { opacity: 1, transform: 'none' },
+            ],
+            { duration: 210, easing: 'ease-out' },
+        );
+    }, [tabAktif]);
+    const filterTerakhir = useRef(`${periode.id}:${rtPilihan}`);
+    useEffect(() => {
+        const filter = `${periode.id}:${rtPilihan}`;
+
+        if (memuat || filter === filterTerakhir.current) {
+            return;
+        }
+
+        filterTerakhir.current = filter;
+
+        if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            konten.current?.getAnimations().forEach((animasi) => animasi.cancel());
+            konten.current?.animate([{ opacity: 0 }, { opacity: 1 }], {
+                duration: 210,
+                easing: 'ease-out',
+            });
+        }
+    }, [periode.id, rtPilihan, memuat]);
+    useEffect(() => {
+        if (!formMenutup) {
+            return;
+        }
+
+        const timer = window.setTimeout(
+            () => {
+                setFormHariH(false);
+                setFormMenutup(false);
+            },
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches
+                ? 0
+                : 180,
+        );
+
+        return () => window.clearTimeout(timer);
+    }, [formMenutup]);
+    const tutupForm = () => setFormMenutup(true);
+    const pilihTab = (id: 'ringkasan' | 'statistik') => {
+        if (id !== tabAktif) {
+            setTabAktif(id);
+        }
+    };
     const cakupan = persenSaja(ringkasan.ditimbang, ringkasan.sasaran);
     const absen = ringkasan.sasaran - ringkasan.ditimbang;
     const rentang = rentangBulan(cakupanEnamBulan.map((c) => c.label));
@@ -233,7 +301,7 @@ export default function Dashboard({
                             aria-controls={`beranda-panel-${id}`}
                             aria-selected={tabAktif === id}
                             tabIndex={tabAktif === id ? 0 : -1}
-                            onClick={() => setTabAktif(id)}
+                            onClick={() => pilihTab(id)}
                             onKeyDown={(event) => {
                                 if (
                                     ![
@@ -255,7 +323,7 @@ export default function Dashboard({
                                           : id === 'ringkasan'
                                             ? 'statistik'
                                             : 'ringkasan';
-                                setTabAktif(berikut);
+                                pilihTab(berikut);
                                 event.currentTarget.parentElement
                                     ?.querySelector<HTMLButtonElement>(
                                         `#beranda-tab-${berikut}`,
@@ -327,7 +395,7 @@ export default function Dashboard({
             )}
 
             {!memuat && (
-                <div className="flex min-w-0 flex-col gap-7">
+                <div ref={konten} className="flex min-w-0 flex-col gap-7">
                     <div
                         role="tabpanel"
                         id="beranda-panel-ringkasan"
@@ -522,7 +590,9 @@ export default function Dashboard({
                                                 className="tombol-kedua shrink-0 font-bold"
                                                 aria-expanded={formHariH}
                                                 onClick={() =>
-                                                    setFormHariH((old) => !old)
+                                                    formHariH
+                                                        ? tutupForm()
+                                                        : setFormHariH(true)
                                                 }
                                             >
                                                 {formHariH
@@ -534,17 +604,38 @@ export default function Dashboard({
                                 {formHariH &&
                                     bolehUbahHariH &&
                                     onSimpanHariH && (
-                                        <FormKehadiranHariH
-                                            key={`${periode.id}:${rtPilihan}`}
-                                            rows={kehadiranHariH.filter(
-                                                (r) =>
-                                                    rtPilihan === '' ||
-                                                    r.rt === rtPilihan,
-                                            )}
-                                            onSimpan={onSimpanHariH}
-                                            onTutup={() => setFormHariH(false)}
-                                        />
+                                        <div
+                                            className={
+                                                formMenutup
+                                                    ? 'beranda-form-keluar'
+                                                    : 'beranda-form-masuk'
+                                            }
+                                            inert={formMenutup}
+                                        >
+                                            <FormKehadiranHariH
+                                                key={`${periode.id}:${rtPilihan}`}
+                                                rows={kehadiranHariH.filter(
+                                                    (r) =>
+                                                        rtPilihan === '' ||
+                                                        r.rt === rtPilihan,
+                                                )}
+                                                onSimpan={async (items) => {
+                                                    setPesanHariH(false);
+                                                    await onSimpanHariH(items);
+                                                    setPesanHariH(true);
+                                                }}
+                                                onTutup={tutupForm}
+                                            />
+                                        </div>
                                     )}
+                                {pesanHariH && (
+                                    <p
+                                        role="status"
+                                        className="pesan-masuk mt-4 text-sm font-semibold text-primary"
+                                    >
+                                        Kehadiran hari H tersimpan.
+                                    </p>
+                                )}
                             </section>
 
                             {/* Seluruh angka status gizi lain adalah potret

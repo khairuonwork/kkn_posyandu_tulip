@@ -16,7 +16,7 @@ import {
     ShieldCheck,
     TriangleAlert,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import ilustrasiPosyandu from '@/assets/login-posyandu-illustration-v1.png';
 import { Head } from '@/lib/nav';
@@ -47,6 +47,9 @@ export default function Login({
     const [sandiTerbaca, setSandiTerbaca] = useState(false);
     const [memuat, setMemuat] = useState(false);
     const [galat, setGalat] = useState<string | null>(null);
+    const sedangMengirim = useRef(false);
+    const namaRef = useRef<HTMLInputElement>(null);
+    const sandiRef = useRef<HTMLInputElement>(null);
 
     const kosong = username.trim() === '' || sandi === '';
     const galatKosong = galat === PESAN_KOSONG;
@@ -56,16 +59,18 @@ export default function Login({
     const kirim = (peristiwa: FormEvent) => {
         peristiwa.preventDefault();
 
-        if (memuat) {
+        if (sedangMengirim.current) {
             return;
         }
 
         if (kosong) {
             setGalat(PESAN_KOSONG);
+            (username.trim() === '' ? namaRef : sandiRef).current?.focus();
 
             return;
         }
 
+        sedangMengirim.current = true;
         setMemuat(true);
         setGalat(null);
 
@@ -74,11 +79,13 @@ export default function Login({
                 // Saat berhasil, komponen ini dilepas oleh pemanggilnya —
                 // jadi hanya kegagalan yang perlu mengembalikan keadaan.
                 if (pesan !== null) {
+                    sedangMengirim.current = false;
                     setGalat(pesan);
                     setMemuat(false);
                 }
             })
             .catch(() => {
+                sedangMengirim.current = false;
                 setGalat(
                     'Tidak dapat terhubung ke server. Periksa koneksi internet.',
                 );
@@ -106,45 +113,48 @@ export default function Login({
                         </p>
 
                         <form onSubmit={kirim} className="mt-7">
-                            {sesiBerakhir && galat === null && (
-                                <div
-                                    role="status"
-                                    className="mb-6 flex items-start gap-2.5 rounded-lg border border-tone-blue bg-tone-blue-bg p-4 text-base font-semibold text-tone-blue"
-                                >
-                                    <Info
-                                        className="mt-0.5 size-5 shrink-0"
-                                        strokeWidth={2.5}
-                                        aria-hidden="true"
-                                    />
-                                    Sesi telah berakhir. Silakan masuk kembali.
-                                </div>
-                            )}
-                            {galat !== null && (
-                                <div
-                                    role="alert"
-                                    className="mb-6 rounded-2xl border border-tone-red/30 bg-tone-red-bg p-4.5 text-foreground shadow-sm"
-                                >
-                                    <div className="flex items-start gap-3">
-                                        <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-tone-red/15 text-tone-red">
-                                            <TriangleAlert
-                                                className="size-5"
-                                                strokeWidth={2.5}
-                                                aria-hidden="true"
-                                            />
-                                        </div>
-                                        <div className="min-w-0 flex-1">
-                                            <p className="text-sm font-extrabold text-tone-red">
-                                                {galatKosong
-                                                    ? 'Lengkapi Data Masuk'
-                                                    : 'Gagal Masuk ke Aplikasi'}
-                                            </p>
-                                            <p className="mt-0.5 text-sm leading-relaxed font-medium text-foreground">
-                                                {galat}
-                                            </p>
+                            <div className="mb-6 flex min-h-28 items-center">
+                                {sesiBerakhir && galat === null && !memuat && (
+                                    <div
+                                        role="status"
+                                        className="pesan-masuk flex w-full items-start gap-2.5 rounded-lg border border-tone-blue bg-tone-blue-bg p-4 text-base font-semibold text-tone-blue"
+                                    >
+                                        <Info
+                                            className="mt-0.5 size-5 shrink-0"
+                                            strokeWidth={2.5}
+                                            aria-hidden="true"
+                                        />
+                                        Sesi telah berakhir. Silakan masuk
+                                        kembali.
+                                    </div>
+                                )}
+                                {galat !== null && (
+                                    <div
+                                        role="alert"
+                                        className="pesan-masuk w-full rounded-2xl border border-tone-red/30 bg-tone-red-bg p-4.5 text-foreground shadow-sm"
+                                    >
+                                        <div className="flex items-start gap-3">
+                                            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-tone-red/15 text-tone-red">
+                                                <TriangleAlert
+                                                    className="size-5"
+                                                    strokeWidth={2.5}
+                                                    aria-hidden="true"
+                                                />
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-sm font-extrabold text-tone-red">
+                                                    {galatKosong
+                                                        ? 'Lengkapi Data Masuk'
+                                                        : 'Gagal Masuk ke Aplikasi'}
+                                                </p>
+                                                <p className="mt-0.5 text-sm leading-relaxed font-medium text-foreground">
+                                                    {galat}
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
+                            </div>
 
                             <div className="space-y-5">
                                 <div>
@@ -158,6 +168,7 @@ export default function Login({
                                         papan ketik tablet mengubah "kader01"
                                         menjadi "Kader01" atau kata lain. */}
                                     <input
+                                        ref={namaRef}
                                         id="username"
                                         type="text"
                                         autoComplete="username"
@@ -167,6 +178,12 @@ export default function Login({
                                         value={username}
                                         placeholder="Contoh: kader_tulip"
                                         disabled={memuat}
+                                        aria-invalid={merahNama || undefined}
+                                        aria-describedby={
+                                            merahNama
+                                                ? 'galat-username'
+                                                : undefined
+                                        }
                                         onChange={(e) =>
                                             setUsername(e.target.value)
                                         }
@@ -176,20 +193,22 @@ export default function Login({
                                                 : ''
                                         }`}
                                     />
-                                    {merahNama && (
-                                        <p
-                                            className="mt-1.5 flex items-center gap-1.5 text-xs font-bold text-tone-red"
-                                            role="alert"
-                                        >
-                                            <TriangleAlert
-                                                className="size-3.5 shrink-0"
-                                                aria-hidden="true"
-                                            />
-                                            <span>
-                                                Nama pengguna belum diisi
-                                            </span>
-                                        </p>
-                                    )}
+                                    <div className="mt-1.5 min-h-5">
+                                        {merahNama && (
+                                            <p
+                                                id="galat-username"
+                                                className="flex items-center gap-1.5 text-xs font-bold text-tone-red"
+                                            >
+                                                <TriangleAlert
+                                                    className="size-3.5 shrink-0"
+                                                    aria-hidden="true"
+                                                />
+                                                <span>
+                                                    Nama pengguna belum diisi
+                                                </span>
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <div>
@@ -201,6 +220,7 @@ export default function Login({
                                     </label>
                                     <div className="relative mt-2">
                                         <input
+                                            ref={sandiRef}
                                             id="sandi"
                                             type={
                                                 sandiTerbaca
@@ -211,6 +231,14 @@ export default function Login({
                                             value={sandi}
                                             placeholder="Masukkan kata sandi"
                                             disabled={memuat}
+                                            aria-invalid={
+                                                merahSandi || undefined
+                                            }
+                                            aria-describedby={
+                                                merahSandi
+                                                    ? 'galat-sandi'
+                                                    : undefined
+                                            }
                                             onChange={(e) =>
                                                 setSandi(e.target.value)
                                             }
@@ -248,18 +276,22 @@ export default function Login({
                                             )}
                                         </button>
                                     </div>
-                                    {merahSandi && (
-                                        <p
-                                            className="mt-1.5 flex items-center gap-1.5 text-xs font-bold text-tone-red"
-                                            role="alert"
-                                        >
-                                            <TriangleAlert
-                                                className="size-3.5 shrink-0"
-                                                aria-hidden="true"
-                                            />
-                                            <span>Kata sandi belum diisi</span>
-                                        </p>
-                                    )}
+                                    <div className="mt-1.5 min-h-5">
+                                        {merahSandi && (
+                                            <p
+                                                id="galat-sandi"
+                                                className="flex items-center gap-1.5 text-xs font-bold text-tone-red"
+                                            >
+                                                <TriangleAlert
+                                                    className="size-3.5 shrink-0"
+                                                    aria-hidden="true"
+                                                />
+                                                <span>
+                                                    Kata sandi belum diisi
+                                                </span>
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
@@ -275,15 +307,26 @@ export default function Login({
                             <button
                                 type="submit"
                                 disabled={memuat}
-                                className="tombol-utama mt-7 w-full text-lg disabled:bg-border disabled:text-muted-foreground disabled:shadow-none"
+                                className="tombol-utama mt-7 w-full text-lg transition-colors duration-200 disabled:bg-border disabled:text-muted-foreground disabled:shadow-none motion-reduce:transition-none"
                             >
-                                {memuat && (
-                                    <Loader2
-                                        className="size-5 animate-spin"
-                                        aria-hidden="true"
-                                    />
-                                )}
-                                {memuat ? 'Masuk…' : 'Masuk'}
+                                <span className="relative inline-grid place-items-center">
+                                    <span
+                                        className={`col-start-1 row-start-1 transition-opacity duration-200 motion-reduce:transition-none ${memuat ? 'opacity-0' : 'opacity-100'}`}
+                                        aria-hidden={memuat}
+                                    >
+                                        Masuk
+                                    </span>
+                                    <span
+                                        className={`col-start-1 row-start-1 inline-flex items-center gap-2 transition-opacity duration-200 motion-reduce:transition-none ${memuat ? 'opacity-100' : 'invisible opacity-0'}`}
+                                        aria-hidden={!memuat}
+                                    >
+                                        <Loader2
+                                            className="size-5 motion-safe:animate-spin"
+                                            aria-hidden="true"
+                                        />
+                                        Masuk…
+                                    </span>
+                                </span>
                             </button>
 
                             <p className="mt-4 text-center text-sm text-muted-foreground">

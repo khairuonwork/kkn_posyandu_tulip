@@ -24,6 +24,7 @@ import { Pemicu, Risiko } from './baris-penanda';
 import { EditorBaris } from './editor-baris';
 import { LABEL_URUT, labelRt } from './tipe';
 import type { BarisAnak, KolomUrut, PatchAnak } from './tipe';
+import { useKehadiran } from './use-kehadiran';
 
 export function TabelAnak({
     hasilTampil,
@@ -84,6 +85,8 @@ export function TabelAnak({
     tabelLms: ReturnType<typeof susunTabel> | null;
     onSimpanAnak?: (anakId: number, patch: PatchAnak) => void;
 }) {
+    const editor = useKehadiran(dibuka);
+
     if (statusMuat === 'memuat' && sumberData === 'live') {
         return (
             <StateHalaman
@@ -305,16 +308,13 @@ export function TabelAnak({
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {hasilTampil.map((baris, urutan) => {
+                    {hasilTampil.map((baris) => {
                         const terbuka = dibuka === baris.anakId;
 
                         return [
                             <TableRow
                                 key={baris.anakId}
-                                className={`baris-masuk ${terbuka ? 'bg-accent' : ''}`}
-                                style={{
-                                    animationDelay: `${Math.min(urutan, 8) * 20}ms`,
-                                }}
+                                className={terbuka ? 'bg-accent' : ''}
                             >
                                 <TableCell className="py-1">
                                     <Link
@@ -407,7 +407,7 @@ export function TabelAnak({
                                 )}
                             </TableRow>,
 
-                            terbuka && (
+                            editor.tampil === baris.anakId && (
                                 <TableRow
                                     key={`${baris.anakId}-ubah`}
                                     className="bg-accent"
@@ -417,6 +417,7 @@ export function TabelAnak({
                                         className="p-0 first:pl-0 last:pr-0"
                                     >
                                         <EditorBaris
+                                            menutup={editor.menutup}
                                             baris={baris}
                                             periode={periode}
                                             wilayahRt={wilayahRt}

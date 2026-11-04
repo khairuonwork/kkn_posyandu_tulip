@@ -87,6 +87,7 @@ export function EditorBaris({
     tabelLms,
     onTutup,
     onSimpan,
+    menutup,
 }: {
     baris: BarisAnak;
     periode: Periode;
@@ -94,7 +95,9 @@ export function EditorBaris({
     tabelLms: ReturnType<typeof susunTabel> | null;
     onTutup: () => void;
     onSimpan: (patch: PatchAnak) => void;
+    menutup: boolean;
 }) {
+    const [galat, setGalat] = useState(false);
     const [nama, setNama] = useState(baris.nama ?? '');
     const [nik, setNik] = useState(baris.nik ?? '');
     const [namaOrtu, setNamaOrtu] = useState(baris.namaOrtu ?? '');
@@ -140,7 +143,10 @@ export function EditorBaris({
     }, [tabelLms, jk, umur, bbAngka, tinggiAngka]);
 
     return (
-        <div className="border-t-2 border-border px-5 py-6 sm:px-6">
+        <div
+            inert={menutup}
+            className={`border-t-2 border-border px-5 py-6 sm:px-6 ${menutup ? 'panel-balita-keluar' : 'panel-balita-masuk'}`}
+        >
             <div className="kartu flex flex-col gap-6 p-5 sm:p-6">
                 <section className="flex flex-col gap-3.5">
                     <h3 className="text-base font-bold">Identitas</h3>
@@ -267,20 +273,29 @@ export function EditorBaris({
                 <div className="flex flex-wrap items-center gap-3 border-t border-border pt-6">
                     <button
                         type="button"
-                        onClick={() =>
-                            onSimpan({
-                                nama: nama.trim(),
-                                nik: nik.trim(),
-                                namaOrtu: namaOrtu.trim(),
-                                rt,
-                                bbKg: bbAngka,
-                                tinggiCm: tinggiAngka,
-                            })
-                        }
+                        onClick={() => {
+                            try {
+                                onSimpan({
+                                    nama: nama.trim(),
+                                    nik: nik.trim(),
+                                    namaOrtu: namaOrtu.trim(),
+                                    rt,
+                                    bbKg: bbAngka,
+                                    tinggiCm: tinggiAngka,
+                                });
+                            } catch {
+                                setGalat(true);
+                            }
+                        }}
                         className="tombol-utama"
                     >
                         Simpan perubahan
                     </button>
+                    {galat && (
+                        <p role="alert" className="pesan-balita">
+                            Gagal menyimpan perubahan. Coba lagi.
+                        </p>
+                    )}
                     <button
                         type="button"
                         onClick={onTutup}

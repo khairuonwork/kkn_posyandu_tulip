@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import type { ReactNode } from 'react';
 import { Save } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import Dialog, { KakiDialog } from '@/components/dialog';
 import type { Pengguna, Peran } from '@/types/posyandu';
 import {
@@ -54,6 +54,17 @@ export function DialogPengguna({
     const [dicoba, setDicoba] = useState(false);
     const [menyimpan, setMenyimpan] = useState(false);
     const [galatServer, setGalatServer] = useState<string | null>(null);
+    const [berhasil, setBerhasil] = useState(false);
+    const tutupSetelahSimpan = useRef<HTMLButtonElement>(null);
+    useEffect(() => {
+        if (berhasil) {
+            tutupSetelahSimpan.current?.click();
+        }
+    }, [berhasil]);
+    const fokusIsian = useRef<HTMLElement | null>(null);
+    const berubah = nama !== (pengguna?.nama ?? '') || username !== (pengguna?.username ?? '') ||
+        peran !== (pengguna?.peran ?? 'kader') || posyanduId !== (pengguna?.posyanduId ?? posyandu[0]?.id ?? null) ||
+        rt !== (pengguna?.rt ?? rtUntukPosyandu[0]?.rt ?? '') || aktif !== (pengguna?.aktif ?? true) || kataSandi !== '';
 
     // Huruf kecil dipaksakan, sama seperti di server: "Kader01" tetap kader01.
     const usernameBersih = username.trim().toLowerCase();
@@ -83,9 +94,18 @@ export function DialogPengguna({
             keterangan="Setiap perubahan dicatat: siapa yang mengubah dan kapan."
             lebar="w-[640px]"
             onTutup={onTutup}
+            animasiDetail
+            berubah={berubah && !berhasil}
+            menyimpan={menyimpan}
         >
+            <button ref={tutupSetelahSimpan} type="button" data-tutup-dialog hidden />
             <form
                 noValidate
+                onFocusCapture={(e) => {
+                    if (e.target.matches('input, select')) {
+fokusIsian.current = e.target;
+}
+                }}
                 onSubmit={(e) => {
                     e.preventDefault();
                     setDicoba(true);
@@ -120,6 +140,14 @@ export function DialogPengguna({
                         .then((galat) => {
                             setGalatServer(galat ?? null);
                             setMenyimpan(false);
+
+                            if (galat === null) {
+                                setBerhasil(true);
+                            }
+
+                            if (galat) {
+requestAnimationFrame(() => fokusIsian.current?.focus());
+}
                         });
                 }}
                 className="flex min-h-0 flex-1 flex-col"
@@ -320,7 +348,7 @@ export function DialogPengguna({
                 <KakiDialog>
                     <button
                         type="button"
-                        onClick={onTutup}
+                        data-tutup-dialog
                         className="tombol-kedua px-5.5"
                     >
                         Batal

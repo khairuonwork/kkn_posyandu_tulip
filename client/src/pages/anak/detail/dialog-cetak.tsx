@@ -26,6 +26,7 @@ export function DialogCetak({
 
     return (
         <Dialog
+            animasiDetail
             judul="Cetak kartu balita"
             keterangan="Periksa isi kartu sebelum dicetak."
             lebar="w-[900px]"
@@ -82,6 +83,7 @@ export function DialogCetak({
             <KakiDialog>
                 <button
                     type="button"
+                    data-tutup-dialog
                     onClick={onTutup}
                     className="tombol-kedua px-5.5"
                 >

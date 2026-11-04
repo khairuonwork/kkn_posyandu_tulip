@@ -11,6 +11,7 @@ export function DialogTambahSasaran({
     calon,
     tambahAnak,
     anakDitambahkan,
+    sudahCariCalon,
 }: {
     tambahTerbuka: boolean;
     setTambahTerbuka: (terbuka: boolean) => void;
@@ -21,6 +22,7 @@ export function DialogTambahSasaran({
     calon: CalonSasaran[];
     tambahAnak: (item: CalonSasaran) => void | Promise<void>;
     anakDitambahkan: number | null;
+    sudahCariCalon: boolean;
 }) {
     if (!tambahTerbuka) {
         return null;
@@ -62,6 +64,7 @@ export function DialogTambahSasaran({
                     <span className="sr-only">Cari anak di Data Balita</span>
                     <input
                         value={cariCalon}
+                        disabled={memuatCalon}
                         onChange={(event) => setCariCalon(event.target.value)}
                         placeholder="Nama, NIK, atau nama orang tua"
                         className="w-full bg-transparent text-base outline-none placeholder:text-muted-foreground"
@@ -84,7 +87,7 @@ export function DialogTambahSasaran({
                 </button>
             </form>
             {calon.length > 0 && (
-                <ul className="mt-3 max-w-3xl divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
+                <ul className="sasaran-hasil-masuk mt-3 max-w-3xl divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
                     {calon.map((item) => (
                         <li
                             key={item.anakId}
@@ -95,7 +98,8 @@ export function DialogTambahSasaran({
                                 <p className="mt-0.5 text-xs text-muted-foreground">
                                     {item.nik ?? 'NIK belum tercatat'} · RT{' '}
                                     {item.rt} ·{' '}
-                                    {item.namaOrtu ?? 'Orang tua belum tercatat'}
+                                    {item.namaOrtu ??
+                                        'Orang tua belum tercatat'}
                                 </p>
                             </div>
                             <button
@@ -121,10 +125,10 @@ export function DialogTambahSasaran({
                     ))}
                 </ul>
             )}
-            {!memuatCalon && cariCalon.trim().length >= 2 && calon.length === 0 && (
+            {!memuatCalon && sudahCariCalon && calon.length === 0 && (
                 <p className="mt-3 text-sm text-muted-foreground">
-                    Tidak ada anak aktif yang cocok, atau semua hasil sudah masuk
-                    sasaran periode ini.
+                    Tidak ada anak aktif yang cocok, atau semua hasil sudah
+                    masuk sasaran periode ini.
                 </p>
             )}
         </div>

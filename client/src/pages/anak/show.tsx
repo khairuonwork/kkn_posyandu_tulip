@@ -64,6 +64,7 @@ export default function DetailAnak({
     const [tabAktif, setTabAktif] = useState<TabDetail>(
         peran === 'kms' ? 'kurva' : 'profil',
     );
+    const [arahTab, setArahTab] = useState<'maju' | 'mundur'>('maju');
     const [dialog, setDialog] = useState<'ubah' | 'cetak' | 'wa' | null>(null);
     const [infoKiaWa, setInfoKiaWa] = useState<DiskusiKiaWa | null>(null);
     const bolehUbah =
@@ -308,7 +309,11 @@ export default function DetailAnak({
                                 role="tab"
                                 aria-selected={aktif}
                                 aria-controls={`panel-${tab.nilai}`}
-                                onClick={() => setTabAktif(tab.nilai)}
+                                onClick={() => {
+                                    if (tab.nilai === tabAktif) return;
+                                    setArahTab(TAB_DETAIL.findIndex((item) => item.nilai === tab.nilai) > TAB_DETAIL.findIndex((item) => item.nilai === tabAktif) ? 'maju' : 'mundur');
+                                    setTabAktif(tab.nilai);
+                                }}
                                 className="tab"
                             >
                                 {tab.label}
@@ -318,6 +323,7 @@ export default function DetailAnak({
                 </div>
             </div>
 
+            <div className="detail-panel" data-arah={arahTab}>
             <TabProfil
                 anak={anak}
                 nama={nama}
@@ -384,6 +390,7 @@ export default function DetailAnak({
                 janggal={janggal}
                 tersembunyi={tabAktif !== 'riwayat'}
             />
+            </div>
 
             {dialog === 'ubah' && (
                 <DialogUbah
@@ -400,6 +407,7 @@ export default function DetailAnak({
             )}
             {dialog === 'wa' && terbaru !== null && nomorTujuan !== null && (
                 <DialogKirimWa
+                    animasiDetail
                     nama={nama}
                     nomor={nomorTujuan}
                     modeUji={NOMOR_UJI !== null}

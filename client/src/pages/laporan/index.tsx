@@ -2,7 +2,6 @@ import {
     AlertTriangle,
     CircleHelp,
     ArrowRight,
-    BarChart3,
     BookOpen,
     Download,
     FileText,
@@ -40,6 +39,7 @@ import { kesimpulanZScore } from '@/lib/kategori';
 import type { useLaporanServer } from '@/lib/laporan';
 import { Link, useAlamat } from '@/lib/nav';
 import type { Periode } from '@/types/posyandu';
+import TabLaporan from './tab-laporan';
 import TabTumbuhKembang from './tab-tumbuh-kembang';
 
 export type BarisRekapRt = {
@@ -167,6 +167,7 @@ export default function Laporan({
                 laporan={laporanLive}
                 bolehUnduh={bolehUnduh}
                 wilayahRt={wilayahRt}
+                alamat={alamat}
             />
         );
     }
@@ -399,38 +400,41 @@ function LaporanDataLive({
     laporan,
     bolehUnduh,
     wilayahRt = [],
+    alamat,
 }: {
     periode: Periode;
     laporan: ReturnType<typeof useLaporanServer>;
     bolehUnduh: boolean;
     wilayahRt?: string[];
+    alamat: string;
 }) {
     const [bantuanTerbuka, setBantuanTerbuka] = useState(false);
     const tombolBantuan = useRef<HTMLButtonElement>(null);
-    const [tab, setTab] = useState<'zscore' | '2t'>(() => {
-        if (
-            typeof window !== 'undefined' &&
-            window.location.hash.toLowerCase().includes('2t')
-        ) {
-            return '2t';
-        }
-
-        return 'zscore';
-    });
+    const tab = new URLSearchParams(alamat.split('?')[1]).get('tab') === '2t' ? '2t' : 'zscore';
     const [kategoriT, setKategoriT] = useState<'semua' | '2t' | '1t'>('semua');
     const [indeks, setIndeks] = useState('BB_U');
     const [standar, setStandar] = useState('PERMENKES-2-2020');
     const [rtDipilih, setRtDipilih] = useState<string>('semua');
     const [cari, setCari] = useState('');
     const [galatUnduh, setGalatUnduh] = useState<string | null>(null);
-    const [mengunduhF1, setMengunduhF1] = useState(false);
+    const [mengunduh, setMengunduh] = useState<'zscore' | 'f1' | null>(null);
+    const unduhanAktif = useRef(false);
+    const unduh = async (format: 'zscore' | 'f1') => {
+        if (unduhanAktif.current) {
+return;
+}
 
-    const gantiTab = (t: 'zscore' | '2t') => {
-        setTab(t);
+        unduhanAktif.current = true;
+        setMengunduh(format);
+        setGalatUnduh(null);
 
-        if (typeof window !== 'undefined') {
-            const baseUrl = window.location.hash.split('?')[0] || '#/laporan';
-            window.location.hash = t === '2t' ? `${baseUrl}?tab=2t` : baseUrl;
+        try {
+            await laporan.unduh(format);
+        } catch (e) {
+            setGalatUnduh(e instanceof Error ? e.message : 'Unduhan gagal.');
+        } finally {
+            unduhanAktif.current = false;
+            setMengunduh(null);
         }
     };
 
@@ -549,10 +553,15 @@ function LaporanDataLive({
                 subjudul={periode.label}
                 penuh="lg"
             >
-                <Link className="tombol-kedua mb-4" href="/laporan?tab=tumbuh-kembang">
-                    Tumbuh Kembang
-                </Link>
-                <StateHalaman
+                {laporan.status === 'galat' && (
+                    <Link
+                        className="tombol-kedua mb-4"
+                        href="/laporan?tab=tumbuh-kembang"
+                    >
+                        Tumbuh Kembang
+                    </Link>
+                )}
+                <div key={`${periode.id}-${laporan.status}`} className="laporan-ganti"><StateHalaman
                     jenis={laporan.status === 'memuat' ? 'memuat' : 'galat'}
                     judul={
                         laporan.status === 'memuat'
@@ -574,7 +583,7 @@ function LaporanDataLive({
                             Coba lagi
                         </button>
                     )}
-                </StateHalaman>
+                </StateHalaman></div>
             </Halaman>
         );
     }
@@ -616,46 +625,24 @@ function LaporanDataLive({
                     {bolehUnduh && (
                         <button
                             type="button"
-                            className="tombol-kedua text-xs font-bold"
-                            onClick={() =>
-                                void laporan
-                                    .unduh()
-                                    .catch((e: unknown) =>
-                                        setGalatUnduh(
-                                            e instanceof Error
-                                                ? e.message
-                                                : 'Unduhan gagal.',
-                                        ),
-                                    )
-                            }
+                            className="tombol-kedua laporan-unduh text-xs font-bold"
+                            disabled={mengunduh !== null}
+                            aria-busy={mengunduh === 'zscore'}
+                            onClick={() => void unduh('zscore')}
                         >
                             <Download className="size-3.5" aria-hidden="true" />{' '}
-                            Excel Z-score & 2T
+                            <span className="laporan-unduh-label"><span aria-hidden={mengunduh === 'zscore'}>Excel Z-score &amp; 2T</span>{mengunduh === 'zscore' && <span className="laporan-unduh-proses" role="status">Menyiapkan…</span>}</span>
                         </button>
                     )}
                     <button
                         type="button"
-                        className="tombol-utama text-xs font-extrabold shadow-sm"
-                        disabled={mengunduhF1}
-                        onClick={async () => {
-                            setMengunduhF1(true);
-                            setGalatUnduh(null);
-
-                            try {
-                                await laporan.unduh('f1');
-                            } catch (e) {
-                                setGalatUnduh(
-                                    e instanceof Error
-                                        ? e.message
-                                        : 'Unduhan F1 gagal.',
-                                );
-                            } finally {
-                                setMengunduhF1(false);
-                            }
-                        }}
+                        className="tombol-utama laporan-unduh text-xs font-extrabold shadow-sm"
+                        disabled={mengunduh !== null}
+                        aria-busy={mengunduh === 'f1'}
+                        onClick={() => void unduh('f1')}
                     >
                         <Download className="size-3.5" aria-hidden="true" />{' '}
-                        {mengunduhF1 ? 'Menyiapkan F1…' : 'Unduh F1 Excel'}
+                        <span className="laporan-unduh-label"><span aria-hidden={mengunduh === 'f1'}>Unduh F1 Excel</span>{mengunduh === 'f1' && <span className="laporan-unduh-proses" role="status">Menyiapkan F1…</span>}</span>
                     </button>
                 </div>
             }
@@ -663,8 +650,8 @@ function LaporanDataLive({
             <div
                 className={
                     bantuanTerbuka
-                        ? 'detail-area bantuan-terbuka'
-                        : 'detail-area'
+                        ? 'detail-area laporan-area bantuan-terbuka'
+                        : 'detail-area laporan-area'
                 }
             >
                 <div className="detail-utama w-full space-y-6">
@@ -836,46 +823,7 @@ function LaporanDataLive({
                     <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
                         {/* Bilah Tab Utama & Selektor Kontrol */}
                         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border bg-surface-subtle/60 px-5 py-4 sm:px-6">
-                            <div
-                                className="bilah-tab"
-                                role="tablist"
-                                aria-label="Jenis laporan"
-                            >
-                                <button
-                                    type="button"
-                                    role="tab"
-                                    aria-selected={tab === 'zscore'}
-                                    onClick={() => gantiTab('zscore')}
-                                    className={`tab inline-flex items-center gap-1.5 font-extrabold ${tab === 'zscore' ? 'bg-primary text-white shadow-xs' : ''}`}
-                                >
-                                    <BarChart3
-                                        className="size-4 shrink-0"
-                                        aria-hidden="true"
-                                    />
-                                    <span>Rekap Z-score Bulanan</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    role="tab"
-                                    aria-selected={tab === '2t'}
-                                    onClick={() => gantiTab('2t')}
-                                    className={`tab inline-flex items-center gap-1.5 font-extrabold ${tab === '2t' ? 'bg-primary text-white shadow-xs' : ''}`}
-                                >
-                                    <AlertTriangle
-                                        className="size-4 shrink-0"
-                                        aria-hidden="true"
-                                    />
-                                    <span>Riwayat 1T & 2T+ ({totalT})</span>
-                                </button>
-                                <Link
-                                    href="/laporan?tab=tumbuh-kembang"
-                                    role="tab"
-                                    aria-selected={false}
-                                    className="tab font-extrabold"
-                                >
-                                    Tumbuh Kembang
-                                </Link>
-                            </div>
+                            <TabLaporan aktif={tab} totalT={totalT} />
 
                             {tab === 'zscore' ? (
                                 <div className="flex flex-wrap items-center gap-3">
@@ -1102,7 +1050,8 @@ function LaporanDataLive({
 
                         {/* Tabel Data Z-Score & 1T/2T */}
                         <div
-                            className="gulir-dalam max-h-[520px] w-full overflow-x-auto"
+                            key={`${tab}-${periode.id}-${rtDipilih}-${tab === 'zscore' ? `${indeks}-${standar}` : kategoriT}`}
+                            className="laporan-ganti gulir-dalam max-h-[520px] w-full overflow-x-auto"
                             tabIndex={0}
                             role="region"
                             aria-label="Tabel laporan z-score, geser ke samping untuk melihat semua kolom"
@@ -1495,6 +1444,7 @@ function LaporanDataLive({
 
                         {galatUnduh && (
                             <DialogGagal
+                                animasiDialog
                                 judul="Laporan belum dapat diunduh"
                                 pesan={galatUnduh}
                                 onTutup={() => setGalatUnduh(null)}

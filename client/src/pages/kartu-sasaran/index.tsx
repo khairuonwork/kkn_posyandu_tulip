@@ -322,10 +322,10 @@ export default function KartuSasaran({
                                     return (
                                         <li key={b.anakId}>
                                             <label
-                                                className={`flex min-h-16 cursor-pointer items-center gap-3.5 border-b border-rule px-5.5 py-2.5 transition-colors ${
+                                                className={`kartu-baris-pilihan flex min-h-16 cursor-pointer items-center gap-3.5 border-b px-5.5 py-2.5 ${
                                                     terpilih
-                                                        ? 'bg-emerald-50/70'
-                                                        : 'hover:bg-surface-subtle'
+                                                        ? 'border-emerald-300 bg-emerald-50/70'
+                                                        : 'border-rule hover:bg-surface-subtle'
                                                 }`}
                                             >
                                                 <input
@@ -430,7 +430,10 @@ export default function KartuSasaran({
                         ) : (
                             <>
                                 {/* Kotak Pratinjau Kartu */}
-                                <div className="mt-3 flex shrink-0 flex-col items-center justify-center rounded-xl border border-border/80 bg-surface-subtle/80 p-3 shadow-inner lg:pendek:mt-2 lg:pendek:p-2">
+                                <div
+                                    key={`${dipilih.map((b) => b.anakId).join(',')}:${aktif}`}
+                                    className="kartu-pratinjau-masuk mt-3 flex shrink-0 flex-col items-center justify-center rounded-xl border border-border/80 bg-surface-subtle/80 p-3 shadow-inner lg:pendek:mt-2 lg:pendek:p-2"
+                                >
                                     <KartuBalita
                                         kartu={kartu[aktif]}
                                         lembaga={lembaga}

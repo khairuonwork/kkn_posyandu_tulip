@@ -150,13 +150,13 @@ export function TabRiwayat({
                                             </span>
                                         )}
                                     </TableCell>
-                                    <TableCell>
+                                    <TableCell className="riwayat-zscore">
                                         <ZScoreCell nilai={p.penilaian.BB_U} />
                                     </TableCell>
-                                    <TableCell>
+                                    <TableCell className="riwayat-zscore">
                                         <ZScoreCell nilai={p.penilaian.BB_TB} />
                                     </TableCell>
-                                    <TableCell>
+                                    <TableCell className="riwayat-zscore">
                                         <ZScoreCell nilai={p.penilaian.TB_U} />
                                     </TableCell>
                                     <TableCell className="hidden md:table-cell">
