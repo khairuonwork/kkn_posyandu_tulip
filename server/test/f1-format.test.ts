@@ -19,7 +19,9 @@ test('F1 keeps official print bounds, merged headings, month/date and original c
     const w=await build([anak(1,'01','N')]);const s=w.worksheets[0];
     assert.equal(s.name,'F1_SEPTEMBER 2026');
     assert.equal(s.pageSetup.printArea,'A1:S64');
-    assert.equal(s.pageSetup.scale,85);
+    assert.equal(s.pageSetup.fitToPage,true,'official form prints on one A4 page');
+    assert.equal(s.pageSetup.fitToWidth,1);assert.equal(s.pageSetup.fitToHeight,1);
+    assert.equal(s.pageSetup.orientation,'portrait');
     assert.equal(s.getColumn('S').width,6.1796875);
     assert.equal(s.getColumn('C').width,20.81640625);
     assert.equal(s.getCell('E5').value,': 12/9/2026');
@@ -28,8 +30,13 @@ test('F1 keeps official print bounds, merged headings, month/date and original c
     assert.equal(s.getCell('O13').value,'36-59 Bulan');
     assert.equal(s.getCell('S13').value,'GRAND TOTAL');
     assert.ok(s.model.merges.includes('S15:S16'));
-    assert.equal(s.getCell('E9').value,null,'do not copy example cadre count');
+    assert.match(String(s.getCell('E9').value),/^:\s+Orang\s*$/,'blank cadre count keeps the form label only');
     assert.equal(s.getCell('A67').value,null,'no appended notes inside official print area');
+    assert.equal(s.getCell('O6').value,null,'sasaran summary stays outside the printed form');
+    assert.equal(s.getCell('U3').value,'SASARAN SEPTEMBER = 1');
+    assert.equal(s.getCell('Q31').result,0,'BGM is hand-filled; its total is a plain sum, not "?"');
+    assert.equal(s.getCell('G15').alignment?.horizontal,'center');
+    assert.equal(s.getCell('G15').font?.name,'Arial');
 });
 test('right-hand raw summary keeps N/T/B layout; O still contributes to total and the main F1',async()=>{
     const w=await build([anak(1,'01','N'),anak(2,'01','O')]);const s=w.getWorksheet('RAW DATA FOR F1_ALL')!;

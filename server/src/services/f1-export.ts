@@ -85,11 +85,18 @@ function raw(w:ExcelJS.Workbook,name:string,g:KelompokF1,periode:string,rows:Ana
 
 async function utama(w:ExcelJS.Workbook,name:string,g:KelompokF1,periode:string,rawName:string) {
     const s=w.addWorksheet(name);
-    formatF1(s,'F1_SEPTEMBER 2026',true);
+    // Official blank form (F1_FORMAT EXCEL.xlsx): one A4 portrait page, A1:S64.
+    formatF1(s,'F1 blank format',true);
     text(s,'A1',`(FI / FII / GIZI / ${periode.slice(0,4)})`);
-    text(s,'E3',': '+g.kelurahan.toUpperCase());text(s,'E4',': '+namaPeriode(periode).replace(/ \d{4}$/,''));text(s,'E5',g.tanggal?': '+g.tanggal.split('-').reverse().map(Number).join('/'):null);
+    text(s,'E3',': '+g.kelurahan.toUpperCase());text(s,'E4',': '+namaPeriode(periode).replace(/ \d{4}$/,''));text(s,'E5',g.tanggal?': '+g.tanggal.split('-').reverse().map(Number).join('/'):': ');
     text(s,'E7',`: ${g.nama.toUpperCase()} / ${g.rw.padStart(3,'0')}`);
-    for(const cell of ['E8','E9','E10','E11','F47','G47','F48','G48','D60','D61','D62','D63','D64'])text(s,cell,null);
+    // Staff fill these by hand; keep the form's ": … Orang" labels, no sample numbers.
+    text(s,'E8',': ');
+    // The blank form leaves G15:P38 unstyled; give every count the same look as
+    // the JUMLAH columns (Arial 8, centred, thin border). Row 7 (D) stays bold.
+    const angka=gayaF1('F1 blank format','Q15');angka.alignment={horizontal:'center',vertical:'middle'};
+    for(let r=15;r<=38;r++)if(r!==27&&r!==28)for(let c=7;c<=16;c++)s.getCell(r,c).style=structuredClone(angka);
+    for(const cell of ['F47','G47','F48','G48','D60','D61','D62','D63','D64'])text(s,cell,null);
     const end=Math.max(6,g.anak.length+5),ref=(c:string)=>`${q(rawName)}!$${c}$6:$${c}$${end}`;
     const rows=[15,17,19,21,23,25,27,29,31,33,35,37];
     const groups=[[0,5],[6,11],[12,23],[24,35],[36,59]];
@@ -130,6 +137,8 @@ async function utama(w:ExcelJS.Workbook,name:string,g:KelompokF1,periode:string,
         }
         for(const [c,cs] of [['Q',['G','I','K','M','O']],['R',['H','J','L','N','P']]] as const){
             const cells=cs.map(c=>c+r);const vals=cells.map(c=>s.getCell(c).result);
+            // BGM is filled by hand on the form; total it plainly like the blank format.
+            if(r0===31){form(s,c+r,`SUM(${cells.join(',')})`,0);continue;}
             form(s,c+r,`IF(COUNT(${cells.join(',')})=5,SUM(${cells.join(',')}),"?")`,vals.every(v=>typeof v==='number')?vals.reduce((a,b)=>Number(a)+Number(b),0) as number:'?');
         }
     }
@@ -154,10 +163,12 @@ async function utama(w:ExcelJS.Workbook,name:string,g:KelompokF1,periode:string,
         const vals=Array.from({length:7},(_,i)=>s.getCell(r,6+i).result);
         form(s,'M'+r,`IF(COUNT(F${r}:L${r})=7,SUM(F${r}:L${r}),"?")`,vals.every(v=>typeof v==='number')?vals.reduce((a,b)=>Number(a)+Number(b),0) as number:'?');
     }
-    text(s,'O6','SASARAN '+namaPeriode(periode).replace(/ \d{4}$/,'')+' = '+g.anak.length);
-    text(s,'O7',null);text(s,'O8','BARU='+g.anak.filter(a=>a.ntob==='B').length);
-    // Keep the official printed form at A1:S64. Explanations sit outside it.
+    // Keep the official printed form at A1:S64. Summary and explanations sit
+    // to the right of it (column U), so they never show on the printed page.
     const notes=[
+        'SASARAN '+namaPeriode(periode).replace(/ \d{4}$/,'')+' = '+g.anak.length,
+        'BARU = '+g.anak.filter(a=>a.ntob==='B').length,
+        '',
         'Isian kosong di bagian umum, BGM, vitamin A, ibu hamil/nifas dan IMD diisi petugas.',
         '? berarti sumber belum cukup, bukan nol. Perbaiki G/NG, NTOB atau ASI pada RAW DATA FOR F1_ALL.',
         'G = desil 1–4; NG = desil 5–10. Tanpa desil, kategori mengikuti sumber terakhir.',
@@ -165,7 +176,7 @@ async function utama(w:ExcelJS.Workbook,name:string,g:KelompokF1,periode:string,
         'Kolom O tetap dihitung pada F1 utama. TOTAL ringkasan kanan mencakup semua yang ditimbang, termasuk O.',
         'K memakai KMS elektronik sasaran terdaftar. Penanda tidak hadir saat sesi tetap tersimpan pada detail.',
     ];
-    notes.forEach((n,i)=>{text(s,'U'+(67+i),n);});
+    notes.forEach((n,i)=>{if(n){text(s,'U'+(3+i),n);s.getCell('U'+(3+i)).font={name:'Arial',size:8,italic:i>2};}});
     return s;
 }
 
