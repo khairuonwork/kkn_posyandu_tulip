@@ -1,5 +1,6 @@
 import { AlertTriangle, ArrowRight, RotateCcw, SearchX } from 'lucide-react';
 import EmptyState from '@/components/empty-state';
+import JenisKelaminBadge from '@/components/jenis-kelamin-badge';
 import StatusGiziBadge from '@/components/status-gizi-badge';
 import { angka, tanggalRingkas, zScore } from '@/lib/format';
 import { kesimpulanZScore } from '@/lib/kategori';
@@ -171,15 +172,7 @@ export default function TabelLaporan({
                                             >
                                                 {row.nama}
                                             </Link>
-                                            <span
-                                                className={`py-0.2 rounded px-1.5 text-[10px] font-extrabold ${
-                                                    row.jk === 'L'
-                                                        ? 'bg-blue-100 text-blue-800'
-                                                        : 'bg-pink-100 text-pink-800'
-                                                }`}
-                                            >
-                                                {row.jk}
-                                            </span>
+                                            <JenisKelaminBadge jk={row.jk} />
                                         </div>
                                         <p className="mt-0.5 font-mono text-xs text-muted-foreground">
                                             {row.nik ?? 'NIK belum tercatat'} ·
