@@ -54,3 +54,26 @@ test('profil historis membatasi sumber Desil sampai periode yang dilihat',async(
     }} as unknown as Pool;
     await ambil(pool,user,11,'2026-09');
 });
+
+test('kader dapat menyimpan kategori tanpa desil untuk F1; data ASI tetap utuh', async () => {
+    const calls: {sql: string; values: unknown[]}[] = [];
+    const db = {query: async (sql: string, values: unknown[]) => {
+        calls.push({sql, values});
+        if (sql.includes('a.orang_tua_id AS')) return {rows: [{orangTuaId: 2, rt: '01', posyanduId: 1}]};
+        if (sql.includes('SELECT id FROM wilayah_rt')) return {rows: [{id: 1}]};
+        return {rows: []};
+    }} as unknown as PoolClient;
+    for (const gng of ['G', 'NG'] as const) {
+        calls.length = 0;
+        assert.equal(await ubahProfilAnak(db, {...user, peran: 'kader'}, 11, {...profil, desil: null, desilKelompok: null, gng, periodeId: '2026-10'}), 'berhasil');
+        const saved = calls.find(c => c.sql.includes('INSERT INTO sumber_f1'))!;
+        assert.deepEqual(saved.values, [11, '2026-10', null, gng, null]);
+        assert.doesNotMatch(saved.sql, /asi_eksklusif/);
+    }
+});
+
+test('kategori tanpa periode atau bertentangan ditolak sebelum transaksi', async () => {
+    const pool = {connect: () => {throw new Error('tidak boleh menyentuh DB');}} as unknown as Pool;
+    await assert.rejects(ubahProfil(pool, user, 11, {...profil, gng: 'G'}), /periode/);
+    await assert.rejects(ubahProfil(pool, user, 11, {...profil, desil: 5, gng: 'G', periodeId: '2026-10'}), /bertentangan/);
+});

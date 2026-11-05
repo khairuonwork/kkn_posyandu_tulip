@@ -51,6 +51,7 @@ type AnakDetailApi = AnakApi & {
     imd: boolean;
     kbIbu: boolean | null;
     jenisKb?: string | null;
+    gng?: 'G' | 'NG' | null;
     desilKelompok?: '6-10' | null;
     desil?: number | null;
 };
@@ -266,6 +267,7 @@ function keDetail(a: AnakDetailApi): Anak {
         jenisKb: a.jenisKb ?? null,
         desilKelompok: a.desilKelompok ?? null,
         desil: a.desil ?? null,
+        gng: a.gng ?? null,
         rt: a.rt,
         rw: '18',
         namaOrtu: a.namaOrtu,

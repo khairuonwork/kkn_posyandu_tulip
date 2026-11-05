@@ -72,7 +72,7 @@ export function TabProfil({
                     <BarisDefinisi label="Ibu">
                         {anak.namaOrtu ?? KOSONG}
                     </BarisDefinisi>
-                    <BarisDefinisi label="Kelompok Desil">
+                    <BarisDefinisi label="Desil / status ekonomi">
                         {labelDesil(pilihanDesil(anak))}
                     </BarisDefinisi>
                     <BarisDefinisi label="Jenis KB">

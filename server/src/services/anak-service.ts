@@ -54,7 +54,7 @@ export async function ubahProfil(
     }
     if (data.desil !== undefined && data.desil !== null && (typeof data.desil !== 'number' || !Number.isInteger(data.desil) || data.desil < 1 || data.desil > 10))
         throw new GalatAnak(400, 'Kelompok Desil harus bilangan 1 sampai 10.');
-    if ((data.desil !== undefined || data.desilKelompok !== undefined) && (typeof data.periodeId !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(data.periodeId)))
+    if ((data.desil !== undefined || data.desilKelompok !== undefined || data.gng !== undefined) && (typeof data.periodeId !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(data.periodeId)))
         throw new GalatAnak(400, 'Pilih periode berlaku untuk Kelompok Desil.');
     if (data.kbIbu !== undefined && data.kbIbu !== null && typeof data.kbIbu !== 'boolean')
         throw new GalatAnak(400, 'Data KB Ibu harus Iya atau Tidak.');

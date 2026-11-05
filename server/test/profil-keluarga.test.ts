@@ -18,3 +18,12 @@ test('kelompok Desil hanya menerima 6-10 tanpa angka tertentu', () => {
     assert.throws(() => validasiProfilKeluarga({ desilKelompok: '7-10' }, ''), /Desil/);
     assert.throws(() => validasiProfilKeluarga({ desilKelompok: '6-10', desil: 6 }, ''), /Desil/);
 });
+
+test('kategori G/NG tanpa nomor desil valid; kategori yang bertentangan ditolak', () => {
+    for (const gng of ['G', 'NG'] as const)
+        assert.equal(validasiProfilKeluarga({ gng, desil: null, desilKelompok: null }, '').gng, gng);
+    for (const gng of ['', 'g', 1, true, {}])
+        assert.throws(() => validasiProfilKeluarga({ gng }, ''), /Status ekonomi/);
+    for (const data of [{ desil: 5, gng: 'G' }, { desil: 4, gng: 'NG' }, { desilKelompok: '6-10', gng: 'G' }])
+        assert.throws(() => validasiProfilKeluarga(data, ''), /bertentangan/);
+});

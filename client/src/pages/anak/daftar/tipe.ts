@@ -44,6 +44,7 @@ export type PatchAnak = {
     noWa?: string;
     kbIbu?: boolean | null;
     jenisKb?: string | null;
+    gng?: 'G' | 'NG' | null;
     desilKelompok?: '6-10' | null;
     desil?: number | null;
     periodeId?: string;

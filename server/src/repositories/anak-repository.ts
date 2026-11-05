@@ -52,6 +52,7 @@ export type AnakDetail = Omit<
     imd: boolean;
     kbIbu: boolean | null;
     jenisKb: string | null;
+    gng: 'G' | 'NG' | null;
     desilKelompok: '6-10' | null;
     desil: number | null;
     noWa: string | null;
@@ -60,6 +61,7 @@ export type AnakDetail = Omit<
 export type PerubahanProfilAnak = {
     kbIbu?: boolean | null;
     jenisKb?: string | null;
+    gng?: 'G' | 'NG' | null;
     desilKelompok?: '6-10' | null;
     desil?: number | null;
     periodeId?: string;
@@ -272,6 +274,10 @@ export async function ambil(
                 a.anak_ke AS "anakKe",
                 a.bb_lahir_kg::float8 AS "bbLahirKg", a.pb_lahir_cm::float8 AS "pbLahirCm",
                 a.buku_kia AS "bukuKia", a.imd, o.kb_ibu AS "kbIbu", o.jenis_kb AS "jenisKb",
+                (SELECT sf.gng FROM sumber_f1 sf WHERE sf.anak_id=a.id
+                    AND ($5::text IS NULL OR sf.periode<=$5)
+                    AND (sf.desil IS NOT NULL OR sf.gng IS NOT NULL OR sf.sumber LIKE 'Profil Anak%')
+                    ORDER BY sf.periode DESC LIMIT 1) AS gng,
                 (SELECT sf.desil_kelompok FROM sumber_f1 sf WHERE sf.anak_id=a.id
                     AND ($5::text IS NULL OR sf.periode<=$5)
                     AND (sf.desil IS NOT NULL OR sf.gng IS NOT NULL OR sf.sumber LIKE 'Profil Anak%')
@@ -392,12 +398,12 @@ export async function ubahProfilAnak(
             data.bukuKia,
         ],
     );
-    if (data.desil !== undefined || data.desilKelompok !== undefined) {
+    if (data.desil !== undefined || data.desilKelompok !== undefined || data.gng !== undefined) {
         await db.query(`INSERT INTO sumber_f1(anak_id,periode,desil,gng,desil_kelompok,sumber)
             VALUES($1,$2,$3,$4,$5,'Profil Anak / Kelompok Desil')
             ON CONFLICT(anak_id,periode) DO UPDATE SET desil=EXCLUDED.desil,gng=EXCLUDED.gng,
                 desil_kelompok=EXCLUDED.desil_kelompok,sumber=EXCLUDED.sumber,updated_at=now()`,
-            [anakId,data.periodeId,data.desil ?? null,data.desilKelompok === '6-10' ? 'NG' : data.desil == null ? null : data.desil <= 4 ? 'G' : 'NG',data.desilKelompok ?? null]);
+            [anakId,data.periodeId,data.desil ?? null,data.desilKelompok === '6-10' ? 'NG' : data.desil == null ? data.gng ?? null : data.desil <= 4 ? 'G' : 'NG',data.desilKelompok ?? null]);
     }
     return "berhasil";
 }
