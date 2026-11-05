@@ -1,0 +1,304 @@
+/* Layout dan kontrol khusus autentikasi; tidak mengubah skala halaman operasional. */
+.login-halaman {
+    display: grid;
+    min-height: 100svh;
+    width: 100%;
+    align-items: center;
+    padding: 32px;
+    overflow-y: auto;
+    background: var(--background);
+    color: var(--foreground);
+}
+
+.login-panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: min(100%, 1040px);
+    min-height: 640px;
+    margin-inline: auto;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--card);
+}
+
+.login-form-panel {
+    display: flex;
+    align-items: center;
+    padding: 36px 48px;
+}
+
+.login-form-content {
+    width: 100%;
+    max-width: 408px;
+    margin-inline: auto;
+}
+
+.login-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.login-brand-mark {
+    display: grid;
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    place-items: center;
+    border-radius: 12px;
+    background: var(--accent);
+    color: var(--primary);
+}
+
+.login-brand-mark svg {
+    width: 24px;
+    height: 24px;
+}
+.login-brand-name {
+    font-size: 16px;
+    font-weight: 800;
+    line-height: 1.4;
+}
+.login-brand-description {
+    margin-top: 2px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--muted-foreground);
+}
+
+.login-heading {
+    margin-top: 32px;
+    font-size: 32px;
+    line-height: 1.2;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+}
+
+.login-description {
+    max-width: 42ch;
+    margin-top: 8px;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--muted-foreground);
+}
+
+.login-form {
+    margin-top: 24px;
+}
+.login-fields {
+    display: grid;
+    gap: 20px;
+}
+.login-fields label {
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 700;
+}
+.login-halaman .isian {
+    min-height: 48px;
+    height: 48px;
+    padding-inline: 14px;
+    border-width: 1px;
+    border-radius: 8px;
+    background: var(--card);
+    font-size: 14px;
+    line-height: 1.5;
+    caret-color: var(--primary);
+    transition:
+        border-color 150ms ease,
+        box-shadow 150ms ease;
+}
+.login-halaman .isian::placeholder {
+    color: var(--muted-foreground);
+    opacity: 1;
+    font-size: 14px;
+}
+.login-halaman .isian:hover:not(:disabled) {
+    border-color: var(--primary);
+}
+.login-halaman .isian:focus-visible {
+    border-color: var(--primary);
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+.login-halaman #sandi {
+    padding-right: 52px;
+}
+.login-field-feedback {
+    margin-top: 8px;
+}
+.login-field-feedback:empty {
+    display: none;
+}
+.login-notices {
+    margin-bottom: 20px;
+}
+.login-notices > [role] {
+    font-size: 14px;
+}
+
+.login-password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 2px;
+    display: grid;
+    width: 44px;
+    height: 44px;
+    transform: translateY(-50%);
+    place-items: center;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--muted-foreground);
+    cursor: pointer;
+}
+.login-password-toggle:hover:not(:disabled) {
+    background: var(--accent);
+    color: var(--primary);
+}
+.login-password-toggle:disabled {
+    cursor: wait;
+    opacity: 0.6;
+}
+.login-password-toggle svg {
+    width: 19px;
+    height: 19px;
+}
+.login-password-toggle:focus-visible,
+.login-submit:focus-visible {
+    outline: 3px solid var(--primary);
+    outline-offset: 3px;
+}
+
+.login-submit {
+    width: 100%;
+    min-height: 48px;
+    margin-top: 24px;
+    border-radius: 8px;
+    box-shadow: none;
+    font-size: 14px;
+    transition: background-color 150ms ease;
+}
+.login-submit:hover:not(:disabled) {
+    background: #0b5736;
+}
+.login-help {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    color: var(--muted-foreground);
+    font-size: 12px;
+    line-height: 1.7;
+}
+.login-note {
+    margin-top: 20px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--muted-foreground);
+}
+
+.login-visual {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    margin: 12px 12px 12px 0;
+    overflow: hidden;
+    border-radius: 12px;
+    background-color: #0b5334;
+    background-position: 52% 35%;
+    background-size: cover;
+    color: #fff;
+}
+.login-visual::before {
+    position: absolute;
+    inset: 0;
+    content: '';
+    background: linear-gradient(
+        180deg,
+        transparent 30%,
+        rgb(5 50 32 / 18%) 50%,
+        rgb(5 50 32 / 96%) 100%
+    );
+}
+.login-visual-copy {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 36px;
+}
+.login-visual-heading {
+    max-width: 14ch;
+    font-size: 32px;
+    line-height: 1.22;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+}
+.login-visual-description {
+    max-width: 36ch;
+    margin-top: 16px;
+    font-size: 14px;
+    line-height: 1.7;
+    color: #f2f8f1;
+}
+.login-halaman ::selection {
+    background: var(--primary);
+    color: #fff;
+}
+
+@media (max-width: 900px) {
+    .login-panel {
+        grid-template-columns: 1fr;
+        max-width: 520px;
+        min-height: 0;
+    }
+    .login-form-panel {
+        padding: 40px;
+    }
+    .login-visual {
+        display: none;
+    }
+}
+
+@media (max-width: 540px) {
+    .login-halaman {
+        padding: 24px;
+        background: var(--card);
+    }
+    .login-panel {
+        border: 0;
+        border-radius: 0;
+    }
+    .login-form-panel {
+        padding: 16px 0;
+    }
+    .login-heading {
+        font-size: 30px;
+    }
+    .login-halaman .isian {
+        font-size: 16px;
+    }
+}
+
+@media (max-height: 740px) and (min-width: 901px) {
+    .login-halaman {
+        padding-block: 24px;
+    }
+    .login-panel {
+        min-height: 0;
+    }
+    .login-form-panel {
+        padding-block: 28px;
+    }
+    .login-heading {
+        margin-top: 24px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .login-halaman .isian,
+    .login-submit {
+        transition: none;
+    }
+}
