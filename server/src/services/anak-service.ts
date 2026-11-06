@@ -5,7 +5,7 @@ import type { Pool } from "pg";
 import type { PenggunaAktif } from "../auth/peran.ts";
 import { dalamTransaksi } from "../db/transaksi.ts";
 import * as anakRepo from "../repositories/anak-repository.ts";
-import { hitungDanSimpanDalamTransaksi } from "./gizi-service.ts";
+import { hitungDanSimpanDalamTransaksi, hitungUlangAnakDalamTransaksi } from "./gizi-service.ts";
 import { muatTabelStandar } from '../repositories/standar-lms-repository.ts';
 import { validasiProfilKeluarga } from './profil-keluarga.ts';
 
@@ -89,8 +89,10 @@ export async function ubahProfil(
         const hasil = await dalamTransaksi(
             pool,
             { pengguna: pengguna.id, sumber: "web" },
-            (db) =>
-                anakRepo.ubahProfilAnak(db, pengguna, anakId, {
+            async (db) => {
+                const sebelum = await anakRepo.kunciDasarPenilaian(db, pengguna, anakId);
+                if (sebelum === null) return 'tidak_ada' as const;
+                const status = await anakRepo.ubahProfilAnak(db, pengguna, anakId, {
                     nama,
                     nik: nikMentah || null,
                     namaOrtu,
@@ -105,7 +107,12 @@ export async function ubahProfil(
                     ...keluarga,
                     desil: data.desil as number | null | undefined,
                     periodeId: data.periodeId as string | undefined,
-                }),
+                });
+                if (status === "berhasil" && (sebelum.jk !== jk || sebelum.tglLahir !== tglLahir)) {
+                    await hitungUlangAnakDalamTransaksi(pool, db, anakId);
+                }
+                return status;
+            },
         );
         if (hasil === "tidak_ada")
             throw new GalatAnak(404, "Anak tidak ditemukan.");

@@ -319,7 +319,21 @@ export async function ambil(
     return rows[0] ?? null;
 }
 
-/** Memperbarui identitas profil tanpa menyentuh pengukuran atau penilaian gizi. */
+/** Kunci identitas lama sebelum koreksi dan hitung ulang dalam transaksi yang sama. */
+export async function kunciDasarPenilaian(db: PoolClient, pengguna: PenggunaAktif, anakId: number) {
+    const { rows } = await db.query<{jk: 'L' | 'P'; tglLahir: string}>(
+        `SELECT a.jk, to_char(a.tgl_lahir, 'YYYY-MM-DD') AS "tglLahir"
+           FROM anak a LEFT JOIN wilayah_rt w ON w.id=a.wilayah_rt_id
+          WHERE a.id=$1 AND a.deleted_at IS NULL
+            AND ($2::text IS NULL OR w.rt=$2)
+            AND ($3::boolean OR w.posyandu_id=ANY($4::bigint[]))
+          FOR UPDATE OF a`,
+        [anakId, rtYangBolehDilihat(pengguna), pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
+    );
+    return rows[0] ?? null;
+}
+
+/** Memperbarui identitas profil; layanan pemanggil menghitung ulang penilaian bila diperlukan. */
 export async function ubahProfilAnak(
     db: PoolClient,
     pengguna: PenggunaAktif,

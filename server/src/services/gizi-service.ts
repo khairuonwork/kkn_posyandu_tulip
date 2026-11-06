@@ -21,6 +21,7 @@ import type { BarisPengukuran } from '../repositories/penilaian-gizi-repository.
 import {
     ambilMasukan,
     ambilMasukanPeriode,
+    ambilMasukanAnak,
     simpanPenilaian,
 } from '../repositories/penilaian-gizi-repository.ts';
 import { muatTabelStandar, VERSI_DEFAULT } from '../repositories/standar-lms-repository.ts';
@@ -73,6 +74,16 @@ export async function hitungDanSimpanDalamTransaksi(
     const hasil = hitungPenilaian(tabel, pengukuran);
 
     return simpanPenilaian(klien, pengukuranId, versi, hasil);
+}
+
+/** Koreksi identitas memakai mesin yang sama dengan pencatatan ukur, tanpa menulis nilai ukur. */
+export async function hitungUlangAnakDalamTransaksi(pool: Pool, klien: PoolClient, anakId: number): Promise<void> {
+    const daftar = await ambilMasukanAnak(klien, anakId);
+    if (daftar.length === 0) return;
+    const tabel = await muatTabelStandar(pool);
+    for (const pengukuran of daftar) {
+        await simpanPenilaian(klien, pengukuran.id, VERSI_DEFAULT, hitungPenilaian(tabel, pengukuran));
+    }
 }
 
 /**

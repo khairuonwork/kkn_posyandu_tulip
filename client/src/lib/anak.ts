@@ -332,6 +332,7 @@ export function useDetailAnakServer(
     anakId: number | null,
     onSesiBerakhir: () => void,
     periodeId = '',
+    revisiProfil = 0,
 ): DetailAnakServerState {
     const [state, setState] = useState<DetailAnakServerState>({
         status: 'memuat',
@@ -421,7 +422,7 @@ export function useDetailAnakServer(
             aktif = false;
             controller.abort();
         };
-    }, [anakId, onSesiBerakhir, periodeId]);
+    }, [anakId, onSesiBerakhir, periodeId, revisiProfil]);
 
     return state;
 }

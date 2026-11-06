@@ -89,6 +89,14 @@ export async function ambilMasukanPeriode(
     return rows.map((r) => keBaris(r as Record<string, unknown>));
 }
 
+/** Semua bulan milik satu anak; kunci nilai ukur selama penilaian diperbarui. */
+export async function ambilMasukanAnak(klien: PoolClient, anakId: number): Promise<BarisPengukuran[]> {
+    const { rows } = await klien.query(
+        `${KOLOM_MASUKAN} WHERE p.anak_id = $1 ORDER BY p.id FOR UPDATE OF p`, [anakId],
+    );
+    return rows.map((r) => keBaris(r as Record<string, unknown>));
+}
+
 /**
  * Menyimpan hasil penilaian satu pengukuran untuk satu versi standar.
  *
