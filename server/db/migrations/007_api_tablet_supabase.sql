@@ -259,15 +259,27 @@ ALTER TABLE periode ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pengukuran ENABLE ROW LEVEL SECURITY;
 ALTER TABLE layanan ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY tablet_baca_posyandu ON posyandu FOR SELECT TO authenticated USING (true);
-CREATE POLICY tablet_baca_wilayah ON wilayah_rt FOR SELECT TO authenticated USING (true);
-CREATE POLICY tablet_baca_orang_tua ON orang_tua FOR SELECT TO authenticated USING (true);
-CREATE POLICY tablet_baca_anak ON anak FOR SELECT TO authenticated USING (deleted_at IS NULL);
-CREATE POLICY tablet_baca_periode ON periode FOR SELECT TO authenticated USING (true);
-CREATE POLICY tablet_baca_pengukuran ON pengukuran FOR SELECT TO authenticated USING (true);
-CREATE POLICY tablet_baca_layanan ON layanan FOR SELECT TO authenticated USING (true);
+-- PostgreSQL lokal menggunakan REST API; role berikut hanya tersedia di Supabase.
+-- Tetap cabut akses PUBLIC ke RPC meskipun role Supabase tidak terpasang.
+REVOKE ALL ON FUNCTION daftar_anak_tablet(jsonb), simpan_pengukuran_tablet(jsonb) FROM PUBLIC;
 
-REVOKE ALL ON tablet_anak, tablet_pengukuran FROM anon;
-GRANT SELECT ON tablet_anak, tablet_pengukuran TO authenticated;
-REVOKE ALL ON FUNCTION daftar_anak_tablet(jsonb), simpan_pengukuran_tablet(jsonb) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION daftar_anak_tablet(jsonb), simpan_pengukuran_tablet(jsonb) TO authenticated;
+DO $supabase_roles$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+        CREATE POLICY tablet_baca_posyandu ON posyandu FOR SELECT TO authenticated USING (true);
+        CREATE POLICY tablet_baca_wilayah ON wilayah_rt FOR SELECT TO authenticated USING (true);
+        CREATE POLICY tablet_baca_orang_tua ON orang_tua FOR SELECT TO authenticated USING (true);
+        CREATE POLICY tablet_baca_anak ON anak FOR SELECT TO authenticated USING (deleted_at IS NULL);
+        CREATE POLICY tablet_baca_periode ON periode FOR SELECT TO authenticated USING (true);
+        CREATE POLICY tablet_baca_pengukuran ON pengukuran FOR SELECT TO authenticated USING (true);
+        CREATE POLICY tablet_baca_layanan ON layanan FOR SELECT TO authenticated USING (true);
+        GRANT SELECT ON tablet_anak, tablet_pengukuran TO authenticated;
+        GRANT EXECUTE ON FUNCTION daftar_anak_tablet(jsonb), simpan_pengukuran_tablet(jsonb) TO authenticated;
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+        REVOKE ALL ON tablet_anak, tablet_pengukuran FROM anon;
+        REVOKE ALL ON FUNCTION daftar_anak_tablet(jsonb), simpan_pengukuran_tablet(jsonb) FROM anon;
+    END IF;
+END
+$supabase_roles$;
