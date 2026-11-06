@@ -26,11 +26,18 @@ export default function GrafikBeratTinggi({
     const clipId = useId();
     const bukaan = useRef<SVGRectElement>(null);
     useLayoutEffect(() => {
-        if (!bukaan.current || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        if (
+            !bukaan.current ||
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        ) {
+            return;
+        }
+
         const animasi = bukaan.current.animate(
             [{ width: '0px' }, { width: '820px' }],
             { duration: 700, easing: 'ease-out' },
         );
+
         return () => animasi.cancel();
     }, [jenis]);
     const tabel = useMemo(() => susunTabel(standar), [standar]);
@@ -174,7 +181,13 @@ export default function GrafikBeratTinggi({
                     >
                         <defs>
                             <clipPath id={clipId}>
-                                <rect ref={bukaan} x={62} y={20} width={820} height={320} />
+                                <rect
+                                    ref={bukaan}
+                                    x={62}
+                                    y={20}
+                                    width={820}
+                                    height={320}
+                                />
                             </clipPath>
                         </defs>
                         {sumbuX.map((v) => (

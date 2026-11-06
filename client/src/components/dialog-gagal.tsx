@@ -20,7 +20,10 @@ export default function DialogGagal({
     const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [menutup, setMenutup] = useState(false);
     const tutup = () => {
-        if (!animasiDialog || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        if (
+            !animasiDialog ||
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        ) {
             onTutup();
         } else if (timer.current === null) {
             setMenutup(true);
@@ -35,8 +38,8 @@ export default function DialogGagal({
 
         return () => {
             if (timer.current !== null) {
-clearTimeout(timer.current);
-}
+                clearTimeout(timer.current);
+            }
 
             dialog?.close();
 

@@ -9,7 +9,12 @@
 
 import { useEffect, useState } from 'react';
 
-import type { DaftarPengguna, IsianPengguna, PosyanduAkun, WilayahRtAkun } from '@/pages/pengaturan/index';
+import type {
+    DaftarPengguna,
+    IsianPengguna,
+    PosyanduAkun,
+    WilayahRtAkun,
+} from '@/pages/pengaturan/index';
 import type { Pengguna } from '@/types/posyandu';
 
 /**

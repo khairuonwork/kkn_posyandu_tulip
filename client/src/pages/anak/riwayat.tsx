@@ -225,7 +225,9 @@ export default function RiwayatPenimbangan({
                                     : 'panjang menurut umur'}
                                 )
                             </TableHead>
-                            <TableHead scope="col">BB/U (berat menurut umur)</TableHead>
+                            <TableHead scope="col">
+                                BB/U (berat menurut umur)
+                            </TableHead>
                             <TableHead scope="col">Berat naik?</TableHead>
                         </TableRow>
                     </TableHeader>

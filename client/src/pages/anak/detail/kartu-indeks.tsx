@@ -1,6 +1,6 @@
+import { nadaKategori } from '@/components/status-gizi-badge';
 import { KOSONG, zScore } from '@/lib/format';
 import { kesimpulanZScore } from '@/lib/kategori';
-import { nadaKategori } from '@/components/status-gizi-badge';
 import type { PenilaianGizi } from '@/types/posyandu';
 import { WARNA_NADA } from './tipe';
 

@@ -4,7 +4,7 @@
 
 import { BookOpen, CircleCheck } from 'lucide-react';
 import { useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { KeyboardEvent, ReactNode, RefObject } from 'react';
+import type { KeyboardEvent } from 'react';
 import GrafikBeratTinggi from '@/components/grafik-berat-tinggi';
 import { nadaKategori } from '@/components/status-gizi-badge';
 import {
@@ -206,7 +206,6 @@ type Props = {
     modeKms?: boolean;
     umurDisorot?: number | null;
     aktif: boolean;
-    animasiSudahDiputar: RefObject<boolean>;
 };
 
 export default function GrafikPertumbuhan({
@@ -218,8 +217,8 @@ export default function GrafikPertumbuhan({
     modeKms = false,
     umurDisorot = null,
     aktif,
-    animasiSudahDiputar,
 }: Props) {
+    const animasiSudahDiputar = useRef(false);
     const idBukaan = useId();
     const bukaan = useRef<SVGRectElement>(null);
     const animasi = useRef<Animation | null>(null);
@@ -235,12 +234,19 @@ export default function GrafikPertumbuhan({
     const panelTersedia = PANEL_AWAL.filter((awal) => awal <= umurTerakhir);
 
     const [jenis, setJenis] = useState<JenisGrafik | 'BB_TB'>('BB_U');
-    const [arahIndeks, setArahIndeks] = useState<'maju' | 'mundur' | null>(null);
+    const [arahIndeks, setArahIndeks] = useState<'maju' | 'mundur' | null>(
+        null,
+    );
     const pilihJenis = (pilihan: JenisGrafik | 'BB_TB') => {
-        if (pilihan === jenis) return;
+        if (pilihan === jenis) {
+            return;
+        }
+
         animasi.current?.cancel();
         const urutan = [...SPEK.map((item) => item.indeks), 'BB_TB'];
-        setArahIndeks(urutan.indexOf(pilihan) > urutan.indexOf(jenis) ? 'maju' : 'mundur');
+        setArahIndeks(
+            urutan.indexOf(pilihan) > urutan.indexOf(jenis) ? 'maju' : 'mundur',
+        );
         setJenis(pilihan);
         setSorot(null);
     };
@@ -251,20 +257,38 @@ export default function GrafikPertumbuhan({
     );
     const pilihanTerakhir = useRef(`${jenis}:${panel}`);
     useLayoutEffect(() => {
-        if (!aktif) return;
+        if (!aktif) {
+            return;
+        }
+
         const pilihan = `${jenis}:${panel}`;
         const berubah = pilihan !== pilihanTerakhir.current;
         pilihanTerakhir.current = pilihan;
         const perluAnimasi = !animasiSudahDiputar.current || berubah;
-        if (!perluAnimasi) return;
+
+        if (!perluAnimasi) {
+            return;
+        }
+
         animasiSudahDiputar.current = true;
-        if (!bukaan.current || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+        if (
+            !bukaan.current ||
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        ) {
+            return;
+        }
+
         animasi.current = bukaan.current.animate(
             [{ width: '0px' }, { width: `${PLOT_LEBAR + 32}px` }],
             { duration: 700, easing: 'ease-out' },
         );
-        return () => { animasi.current?.cancel(); animasi.current = null; };
-    }, [aktif, animasiSudahDiputar, jenis, panel, modeKms]);
+
+        return () => {
+            animasi.current?.cancel();
+            animasi.current = null;
+        };
+    }, [aktif, jenis, panel, modeKms]);
     // Titik yang diketuk tetap terbuka; titik di bawah tetikus ikut menyala.
     // Panel dan titik yang diketuk tidak ikut berpindah saat indeks diganti.
     const [pin, setPin] = useState<string | null>(
@@ -312,7 +336,10 @@ export default function GrafikPertumbuhan({
 
     const awalTampil = Math.max(panel, spek.mulai);
     const akhirTampil = panel + PANEL_BULAN;
-    const bulan = Array.from({ length: akhirTampil - awalTampil + 1 }, (_, i) => awalTampil + i);
+    const bulan = Array.from(
+        { length: akhirTampil - awalTampil + 1 },
+        (_, i) => awalTampil + i,
+    );
     const bulanHidup = bulan.filter((u) => u >= spek.mulai && lms.has(u));
     const dalamPanel = seri.filter(
         (t) => t.umur >= awalTampil && t.umur <= akhirTampil,
@@ -447,13 +474,20 @@ export default function GrafikPertumbuhan({
                             ? 'Kurva KMS'
                             : 'Grafik Pertumbuhan Antropometri'}
                     </h2>
-                    <p key={jenis} className={`mt-0.5 text-sm text-muted-foreground ${arahIndeks ? `detail-indeks-${arahIndeks}` : ''}`}>
+                    <p
+                        key={jenis}
+                        className={`mt-0.5 text-sm text-muted-foreground ${arahIndeks ? `detail-indeks-${arahIndeks}` : ''}`}
+                    >
                         {jenis === 'BB_TB'
                             ? 'Berat badan menurut panjang/tinggi badan (BB/PB atau BB/TB)'
                             : `${judulTampil(spek)} (${kodeIndeks(spek)})`}{' '}
                         · Pemantauan tren kurva Z-score
                     </p>
-                    {modeKms && <p className="mt-1 text-sm text-muted-foreground">{keterangan}</p>}
+                    {modeKms && (
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            {keterangan}
+                        </p>
+                    )}
                 </div>
             </div>
 
@@ -609,13 +643,16 @@ export default function GrafikPertumbuhan({
                 </div>
             )}
             {jenis === 'BB_TB' ? (
-                <div key={jenis} className={arahIndeks ? `detail-indeks-${arahIndeks}` : ''}>
-                <GrafikBeratTinggi
-                    kelamin={kelamin}
-                    umurBalita={umurBalita}
-                    pengukuran={pengukuran}
-                    standar={standar}
-                />
+                <div
+                    key={jenis}
+                    className={arahIndeks ? `detail-indeks-${arahIndeks}` : ''}
+                >
+                    <GrafikBeratTinggi
+                        kelamin={kelamin}
+                        umurBalita={umurBalita}
+                        pengukuran={pengukuran}
+                        standar={standar}
+                    />
                 </div>
             ) : (
                 <>
@@ -645,7 +682,8 @@ export default function GrafikPertumbuhan({
                                         }`}
                                     >
                                         <span>
-                                            {Math.max(awal, spek.mulai)}–{awal + PANEL_BULAN} bulan
+                                            {Math.max(awal, spek.mulai)}–
+                                            {awal + PANEL_BULAN} bulan
                                         </span>
                                         <span
                                             className={`py-0.2 rounded-full px-1.5 text-[10px] font-extrabold ${
@@ -698,8 +736,17 @@ export default function GrafikPertumbuhan({
                                 aria-label={`Grafik ${judulTampil(spek).toLowerCase()}, acuan ${acuan} WHO 2006, rentang ${awalTampil} sampai ${akhirTampil} bulan`}
                             >
                                 <defs>
-                                    <clipPath id={idBukaan} clipPathUnits="userSpaceOnUse">
-                                        <rect ref={bukaan} x={KIRI - 16} y={0} width={PLOT_LEBAR + 32} height={TINGGI} />
+                                    <clipPath
+                                        id={idBukaan}
+                                        clipPathUnits="userSpaceOnUse"
+                                    >
+                                        <rect
+                                            ref={bukaan}
+                                            x={KIRI - 16}
+                                            y={0}
+                                            width={PLOT_LEBAR + 32}
+                                            height={TINGGI}
+                                        />
                                     </clipPath>
                                 </defs>
                                 {/* Garis bantu minggu: tiga per bulan. */}
@@ -917,7 +964,8 @@ export default function GrafikPertumbuhan({
                                                         sesudah
                                                             ? 'end'
                                                             : sebelum ||
-                                                                t.umur === awalTampil
+                                                                t.umur ===
+                                                                    awalTampil
                                                               ? 'start'
                                                               : t.umur ===
                                                                   panel +
@@ -1284,27 +1332,5 @@ export default function GrafikPertumbuhan({
                 </>
             )}
         </div>
-    );
-}
-
-function Sel({ judul, children }: { judul: string; children: ReactNode }) {
-    return (
-        <div className="flex flex-col gap-0.5 border-l border-border px-5 py-3 first:border-l-0 max-lg:odd:border-l-0 sm:px-6">
-            <dt className="text-xs font-bold text-muted-foreground">{judul}</dt>
-            <dd className="flex flex-col gap-0.5">{children}</dd>
-        </div>
-    );
-}
-
-function Legenda({ warna, teks }: { warna: string; teks: string }) {
-    return (
-        <li className="flex items-center gap-2">
-            <span
-                aria-hidden="true"
-                className="inline-block size-4 shrink-0 rounded-xs"
-                style={{ backgroundColor: warna }}
-            />
-            {teks}
-        </li>
     );
 }

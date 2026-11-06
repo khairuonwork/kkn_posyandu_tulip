@@ -654,8 +654,8 @@ function Dokumen({
     }, [pratinjau]);
     useEffect(() => {
         if (!menutup) {
-return;
-}
+            return;
+        }
 
         const durasi = window.matchMedia('(prefers-reduced-motion: reduce)')
             .matches

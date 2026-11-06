@@ -46,9 +46,7 @@ export function DialogPengguna({
     const rtUntukPosyandu = wilayahRt.filter(
         (w) => w.posyanduId === posyanduId,
     );
-    const [rt, setRt] = useState(
-        pengguna?.rt ?? rtUntukPosyandu[0]?.rt ?? '',
-    );
+    const [rt, setRt] = useState(pengguna?.rt ?? rtUntukPosyandu[0]?.rt ?? '');
     const [aktif, setAktif] = useState(pengguna?.aktif ?? true);
     const [kataSandi, setKataSandi] = useState('');
     const [dicoba, setDicoba] = useState(false);
@@ -62,9 +60,14 @@ export function DialogPengguna({
         }
     }, [berhasil]);
     const fokusIsian = useRef<HTMLElement | null>(null);
-    const berubah = nama !== (pengguna?.nama ?? '') || username !== (pengguna?.username ?? '') ||
-        peran !== (pengguna?.peran ?? 'kader') || posyanduId !== (pengguna?.posyanduId ?? posyandu[0]?.id ?? null) ||
-        rt !== (pengguna?.rt ?? rtUntukPosyandu[0]?.rt ?? '') || aktif !== (pengguna?.aktif ?? true) || kataSandi !== '';
+    const berubah =
+        nama !== (pengguna?.nama ?? '') ||
+        username !== (pengguna?.username ?? '') ||
+        peran !== (pengguna?.peran ?? 'kader') ||
+        posyanduId !== (pengguna?.posyanduId ?? posyandu[0]?.id ?? null) ||
+        rt !== (pengguna?.rt ?? rtUntukPosyandu[0]?.rt ?? '') ||
+        aktif !== (pengguna?.aktif ?? true) ||
+        kataSandi !== '';
 
     // Huruf kecil dipaksakan, sama seperti di server: "Kader01" tetap kader01.
     const usernameBersih = username.trim().toLowerCase();
@@ -98,13 +101,18 @@ export function DialogPengguna({
             berubah={berubah && !berhasil}
             menyimpan={menyimpan}
         >
-            <button ref={tutupSetelahSimpan} type="button" data-tutup-dialog hidden />
+            <button
+                ref={tutupSetelahSimpan}
+                type="button"
+                data-tutup-dialog
+                hidden
+            />
             <form
                 noValidate
                 onFocusCapture={(e) => {
                     if (e.target.matches('input, select')) {
-fokusIsian.current = e.target;
-}
+                        fokusIsian.current = e.target;
+                    }
                 }}
                 onSubmit={(e) => {
                     e.preventDefault();
@@ -146,8 +154,10 @@ fokusIsian.current = e.target;
                             }
 
                             if (galat) {
-requestAnimationFrame(() => fokusIsian.current?.focus());
-}
+                                requestAnimationFrame(() =>
+                                    fokusIsian.current?.focus(),
+                                );
+                            }
                         });
                 }}
                 className="flex min-h-0 flex-1 flex-col"
@@ -226,7 +236,9 @@ requestAnimationFrame(() => fokusIsian.current?.focus());
                                     const id = Number(e.target.value) || null;
                                     setPosyanduId(id);
                                     setRt(
-                                        wilayahRt.find((w) => w.posyanduId === id)?.rt ?? '',
+                                        wilayahRt.find(
+                                            (w) => w.posyanduId === id,
+                                        )?.rt ?? '',
                                     );
                                 }}
                                 className="isian w-full cursor-pointer font-semibold"

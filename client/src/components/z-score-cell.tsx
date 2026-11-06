@@ -46,7 +46,7 @@ export default function ZScoreCell({ nilai }: Props) {
             {/* Informasi kesimpulan langsung z-score: Normal, Gemuk, atau Kurang dengan lencana semantik */}
             {kesimpulan !== null && (
                 <span
-                    className={`mt-0.5 inline-block rounded border px-1.5 py-0.2 text-[11px] font-bold ${WARNA_NADA[nada] ?? WARNA_NADA.netral}`}
+                    className={`py-0.2 mt-0.5 inline-block rounded border px-1.5 text-[11px] font-bold ${WARNA_NADA[nada] ?? WARNA_NADA.netral}`}
                 >
                     {kesimpulan}
                 </span>

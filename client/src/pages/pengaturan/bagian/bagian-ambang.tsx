@@ -30,8 +30,8 @@ export function BagianAmbang({
                                 sempit
                             />
                             <p className="mt-1.5 text-sm text-muted-foreground">
-                                Jika salah satu z-score sama dengan atau di bawah
-                                angka ini, arahan untuk keluarga berbunyi:
+                                Jika salah satu z-score sama dengan atau di
+                                bawah angka ini, arahan untuk keluarga berbunyi:
                                 pertumbuhan perlu dipantau lebih dekat.
                             </p>
                         </div>
@@ -45,8 +45,8 @@ export function BagianAmbang({
                                 sempit
                             />
                             <p className="mt-1.5 text-sm text-muted-foreground">
-                                Jika salah satu z-score sama dengan atau di bawah
-                                angka ini, keluarga dianjurkan menghubungi
+                                Jika salah satu z-score sama dengan atau di
+                                bawah angka ini, keluarga dianjurkan menghubungi
                                 fasilitas kesehatan atau dokter terdekat.
                             </p>
                         </div>

@@ -16,13 +16,13 @@ Dokumen ini menjelaskan aturan branch, pembagian frontend/backend, alur testing,
 | Branch | Fungsi | Environment |
 |---|---|---|
 | `main` | Kode yang sudah stabil dan siap rilis. Tidak boleh commit langsung. | Production |
-| `develop` | Tempat seluruh fitur yang telah direview digabungkan dan diuji bersama. | Staging / Testing |
+| `development` | Tempat seluruh fitur yang telah direview digabungkan dan diuji bersama. | Staging / Testing |
 
 Struktur utama:
 
 ```text
 main
-└── develop
+└── development
     ├── frontend/feat/*
     ├── backend/feat/*
     ├── feat/*
@@ -32,7 +32,7 @@ main
 ```
 
 > Tidak memakai `frontend/dev`, `backend/dev`, `merged/testing`, atau `merged/prod` sebagai branch permanen.  
-> `develop` sudah menjadi branch integrasi/testing, sedangkan `main` menjadi branch production.
+> `development` sudah menjadi branch integrasi/testing, sedangkan `main` menjadi branch production.
 
 ---
 
@@ -118,13 +118,13 @@ hotfix/data-balita-not-saved
 
 ## Aturan dasar branch
 
-1. Jangan commit langsung ke `main` atau `develop`.
+1. Jangan commit langsung ke `main` atau `development`.
 2. Semua perubahan harus melalui Pull Request.
-3. Semua branch fitur dibuat dari `develop`.
-4. Semua branch fitur kembali merge ke `develop`.
-5. `develop` hanya merge ke `main` saat siap rilis.
+3. Semua branch fitur dibuat dari `development`.
+4. Semua branch fitur kembali merge ke `development`.
+5. `development` hanya merge ke `main` saat siap rilis.
 6. Branch fitur dihapus setelah berhasil di-merge.
-7. Jangan mengambil perubahan langsung dari branch teman; ambil dari `develop` setelah perubahan tersebut sudah masuk dan direview.
+7. Jangan mengambil perubahan langsung dari branch teman; ambil dari `development` setelah perubahan tersebut sudah masuk dan direview.
 8. Satu branch sebaiknya menangani satu tujuan kecil dan jelas.
 
 ---
@@ -132,7 +132,7 @@ hotfix/data-balita-not-saved
 ## Alur umum pengembangan
 
 ```text
-develop
+development
    ↓
 buat branch fitur
    ↓
@@ -140,15 +140,15 @@ kerjakan fitur
    ↓
 commit dan push
    ↓
-Pull Request ke develop
+Pull Request ke development
    ↓
 review + CI checks
    ↓
-merge ke develop
+merge ke development
    ↓
 testing pada staging
    ↓
-Pull Request develop ke main
+Pull Request development ke main
    ↓
 deploy production
 ```
@@ -158,7 +158,7 @@ Visual:
 ```text
 frontend/feat/data-balita-form ─┐
                                 │
-backend/feat/data-balita-crud ──┼──→ develop ───→ main
+backend/feat/data-balita-crud ──┼──→ development ───→ main
                                 │       │           │
 feat/dashboard-admin ───────────┘    staging    production
 ```
@@ -180,8 +180,8 @@ frontend/feat/data-balita-form
 ### Alur
 
 ```bash
-git switch develop
-git pull origin develop
+git switch development
+git pull origin development
 git switch -c frontend/feat/data-balita-form
 ```
 
@@ -208,7 +208,7 @@ git push -u origin frontend/feat/data-balita-form
 Setelah selesai, buat Pull Request:
 
 ```text
-frontend/feat/data-balita-form → develop
+frontend/feat/data-balita-form → development
 ```
 
 ---
@@ -228,8 +228,8 @@ backend/feat/data-balita-crud
 ### Alur
 
 ```bash
-git switch develop
-git pull origin develop
+git switch development
+git pull origin development
 git switch -c backend/feat/data-balita-crud
 ```
 
@@ -255,7 +255,7 @@ git push -u origin backend/feat/data-balita-crud
 Setelah selesai, buat Pull Request:
 
 ```text
-backend/feat/data-balita-crud → develop
+backend/feat/data-balita-crud → development
 ```
 
 ---
@@ -271,10 +271,10 @@ frontend/feat/data-balita-form
 backend/feat/data-balita-crud
 ```
 
-Keduanya tetap dibuat dari `develop` dan masing-masing membuat Pull Request ke `develop`.
+Keduanya tetap dibuat dari `development` dan masing-masing membuat Pull Request ke `development`.
 
 ```text
-develop
+development
 ├── frontend/feat/data-balita-form
 └── backend/feat/data-balita-crud
 ```
@@ -312,9 +312,9 @@ Contoh response:
 }
 ```
 
-Frontend dapat memakai mock data terlebih dahulu. Setelah endpoint backend sudah tersedia di `develop` atau staging, frontend mengganti mock data dengan request ke API asli.
+Frontend dapat memakai mock data terlebih dahulu. Setelah endpoint backend sudah tersedia di `development` atau staging, frontend mengganti mock data dengan request ke API asli.
 
-> Frontend dan backend tidak perlu merge ke branch satu sama lain. Keduanya merge ke `develop`.
+> Frontend dan backend tidak perlu merge ke branch satu sama lain. Keduanya merge ke `development`.
 
 ---
 
@@ -339,67 +339,67 @@ feat/role-kader
 ### Alur
 
 ```bash
-git switch develop
-git pull origin develop
+git switch development
+git pull origin development
 git switch -c feat/dashboard-admin
 ```
 
 Setelah selesai:
 
 ```text
-feat/dashboard-admin → develop
+feat/dashboard-admin → development
 ```
 
 Gunakan pola ini jika perubahan cukup kecil dan tidak perlu dibagi ke dua developer.
 
 ---
 
-## Use case: mengambil perubahan terbaru dari develop
+## Use case: mengambil perubahan terbaru dari development
 
-Jika ada anggota lain yang sudah merge ke `develop`, update branch sendiri sebelum melanjutkan pekerjaan atau sebelum membuat Pull Request.
+Jika ada anggota lain yang sudah merge ke `development`, update branch sendiri sebelum melanjutkan pekerjaan atau sebelum membuat Pull Request.
 
 ```bash
-git switch develop
-git pull origin develop
+git switch development
+git pull origin development
 
 git switch frontend/feat/data-balita-form
-git merge develop
+git merge development
 ```
 
 Jika ada conflict, selesaikan conflict pada branch fitur sendiri, lalu commit hasilnya.
 
 ```bash
 git add .
-git commit -m "chore: sync develop into data balita form"
+git commit -m "chore: sync development into data balita form"
 git push
 ```
 
-> Untuk tim ini, gunakan `merge develop` agar lebih aman dan tidak mengubah riwayat commit yang sudah di-push.
+> Untuk tim ini, gunakan `merge development` agar lebih aman dan tidak mengubah riwayat commit yang sudah di-push.
 
 ---
 
 ## Use case: bug ditemukan di staging
 
-Jika bug ditemukan saat testing di `develop` atau staging, buat branch fix dari `develop`.
+Jika bug ditemukan saat testing di `development` atau staging, buat branch fix dari `development`.
 
 ```bash
-git switch develop
-git pull origin develop
+git switch development
+git pull origin development
 git switch -c frontend/fix/data-balita-validation
 ```
 
 atau:
 
 ```bash
-git switch develop
-git pull origin develop
+git switch development
+git pull origin development
 git switch -c backend/fix/duplicate-data-balita
 ```
 
 Setelah selesai:
 
 ```text
-frontend/fix/data-balita-validation → develop
+frontend/fix/data-balita-validation → development
 ```
 
 ---
@@ -420,26 +420,26 @@ Setelah diperbaiki:
 hotfix/login-production-error → main
 ```
 
-Setelah hotfix masuk ke `main`, perubahan tersebut juga harus disinkronkan kembali ke `develop` agar tidak hilang pada rilis berikutnya.
+Setelah hotfix masuk ke `main`, perubahan tersebut juga harus disinkronkan kembali ke `development` agar tidak hilang pada rilis berikutnya.
 
 ```text
 hotfix/login-production-error → main
-main → develop
+main → development
 ```
 
 ---
 
 ## Alur release ke production
 
-Saat fitur-fitur di `develop` sudah selesai dan lolos testing:
+Saat fitur-fitur di `development` sudah selesai dan lolos testing:
 
 ```text
-develop → main
+development → main
 ```
 
 Alurnya:
 
-1. Buat Pull Request dari `develop` ke `main`.
+1. Buat Pull Request dari `development` ke `main`.
 2. Jalankan review dan CI checks.
 3. Deploy hasil merge `main` ke production.
 4. Tambahkan release tag bila diperlukan.
@@ -494,7 +494,7 @@ Backend tidak perlu mengubah layout/UI tanpa koordinasi.
 
 Pipeline dijalankan otomatis menggunakan GitHub Actions.
 
-### Pull Request ke develop
+### Pull Request ke development
 
 Jalankan:
 
@@ -508,9 +508,9 @@ Jalankan:
 - build backend
 ```
 
-Jika semua lolos, Pull Request boleh direview dan di-merge ke `develop`.
+Jika semua lolos, Pull Request boleh direview dan di-merge ke `development`.
 
-### Merge ke develop
+### Merge ke development
 
 Lakukan:
 
@@ -547,7 +547,7 @@ Aturan yang disarankan:
 - hanya maintainer yang boleh merge
 ```
 
-### develop
+### development
 
 Aturan yang disarankan:
 
@@ -578,23 +578,23 @@ test: tambah pengujian endpoint imunisasi
 ## Ringkasan cepat
 
 ```text
-Branch fitur baru selalu dibuat dari develop.
+Branch fitur baru selalu dibuat dari development.
 
-frontend/feat/* → develop
-backend/feat/*  → develop
-feat/*          → develop
-fix/*           → develop
-chore/*         → develop
-refactor/*      → develop
+frontend/feat/* → development
+backend/feat/*  → development
+feat/*          → development
+fix/*           → development
+chore/*         → development
+refactor/*      → development
 
-develop → main
+development → main
 
 hotfix/* dibuat dari main
 hotfix/* → main
-main → develop
+main → development
 ```
 
 ```text
-develop = integrasi dan staging/testing
+development = integrasi dan staging/testing
 main    = production
 ```

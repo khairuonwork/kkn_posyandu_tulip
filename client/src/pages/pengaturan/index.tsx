@@ -78,8 +78,11 @@ export default function Pengaturan({
 
     // Kalimat tiap perubahan, dipakai bilah Simpan dan dialog pindah bagian.
     const perubahan = [
-        ...KUNCI_ANGKA.filter((k) => diubah(k) || (nilai[k] === null && teks[k] !== teksAwal()[k])).map(
-            (k) => nilai[k] === null
+        ...KUNCI_ANGKA.filter(
+            (k) =>
+                diubah(k) || (nilai[k] === null && teks[k] !== teksAwal()[k]),
+        ).map((k) =>
+            nilai[k] === null
                 ? `${ANGKA[k].label} berisi angka yang belum valid.`
                 : `${ANGKA[k].label} diubah dari ${angka(ambang[k], ANGKA[k].desimal)} menjadi ${angka(nilai[k], ANGKA[k].desimal)} ${ANGKA[k].satuan}.`,
         ),
@@ -137,9 +140,15 @@ export default function Pengaturan({
 
             if (
                 href === null ||
-                (href.startsWith('#') && (!href.startsWith('#/') || href === window.location.hash)) ||
+                (href.startsWith('#') &&
+                    (!href.startsWith('#/') ||
+                        href === window.location.hash)) ||
                 target.target === '_blank' ||
-                e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey ||
+                e.button !== 0 ||
+                e.metaKey ||
+                e.ctrlKey ||
+                e.shiftKey ||
+                e.altKey ||
                 href.startsWith('mailto:') ||
                 href.startsWith('tel:')
             ) {
@@ -148,11 +157,15 @@ export default function Pengaturan({
 
             const url = new URL(href, window.location.href);
 
-            if (url.origin !== window.location.origin ||
-                (url.pathname === window.location.pathname && url.search === window.location.search &&
-                    (!url.hash.startsWith('#/') || url.hash === window.location.hash))) {
-return;
-}
+            if (
+                url.origin !== window.location.origin ||
+                (url.pathname === window.location.pathname &&
+                    url.search === window.location.search &&
+                    (!url.hash.startsWith('#/') ||
+                        url.hash === window.location.hash))
+            ) {
+                return;
+            }
 
             e.preventDefault();
             e.stopPropagation();
@@ -241,45 +254,48 @@ return;
                         </p>
                     </div>
 
-                    <div key={bagian} className="pengaturan-bagian flex min-h-0 flex-1 flex-col">
-                    {bagian === 'batas' && (
-                        <BagianBatas
-                            teks={teks}
-                            ambang={ambang}
-                            salahRentang={salahRentang}
-                            ubahTeks={ubahTeks}
-                        />
-                    )}
+                    <div
+                        key={bagian}
+                        className="pengaturan-bagian flex min-h-0 flex-1 flex-col"
+                    >
+                        {bagian === 'batas' && (
+                            <BagianBatas
+                                teks={teks}
+                                ambang={ambang}
+                                salahRentang={salahRentang}
+                                ubahTeks={ubahTeks}
+                            />
+                        )}
 
-                    {bagian === 'ambang' && (
-                        <BagianAmbang
-                            teks={teks}
-                            ambang={ambang}
-                            nilai={nilai}
-                            ubahTeks={ubahTeks}
-                        />
-                    )}
+                        {bagian === 'ambang' && (
+                            <BagianAmbang
+                                teks={teks}
+                                ambang={ambang}
+                                nilai={nilai}
+                                ubahTeks={ubahTeks}
+                            />
+                        )}
 
-                    {bagian === 'pengguna' && (
-                        <BagianPengguna
-                            peran={peran}
-                            daftar={pengguna}
-                            onSimpan={onSimpanPengguna}
-                        />
-                    )}
+                        {bagian === 'pengguna' && (
+                            <BagianPengguna
+                                peran={peran}
+                                daftar={pengguna}
+                                onSimpan={onSimpanPengguna}
+                            />
+                        )}
 
-                    {bagian === 'standar' && (
-                        <BagianStandar
-                            rumus={rumus}
-                            setRumus={setRumus}
-                            standarVersi={standarVersi}
-                            barisStandar={barisStandar}
-                        />
-                    )}
+                        {bagian === 'standar' && (
+                            <BagianStandar
+                                rumus={rumus}
+                                setRumus={setRumus}
+                                standarVersi={standarVersi}
+                                barisStandar={barisStandar}
+                            />
+                        )}
 
-                    {bagian === 'riwayat' && (
-                        <BagianRiwayat riwayat={riwayat} />
-                    )}
+                        {bagian === 'riwayat' && (
+                            <BagianRiwayat riwayat={riwayat} />
+                        )}
                     </div>
 
                     {bagian !== 'riwayat' && (
@@ -301,25 +317,26 @@ return;
                     lebar="w-[560px]"
                     animasiDetail
                     onAksiTutup={(aksi) => {
- aksiPindah.current = aksi === 'buang' ? 'buang' : 'simpan'; 
-}}
+                        aksiPindah.current =
+                            aksi === 'buang' ? 'buang' : 'simpan';
+                    }}
                     onTutup={() => {
                         const aksi = aksiPindah.current;
                         aksiPindah.current = null;
 
                         if (aksi === 'buang') {
-batalkan();
-}
+                            batalkan();
+                        }
 
                         if (aksi === 'simpan') {
-simpan();
-}
+                            simpan();
+                        }
 
                         setTujuan(null);
 
                         if (aksi) {
-navigate(tujuan);
-}
+                            navigate(tujuan);
+                        }
                     }}
                 >
                     <ul className="flex list-disc flex-col gap-1 overflow-y-auto px-7 py-4.5 pl-12 text-base">

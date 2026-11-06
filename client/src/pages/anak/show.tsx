@@ -310,8 +310,21 @@ export default function DetailAnak({
                                 aria-selected={aktif}
                                 aria-controls={`panel-${tab.nilai}`}
                                 onClick={() => {
-                                    if (tab.nilai === tabAktif) return;
-                                    setArahTab(TAB_DETAIL.findIndex((item) => item.nilai === tab.nilai) > TAB_DETAIL.findIndex((item) => item.nilai === tabAktif) ? 'maju' : 'mundur');
+                                    if (tab.nilai === tabAktif) {
+                                        return;
+                                    }
+
+                                    setArahTab(
+                                        TAB_DETAIL.findIndex(
+                                            (item) => item.nilai === tab.nilai,
+                                        ) >
+                                            TAB_DETAIL.findIndex(
+                                                (item) =>
+                                                    item.nilai === tabAktif,
+                                            )
+                                            ? 'maju'
+                                            : 'mundur',
+                                    );
                                     setTabAktif(tab.nilai);
                                 }}
                                 className="tab"
@@ -324,72 +337,72 @@ export default function DetailAnak({
             </div>
 
             <div className="detail-panel" data-arah={arahTab}>
-            <TabProfil
-                anak={anak}
-                nama={nama}
-                inisial={inisial}
-                umur={umur}
-                tersembunyi={tabAktif !== 'profil'}
-            />
+                <TabProfil
+                    anak={anak}
+                    nama={nama}
+                    inisial={inisial}
+                    umur={umur}
+                    tersembunyi={tabAktif !== 'profil'}
+                />
 
-            <TabStatus
-                anak={anak}
-                terbaru={terbaru}
-                hasilTerakhir={hasilTerakhir}
-                periode={periode}
-                peran={peran}
-                terurut={terurut}
-                indeks={indeks}
-                indeksTidakWajar={indeksTidakWajar}
-                perluRujukan={perluRujukan}
-                perluWaspada={perluWaspada}
-                perluTindakLanjut={perluTindakLanjut}
-                edukasiKms={edukasiKms}
-                ambang={ambang}
-                umur={umur}
-                sumberLive={sumberLive}
-                alasanTanpaDataWa={alasanTanpaDataWa}
-                tersembunyi={tabAktif !== 'status'}
-                onInfoKiaChange={setInfoKiaWa}
-                onBukaWa={(info) => {
-                    setInfoKiaWa(info);
-                    setDialog('wa');
-                }}
-            />
+                <TabStatus
+                    anak={anak}
+                    terbaru={terbaru}
+                    hasilTerakhir={hasilTerakhir}
+                    periode={periode}
+                    peran={peran}
+                    terurut={terurut}
+                    indeks={indeks}
+                    indeksTidakWajar={indeksTidakWajar}
+                    perluRujukan={perluRujukan}
+                    perluWaspada={perluWaspada}
+                    perluTindakLanjut={perluTindakLanjut}
+                    edukasiKms={edukasiKms}
+                    ambang={ambang}
+                    umur={umur}
+                    sumberLive={sumberLive}
+                    alasanTanpaDataWa={alasanTanpaDataWa}
+                    tersembunyi={tabAktif !== 'status'}
+                    onInfoKiaChange={setInfoKiaWa}
+                    onBukaWa={(info) => {
+                        setInfoKiaWa(info);
+                        setDialog('wa');
+                    }}
+                />
 
-            <TabKurva
-                anak={anak}
-                nama={nama}
-                umur={umur}
-                periode={periode}
-                terbaru={terbaru}
-                pengukuran={pengukuran}
-                standarLms={standarLms}
-                umurDisorot={umurDisorot}
-                riwayatKurva={riwayatKurva}
-                titikPerluVerifikasi={titikPerluVerifikasi}
-                tersembunyi={tabAktif !== 'kurva'}
-            />
+                <TabKurva
+                    anak={anak}
+                    nama={nama}
+                    umur={umur}
+                    periode={periode}
+                    terbaru={terbaru}
+                    pengukuran={pengukuran}
+                    standarLms={standarLms}
+                    umurDisorot={umurDisorot}
+                    riwayatKurva={riwayatKurva}
+                    titikPerluVerifikasi={titikPerluVerifikasi}
+                    tersembunyi={tabAktif !== 'kurva'}
+                />
 
-            <TabGrafik
-                anak={anak}
-                nama={nama}
-                umur={umur}
-                periode={periode}
-                terbaru={terbaru}
-                pengukuran={pengukuran}
-                standarLms={standarLms}
-                tersembunyi={tabAktif !== 'grafik'}
-            />
+                <TabGrafik
+                    anak={anak}
+                    nama={nama}
+                    umur={umur}
+                    periode={periode}
+                    terbaru={terbaru}
+                    pengukuran={pengukuran}
+                    standarLms={standarLms}
+                    tersembunyi={tabAktif !== 'grafik'}
+                />
 
-            <TabRiwayat
-                pengukuran={pengukuran}
-                umur={umur}
-                umurDisorot={umurDisorot}
-                setUmurDisorot={setUmurDisorot}
-                janggal={janggal}
-                tersembunyi={tabAktif !== 'riwayat'}
-            />
+                <TabRiwayat
+                    pengukuran={pengukuran}
+                    umur={umur}
+                    umurDisorot={umurDisorot}
+                    setUmurDisorot={setUmurDisorot}
+                    janggal={janggal}
+                    tersembunyi={tabAktif !== 'riwayat'}
+                />
             </div>
 
             {dialog === 'ubah' && (

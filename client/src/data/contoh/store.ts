@@ -15,11 +15,11 @@ import {
 } from '@/components/status-gizi-badge';
 import { labelIndeks, umurBulanPada, zScore } from '@/lib/format';
 import { kodeKartuSasaran } from '@/lib/kartu-sasaran';
+import type { BarisLaporanLive, LaporanLive } from '@/lib/laporan';
+import type { PeriodeSasaran, SasaranAktif } from '@/lib/sasaran';
 import type { BarisLms } from '@/lib/z-score';
 import type { BarisAnak } from '@/pages/anak/index';
 import type { BalitaKartu } from '@/pages/kartu-sasaran/index';
-import type { PeriodeSasaran, SasaranAktif } from '@/lib/sasaran';
-import type { BarisLaporanLive, LaporanLive } from '@/lib/laporan';
 import type {
     Anak,
     GarisSd,
@@ -999,7 +999,9 @@ export function sasaranDemo(periodeId?: string): SasaranAktif {
             ? periodeId
             : (data.periode[data.periode.length - 1]?.id ?? '2026-06');
     const p = cariPeriode(targetId);
-    const pengPeriode = data.pengukuran.filter((item) => item.periodeId === targetId);
+    const pengPeriode = data.pengukuran.filter(
+        (item) => item.periodeId === targetId,
+    );
     const diukurIds = new Set(pengPeriode.map((item) => item.anakId));
     const pindahIds = new Set(
         data.pengukuran
@@ -1007,24 +1009,31 @@ export function sasaranDemo(periodeId?: string): SasaranAktif {
             .map((item) => item.anakId),
     );
 
-    const items: SasaranAktif['items'] = data.anak.filter((anak) => anak.tglLahir !== null && anak.jk !== null).map((anak, idx) => {
-        const isSelesai = diukurIds.has(anak.id);
-        const isPindah = pindahIds.has(anak.id);
-        const status = isPindah ? 'pindah' : isSelesai ? 'selesai' : 'menunggu';
-        return {
-            id: idx + 1,
-            status,
-            catatan: null,
-            anakId: anak.id,
-            nik: anak.nik,
-            nama: anak.nama ?? `Anak #${anak.id}`,
-            tglLahir: anak.tglLahir!,
-            jk: anak.jk!,
-            namaOrtu: anak.namaOrtu,
-            rt: anak.rt,
-            kodeKartu: kodeKartuSasaran(anak),
-        };
-    });
+    const items: SasaranAktif['items'] = data.anak
+        .filter((anak) => anak.tglLahir !== null && anak.jk !== null)
+        .map((anak, idx) => {
+            const isSelesai = diukurIds.has(anak.id);
+            const isPindah = pindahIds.has(anak.id);
+            const status = isPindah
+                ? 'pindah'
+                : isSelesai
+                  ? 'selesai'
+                  : 'menunggu';
+
+            return {
+                id: idx + 1,
+                status,
+                catatan: null,
+                anakId: anak.id,
+                nik: anak.nik,
+                nama: anak.nama ?? `Anak #${anak.id}`,
+                tglLahir: anak.tglLahir!,
+                jk: anak.jk!,
+                namaOrtu: anak.namaOrtu,
+                rt: anak.rt,
+                kodeKartu: kodeKartuSasaran(anak),
+            };
+        });
 
     const total = items.length;
     const selesai = items.filter((i) => i.status === 'selesai').length;
@@ -1074,7 +1083,9 @@ export function laporanDemo(periodeId?: string): LaporanLive {
     const anakMap = new Map(data.anak.map((a) => [a.id, a]));
 
     const peng = data.pengukuran.filter(
-        (item) => item.periodeId === targetPeriode && item.statusKehadiran === 'hadir',
+        (item) =>
+            item.periodeId === targetPeriode &&
+            item.statusKehadiran === 'hadir',
     );
 
     const bulanan: BarisLaporanLive[] = peng.map((item) => {
@@ -1095,7 +1106,7 @@ export function laporanDemo(periodeId?: string): LaporanLive {
             jk: a?.jk ?? 'L',
             rt: a?.rt ?? '1',
             periodeId: item.periodeId,
-            tanggalUkur: item.tanggalUkur ?? (p?.tanggalKegiatan ?? null),
+            tanggalUkur: item.tanggalUkur ?? p?.tanggalKegiatan ?? null,
             umurLengkap: umur === null ? '–' : `${thn}Thn${bln}Bln`,
             umurHari: umur === null ? null : umur * 30,
             bbKg: item.bbKg,
@@ -1139,5 +1150,3 @@ export function laporanDemo(periodeId?: string): LaporanLive {
         riwayat2T,
     };
 }
-
-

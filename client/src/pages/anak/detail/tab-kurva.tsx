@@ -1,5 +1,4 @@
 import GrafikPertumbuhan from '@/components/grafik-pertumbuhan';
-import { useRef } from 'react';
 import type { BarisLms } from '@/lib/z-score';
 import type { Anak, Pengukuran, Periode } from '@/types/posyandu';
 
@@ -28,7 +27,6 @@ export function TabKurva({
     titikPerluVerifikasi: number;
     tersembunyi: boolean;
 }) {
-    const animasiSudahDiputar = useRef(false);
     const keterangan = `${terbaru === null ? `Kurva ini hanya menampilkan riwayat; belum ada pengukuran pada ${periode.label}.` : `Hasil ${periode.label} tersedia pada tab Status Gizi.`}${titikPerluVerifikasi > 0 ? ` ${titikPerluVerifikasi} titik yang perlu diverifikasi tetap tersedia di Riwayat Ukur.` : ''}`;
 
     return (
@@ -52,7 +50,6 @@ export function TabKurva({
                     key={umurDisorot ?? 'terakhir'}
                     modeKms
                     aktif={!tersembunyi}
-                    animasiSudahDiputar={animasiSudahDiputar}
                     umurDisorot={umurDisorot}
                     kelamin={anak.jk}
                     nama={nama}

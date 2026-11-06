@@ -138,7 +138,7 @@ export default function SasaranImpor({
         if (!sasaranAwal) {
             void Promise.resolve().then(() => muat());
         }
-    }, [muat]);
+    }, [muat, sasaranAwal]);
 
     const sheetAktif = sheets.find((item) => item.sheet === sheetDipilih);
     const daftarTersaring = useMemo(() => {

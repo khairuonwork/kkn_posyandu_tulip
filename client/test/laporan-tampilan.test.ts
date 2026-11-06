@@ -56,8 +56,13 @@ test('laporan modular mempertahankan umur, navigasi 2T, dan izin kedua unduhan',
         );
         assert.match(terbatas, /Anak QA/);
         assert.match(terbatas, /2 thn 9 bln 9 hari/);
-        const tombolTerbatas = (terbatas.match(/<button\b[\s\S]*?<\/button>/g) ?? []).join('');
-        assert.doesNotMatch(tombolTerbatas, /Unduh F1 Excel|Excel Z-score &amp; 2T/);
+        const tombolTerbatas = (
+            terbatas.match(/<button\b[\s\S]*?<\/button>/g) ?? []
+        ).join('');
+        assert.doesNotMatch(
+            tombolTerbatas,
+            /Unduh F1 Excel|Excel Z-score &amp; 2T/,
+        );
         const berizin = renderToStaticMarkup(
             createElement(Laporan, { ...props, bolehUnduh: true }),
         );

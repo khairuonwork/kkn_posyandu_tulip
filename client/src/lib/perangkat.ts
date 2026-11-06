@@ -32,14 +32,20 @@ let idSementara: string | null = null;
 
 /** Hanya dipasang oleh Portal yang sudah memiliki sesi, bukan oleh layar login/demo. */
 export function mulaiHeartbeatWeb(): () => void {
-    let id = idSementara ?? ('web-' + (globalThis.crypto?.randomUUID?.() || Date.now().toString(36) + '-' + Math.random().toString(36).slice(2)));
+    let id =
+        idSementara ??
+        'web-' +
+            (globalThis.crypto?.randomUUID?.() ||
+                Date.now().toString(36) +
+                    '-' +
+                    Math.random().toString(36).slice(2));
 
     try {
-        id =
-            localStorage.getItem('SIMPATIK_WEB_DEVICE_ID') ||
-            id;
+        id = localStorage.getItem('SIMPATIK_WEB_DEVICE_ID') || id;
         localStorage.setItem('SIMPATIK_WEB_DEVICE_ID', id);
-    } catch { /* HTTP LAN/private browsing tetap dapat melapor dengan ID memori. */ }
+    } catch {
+        /* HTTP LAN/private browsing tetap dapat melapor dengan ID memori. */
+    }
 
     idSementara = id;
 
