@@ -26,6 +26,7 @@ import { rutePerangkat } from './perangkat-controller.ts';
 import { muatKonfigurasi } from "../config.ts";
 import type { KonfigurasiServer } from "../config.ts";
 import { rutePelatihan } from './pelatihan-controller.ts';
+import { ruteAplikasi } from "./aplikasi-controller.ts";
 import { lingkupPelatihan, poolOperasional } from './pelatihan-context.ts';
 
 export function buatApp(
@@ -126,6 +127,9 @@ export function buatApp(
             next(galat);
         }
     });
+
+    // Pembaruan APK tidak memakai database; dipasang sebelum lingkup pelatihan.
+    app.use("/api/v1", ruteAplikasi());
 
     app.use('/api',lingkupPelatihan(authPool));
     app.use('/api',rutePengguna(pool));
