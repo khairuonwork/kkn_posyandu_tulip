@@ -177,7 +177,9 @@ export default function PanduanKeluargaKia({
                     target="_blank"
                     rel="noreferrer"
                 >
-                    Baca panduan lengkap Buku KIA 2024
+                    Buku KIA 2024 · hlm. {kelompok.halaman} cetak (PDF{' '}
+                    {kelompok.halamanPdf}
+                    {kelompok.sisiHalaman ? ` · ${kelompok.sisiHalaman}` : ''})
                 </a>
                 <p>
                     Panduan umum sesuai usia. Kebutuhan khusus dan hasil

@@ -6,6 +6,7 @@ export type KelompokKia = {
     jenis: 'perkembangan' | 'perawatan';
     halaman: string;
     halamanPdf: number;
+    sisiHalaman: 'kiri' | 'kanan' | null;
     pertanyaan: PertanyaanKia[];
     stimulasi: string[];
     catatanSumber?: string;
@@ -27,6 +28,7 @@ export type CatatanKia = {
 };
 export type PendampinganKia = {
     tanggal: string;
+    acuan: 'pengukuran' | 'hari-ini';
     umur: { label: string; bulan: number; hariTotal: number } | null;
     kelompok: KelompokKia | null;
     sumber: { judul: string; versi: string; url: string };
@@ -49,25 +51,39 @@ export type IsianKia = {
 export async function ambilPendampinganKia(
     anakId: number,
     signal: AbortSignal,
+    periode?: string,
 ) {
-    return permintaanKia(anakId, { signal });
+    return permintaanKia(anakId, { signal }, periode);
 }
-export async function simpanPendampinganKia(anakId: number, isian: IsianKia) {
-    return permintaanKia(anakId, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(isian),
-    });
+export async function simpanPendampinganKia(
+    anakId: number,
+    isian: IsianKia,
+    periode?: string,
+) {
+    return permintaanKia(
+        anakId,
+        {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(isian),
+        },
+        periode,
+    );
 }
 async function permintaanKia(
     anakId: number,
     options: RequestInit,
+    periode?: string,
 ): Promise<PendampinganKia> {
-    const response = await fetch(`/api/v1/anak/${anakId}/pendampingan-kia`, {
-        ...options,
-        credentials: 'same-origin',
-        cache: 'no-store',
-    });
+    const query = periode ? `?periode=${encodeURIComponent(periode)}` : '';
+    const response = await fetch(
+        `/api/v1/anak/${anakId}/pendampingan-kia${query}`,
+        {
+            ...options,
+            credentials: 'same-origin',
+            cache: 'no-store',
+        },
+    );
 
     if (response.status === 401) {
         throw new Error(

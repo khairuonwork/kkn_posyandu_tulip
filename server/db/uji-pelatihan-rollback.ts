@@ -60,7 +60,20 @@ try {
     );
     const skema = "latihan_" + sesi.id.replaceAll("-", "");
     const s = skemaAman(skema);
-    assert.equal(sesi.jumlah, 92);
+    assert(sesi.jumlah > 0);
+    const seed = (await db.query(`SELECT
+        (SELECT count(*) FROM ${s}.periode)::int AS periode,
+        (SELECT count(*) FROM ${s}.anak)::int AS anak,
+        (SELECT count(*) FROM ${s}.pengukuran)::int AS riwayat,
+        (SELECT count(*) FROM ${s}.pengukuran WHERE periode_id=$1)::int AS ukur_bulan_sumber,
+        (SELECT count(*) FROM ${s}.sasaran WHERE periode_id=$1 AND status='menunggu')::int AS menunggu,
+        (SELECT count(*) FROM ${s}.orang_tua WHERE no_wa IS NOT NULL)::int AS kontak
+    `,[pe.id])).rows[0];
+    assert(seed.periode > 1 && seed.riwayat > 0, "Periode dan pengukuran historis harus terbawa");
+    assert(seed.anak >= sesi.jumlah);
+    assert.equal(seed.ukur_bulan_sumber, 0);
+    assert.equal(seed.menunggu, sesi.jumlah);
+    assert.equal(seed.kontak, 0);
     const foreign = (
         await db.query(
             `SELECT rn.nspname AS ref_schema FROM pg_constraint c JOIN pg_class t ON t.oid=c.conrelid JOIN pg_namespace n ON n.oid=t.relnamespace JOIN pg_class r ON r.oid=c.confrelid JOIN pg_namespace rn ON rn.oid=r.relnamespace WHERE c.contype='f' AND n.nspname=$1`,
@@ -120,7 +133,7 @@ try {
             `SELECT (SELECT count(*) FROM ${s}.anak)::int AS anak,(SELECT count(*) FROM ${s}.pengukuran)::int AS ukur`,
         )
     ).rows[0];
-    assert.deepEqual(counts, { anak: 92, ukur: 1 });
+    assert.deepEqual(counts, { anak: seed.anak, ukur: seed.riwayat + 1 });
     await hapusPelatihan(db, sesi.id, "uji-tidak-ada-token");
     assert.equal(
         (await db.query("SELECT 1 FROM pg_namespace WHERE nspname=$1", [skema]))
@@ -135,7 +148,9 @@ try {
     console.log(
         JSON.stringify({
             uji: "lulus",
-            sasaran: 92,
+            sasaran: sesi.jumlah,
+            periode: seed.periode,
+            riwayat: seed.riwayat,
             pengukuranLatihan: 1,
             fkTerisolasi: foreign.length,
             schemaDihapus: true,

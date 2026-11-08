@@ -27,6 +27,17 @@ test('age boundaries select a single appropriate group, never nearest outside ra
     assert.equal(kelompokUntukUmur(umurKia('2020-10-18',date)),null);
     assert.equal(kelompokUntukUmur(null),null);
 });
+test('rujukan KIA membedakan sisi halaman cetak pada satu lembar PDF', () => {
+    assert.deepEqual(
+        KELOMPOK_KIA.map(({ halaman, halamanPdf, sisiHalaman }) => [halaman, halamanPdf, sisiHalaman]),
+        [
+            ['40–47', 22, null], ['53', 28, 'kanan'], ['55', 29, 'kanan'],
+            ['62', 33, 'kiri'], ['63', 33, 'kanan'], ['68', 36, 'kiri'],
+            ['69', 36, 'kanan'], ['79', 41, 'kanan'], ['81', 42, 'kanan'],
+            ['82', 43, 'kiri'], ['83', 43, 'kanan'],
+        ],
+    );
+});
 const group=KELOMPOK_KIA.find(k=>k.id==='2-3t')!;
 const allYes=Object.fromEntries(group.pertanyaan.map(q=>[q.id,'ya']));
 function input(extra:Record<string,unknown>={}) { return {tanggal:date,versiBuku:SUMBER_KIA.versi,kelompokId:group.id,revisi:0,jawaban:allYes,catatan:'',tindakLanjut:'',dibahas:false,...extra}; }

@@ -8,14 +8,14 @@ export type CatatanSurveiKia = {
     jawaban:JawabanKia; catatan:string; tindakLanjut:string; dibahas:boolean;
     petugas:string; revisi:number; diperbarui:string;
 };
-export async function riwayatSurveiKia(db:Pool | PoolClient,anakId:number):Promise<CatatanSurveiKia[]> {
+export async function riwayatSurveiKia(db:Pool | PoolClient,anakId:number,tanggal?:string):Promise<CatatanSurveiKia[]> {
     return (await db.query<CatatanSurveiKia>(`SELECT s.id,to_char(s.tanggal,'YYYY-MM-DD') tanggal,
         s.versi_buku AS "versiBuku",s.kelompok_id AS "kelompokId",s.kelompok_label AS "kelompokLabel",
         s.umur_bulan AS "umurBulan",s.umur_hari AS "umurHari",s.halaman,s.pertanyaan_snapshot AS pertanyaan,
         s.jawaban,s.catatan,s.tindak_lanjut AS "tindakLanjut",s.dibahas,p.nama AS petugas,s.revisi,
         s.updated_at::text AS diperbarui
         FROM survei_perkembangan_kia s JOIN pengguna p ON p.id=s.dicatat_oleh
-        WHERE s.anak_id=$1 ORDER BY s.tanggal DESC,s.id DESC LIMIT 12`,[anakId])).rows;
+        WHERE s.anak_id=$1 ORDER BY (s.tanggal=$2::date) DESC,s.tanggal DESC,s.id DESC LIMIT 12`,[anakId,tanggal??null])).rows;
 }
 export async function simpanSurveiKia(db:PoolClient,anakId:number,penggunaId:number,kelompok:KelompokKia,
     umur:{bulan:number;hariTotal:number},input:IsianSurveiKia):Promise<boolean> {

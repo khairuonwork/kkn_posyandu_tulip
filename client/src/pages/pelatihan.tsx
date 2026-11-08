@@ -232,6 +232,11 @@ export default function Pelatihan() {
                                 </select>
                             </div>
                         )}
+                        <p className="mt-4 text-sm text-muted-foreground">
+                            Bulan sumber dipakai untuk simulasi layanan. Periode
+                            sebelumnya tersedia untuk membuka riwayat ukur,
+                            grafik, dan laporan.
+                        </p>
                         <ol className="mt-6 list-decimal space-y-3 pl-5 leading-relaxed">
                             <li>
                                 Sinkronkan pekerjaan riil semua tablet sebelum

@@ -47,12 +47,17 @@ export async function buatPelatihan(
     if (!pe) throw new Error("Periode sumber tidak ditemukan.");
     const children = (
         await db.query(
-            `SELECT to_jsonb(a) AS row FROM public.anak a JOIN public.sasaran s ON s.anak_id=a.id
-        WHERE s.periode_id=$1 AND s.status<>'batal' AND a.deleted_at IS NULL ORDER BY a.id`,
-            [periodeId],
+            `SELECT to_jsonb(a) AS row, s.id IS NOT NULL AS sasaran
+               FROM public.anak a
+               JOIN public.wilayah_rt w ON w.id=a.wilayah_rt_id
+               LEFT JOIN public.sasaran s ON s.anak_id=a.id AND s.periode_id=$1 AND s.status<>'batal'
+              WHERE w.posyandu_id=$2 AND a.deleted_at IS NULL
+              ORDER BY (s.id IS NOT NULL) DESC, a.id`,
+            [periodeId, pe.posyandu_id],
         )
-    ).rows.map((r) => r.row);
-    if (!children.length) throw new Error("Sasaran periode sumber kosong.");
+    ).rows;
+    const jumlahSasaran = children.filter((a) => a.sasaran).length;
+    if (!jumlahSasaran) throw new Error("Sasaran periode sumber kosong.");
     const id = randomUUID();
     const skema = "latihan_" + id.replaceAll("-", "");
     const s = skemaAman(skema);
@@ -60,11 +65,11 @@ export async function buatPelatihan(
         await db.query<{ nomor: number }>(
             `INSERT INTO public.pelatihan_sesi(id,skema,periode_id,dibuat_oleh,jumlah_sasaran)
         VALUES($1,$2,$3,$4,$5) RETURNING nomor`,
-            [id, skema, periodeId, penggunaId, children.length],
+            [id, skema, periodeId, penggunaId, jumlahSasaran],
         )
     ).rows[0];
     const base = BATAS_ID_LATIHAN + Number(meta.nomor) * 1_000_000;
-    if (!Number.isSafeInteger(base) || Number(meta.nomor) > 999999)
+    if (!Number.isSafeInteger(base) || Number(meta.nomor) > 999999 || children.length >= 1_000_000)
         throw new Error("Rentang ID latihan habis.");
     const tables = (
         await db.query<{
@@ -140,6 +145,14 @@ export async function buatPelatihan(
             `INSERT INTO ${s}.${kutip(table)} (${cols}) OVERRIDING SYSTEM VALUE SELECT ${cols} FROM jsonb_populate_recordset(NULL::${s}.${kutip(table)},$1::jsonb)`,
             [JSON.stringify(rows)],
         );
+        const terbesar = rows.reduce((max, row) => Math.max(max, typeof row.id === "number" ? row.id : 0), 0);
+        if (terbesar >= base + 10000) {
+            if (terbesar >= base + 999999) throw new Error("Rentang ID latihan habis.");
+            const identity = columns.find((c) => c.table_name === table && c.column_name === "id" && c.is_identity === "YES");
+            if (identity) {
+                await db.query(`ALTER TABLE ${s}.${kutip(table)} ALTER COLUMN id RESTART WITH ${terbesar + 1}`);
+            }
+        }
     }
     const get = async (table: string, where: string, params: unknown[] = []) =>
         (
@@ -169,61 +182,102 @@ export async function buatPelatihan(
         })),
     );
     await isi("pengguna_posyandu", await get("pengguna_posyandu", "true"));
+    const bulanSumber = `${pe.tahun}-${String(pe.bulan).padStart(2, "0")}`;
+    const awalBulan = `${bulanSumber}-01`;
+    const periodeLama = await get("periode", "posyandu_id=$1 AND make_date(tahun,bulan,1)<$2::date", [
+        pe.posyandu_id, awalBulan,
+    ]);
+    const idsPeriodeLama = periodeLama.map((r) => r.id);
     await isi("periode", [
+        ...periodeLama,
         { ...pe, sesi_ditutup_pada: null, sesi_ditutup_oleh: null },
     ]);
+
     const parents = await get("orang_tua", "id=ANY($1::bigint[])", [
-        children.map((a) => a.orang_tua_id).filter(Boolean),
+        children.map(({row}) => row.orang_tua_id).filter(Boolean),
     ]);
     const parentMap = new Map(parents.map((r, i) => [r.id, base + i + 1]));
+    const keluargaMap = new Map(parents.map((r) => [r.id_keluarga, randomUUID()]));
     await isi(
         "orang_tua",
-        parents.map((r, i) => ({
+        parents.map((r) => ({
             ...r,
             id: parentMap.get(r.id),
             nik: null,
-            nama: r.nama,
             no_wa: null,
-            id_keluarga: randomUUID(),
+            id_keluarga: keluargaMap.get(r.id_keluarga),
         })),
     );
     await isi(
         "anak",
-        children.map((r, i) => ({
+        children.map(({row: r, sasaran}, i) => ({
             ...r,
             id: base + i + 1,
             id_publik: randomUUID(),
             nik: `0099${String(meta.nomor).padStart(6, "0")}${String(i + 1).padStart(6, "0")}`,
             kode_kartu: `SIMPATIK:SASARAN:1:${r.id}:${String(r.nik ?? "").replace(/\D/g, "")}`,
-            nama: r.nama,
-            nama_baku: r.nama_baku,
             orang_tua_id: parentMap.get(r.orang_tua_id) ?? null,
-            tgl_lahir: r.tgl_lahir,
-            status: "aktif",
-            deleted_at: null,
+            status: sasaran ? "aktif" : r.status,
         })),
     );
+
+    const childMap = new Map(children.map(({row}, i) => [row.id, base + i + 1]));
+    const idsAnak = [...childMap.keys()];
     const sourceSasaran = await get(
         "sasaran",
-        "periode_id=$1 AND status<>'batal'",
-        [periodeId],
+        "anak_id=ANY($1::bigint[]) AND (periode_id=ANY($2::bigint[]) OR (periode_id=$3 AND status<>'batal')) ORDER BY (periode_id=$3) DESC,id",
+        [idsAnak, idsPeriodeLama, periodeId],
     );
-    const childMap = new Map(children.map((a, i) => [a.id, base + i + 1]));
-    await isi(
-        "sasaran",
-        sourceSasaran
-            .filter((r) => childMap.has(r.anak_id))
-            .map((r, i) => ({
-                ...r,
-                id: base + i + 1,
-                anak_id: childMap.get(r.anak_id),
-                import_batch_id: null,
-                status: "menunggu",
-                catatan: "Data latihan; bukan data pengukuran riil.",
-                diselesaikan_pada: null,
-                diselesaikan_oleh: null,
-            })),
-    );
+    const sasaranMap = new Map(sourceSasaran.map((r, i) => [r.id, base + i + 1]));
+    await isi("sasaran", sourceSasaran.map((r) => ({
+        ...r,
+        id: sasaranMap.get(r.id),
+        anak_id: childMap.get(r.anak_id),
+        import_batch_id: null,
+        status: r.periode_id === periodeId ? "menunggu" : r.status,
+        catatan: null,
+        diselesaikan_pada: r.periode_id === periodeId ? null : r.diselesaikan_pada,
+        diselesaikan_oleh: r.periode_id === periodeId ? null : r.diselesaikan_oleh,
+    })));
+
+    const pengukuran = await get("pengukuran", "anak_id=ANY($1::bigint[]) AND periode_id=ANY($2::bigint[]) ORDER BY id", [
+        idsAnak, idsPeriodeLama,
+    ]);
+    const ukurMap = new Map(pengukuran.map((r, i) => [r.id, base + i + 1]));
+    await isi("pengukuran", pengukuran.map((r) => ({
+        ...r, id: ukurMap.get(r.id), anak_id: childMap.get(r.anak_id), id_sumber: null, catatan: null,
+    })));
+    await isi("penilaian_gizi", (await get("penilaian_gizi", "pengukuran_id=ANY($1::bigint[]) ORDER BY id", [
+        [...ukurMap.keys()],
+    ])).map((r, i) => ({...r, id: base + i + 1, pengukuran_id: ukurMap.get(r.pengukuran_id)})));
+    await isi("antrean_layanan", (await get("antrean_layanan", "periode_id=ANY($1::bigint[]) AND sasaran_id=ANY($2::bigint[])", [
+        idsPeriodeLama, [...sasaranMap.keys()],
+    ])).map((r) => ({
+        ...r, id: `antrean_${r.tanggal.replaceAll("-", "")}_${sasaranMap.get(r.sasaran_id)}`,
+        sasaran_id: sasaranMap.get(r.sasaran_id), catatan: null,
+    })));
+    await isi("cakupan_hari_h", await get("cakupan_hari_h", "periode_id=ANY($1::bigint[])", [idsPeriodeLama]));
+    await isi("sumber_f1", (await get("sumber_f1", "anak_id=ANY($1::bigint[]) AND periode<=$2", [idsAnak, bulanSumber]))
+        .map((r) => ({...r, anak_id: childMap.get(r.anak_id), sumber: "Salinan latihan"})));
+    await isi("layanan", (await get("layanan", `anak_id=ANY($1::bigint[]) AND
+        (periode_id=ANY($2::bigint[]) OR (periode_id IS NULL AND tanggal<$3::date)) ORDER BY id`,
+        [idsAnak, idsPeriodeLama, awalBulan])).map((r, i) => ({
+        ...r, id: base + i + 1, anak_id: childMap.get(r.anak_id), keterangan: null,
+    })));
+    await isi("survei_perkembangan_kia", (await get("survei_perkembangan_kia", "anak_id=ANY($1::bigint[]) AND tanggal<$2::date ORDER BY id",
+        [idsAnak, awalBulan])).map((r, i) => ({
+        ...r, id: base + i + 1, anak_id: childMap.get(r.anak_id), catatan: "", tindak_lanjut: "",
+    })));
+    const arsip = await get("riwayat_2t_arsip", "anak_id=ANY($1::bigint[]) AND periode_laporan<$2 ORDER BY id", [idsAnak, bulanSumber]);
+    const batches = await get("import_batch", "id=ANY($1::bigint[]) ORDER BY id", [arsip.map((r) => r.import_batch_id)]);
+    const batchMap = new Map(batches.map((r, i) => [r.id, base + i + 1]));
+    await isi("import_batch", batches.map((r) => ({
+        ...r, id: batchMap.get(r.id), sumber_file: "Arsip latihan", sheet: null, ringkasan: {},
+    })));
+    await isi("riwayat_2t_arsip", arsip.map((r, i) => ({
+        ...r, id: base + i + 1, anak_id: childMap.get(r.anak_id), import_batch_id: batchMap.get(r.import_batch_id),
+        sumber_file: "Arsip latihan", sheet: "Riwayat",
+    })));
     await db.query(
         `INSERT INTO ${s}.standar_lms OVERRIDING SYSTEM VALUE SELECT * FROM public.standar_lms`,
     );
@@ -247,7 +301,7 @@ export async function buatPelatihan(
     );
     return {
         id,
-        jumlah: children.length,
+        jumlah: jumlahSasaran,
         periode: `${pe.tahun}-${String(pe.bulan).padStart(2, "0")}`,
     };
 }

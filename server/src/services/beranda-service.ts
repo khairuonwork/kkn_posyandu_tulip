@@ -37,13 +37,14 @@ function hadir(baris: BarisUkurBeranda[]): BarisUkurBeranda[] {
     return baris.filter((p) => p.statusKehadiran === "hadir");
 }
 
-export async function periode(pool: Pool, pengguna: PenggunaAktif) {
+export async function periode(pool: Pool, pengguna: PenggunaAktif, latihan = false) {
     const daftar = await repo.daftarPeriode(pool, pengguna);
     const terisi = daftar.findLast((p) => p.adaPengukuran);
     return {
         periode: daftar.map((p) => ({
             id: p.id, label: label(p.id), tanggalKegiatan: p.tanggalKegiatan,
         })),
+        ...(latihan ? { periodeLatihan: daftar.at(-1)?.id ?? null } : {}),
         periodeTerisi: terisi === undefined ? null : {
             id: terisi.id, label: label(terisi.id),
             tanggalKegiatan: terisi.tanggalKegiatan,

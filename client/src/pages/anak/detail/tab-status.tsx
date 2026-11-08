@@ -163,8 +163,9 @@ export function TabStatus({
 
             {!tersembunyi && (
                 <PendampinganKia
-                    key={anak.id}
+                    key={`${anak.id}-${anak.tglLahir}-${periode.id}-${terbaru?.tanggalUkur ?? 'hari-ini'}`}
                     anakId={anak.id}
+                    periode={periode.id}
                     sumberLive={sumberLive}
                     alasanTanpaWa={
                         peran === 'kms' ? undefined : alasanTanpaDataWa
