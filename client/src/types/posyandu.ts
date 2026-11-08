@@ -97,6 +97,10 @@ export type Pengukuran = {
     ntob: string | null;
     statusKehadiran: StatusKehadiran;
     catatanUkur: Record<string, string> | null;
+    /** Catatan/pengamatan khusus dari meja pencatatan (APK). */
+    catatanKhusus?: string | null;
+    /** Catatan/pengamatan khusus dari pemeriksaan KMS (web). */
+    catatanKms?: string | null;
     /**
      * Indeks yang tidak ada di sini berarti tidak dapat dihitung, bukan nol.
      * Semantiknya sama dengan ketiadaan baris di tabel penilaian_gizi.

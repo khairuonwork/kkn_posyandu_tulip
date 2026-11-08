@@ -89,6 +89,8 @@ export type PengukuranRingkas = {
     statusKehadiran: string;
     sumber: string;
     catatan: string | null;
+    catatanKhusus: string | null;
+    catatanKms: string | null;
     ntob: string | null;
     penilaian: Record<
         string,
@@ -117,6 +119,8 @@ export type PengukuranLapangan = {
     likaCm: number | null;
     ntob: string | null;
     statusKehadiran: "hadir" | "tidak_hadir" | "pindah" | "tidak_dapat_diukur";
+    /** Catatan/pengamatan khusus dari meja pencatatan; undefined = tidak diubah. */
+    catatanKhusus?: string | null;
 };
 
 type Halaman = { halaman: number; ukuran: number };
@@ -440,7 +444,8 @@ export async function daftarPengukuran(
                 p.bb_kg::float8 AS "bbKg", p.tinggi_cm::float8 AS "tinggiCm",
                 p.jenis_ukur AS "jenisUkur", p.lila_cm::float8 AS "lilaCm",
                 p.lika_cm::float8 AS "likaCm", p.status_kehadiran AS "statusKehadiran",
-                p.sumber, p.catatan, p.ntob_raw AS ntob,
+                p.sumber, p.catatan, p.catatan_khusus AS "catatanKhusus",
+                p.catatan_kms AS "catatanKms", p.ntob_raw AS ntob,
                 coalesce((
                     SELECT jsonb_object_agg(pg.indeks, jsonb_build_object(
                         'z', pg.z_score, 'kategori', pg.kategori,
@@ -653,12 +658,14 @@ export async function upsertPengukuran(
                 ROW(tanggal_ukur, bb_kg, tinggi_cm, jenis_ukur, lila_cm, lika_cm, ntob_raw, status_kehadiran)
                 IS NOT DISTINCT FROM
                 ROW($4::date, $5::numeric(5,2), $6::numeric(5,1), $7::varchar,
-                    $8::numeric(4,1), $9::numeric(4,1), $10::varchar, $11::text) AS identik
+                    $8::numeric(4,1), $9::numeric(4,1), $10::varchar, $11::text)
+                AND ($12::boolean OR catatan_khusus IS NOT DISTINCT FROM $13::text) AS identik
            FROM pengukuran
           WHERE id_sumber = $1 OR (anak_id = $2 AND periode_id = $3)
           ORDER BY (id_sumber = $1) DESC LIMIT 1 FOR UPDATE`,
         [data.idPengukuran, anak.rows[0].id, periode.rows[0].id, data.tanggalUkur,
-            data.bbKg, data.tinggiCm, data.jenisUkur, data.lilaCm, data.likaCm, data.ntob, data.statusKehadiran],
+            data.bbKg, data.tinggiCm, data.jenisUkur, data.lilaCm, data.likaCm, data.ntob, data.statusKehadiran,
+            data.catatanKhusus === undefined, data.catatanKhusus ?? null],
     );
     if (lama.rows[0] && (lama.rows[0].anak_id !== anak.rows[0].id || lama.rows[0].periode_id !== periode.rows[0].id)) {
         throw new RangeError('ID pengukuran sudah digunakan untuk anak atau periode lain.');
@@ -714,6 +721,12 @@ export async function upsertPengukuran(
             [lama.rows[0].id, ...nilai],
         );
         pengukuranId = lama.rows[0].id;
+    }
+    if (data.catatanKhusus !== undefined) {
+        await db.query(
+            "UPDATE pengukuran SET catatan_khusus=$2 WHERE id=$1",
+            [pengukuranId, data.catatanKhusus],
+        );
     }
 
     await db.query(
@@ -847,6 +860,7 @@ export async function paketSinkronisasi(pool: Pool, pengguna: PenggunaAktif) {
                 p.bb_kg::text, p.tinggi_cm::text AS panjang_tinggi_cm,
                 CASE p.jenis_ukur WHEN 'TB' THEN 'Berdiri' ELSE 'Terlentang' END AS jenis_ukur,
                 p.lila_cm::text AS lila, p.lika_cm::text AS lika, p.ntob_raw AS ntob,
+                p.catatan_khusus, p.catatan_kms,
                 CASE p.status_kehadiran WHEN 'hadir' THEN 'Hadir'
                      WHEN 'tidak_hadir' THEN 'Tidak Hadir' WHEN 'pindah' THEN 'Pindah'
                      ELSE 'Tidak Dapat Diukur' END AS status_kehadiran

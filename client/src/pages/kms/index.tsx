@@ -31,6 +31,45 @@ const tanggalHariIni = () =>
         year: 'numeric',
     }).format(new Date());
 
+const yaTidak = (nilai: boolean) => (nilai ? 'Ya' : 'Tidak');
+
+/** Jawaban pendaftaran dan catatan pencatatan dari APK. */
+function InfoPendaftaran({ item }: { item: AntreanKms }) {
+    const catatan = item.catatanKhusus?.trim();
+
+    if (
+        typeof item.masihMenyusui !== 'boolean' &&
+        typeof item.asiEksklusif !== 'boolean' &&
+        !catatan
+    ) {
+        return null;
+    }
+
+    return (
+        <div className="flex flex-col gap-2 text-xs sm:text-sm">
+            <div className="flex flex-wrap gap-2 empty:hidden">
+                {typeof item.masihMenyusui === 'boolean' && (
+                    <span className="rounded-full border border-border bg-surface-subtle px-2.5 py-0.5 font-semibold">
+                        Ibu masih menyusui:{' '}
+                        <strong>{yaTidak(item.masihMenyusui)}</strong>
+                    </span>
+                )}
+                {typeof item.asiEksklusif === 'boolean' && (
+                    <span className="rounded-full border border-border bg-surface-subtle px-2.5 py-0.5 font-semibold">
+                        ASI eksklusif:{' '}
+                        <strong>{yaTidak(item.asiEksklusif)}</strong>
+                    </span>
+                )}
+            </div>
+            {catatan && (
+                <p className="rounded-xl border border-tone-amber/20 bg-tone-amber-bg px-3 py-2 text-foreground">
+                    <strong>Catatan pencatatan:</strong> {catatan}
+                </p>
+            )}
+        </div>
+    );
+}
+
 const CONTOH_ANTREAN_KMS: AntreanKms[] = [
     {
         id: 'q-demo-1',
@@ -41,6 +80,9 @@ const CONTOH_ANTREAN_KMS: AntreanKms[] = [
         rt: '02',
         status: 'kms_review',
         checkedInAt: '2026-10-11T08:30:00Z',
+        masihMenyusui: true,
+        asiEksklusif: null,
+        catatanKhusus: 'Anak rewel, batuk pilek sejak 2 hari.',
     },
     {
         id: 'q-demo-2',
@@ -61,6 +103,7 @@ const CONTOH_ANTREAN_KMS: AntreanKms[] = [
         rt: '01',
         status: 'done',
         checkedInAt: '2026-10-11T08:15:00Z',
+        catatanKms: '2T, dirujuk ke bidan untuk konseling gizi.',
     },
 ];
 
@@ -84,6 +127,8 @@ export default function PemeriksaanKms({
     const [pesan, setPesan] = useState<string | null>(null);
     const [versi, setVersi] = useState(0);
     const [itemBerhasil, setItemBerhasil] = useState<string | null>(null);
+    // Draf per antrean; tidak ikut terhapus saat daftar dimuat ulang tiap 20 detik.
+    const [catatanKms, setCatatanKms] = useState<Record<string, string>>({});
     const permintaan = useRef(0);
     const konfirmasiAktif = useRef(false);
 
@@ -164,7 +209,14 @@ export default function PemeriksaanKms({
         if (demo) {
             setItems((lama) =>
                 lama.map((it) =>
-                    it.id === item.id ? { ...it, status: 'done' as const } : it,
+                    it.id === item.id
+                        ? {
+                              ...it,
+                              status: 'done' as const,
+                              catatanKms:
+                                  catatanKms[item.id]?.trim() || it.catatanKms,
+                          }
+                        : it,
                 ),
             );
             setPesan(`Simulasi pemeriksaan ${item.nama} selesai.`);
@@ -176,12 +228,25 @@ export default function PemeriksaanKms({
         }
 
         try {
-            await konfirmasiSelesaiKms(item.id, onSesiBerakhir);
+            const catatan = catatanKms[item.id]?.trim() ?? '';
+            await konfirmasiSelesaiKms(item.id, onSesiBerakhir, catatan);
             setItems((lama) =>
                 lama.map((it) =>
-                    it.id === item.id ? { ...it, status: 'done' } : it,
+                    it.id === item.id
+                        ? {
+                              ...it,
+                              status: 'done',
+                              catatanKms: catatan || it.catatanKms,
+                          }
+                        : it,
                 ),
             );
+            setCatatanKms((lama) => {
+                const sisa = { ...lama };
+                delete sisa[item.id];
+
+                return sisa;
+            });
             setItemBerhasil(item.id);
             setPesan(`Pemeriksaan ${item.nama} telah dikonfirmasi selesai.`);
         } catch {
@@ -322,90 +387,119 @@ export default function PemeriksaanKms({
                                 {menunggu.map((item) => (
                                     <article
                                         key={item.id}
-                                        className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4.5 shadow-xs transition-shadow hover:shadow-md sm:flex-row sm:items-center sm:justify-between sm:p-5"
+                                        className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4.5 shadow-xs transition-shadow hover:shadow-md sm:p-5"
                                     >
-                                        <div className="flex min-w-0 items-start gap-4">
-                                            <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-base font-black text-white shadow-xs">
-                                                A
-                                                {String(item.nomor).padStart(
-                                                    2,
-                                                    '0',
-                                                )}
-                                            </div>
-                                            <div className="min-w-0">
-                                                <div className="flex flex-wrap items-center gap-2">
-                                                    <h3 className="truncate text-base font-black text-foreground">
-                                                        {item.nama}
-                                                    </h3>
-                                                    <span className="inline-flex items-center gap-1 rounded-full border border-tone-amber/20 bg-tone-amber-bg px-2.5 py-0.5 text-xs font-bold text-tone-amber">
-                                                        <Clock className="size-3" />
-                                                        Menunggu penjelasan
-                                                    </span>
+                                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                            <div className="flex min-w-0 items-start gap-4">
+                                                <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-base font-black text-white shadow-xs">
+                                                    A
+                                                    {String(
+                                                        item.nomor,
+                                                    ).padStart(2, '0')}
                                                 </div>
-                                                <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground sm:text-sm">
-                                                    <span className="font-semibold text-foreground">
-                                                        {item.rt
-                                                            ? `RT ${item.rt}`
-                                                            : 'RT belum tercatat'}
-                                                    </span>
-                                                    <span>·</span>
+                                                <div className="min-w-0">
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <h3 className="truncate text-base font-black text-foreground">
+                                                            {item.nama}
+                                                        </h3>
+                                                        <span className="inline-flex items-center gap-1 rounded-full border border-tone-amber/20 bg-tone-amber-bg px-2.5 py-0.5 text-xs font-bold text-tone-amber">
+                                                            <Clock className="size-3" />
+                                                            Menunggu penjelasan
+                                                        </span>
+                                                    </div>
+                                                    <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground sm:text-sm">
+                                                        <span className="font-semibold text-foreground">
+                                                            {item.rt
+                                                                ? `RT ${item.rt}`
+                                                                : 'RT belum tercatat'}
+                                                        </span>
+                                                        <span>·</span>
+                                                        <span>
+                                                            Orang tua:{' '}
+                                                            {item.namaOrtu ??
+                                                                '—'}
+                                                        </span>
+                                                        <span>·</span>
+                                                        <span className="text-[11px] text-muted-foreground/80">
+                                                            Check-in:{' '}
+                                                            {new Date(
+                                                                item.checkedInAt,
+                                                            ).toLocaleTimeString(
+                                                                'id-ID',
+                                                                {
+                                                                    hour: '2-digit',
+                                                                    minute: '2-digit',
+                                                                },
+                                                            )}{' '}
+                                                            WIB
+                                                        </span>
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex shrink-0 flex-wrap items-center gap-2.5 border-t border-border pt-2 sm:border-t-0 sm:pt-0">
+                                                <Link
+                                                    href={`/balita/${item.anakId}`}
+                                                    className="tombol-kedua inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold sm:text-sm"
+                                                >
+                                                    <ExternalLink
+                                                        className="size-4 text-primary"
+                                                        aria-hidden="true"
+                                                    />
                                                     <span>
-                                                        Orang tua:{' '}
-                                                        {item.namaOrtu ?? '—'}
+                                                        Lihat analisis & kurva
                                                     </span>
-                                                    <span>·</span>
-                                                    <span className="text-[11px] text-muted-foreground/80">
-                                                        Check-in:{' '}
-                                                        {new Date(
-                                                            item.checkedInAt,
-                                                        ).toLocaleTimeString(
-                                                            'id-ID',
-                                                            {
-                                                                hour: '2-digit',
-                                                                minute: '2-digit',
-                                                            },
-                                                        )}{' '}
-                                                        WIB
+                                                </Link>
+                                                <button
+                                                    type="button"
+                                                    className="tombol-utama hover:bg-primary-hover inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-extrabold text-white shadow-sm transition-all active:scale-95 sm:text-sm"
+                                                    disabled={
+                                                        sedangKonfirmasi !==
+                                                        null
+                                                    }
+                                                    onClick={() =>
+                                                        void konfirmasi(item)
+                                                    }
+                                                >
+                                                    <CircleCheck
+                                                        className={`size-4 ${sedangKonfirmasi === item.id ? 'motion-safe:animate-spin' : ''}`}
+                                                        aria-hidden="true"
+                                                    />
+                                                    <span>
+                                                        {sedangKonfirmasi ===
+                                                        item.id
+                                                            ? 'Menyimpan…'
+                                                            : 'Konfirmasi selesai'}
                                                     </span>
-                                                </p>
+                                                </button>
                                             </div>
                                         </div>
-
-                                        <div className="flex shrink-0 flex-wrap items-center gap-2.5 border-t border-border pt-2 sm:border-t-0 sm:pt-0">
-                                            <Link
-                                                href={`/balita/${item.anakId}`}
-                                                className="tombol-kedua inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold sm:text-sm"
-                                            >
-                                                <ExternalLink
-                                                    className="size-4 text-primary"
-                                                    aria-hidden="true"
-                                                />
-                                                <span>
-                                                    Lihat analisis & kurva
-                                                </span>
-                                            </Link>
-                                            <button
-                                                type="button"
-                                                className="tombol-utama hover:bg-primary-hover inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-extrabold text-white shadow-sm transition-all active:scale-95 sm:text-sm"
-                                                disabled={
-                                                    sedangKonfirmasi !== null
+                                        <InfoPendaftaran item={item} />
+                                        <label className="flex flex-col gap-1.5 text-xs font-bold text-foreground sm:text-sm">
+                                            Catatan / pengamatan khusus KMS
+                                            <textarea
+                                                value={
+                                                    catatanKms[item.id] ?? ''
                                                 }
-                                                onClick={() =>
-                                                    void konfirmasi(item)
-                                                }
-                                            >
-                                                <CircleCheck
-                                                    className={`size-4 ${sedangKonfirmasi === item.id ? 'motion-safe:animate-spin' : ''}`}
-                                                    aria-hidden="true"
-                                                />
-                                                <span>
-                                                    {sedangKonfirmasi ===
-                                                    item.id
-                                                        ? 'Menyimpan…'
-                                                        : 'Konfirmasi selesai'}
-                                                </span>
-                                            </button>
-                                        </div>
+                                                onChange={(e) => {
+                                                    const nilai =
+                                                        e.target.value;
+                                                    setCatatanKms((lama) => ({
+                                                        ...lama,
+                                                        [item.id]: nilai,
+                                                    }));
+                                                }}
+                                                maxLength={500}
+                                                rows={2}
+                                                placeholder="Opsional. Contoh: 2T, 3T, anak sedang sakit, dirujuk ke bidan."
+                                                className="min-h-16 w-full resize-y rounded-xl border border-border bg-background px-3 py-2 text-sm font-normal"
+                                            />
+                                            <span className="text-[11px] font-normal text-muted-foreground">
+                                                Tersimpan saat Konfirmasi
+                                                selesai. Catatan tumbuh kembang
+                                                tetap diisi di kartu balita.
+                                            </span>
+                                        </label>
                                     </article>
                                 ))}
                             </div>
@@ -476,6 +570,14 @@ export default function PemeriksaanKms({
                                                 Buka kartu
                                             </Link>
                                         </div>
+                                        {item.catatanKms && (
+                                            <p className="w-full text-xs text-muted-foreground">
+                                                <strong className="text-foreground">
+                                                    Catatan KMS:
+                                                </strong>{' '}
+                                                {item.catatanKms}
+                                            </p>
+                                        )}
                                     </li>
                                 ))}
                             </ul>

@@ -122,6 +122,22 @@ export function TabRiwayat({
                                                 {sebab}
                                             </span>
                                         )}
+                                        {p.catatanKhusus && (
+                                            <span className="block max-w-[32ch] px-3 pb-1 text-sm text-muted-foreground">
+                                                <strong className="text-foreground">
+                                                    Catatan pencatatan:
+                                                </strong>{' '}
+                                                {p.catatanKhusus}
+                                            </span>
+                                        )}
+                                        {p.catatanKms && (
+                                            <span className="block max-w-[32ch] px-3 pb-1 text-sm text-muted-foreground">
+                                                <strong className="text-foreground">
+                                                    Catatan KMS:
+                                                </strong>{' '}
+                                                {p.catatanKms}
+                                            </span>
+                                        )}
                                     </TableCell>
                                     <TableCell className="hidden whitespace-nowrap lg:table-cell">
                                         {umurRingkas(p.umurBulan)}

@@ -367,6 +367,7 @@ Sistem menggunakan arsitektur autentikasi ganda (*Dual-Authentication Scheme*) u
     "statusKehadiran": "hadir"
   }
   ```
+* **Field opsional (migrasi 030):** APK mengirim `catatan_khusus` (teks, maks. 500 karakter) untuk catatan/pengamatan khusus meja pencatatan. Bila field tidak dikirim (APK lama), catatan yang tersimpan tidak diubah. Nilai ini tampil di layar KMS dan tab Riwayat balita; `GET /sinkronisasi` mengembalikannya sebagai `catatan_khusus` dan catatan KMS sebagai `catatan_kms`.
 * **Respons `201 Created`:**
   ```json
   {
@@ -411,11 +412,16 @@ Sistem menggunakan arsitektur autentikasi ganda (*Dual-Authentication Scheme*) u
         "bbKg": 12.4,
         "tinggiCm": 89.5,
         "kategoriBbTb": "Gizi baik",
-        "catatan": null
+        "catatan": null,
+        "masihMenyusui": true,
+        "asiEksklusif": null,
+        "catatanKhusus": "Anak demam sejak kemarin",
+        "catatanKms": null
       }
     ]
   }
   ```
+* `masihMenyusui`/`asiEksklusif` berasal dari pendaftaran (check-in); `null` berarti tidak ditanyakan. `catatanKhusus` dan `catatanKms` dibaca dari baris `pengukuran` anak pada periode yang sama.
 
 #### `POST /api/v1/antrean`
 * **Fungsi:** Check-in balita ke antrean hari ini (biasanya saat memindai kartu QR di Meja 1).
@@ -427,10 +433,14 @@ Sistem menggunakan arsitektur autentikasi ganda (*Dual-Authentication Scheme*) u
     "periodeId": 15,
     "sasaranId": 88,
     "tanggal": "2026-10-09",
-    "catatan": "Keluarga baru pindah"
+    "catatan": "Keluarga baru pindah",
+    "masihMenyusui": true,
+    "asiEksklusif": false
   }
   ```
+* **Field opsional (migrasi 030):** `masihMenyusui` ditanyakan untuk usia 0-23 bulan, `asiEksklusif` untuk usia 0-6 bulan. Hanya `true`/`false` yang diproses; field yang tidak dikirim tidak mengubah jawaban yang sudah tersimpan. Check-in ulang anak yang sudah ada di antrean memakai endpoint yang sama untuk memperbarui jawaban.
 * **Respons `201 Created`:** Objek item antrean dengan nomor urut yang digenerate otomatis.
+* **Aturan nomor (migrasi 031):** nomor = nomor terkecil yang belum dipegang antrean tidak batal pada periode dan tanggal itu. Nomor antrean yang dibatalkan dikembalikan dan dipakai pendaftar berikutnya; nomor anak lain tidak diubah. Check-in ulang anak yang batal (lewat `POST` ini atau `PATCH` ke status lain) memperoleh nomor kosong baru. Urutan panggil (`urutan`) tetap mengikuti waktu datang.
 
 #### `PATCH /api/v1/antrean/:id`
 * **Fungsi:** Memperbarui status antrean (`waiting`, `called`, `serving`, `kms_review`, `done`, `cancelled`).
@@ -448,6 +458,7 @@ Sistem menggunakan arsitektur autentikasi ganda (*Dual-Authentication Scheme*) u
 * **Fungsi:** Petugas KMS atau superadmin mengonfirmasi edukasi KMS selesai; memindahkan antrean ke status `done`.
 * **Izin Akses:** `wajibBoleh(['konfirmasi-kms', 'catat-pengukuran-lapangan'])`.
 * **Asal Pemanggil:** Tombol "Konfirmasi Selesai" di Layar KMS Web Bidan (`pages/kms/index.tsx`).
+* **Request Body (opsional):** `{"catatanKms": "2T, dirujuk ke bidan"}` — catatan/pengamatan khusus KMS (maks. 500 karakter), disimpan ke `pengukuran.catatan_kms`. Body kosong `{}` tetap valid dan tidak menimpa catatan.
 * **Respons `200 OK`:** Objek antrean terbarui dengan status `done`.
 
 #### `POST /api/v1/antrean/konfirmasi-semua-kms`

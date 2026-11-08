@@ -11,6 +11,19 @@ import { boleh } from "../auth/peran.ts";
 const STATUS: readonly StatusAntrean[] = ["waiting", "called", "serving", "kms_review", "done", "cancelled"];
 const TANGGAL = /^\d{4}-\d{2}-\d{2}$/;
 
+/** true/false/null dipakai apa adanya; nilai lain berarti tidak dikirim. */
+function yaTidak(nilai: unknown): boolean | null | undefined {
+    if (nilai === true || nilai === false || nilai === null) return nilai;
+    return undefined;
+}
+
+function teksOpsional(nilai: unknown, batas: number): string | null | undefined {
+    if (nilai === undefined) return undefined;
+    if (nilai === null) return null;
+    if (typeof nilai !== "string") return undefined;
+    return nilai.trim().slice(0, batas) || null;
+}
+
 function gagal(res: Response, status: number, pesan: string) {
     res.status(status).json({ galat: pesan });
 }
@@ -54,13 +67,17 @@ export function ruteAntrean(pool: Pool): Router {
         const tanggal = typeof req.body?.tanggal === "string" ? req.body.tanggal : "";
         const catatanRaw = req.body?.catatan;
         const catatan = typeof catatanRaw === "string" ? catatanRaw.trim().slice(0, 240) || null : null;
+        const menyusui = {
+            masihMenyusui: yaTidak(req.body?.masihMenyusui),
+            asiEksklusif: yaTidak(req.body?.asiEksklusif),
+        };
         if (!Number.isSafeInteger(periodeId) || periodeId < 1 || !Number.isSafeInteger(sasaranId) || sasaranId < 1 || !TANGGAL.test(tanggal)) {
             gagal(res, 400, "Data check-in antrean tidak valid.");
             return;
         }
         try {
             const item = await dalamTransaksi(pool, { pengguna: req.pengguna!.id, sumber: "tablet" }, db =>
-                antreanRepo.checkIn(db, req.pengguna!, periodeId, sasaranId, tanggal, catatan));
+                antreanRepo.checkIn(db, req.pengguna!, periodeId, sasaranId, tanggal, catatan, menyusui));
             if (!item) {
                 console.warn(`[Antrean checkIn 404] periodeId=${periodeId} sasaranId=${sasaranId} tanggal=${tanggal} user=${req.pengguna?.id}`);
                 gagal(res, 404, "Sasaran tidak ditemukan, di luar RT, atau sesi sudah ditutup.");
@@ -100,9 +117,11 @@ export function ruteAntrean(pool: Pool): Router {
             gagal(res, 400, "ID antrean tidak valid.");
             return;
         }
+        // Opsional: catatan/pengamatan khusus KMS (mis. 2T, 3T, anak sakit).
+        const catatanKms = teksOpsional(req.body?.catatanKms, 500);
         try {
             const item = await dalamTransaksi(pool, { pengguna: req.pengguna!.id, sumber: "web-kms" }, db =>
-                antreanRepo.konfirmasiKms(db, req.pengguna!, id));
+                antreanRepo.konfirmasiKms(db, req.pengguna!, id, catatanKms));
             if (!item) { gagal(res, 409, "Antrean belum menunggu pemeriksaan KMS atau sesi sudah ditutup."); return; }
             res.json({ item });
         } catch (error) { next(error); }

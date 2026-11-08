@@ -8,6 +8,13 @@ export type AntreanKms = {
     status:
         'waiting' | 'called' | 'serving' | 'kms_review' | 'done' | 'cancelled';
     checkedInAt: string;
+    /** Jawaban pendaftaran (APK); null = tidak ditanyakan karena usia. */
+    masihMenyusui?: boolean | null;
+    asiEksklusif?: boolean | null;
+    /** Catatan/pengamatan khusus dari meja pencatatan (APK). */
+    catatanKhusus?: string | null;
+    /** Catatan/pengamatan khusus KMS, mis. 2T, 3T, atau anak sakit. */
+    catatanKms?: string | null;
 };
 
 export async function ambilAntreanHariIni(
@@ -55,14 +62,16 @@ export async function ambilAntreanHariIni(
 export async function konfirmasiSelesaiKms(
     id: string,
     onSesiBerakhir: () => void,
+    catatanKms?: string,
 ): Promise<void> {
+    const catatan = catatanKms?.trim();
     const res = await fetch(
         `/api/v1/antrean/${encodeURIComponent(id)}/konfirmasi-kms`,
         {
             method: 'POST',
             credentials: 'same-origin',
             headers: { 'content-type': 'application/json' },
-            body: '{}',
+            body: JSON.stringify(catatan ? { catatanKms: catatan } : {}),
         },
     );
 

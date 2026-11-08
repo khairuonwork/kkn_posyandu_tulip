@@ -65,6 +65,8 @@ type PengukuranApi = {
     likaCm: number | null;
     statusKehadiran: StatusKehadiran;
     catatan: string | null;
+    catatanKhusus?: string | null;
+    catatanKms?: string | null;
     ntob: string | null;
     penilaian: Pengukuran['penilaian'];
 };
@@ -324,6 +326,8 @@ function kePengukuran(anak: Anak, p: PengukuranApi): Pengukuran {
         ntob: p.ntob,
         statusKehadiran: p.statusKehadiran,
         catatanUkur: p.catatan === null ? null : { catatan: p.catatan },
+        catatanKhusus: p.catatanKhusus ?? null,
+        catatanKms: p.catatanKms ?? null,
         penilaian: p.penilaian ?? {},
     };
 }

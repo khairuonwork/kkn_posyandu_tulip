@@ -352,6 +352,11 @@ export async function simpanPengukuran(
                 likaCm,
                 ntob: teks(data, "ntob") || null,
                 statusKehadiran: status,
+                // undefined = APK lama tidak mengirim, sehingga catatan lama dipertahankan.
+                catatanKhusus:
+                    data.catatan_khusus === undefined
+                        ? undefined
+                        : teks(data, "catatan_khusus").slice(0, 500) || null,
             });
             if (hasil?.berubah) await hitungDanSimpanDalamTransaksi(db, hasil.id, tabel);
             return hasil;
