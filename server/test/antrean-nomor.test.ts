@@ -108,8 +108,8 @@ test('PATCH biasa tidak mengubah nomor', async () => {
     assert.equal(log.find(q => q.text.includes('RETURNING q.id'))!.values[5], null);
 });
 
-test('migrasi 031 hanya mewajibkan nomor unik untuk antrean yang tidak batal', () => {
-    const sql = readFileSync(new URL('../db/migrations/031_nomor_antrean_dapat_dipakai_ulang.sql', import.meta.url), 'utf8');
+test('migrasi 032 hanya mewajibkan nomor unik untuk antrean yang tidak batal', () => {
+    const sql = readFileSync(new URL('../db/migrations/032_nomor_antrean_dapat_dipakai_ulang.sql', import.meta.url), 'utf8');
     assert.match(sql, /UNIQUE \(periode_id, tanggal, nomor\)/);
     assert.match(sql, /WHERE status <> ''cancelled''/);
     assert.match(sql, /current_schema\(\)/);

@@ -367,7 +367,7 @@ Sistem menggunakan arsitektur autentikasi ganda (*Dual-Authentication Scheme*) u
     "statusKehadiran": "hadir"
   }
   ```
-* **Field opsional (migrasi 030):** APK mengirim `catatan_khusus` (teks, maks. 500 karakter) untuk catatan/pengamatan khusus meja pencatatan. Bila field tidak dikirim (APK lama), catatan yang tersimpan tidak diubah. Nilai ini tampil di layar KMS dan tab Riwayat balita; `GET /sinkronisasi` mengembalikannya sebagai `catatan_khusus` dan catatan KMS sebagai `catatan_kms`.
+* **Field opsional (migrasi 031):** APK mengirim `catatan_khusus` (teks, maks. 500 karakter) untuk catatan/pengamatan khusus meja pencatatan. Bila field tidak dikirim (APK lama), catatan yang tersimpan tidak diubah. Nilai ini tampil di layar KMS dan tab Riwayat balita; `GET /sinkronisasi` mengembalikannya sebagai `catatan_khusus` dan catatan KMS sebagai `catatan_kms`.
 * **Respons `201 Created`:**
   ```json
   {
@@ -438,9 +438,9 @@ Sistem menggunakan arsitektur autentikasi ganda (*Dual-Authentication Scheme*) u
     "asiEksklusif": false
   }
   ```
-* **Field opsional (migrasi 030):** `masihMenyusui` ditanyakan untuk usia 0-23 bulan, `asiEksklusif` untuk usia 0-6 bulan. Hanya `true`/`false` yang diproses; field yang tidak dikirim tidak mengubah jawaban yang sudah tersimpan. Check-in ulang anak yang sudah ada di antrean memakai endpoint yang sama untuk memperbarui jawaban.
+* **Field opsional (migrasi 031):** `masihMenyusui` ditanyakan untuk usia 0-23 bulan, `asiEksklusif` untuk usia 0-6 bulan. Hanya `true`/`false` yang diproses; field yang tidak dikirim tidak mengubah jawaban yang sudah tersimpan. Check-in ulang anak yang sudah ada di antrean memakai endpoint yang sama untuk memperbarui jawaban.
 * **Respons `201 Created`:** Objek item antrean dengan nomor urut yang digenerate otomatis.
-* **Aturan nomor (migrasi 031):** nomor = nomor terkecil yang belum dipegang antrean tidak batal pada periode dan tanggal itu. Nomor antrean yang dibatalkan dikembalikan dan dipakai pendaftar berikutnya; nomor anak lain tidak diubah. Check-in ulang anak yang batal (lewat `POST` ini atau `PATCH` ke status lain) memperoleh nomor kosong baru. Urutan panggil (`urutan`) tetap mengikuti waktu datang.
+* **Aturan nomor (migrasi 032):** nomor = nomor terkecil yang belum dipegang antrean tidak batal pada periode dan tanggal itu. Nomor antrean yang dibatalkan dikembalikan dan dipakai pendaftar berikutnya; nomor anak lain tidak diubah. Check-in ulang anak yang batal (lewat `POST` ini atau `PATCH` ke status lain) memperoleh nomor kosong baru. Urutan panggil (`urutan`) tetap mengikuti waktu datang.
 
 #### `PATCH /api/v1/antrean/:id`
 * **Fungsi:** Memperbarui status antrean (`waiting`, `called`, `serving`, `kms_review`, `done`, `cancelled`).
