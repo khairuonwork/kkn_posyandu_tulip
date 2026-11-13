@@ -77,3 +77,21 @@ test("EPPGBM tidak dipakai sebagai NIK dan NIK ganda ditahan", async () => {
         [8, 9],
     );
 });
+
+test("sheet berlabel NOP terbaca November dan kolom IBU menjadi nama orang tua", async () => {
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("DATA SASARAN NOP 2026 ");
+    const isiBaris = (nomor: number, nilai: unknown[]) =>
+        nilai.forEach((sel, indeks) => {
+            sheet.getRow(nomor).getCell(indeks + 1).value = sel as never;
+        });
+    isiBaris(6, ["NIK", "NAMA LENGKAP", "tgl_lahir", "JK", "IBU", "AYAH", "nik_ortu", "RT"]);
+    isiBaris(7, ["3277030101260001", "Anak November", new Date("2026-01-01T00:00:00Z"), "L", "Ibu Kandung", "Ayah Kandung", "3277030101260002", "1"]);
+    const nopember = workbook.addWorksheet("SASARAN NOPEMBER 2026");
+    nopember.getRow(1).values = ["NIK", "NAMA LENGKAP", "tgl_lahir", "JK", "RT"];
+    const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
+    const hasil = await bacaWorkbookSasaran(buffer.toString("base64"));
+    const nov = hasil.find((s) => s.sheet.startsWith("DATA SASARAN NOP"));
+    assert.equal(nov?.periode, "2026-11");
+    assert.equal(nov?.baris[0].namaOrtu, "Ibu Kandung");
+});
