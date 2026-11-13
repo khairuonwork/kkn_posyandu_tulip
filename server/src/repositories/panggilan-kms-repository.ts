@@ -49,6 +49,8 @@ export async function ubahPanggilan(
         `UPDATE antrean_layanan q SET
             meja_kms=CASE WHEN $5='kembalikan' THEN NULL ELSE $4::integer END,
             tiba_kms=$5='tiba',
+            kms_petugas_id=CASE WHEN $5='kembalikan' THEN NULL ELSE coalesce(q.kms_petugas_id, $6) END,
+            kms_dipanggil_pada=CASE WHEN $5='kembalikan' THEN NULL WHEN $5='panggil' THEN now() ELSE q.kms_dipanggil_pada END,
             called_at=CASE WHEN $5 IN ('panggil', 'ulang') THEN now()
                            WHEN $5='kembalikan' THEN NULL ELSE q.called_at END,
             updated_by=$6
@@ -56,12 +58,12 @@ export async function ubahPanggilan(
             AND q.status NOT IN ('done', 'cancelled')
             AND EXISTS (SELECT 1 FROM sasaran s JOIN anak a ON a.id=s.anak_id
                         WHERE s.id=q.sasaran_id AND a.deleted_at IS NULL)
-            AND (($5='panggil' AND q.meja_kms IS NULL AND NOT EXISTS (
+            AND (($5='panggil' AND q.meja_kms IS NULL AND q.kms_petugas_id IS NULL AND NOT EXISTS (
                    SELECT 1 FROM antrean_layanan aktif
-                    WHERE aktif.periode_id=$2 AND aktif.tanggal=$3::date AND aktif.meja_kms=$4
+                    WHERE aktif.periode_id=$2 AND aktif.tanggal=$3::date AND (aktif.meja_kms=$4 OR aktif.kms_petugas_id=$6)
                       AND aktif.status NOT IN ('done', 'cancelled')
-                )) OR ($5 IN ('ulang', 'tiba') AND q.meja_kms=$4 AND NOT q.tiba_kms)
-                   OR ($5='kembalikan' AND q.meja_kms=$4))
+                )) OR ($5 IN ('ulang', 'tiba') AND q.meja_kms=$4 AND (q.kms_petugas_id IS NULL OR q.kms_petugas_id=$6) AND NOT q.tiba_kms)
+                   OR ($5='kembalikan' AND q.meja_kms=$4 AND (q.kms_petugas_id IS NULL OR q.kms_petugas_id=$6)))
           RETURNING q.nomor`,
         [id, periodeId, tanggal, meja, aksi, penggunaId],
     );

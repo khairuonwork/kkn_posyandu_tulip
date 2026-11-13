@@ -359,8 +359,8 @@ export function DialogUbah({
                         </fieldset>
                         <Kolom
                             id="ubah-desil"
-                            label="Kelompok Desil"
-                            keterangan="Desil 1–4: Gakin; Desil 5–10: Non Gakin. Berlaku mulai periode yang dipilih untuk laporan F1."
+                            label="Desil / status ekonomi"
+                            keterangan="Desil 1–4: Gakin; Desil 5–10: Non Gakin. Jika angkanya belum diketahui, pilih kategori Gakin atau Non Gakin saja. Berlaku mulai periode yang dipilih untuk laporan F1."
                         >
                             <select
                                 id="ubah-desil"
@@ -434,7 +434,13 @@ export function DialogUbah({
                         className="pesan-masuk mx-7 mb-3 flex items-center justify-between gap-3 rounded-lg bg-tone-red-bg px-4 py-3 text-sm font-semibold text-tone-red"
                     >
                         <span>{galatSimpan}</span>
-                        <button type="button" onClick={() => setGalatSimpan('')} className="underline">Tutup</button>
+                        <button
+                            type="button"
+                            onClick={() => setGalatSimpan('')}
+                            className="underline"
+                        >
+                            Tutup
+                        </button>
                     </div>
                 )}
                 <KakiDialog>
@@ -499,7 +505,10 @@ function Kolom({
             </label>
             <div className="mt-1.5">{children}</div>
             {galat !== undefined && (
-                <p role="alert" className="pesan-masuk mt-1.5 text-sm font-semibold text-tone-red">
+                <p
+                    role="alert"
+                    className="pesan-masuk mt-1.5 text-sm font-semibold text-tone-red"
+                >
                     {galat}
                 </p>
             )}

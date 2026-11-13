@@ -59,12 +59,13 @@ Endpoint pemanggilan per meja dan ruang tunggu, termasuk penanda panggilan, dije
 
 ### Data keluarga pada profil anak
 
-Respons profil menyertakan `jenisKb: string | null` dan `desilKelompok: '6-10' | null`.
+Respons profil menyertakan `jenisKb: string | null`, `desilKelompok: '6-10' | null`, dan `gng: 'G' | 'NG' | null`. Kategori ekonomi tetap dapat diketahui ketika nomor desil belum tersedia.
 Pada PATCH profil, kedua field opsional. `jenisKb` yang tidak dikirim mempertahankan nilainya; desil dan kelompoknya diperbarui bersama saat salah satu field ekonomi dikirim.
 
 - `jenisKb`: teks bebas maksimal 100 karakter setelah spasi dirapikan. String kosong atau `null` mengosongkan nilai. Jika terisi, `namaOrtu` wajib diisi. Field `kbIbu` lama tetap tersedia untuk kompatibilitas dan tidak digunakan untuk menebak jenis KB.
 - Pilihan kelompok baru dikirim sebagai `desil: null, desilKelompok: '6-10', periodeId: 'YYYY-MM'`. Kategori ekonomi disimpan sebagai NG.
 - Pilihan angka dikirim sebagai `desil: 1` sampai `5`, `desilKelompok: null`, dan `periodeId`. Angka 6–10 tetap diterima untuk kompatibilitas data lama; antarmuka menampilkannya sebagai Desil 6–10 tanpa menulis ulang angkanya.
+- Bila hanya kategori ekonomi yang diketahui, kirim `desil: null, desilKelompok: null, gng: 'G'` atau `'NG'`, beserta `periodeId`. Nomor desil tidak ditebak. Kategori yang bertentangan dengan angka/kelompok desil ditolak.
 - Untuk mengosongkan desil, kirim `desil: null, desilKelompok: null` beserta `periodeId`. Field ekonomi yang tidak dikirim tidak mengubah riwayat periode.
 
 Migrasi `028_profil_keluarga.sql` menambahkan kolom pada tabel utama; `029_profil_keluarga_pelatihan.sql` menyesuaikan salinan tabel sesi pelatihan yang sudah aktif. Jalankan migrasi sebelum versi server baru.

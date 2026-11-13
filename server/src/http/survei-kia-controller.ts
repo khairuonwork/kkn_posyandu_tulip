@@ -13,7 +13,10 @@ export function ruteSurveiKia(pool:Pool):Router {
             if(!Number.isSafeInteger(id)||id<=0) {res.status(404).json({galat:'Anak tidak ditemukan.'});return;}
             try {
                 res.set('Cache-Control','no-store');
-                res.json(method==='get'?await pendampinganKia(pool,req.pengguna!,id):await catatPendampinganKia(pool,req.pengguna!,id,req.body));
+                const periode = typeof req.query.periode === 'string' ? req.query.periode : undefined;
+                res.json(method==='get'
+                    ? await pendampinganKia(pool,req.pengguna!,id,undefined,periode)
+                    : await catatPendampinganKia(pool,req.pengguna!,id,req.body,undefined,periode));
             }catch(e) {
                 if(e instanceof GalatAnak || e instanceof GalatSurveiKia) {res.status(e.status).json({galat:e.message});return;}
                 next(e);

@@ -26,6 +26,7 @@ import { rutePerangkat } from './perangkat-controller.ts';
 import { muatKonfigurasi } from "../config.ts";
 import type { KonfigurasiServer } from "../config.ts";
 import { rutePelatihan } from './pelatihan-controller.ts';
+import { ruteAplikasi } from "./aplikasi-controller.ts";
 import { lingkupPelatihan, poolOperasional } from './pelatihan-context.ts';
 
 export function buatApp(
@@ -42,6 +43,15 @@ export function buatApp(
     // alamat proxy-nya, dan pembatas percobaan masuk kehilangan artinya.
     app.set("trust proxy", konfigurasi.trustProxy);
     app.disable("x-powered-by");
+
+    // Penanda server yang melayani (utama/kembar) untuk diagnosis; tanpa rahasia.
+    const idServer = (process.env.SERVER_ID ?? "").trim().slice(0, 40);
+    if (idServer) {
+        app.use((_req, res, next) => {
+            res.set("X-Simpatik-Server", idServer);
+            next();
+        });
+    }
 
     // Catat hasil login saja, tanpa password, token, cookie, atau badan permintaan.
     app.use((req, res, next) => {
@@ -126,6 +136,9 @@ export function buatApp(
             next(galat);
         }
     });
+
+    // Pembaruan APK tidak memakai database; dipasang sebelum lingkup pelatihan.
+    app.use("/api/v1", ruteAplikasi());
 
     app.use('/api',lingkupPelatihan(authPool));
     app.use('/api',rutePengguna(pool));

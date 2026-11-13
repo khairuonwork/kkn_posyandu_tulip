@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - development
   pull_request:
 
 permissions:
@@ -112,8 +113,11 @@ jobs:
         working-directory: client
         run: npm run format:check
 
-      # Demo statis adalah satu-satunya build yang ada sampai SPA punya
-      # endpoint untuk dipanggil (ADR-0006 langkah 5).
+      # Pastikan SPA yang dipasang di VM dan demo dapat dibangun.
+      - name: Build web
+        working-directory: client
+        run: npm run build
+
       - name: Build demo
         working-directory: client
         run: npm run demo:build

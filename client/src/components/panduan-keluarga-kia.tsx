@@ -10,8 +10,8 @@ import {
     TriangleAlert,
 } from 'lucide-react';
 import keluarga from '@/assets/edukasi-keluarga-kia-v1.png';
-import type { EdukasiLembarKia } from '@/lib/lembar';
 import { tanggalPanjang } from '@/lib/format';
+import type { EdukasiLembarKia } from '@/lib/lembar';
 import './panduan-keluarga-kia.css';
 
 /** One source of parent guidance for the live result and printed handout. */
@@ -23,8 +23,13 @@ export default function PanduanKeluargaKia({
     edukasi: EdukasiLembarKia;
 }) {
     const { kelompok, makan, sumber, bahaya, layanan } = edukasi;
-    if (!kelompok) return null;
+
+    if (!kelompok) {
+        return null;
+    }
+
     const bayi = ['lahir-28h', '29h-3b', '3-6b'].includes(kelompok.id);
+
     return (
         <section
             className="panduan-keluarga"
@@ -172,7 +177,9 @@ export default function PanduanKeluargaKia({
                     target="_blank"
                     rel="noreferrer"
                 >
-                    Baca panduan lengkap Buku KIA 2024
+                    Buku KIA 2024 · hlm. {kelompok.halaman} cetak (PDF{' '}
+                    {kelompok.halamanPdf}
+                    {kelompok.sisiHalaman ? ` · ${kelompok.sisiHalaman}` : ''})
                 </a>
                 <p>
                     Panduan umum sesuai usia. Kebutuhan khusus dan hasil
@@ -185,7 +192,11 @@ export default function PanduanKeluargaKia({
 
 export function DiskusiKiaCetak({ edukasi }: { edukasi: EdukasiLembarKia }) {
     const d = edukasi.diskusi;
-    if (!d) return null;
+
+    if (!d) {
+        return null;
+    }
+
     return (
         <div className="diskusi-kia-cetak">
             <div className="diskusi-kia-cetak__judul">

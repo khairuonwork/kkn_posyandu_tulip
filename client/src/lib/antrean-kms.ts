@@ -8,6 +8,15 @@ export type AntreanKms = {
     status:
         'waiting' | 'called' | 'serving' | 'kms_review' | 'done' | 'cancelled';
     checkedInAt: string;
+    urutan?: number;
+    prioritasKms?: { skor: number; jumlahT: number; alasan: string[] } | null;
+    catatan?: string | null;
+    catatanKhusus?: string | null;
+    catatanKms?: string | null;
+    masihMenyusui?: boolean | null;
+    asiEksklusif?: boolean | null;
+    kmsPetugasId?: number | null;
+    kmsPetugasNama?: string | null;
     mejaKms?: number | null;
     tibaKms?: boolean;
     sudahDiukur?: boolean;
@@ -91,14 +100,14 @@ export function ubahPanggilanKms(
     );
 }
 
-export function konfirmasiSelesaiKms(id: string, onSesiBerakhir: () => void) {
+export function konfirmasiSelesaiKms(id: string, onSesiBerakhir: () => void, catatanKms?: string) {
     return mintaKms(
         `antrean/${encodeURIComponent(id)}/konfirmasi-kms`,
         onSesiBerakhir,
         {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: '{}',
+            body: JSON.stringify(catatanKms?.trim() ? { catatanKms: catatanKms.trim() } : {}),
         },
     );
 }

@@ -12,12 +12,14 @@ dengan 92 sasaran, lalu memulai sesi.
 1. Sinkronkan seluruh pekerjaan riil tablet sebelum mulai.
 2. Superadmin mulai sesi. Mode berlaku untuk seluruh web dan APK pada server
    ini; operasional riil tidak berlangsung bersamaan pada server yang sama.
-3. Peserta login ulang dan sinkronisasi. Target disalin sebagai ANAK LATIHAN,
-   dengan NIK, ID internal/UUID, dan keluarga berbeda. Kartu QR operasional lama
+3. Peserta login ulang dan sinkronisasi. Profil anak di ruang latihan memakai
+   NIK, ID internal, UUID, dan ID keluarga latihan. Kartu QR operasional lama
    tetap dapat dipindai langsung di APK dan otomatis memetakan ke ANAK LATIHAN
    di sandbox tanpa menyentuh data riil.
-4. Latih antrean, pencatatan hasil ukur, KMS, profil, dan laporan menggunakan
-   menu biasa. APK yang sudah memakai REST API ini tidak perlu rebuild.
+4. Bulan sumber terbuka pertama kali dengan sasaran menunggu. Latih antrean,
+   hasil ukur, KMS, profil, dan laporan dari menu biasa. Pilih periode
+   sebelumnya untuk melihat riwayat dan laporan historis. Untuk alur Android
+   ke web, gunakan APK yang terhubung ke REST API portal.
 5. Sinkronkan tablet, lalu superadmin memilih **Akhiri dan hapus data latihan**.
 6. Bersihkan cache/data latihan lokal Android, lalu login dan sinkronkan data
    riil. APK lama menyimpan antrean offline dan tidak mendukung penghapusan
@@ -33,10 +35,14 @@ NIK untuk pendaftaran latihan harus 16 digit berawalan `0099`, misalnya
   UUID acak. Tabel, foreign key dan sequence berada di schema itu. Tidak ada
   fallback search_path ke tabel public; akses public eksplisit lewat pool
   operasional ditolak selama latihan.
-- Salinan mengambil anggota sasaran, referensi wilayah/akun dan standar WHO.
-  Tidak menyalin hasil ukur, antrean, layanan, survei, kontak orang tua, sesi
-  login atau hash password operasional. Nama keluarga disamarkan, tanggal
-  lahir digeser ke hari pertama bulan agar kelompok usia tetap mirip.
+- Sesi baru menyalin profil anak Posyandu sumber beserta sasaran, hasil ukur,
+  penilaian gizi, kunjungan, survei, dan sumber laporan dari periode sebelumnya.
+  Bulan sumber dimulai dengan sasaran menunggu dan ruang kosong untuk hasil
+  simulasi. Nama dan tanggal lahir dipakai untuk menjaga kesinambungan profil
+  dan usia. Nomor kontak, catatan bebas, sesi login, dan hash kata sandi riil
+  dikecualikan dari salinan. Pengiriman tautan keluarga tetap dibatasi.
+- Riwayat disalin saat sesi dibuat. Sesi yang dibuat sebelum pembaruan ini
+  mendapatkan riwayat saat superadmin memulai sesi baru.
 - ID latihan mulai 1.000.000.000.000. NIK latihan memakai namespace 0099.
   API riil menolak payload latihan yang tertahan pada APK lama, bahkan setelah
   pengguna login kembali dengan token baru.
@@ -58,5 +64,6 @@ tombol mulai. Jika flag belum aktif, endpoint pelatihan menjawab 503.
 
 Uji murni: `node --experimental-strip-types --test test/pelatihan.test.ts`.
 Uji integrasi sumber Oktober: `node --env-file=.env db/uji-pelatihan-rollback.ts`.
-Uji integrasi membuat 92 target, memproses format ukur APK, memeriksa 37 FK,
-menghapus schema, membandingkan sidik data riil, lalu rollback seluruh transaksi.
+Uji integrasi memeriksa sasaran bulan sumber, riwayat periode lama, payload
+hasil ukur APK, dan isolasi foreign key. Uji menghapus skema latihan,
+membandingkan sidik data sumber, lalu me-rollback transaksi.

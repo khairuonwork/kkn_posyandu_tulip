@@ -51,6 +51,7 @@ type AnakDetailApi = AnakApi & {
     imd: boolean;
     kbIbu: boolean | null;
     jenisKb?: string | null;
+    gng?: 'G' | 'NG' | null;
     desilKelompok?: '6-10' | null;
     desil?: number | null;
 };
@@ -64,6 +65,8 @@ type PengukuranApi = {
     likaCm: number | null;
     statusKehadiran: StatusKehadiran;
     catatan: string | null;
+    catatanKhusus?: string | null;
+    catatanKms?: string | null;
     ntob: string | null;
     penilaian: Pengukuran['penilaian'];
 };
@@ -266,6 +269,7 @@ function keDetail(a: AnakDetailApi): Anak {
         jenisKb: a.jenisKb ?? null,
         desilKelompok: a.desilKelompok ?? null,
         desil: a.desil ?? null,
+        gng: a.gng ?? null,
         rt: a.rt,
         rw: '18',
         namaOrtu: a.namaOrtu,
@@ -322,6 +326,8 @@ function kePengukuran(anak: Anak, p: PengukuranApi): Pengukuran {
         ntob: p.ntob,
         statusKehadiran: p.statusKehadiran,
         catatanUkur: p.catatan === null ? null : { catatan: p.catatan },
+        catatanKhusus: p.catatanKhusus ?? null,
+        catatanKms: p.catatanKms ?? null,
         penilaian: p.penilaian ?? {},
     };
 }
@@ -330,6 +336,7 @@ export function useDetailAnakServer(
     anakId: number | null,
     onSesiBerakhir: () => void,
     periodeId = '',
+    revisiProfil = 0,
 ): DetailAnakServerState {
     const [state, setState] = useState<DetailAnakServerState>({
         status: 'memuat',
@@ -419,7 +426,7 @@ export function useDetailAnakServer(
             aktif = false;
             controller.abort();
         };
-    }, [anakId, onSesiBerakhir, periodeId]);
+    }, [anakId, onSesiBerakhir, periodeId, revisiProfil]);
 
     return state;
 }

@@ -27,7 +27,11 @@ export type DataBeranda = {
     perluPerhatian: AnakPerluPerhatian[];
 };
 
-type DaftarPeriode = { periode: Periode[]; periodeTerisi: Periode | null };
+type DaftarPeriode = {
+    periode: Periode[];
+    periodeTerisi: Periode | null;
+    periodeLatihan?: string | null;
+};
 
 async function jsonLive<T>(
     url: string,
@@ -77,7 +81,10 @@ export function useBerandaServer(
     const muatUlang = useCallback(() => setVersi((lama) => lama + 1), []);
     const periodeId = daftar.periode.some((p) => p.id === periodePilihan)
         ? periodePilihan
-        : (daftar.periodeTerisi?.id ?? daftar.periode.at(-1)?.id ?? '');
+        : (daftar.periodeLatihan ??
+          daftar.periodeTerisi?.id ??
+          daftar.periode.at(-1)?.id ??
+          '');
 
     useEffect(() => {
         const controller = new AbortController();

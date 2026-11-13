@@ -22,34 +22,37 @@ export function BilahSimpan({
                 role="status"
                 className="flex min-w-0 flex-1 basis-64 items-center gap-3.5"
             >
-                <div key={ada ? 'berubah' : 'awal'} className="pesan-masuk flex min-w-0 items-center gap-3.5">
-                {ada ? (
-                    <>
-                        <span
-                            aria-hidden="true"
-                            className="flex size-10 shrink-0 items-center justify-center rounded-md bg-tone-blue-bg text-tone-blue"
-                        >
-                            <Pencil className="size-5" strokeWidth={2.25} />
-                        </span>
-                        <span className="flex min-w-0 flex-col leading-snug">
-                            <span className="text-base font-extrabold text-tone-blue">
-                                {perubahan.length} perubahan belum disimpan
+                <div
+                    key={ada ? 'berubah' : 'awal'}
+                    className="pesan-masuk flex min-w-0 items-center gap-3.5"
+                >
+                    {ada ? (
+                        <>
+                            <span
+                                aria-hidden="true"
+                                className="flex size-10 shrink-0 items-center justify-center rounded-md bg-tone-blue-bg text-tone-blue"
+                            >
+                                <Pencil className="size-5" strokeWidth={2.25} />
                             </span>
-                            <span className="text-sm text-muted-foreground">
-                                {perubahan.length === 1
-                                    ? perubahan[0]
-                                    : `${perubahan[0].slice(0, -1)}, dan ${perubahan.length - 1} perubahan lainnya.`}{' '}
-                                Perubahan belum diterapkan.
+                            <span className="flex min-w-0 flex-col leading-snug">
+                                <span className="text-base font-extrabold text-tone-blue">
+                                    {perubahan.length} perubahan belum disimpan
+                                </span>
+                                <span className="text-sm text-muted-foreground">
+                                    {perubahan.length === 1
+                                        ? perubahan[0]
+                                        : `${perubahan[0].slice(0, -1)}, dan ${perubahan.length - 1} perubahan lainnya.`}{' '}
+                                    Perubahan belum diterapkan.
+                                </span>
                             </span>
+                        </>
+                    ) : (
+                        <span className="text-sm text-muted-foreground">
+                            {tanpaTempat
+                                ? 'Belum ada tempat menyimpannya: tabel pengaturan belum ada di basis data.'
+                                : 'Belum ada perubahan.'}
                         </span>
-                    </>
-                ) : (
-                    <span className="text-sm text-muted-foreground">
-                        {tanpaTempat
-                            ? 'Belum ada tempat menyimpannya: tabel pengaturan belum ada di basis data.'
-                            : 'Belum ada perubahan.'}
-                    </span>
-                )}
+                    )}
                 </div>
             </div>
             <div className="flex shrink-0 gap-2.5">

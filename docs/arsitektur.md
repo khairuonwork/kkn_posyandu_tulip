@@ -118,6 +118,8 @@ docs/
 Panduan penyerahan operasional dan batas tanggung jawab modul ada di
 [Panduan serah-terima server](panduan-serah-terima-server.md).
 
+Halaman memakai modul per domain. `pages/laporan/index.tsx` memilih tab SKDN, rekap live, atau tumbuh kembang; state dan unduhan ada di `laporan-live.tsx`, sedangkan filter, tabel, ringkasan, bantuan, format umur, dan tipe memiliki berkas tersendiri. `pages/dashboard/index.tsx` merakit beranda dengan komponen ringkasan/tren dan tipe terpisah. Entry point lama `pages/dashboard.tsx` tetap tersedia untuk kompatibilitas pemanggil.
+
 Aplikasi dan demo berbagi seluruh `src/`; yang berbeda hanya entri, cara masuk, dan pemilih peran.
 
 ---

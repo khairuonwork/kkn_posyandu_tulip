@@ -1,5 +1,5 @@
-import type { ComponentType } from 'react';
 import { Calculator, Flag, History, Ruler, Users } from 'lucide-react';
+import type { ComponentType } from 'react';
 import type { Pengguna, Peran } from '@/types/posyandu';
 
 export type Ambang = {

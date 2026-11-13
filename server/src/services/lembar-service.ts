@@ -199,6 +199,7 @@ export async function bacaLembar(pool: Pool, token: string) {
                       jenis: kelompok.jenis,
                       halaman: kelompok.halaman,
                       halamanPdf: kelompok.halamanPdf,
+                      sisiHalaman: kelompok.sisiHalaman,
                       stimulasi: kelompok.stimulasi,
                   }
                 : null,

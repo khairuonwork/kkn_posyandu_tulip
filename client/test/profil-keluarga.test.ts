@@ -9,7 +9,7 @@ import {
 } from '../src/lib/profil-keluarga.ts';
 
 test('pilihan desil mengelompokkan data lama tanpa mengubah nilainya', () => {
-    assert.equal(PILIHAN_DESIL.length, 7);
+    assert.equal(PILIHAN_DESIL.length, 9);
 
     for (let desil = 6; desil <= 10; desil++) {
         const data = { desil };
@@ -36,4 +36,19 @@ test('garis SD simetris dan batas ±2 merah', () => {
     for (const z of [1, 2, 3]) {
         assert.equal(warnaGarisSd(-z), warnaGarisSd(z));
     }
+});
+
+test('kategori ekonomi tanpa desil tetap dapat diisi dan tidak menebak angkanya', () => {
+    for (const gng of ['G', 'NG'] as const) {
+        assert.equal(pilihanDesil({ gng }), gng);
+        assert.match(labelDesil(gng), /desil belum diketahui/);
+        assert.deepEqual(perubahanDesil(gng), {
+            desil: null,
+            desilKelompok: null,
+            gng,
+        });
+    }
+
+    assert.equal(pilihanDesil({ desil: 3, gng: 'G' }), '3');
+    assert.equal(pilihanDesil({ gng: null }), '');
 });

@@ -20,6 +20,7 @@ import { useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import ilustrasiPosyandu from '@/assets/login-posyandu-illustration-v1.png';
 import { Head } from '@/lib/nav';
+import './login.css';
 
 type Props = {
     /** Mengembalikan pesan galat, atau null bila berhasil. */
@@ -94,69 +95,75 @@ export default function Login({
     };
 
     return (
-        <div className="relative isolate flex min-h-screen overflow-hidden bg-background">
+        <div className="login-halaman">
             {/* Judul tab ikut kembali saat Keluar ditekan; tanpa ini ia
                 tertinggal pada layar yang barusan ditutup. */}
             <Head title="Masuk" />
-            <main className="flex w-full">
-                <div className="flex w-full flex-col items-center justify-center px-6 py-8 sm:px-12 lg:w-[54%] xl:px-20">
-                    <div className="kartu w-full max-w-[480px] p-7 sm:p-10">
+            <main className="login-panel">
+                <div className="login-form-panel">
+                    <div className="login-form-content">
                         <Merek />
 
-                        <h1 className="mt-7 text-4xl font-extrabold tracking-[-0.03em] text-foreground">
-                            Selamat datang
-                        </h1>
+                        <h1 className="login-heading">Selamat datang</h1>
 
-                        <p className="mt-2 max-w-[44ch] text-base leading-relaxed text-muted-foreground">
+                        <p className="login-description">
                             Masuk untuk mencatat dan memantau tumbuh kembang
                             balita.
                         </p>
 
-                        <form onSubmit={kirim} className="mt-7">
-                            <div className="mb-6 flex min-h-28 items-center">
-                                {sesiBerakhir && galat === null && !memuat && (
-                                    <div
-                                        role="status"
-                                        className="pesan-masuk flex w-full items-start gap-2.5 rounded-lg border border-tone-blue bg-tone-blue-bg p-4 text-base font-semibold text-tone-blue"
-                                    >
-                                        <Info
-                                            className="mt-0.5 size-5 shrink-0"
-                                            strokeWidth={2.5}
-                                            aria-hidden="true"
-                                        />
-                                        Sesi telah berakhir. Silakan masuk
-                                        kembali.
-                                    </div>
-                                )}
-                                {galat !== null && (
-                                    <div
-                                        role="alert"
-                                        className="pesan-masuk w-full rounded-2xl border border-tone-red/30 bg-tone-red-bg p-4.5 text-foreground shadow-sm"
-                                    >
-                                        <div className="flex items-start gap-3">
-                                            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-tone-red/15 text-tone-red">
-                                                <TriangleAlert
-                                                    className="size-5"
+                        <form
+                            onSubmit={kirim}
+                            className="login-form"
+                            aria-busy={memuat}
+                        >
+                            {(galat !== null || (sesiBerakhir && !memuat)) && (
+                                <div className="login-notices">
+                                    {sesiBerakhir &&
+                                        galat === null &&
+                                        !memuat && (
+                                            <div
+                                                role="status"
+                                                className="pesan-masuk flex w-full items-start gap-2.5 rounded-lg border border-tone-blue bg-tone-blue-bg p-4 text-base font-semibold text-tone-blue"
+                                            >
+                                                <Info
+                                                    className="mt-0.5 size-5 shrink-0"
                                                     strokeWidth={2.5}
                                                     aria-hidden="true"
                                                 />
+                                                Sesi telah berakhir. Silakan
+                                                masuk kembali.
                                             </div>
-                                            <div className="min-w-0 flex-1">
-                                                <p className="text-sm font-extrabold text-tone-red">
-                                                    {galatKosong
-                                                        ? 'Lengkapi Data Masuk'
-                                                        : 'Gagal Masuk ke Aplikasi'}
-                                                </p>
-                                                <p className="mt-0.5 text-sm leading-relaxed font-medium text-foreground">
-                                                    {galat}
-                                                </p>
+                                        )}
+                                    {galat !== null && (
+                                        <div
+                                            role="alert"
+                                            className="pesan-masuk w-full rounded-2xl border border-tone-red/30 bg-tone-red-bg p-4.5 text-foreground shadow-sm"
+                                        >
+                                            <div className="flex items-start gap-3">
+                                                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-tone-red/15 text-tone-red">
+                                                    <TriangleAlert
+                                                        className="size-5"
+                                                        strokeWidth={2.5}
+                                                        aria-hidden="true"
+                                                    />
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="text-sm font-extrabold text-tone-red">
+                                                        {galatKosong
+                                                            ? 'Lengkapi Data Masuk'
+                                                            : 'Gagal Masuk ke Aplikasi'}
+                                                    </p>
+                                                    <p className="mt-0.5 text-sm leading-relaxed font-medium text-foreground">
+                                                        {galat}
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                )}
-                            </div>
+                                    )}
+                                </div>
+                            )}
 
-                            <div className="space-y-5">
+                            <div className="login-fields">
                                 <div>
                                     <label
                                         htmlFor="username"
@@ -193,7 +200,7 @@ export default function Login({
                                                 : ''
                                         }`}
                                     />
-                                    <div className="mt-1.5 min-h-5">
+                                    <div className="login-field-feedback">
                                         {merahNama && (
                                             <p
                                                 id="galat-username"
@@ -250,6 +257,7 @@ export default function Login({
                                         />
                                         <button
                                             type="button"
+                                            disabled={memuat}
                                             onClick={() =>
                                                 setSandiTerbaca(!sandiTerbaca)
                                             }
@@ -259,7 +267,7 @@ export default function Login({
                                                     ? 'Sembunyikan kata sandi'
                                                     : 'Tampilkan kata sandi'
                                             }
-                                            className="absolute top-1/2 right-2 flex size-13 -translate-y-1/2 items-center justify-center rounded-md border border-border bg-surface-subtle text-sm font-bold text-foreground hover:bg-accent hover:text-primary"
+                                            className="login-password-toggle"
                                         >
                                             {sandiTerbaca ? (
                                                 <EyeOff
@@ -276,7 +284,7 @@ export default function Login({
                                             )}
                                         </button>
                                     </div>
-                                    <div className="mt-1.5 min-h-5">
+                                    <div className="login-field-feedback">
                                         {merahSandi && (
                                             <p
                                                 id="galat-sandi"
@@ -307,7 +315,7 @@ export default function Login({
                             <button
                                 type="submit"
                                 disabled={memuat}
-                                className="tombol-utama mt-7 w-full text-lg transition-colors duration-200 disabled:bg-border disabled:text-muted-foreground disabled:shadow-none motion-reduce:transition-none"
+                                className="tombol-utama login-submit disabled:bg-border disabled:text-muted-foreground disabled:shadow-none"
                             >
                                 <span className="relative inline-grid place-items-center">
                                     <span
@@ -329,7 +337,7 @@ export default function Login({
                                 </span>
                             </button>
 
-                            <p className="mt-4 text-center text-sm text-muted-foreground">
+                            <p className="login-help">
                                 Lupa nama pengguna atau kata sandi? Hubungi{' '}
                                 <span className="font-semibold text-foreground">
                                     Bidan atau Admin Posyandu
@@ -339,27 +347,23 @@ export default function Login({
                         </form>
 
                         {catatan !== undefined && (
-                            <p className="mt-4 text-center text-base font-medium text-muted-foreground">
-                                {catatan}
-                            </p>
+                            <p className="login-note">{catatan}</p>
                         )}
                     </div>
                 </div>
 
                 <div
-                    className="relative hidden overflow-hidden bg-[#0b5334] text-primary-foreground lg:my-6 lg:mr-6 lg:flex lg:w-[46%] lg:flex-col lg:rounded-[2rem]"
+                    className="login-visual"
                     style={{
-                        backgroundImage: `linear-gradient(to top, rgba(7, 62, 39, 0.94) 0%, rgba(7, 62, 39, 0.56) 34%, rgba(7, 62, 39, 0.04) 68%, transparent 100%), url(${ilustrasiPosyandu})`,
-                        backgroundPosition: 'center',
-                        backgroundSize: 'cover',
+                        backgroundImage: `url(${ilustrasiPosyandu})`,
                     }}
                 >
-                    <div className="relative z-10 flex flex-1 flex-col justify-end p-8 pb-12 xl:p-12 xl:pb-16">
-                        <p className="max-w-[18ch] text-3xl leading-tight font-extrabold text-balance">
+                    <div className="login-visual-copy">
+                        <p className="login-visual-heading">
                             Satu balita, satu riwayat.
                         </p>
 
-                        <p className="mt-3 max-w-[40ch] text-base leading-relaxed text-white/90">
+                        <p className="login-visual-description">
                             Satu tempat untuk mencatat hasil ukur, memantau
                             riwayat, dan menyiapkan tindak lanjut.
                         </p>
@@ -370,34 +374,16 @@ export default function Login({
     );
 }
 
-/**
- * Merek produk: lambang, nama, dan wilayahnya.
- *
- * Satu bentuk untuk dua tempat — panel hijau di desktop, puncak formulir di
- * ponsel — supaya namanya tidak pernah berbeda di antara keduanya.
- */
-function Merek({ terang = false }: { terang?: boolean }) {
+/** Identitas produk yang sama pada form desktop dan ponsel. */
+function Merek() {
     return (
-        <div className="flex items-center gap-3.5">
-            <span
-                aria-hidden="true"
-                className={`flex size-12 shrink-0 items-center justify-center rounded-xl border ${
-                    terang
-                        ? 'border-white/20 bg-white/15 text-white'
-                        : 'border-primary/20 bg-accent text-primary'
-                }`}
-            >
+        <div className="login-brand">
+            <span aria-hidden="true" className="login-brand-mark">
                 <ShieldCheck className="size-6.5" strokeWidth={2.5} />
             </span>
             <div className="min-w-0">
-                <p className="text-lg leading-tight font-extrabold">
-                    SIMPATIK Posyandu
-                </p>
-                <p
-                    className={`mt-0.5 text-sm font-medium ${
-                        terang ? 'text-white/80' : 'text-muted-foreground'
-                    }`}
-                >
+                <p className="login-brand-name">SIMPATIK Posyandu</p>
+                <p className="login-brand-description">
                     Sistem Informasi Posyandu
                 </p>
             </div>

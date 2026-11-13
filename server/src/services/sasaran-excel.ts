@@ -27,6 +27,9 @@ const BULAN: Readonly<Record<string, number>> = {
     oktober: 10,
     nov: 11,
     november: 11,
+    // Ejaan lama yang masih dipakai pada berkas Puskesmas.
+    nop: 11,
+    nopember: 11,
     des: 12,
     desember: 12,
 };
@@ -185,7 +188,8 @@ const ALIAS: Readonly<Record<string, readonly string[]>> = {
     nama: ["nama_lengkap", "nama_anak"],
     tglLahir: ["tgl_lahir", "tanggal_lahir"],
     jk: ["jk", "jenis_kelamin"],
-    namaOrtu: ["nama_ortu", "nama_orang_tua", "nama_ibu"],
+    // Berkas Puskesmas menulis kolom nama ibu cukup sebagai "IBU".
+    namaOrtu: ["nama_ortu", "nama_orang_tua", "nama_ibu", "ibu", "nama_ibu_kandung"],
     nikOrtu: ["nik_ortu", "nik_orang_tua"],
     rt: ["rt"],
     anakKe: ["anak_ke"],

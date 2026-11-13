@@ -339,7 +339,7 @@ export function TabelSasaran({
                         </div>
 
                         {/* Tampilan Desktop & Tablet Lebar: Tabel Lengkap */}
-                        <div className="hidden md:block max-h-[460px] overflow-auto">
+                        <div className="hidden max-h-[460px] overflow-auto md:block">
                             <table className="w-full min-w-[760px] text-left text-sm">
                                 <thead className="sticky top-0 z-[1] bg-surface-subtle text-muted-foreground">
                                     <tr>

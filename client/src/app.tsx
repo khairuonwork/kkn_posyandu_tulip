@@ -159,6 +159,7 @@ function Portal({
         di demo — belum ada endpoint yang menerimanya. Saat endpoint data
         datang, keempatnya berganti menjadi panggilan API seperti akun.
     */
+    const [revisiProfil, setRevisiProfil] = useState(0);
     const [koreksi, setKoreksi] = useState<Record<number, PatchAnak>>({});
     const [tambahan, setTambahan] = useState<AnakBaru[]>([]);
     const [ambang, setAmbang] = useState<Ambang>(PENGATURAN_BAWAAN);
@@ -186,6 +187,7 @@ function Portal({
         rute.nama === 'detail' || rute.nama === 'riwayat' ? rute.id : null,
         onSesiBerakhir,
         periodeId,
+        revisiProfil,
     );
     const laporanServer = useLaporanServer(
         periodeId,
@@ -252,6 +254,7 @@ function Portal({
                     onCobaKirim={() => undefined}
                     onSimpanAnak={async (anakId, patch) => {
                         await simpanProfilAnak(anakId, patch, onSesiBerakhir);
+                        setRevisiProfil((nilai) => nilai + 1);
                         setKoreksi((k) => ({
                             ...k,
                             // Dialog Ubah data dan editor baris mengisi kolom

@@ -6,7 +6,7 @@
 | **Status** | hidup |
 | **Perubahan berarti terakhir** | 13 November 2026 |
 
-Bentuk tabel, relasi antar tabel, dan aturan integritas SIMPATIK Posyandu. Migrasi berada di `server/db/migrations/`; `030_panggilan_kms.sql` menambahkan penugasan meja dan catatan panggilan KMS.
+Bentuk tabel, relasi antar tabel, dan aturan integritas SIMPATIK Posyandu. Migrasi berada di `server/db/migrations/`; `030_panggilan_kms.sql` menambahkan penugasan meja dan catatan panggilan KMS, sedangkan 031–034 menambahkan data layanan dan penyesuaian pelatihan.
 
 Kenapa bentuknya begini dan bukan yang lain, ada di [ADR-0001](adr/0001-primary-key-strategy.md) (kunci utama) dan [ADR-0006](adr/0006-pindah-ke-express-react-postgres.md) (pindah ke PostgreSQL). Aturan data yang mengikat seluruh sistem — DR-01 sampai DR-11 yang berkali-kali dirujuk di bawah — ada di [PRD utama](prd/prd-utama.md).
 
@@ -395,5 +395,7 @@ Di basis data nilainya tersimpan sebagai `text` dengan `CHECK`, bukan tipe enum 
 `pengguna_posyandu.meja_kms` menyimpan nomor meja 1–99 atau NULL. `antrean_layanan.meja_kms` menyimpan meja peserta aktif dan `tiba_kms` mencatat kedatangannya; kedatangan mensyaratkan meja. Indeks unik parsial membatasi satu antrean yang belum selesai atau dibatalkan per periode, tanggal dan meja.
 
 Tabel `panggilan_kms` menyimpan `id`, `antrean_id`, `nomor`, dan `meja`. Penghapusan antrean menghapus catatan panggilannya. Nama tidak disalin ke tabel ini: API mengambil nama balita yang terhubung saat membaca panggilan. Row-level security diaktifkan. Lihat [kontrak API](SIMPATIK_Posyandu_REST_API_Contract.md#34-antrean--pemeriksaan-kms-real-time) untuk akses dan respons.
+
+Migrasi 033 mencatat petugas KMS pada antrean. Migrasi 034 menambahkan struktur panggilan meja pada skema pelatihan yang sudah aktif saat migrasi 030 dijalankan.
 
 ---

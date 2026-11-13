@@ -9,16 +9,23 @@ export const SUMBER_KIA = {
 export type PertanyaanKia = { id: string; teks: string; nomorSumber: number[] };
 export type KelompokKia = {
     id: string; label: string; jenis: 'perkembangan' | 'perawatan';
-    mulaiBulan: number; sebelumBulan: number; halaman: string; halamanPdf: number;
+    mulaiBulan: number; sebelumBulan: number; halaman: string; halamanPdf: number; sisiHalaman: 'kiri' | 'kanan' | null;
     pertanyaan: PertanyaanKia[]; stimulasi: string[]; catatanSumber?: string;
 };
+/** PDF resmi memakai dua halaman cetak per lembar. Halaman cetak 0 mulai pada lembar PDF 2. */
+function rujukan(halaman: string) {
+    const cetak = Number.parseInt(halaman, 10);
+    const sisiHalaman = /^\d+$/.test(halaman) ? (cetak % 2 === 0 ? 'kiri' : 'kanan') as 'kiri' | 'kanan' : null;
+    return { halaman, halamanPdf: Math.floor(cetak / 2) + 2, sisiHalaman };
+}
+
 function butir(prefix: string, teks: string[], nomor?: number[][]): PertanyaanKia[] {
     return teks.map((t,i) => ({ id: `${prefix}-${String(nomor?.[i]?.[0] ?? i+1).padStart(2,'0')}`, teks: t,
         nomorSumber: nomor?.[i] ?? [i+1] }));
 }
 
 export const KELOMPOK_KIA: KelompokKia[] = [
-    { id:'lahir-28h',label:'0–28 hari',jenis:'perawatan',mulaiBulan:0,sebelumBulan:1,halaman:'40–47',halamanPdf:22,
+    { id:'lahir-28h',label:'0–28 hari',jenis:'perawatan',mulaiBulan:0,sebelumBulan:1,...rujukan('40–47'),
         catatanSumber:'Checklist diskusi perawatan diringkas dari bagian bayi baru lahir; bukan daftar penanda perkembangan atau hasil skrining medis.',
         pertanyaan:butir('lahir',[
             'Apakah bayi sudah mendapat pemeriksaan tenaga kesehatan sesuai jadwal usianya?',
@@ -27,7 +34,7 @@ export const KELOMPOK_KIA: KelompokKia[] = [
             'Apakah keluarga mengenali tanda bahaya bayi baru lahir dan tahu tempat mencari pertolongan?',
         ],[[],[],[],[]]),
         stimulasi:['Dekap bayi dengan hangat, tatap wajahnya, dan ajak bicara saat menyusu.','Tanggapi kebutuhan bayi dengan penuh kasih sayang.','Cocokkan pemeriksaan dan layanan bayi baru lahir dengan catatan Buku KIA bersama tenaga kesehatan.'] },
-    { id:'29h-3b',label:'29 hari–3 bulan',jenis:'perkembangan',mulaiBulan:0,sebelumBulan:3,halaman:'53',halamanPdf:28,
+    { id:'29h-3b',label:'29 hari–3 bulan',jenis:'perkembangan',mulaiBulan:0,sebelumBulan:3,...rujukan('53'),
         pertanyaan:butir('29h3b',[
             'Bayi bisa mengangkat kepala mandiri hingga setinggi 45 derajat?',
             'Bayi bisa menggerakkan kepala dari kiri/kanan ke tengah?',
@@ -38,7 +45,7 @@ export const KELOMPOK_KIA: KelompokKia[] = [
             'Bayi membalas tersenyum ketika diajak bicara/tersenyum?',
             'Bayi mengenal ibu dengan penglihatan, penciuman, pendengaran, dan kontak?',
         ]),stimulasi:['Peluk, tatap mata, tersenyum, dan ajak bayi bicara.','Tirukan ocehan dan mimik bayi; kenalkan suara atau nyanyian secara langsung.','Ajak bayi meraih dan memegang mainan serta berlatih mengangkat kepala dengan pendampingan.'] },
-    { id:'3-6b',label:'3–6 bulan',jenis:'perkembangan',mulaiBulan:3,sebelumBulan:6,halaman:'55',halamanPdf:29,
+    { id:'3-6b',label:'3–6 bulan',jenis:'perkembangan',mulaiBulan:3,sebelumBulan:6,...rujukan('55'),
         pertanyaan:butir('3b6b',[
             'Bayi bisa berbalik dari telungkup ke telentang?',
             'Bayi bisa mengangkat kepala secara mandiri hingga tegak 90 derajat?',
@@ -51,7 +58,7 @@ export const KELOMPOK_KIA: KelompokKia[] = [
             'Bayi mengeluarkan suara gembira bernada tinggi atau memekik?',
             'Bayi tersenyum ketika melihat mainan/gambar yang menarik saat bermain sendiri?',
         ]),stimulasi:['Ajak bayi bicara, mencari sumber suara, dan bermain cilukba.','Ajak bayi melihat wajah di cermin serta meraih benda atau mainan.','Dampingi bayi saat berlatih berguling dan duduk.'] },
-    { id:'6-9b',label:'6–9 bulan',jenis:'perkembangan',mulaiBulan:6,sebelumBulan:9,halaman:'62',halamanPdf:33,
+    { id:'6-9b',label:'6–9 bulan',jenis:'perkembangan',mulaiBulan:6,sebelumBulan:9,...rujukan('62'),
         catatanSumber:'Butir 10 dan 11 pada buku memuat pertanyaan yang sama; keduanya ditampilkan sebagai satu butir agar tidak dijawab dua kali.',
         pertanyaan:butir('6b9b',[
             'Bayi bisa duduk secara mandiri?',
@@ -66,7 +73,7 @@ export const KELOMPOK_KIA: KelompokKia[] = [
             'Bayi bergembira dengan melempar benda?',
         ],[[1],[2],[3],[4],[5],[6],[7],[8],[9],[10,11]]),
         stimulasi:['Panggil namanya, kenalkan nama orang dan benda, serta bacakan cerita.','Bermain cilukba, tepuk tangan, dan mencari mainan yang disembunyikan.','Dampingi latihan duduk, merangkak, serta berdiri berpegangan.'] },
-    { id:'9-12b',label:'9–12 bulan',jenis:'perkembangan',mulaiBulan:9,sebelumBulan:12,halaman:'63',halamanPdf:33,
+    { id:'9-12b',label:'9–12 bulan',jenis:'perkembangan',mulaiBulan:9,sebelumBulan:12,...rujukan('63'),
         pertanyaan:butir('9b12b',[
             'Bayi bisa mengangkat badannya ke posisi berdiri?',
             'Bayi belajar berdiri selama 30 detik atau berpegangan di kursi?',
@@ -82,7 +89,7 @@ export const KELOMPOK_KIA: KelompokKia[] = [
             'Bayi mengenal anggota keluarga dan takut pada orang yang belum dikenal?',
         ],[[1],[2],[3],[4],[5],[6],[7],[8],[9],[10],[11],[13]]),
         stimulasi:['Bacakan cerita, sebutkan nama benda atau bagian tubuh, dan ajak bayi menunjuk.','Dampingi bermain balok, mencari mainan, dan mencoret kertas.','Dampingi saat bayi berdiri berpegangan atau belajar berjalan.'] },
-    { id:'12-18b',label:'12–18 bulan',jenis:'perkembangan',mulaiBulan:12,sebelumBulan:18,halaman:'68',halamanPdf:36,
+    { id:'12-18b',label:'12–18 bulan',jenis:'perkembangan',mulaiBulan:12,sebelumBulan:18,...rujukan('68'),
         pertanyaan:butir('12b18b',[
             'Anak bisa berdiri sendiri tanpa berpegangan?',
             'Anak bisa membungkuk memungut mainan kemudian berdiri kembali?',
@@ -93,7 +100,7 @@ export const KELOMPOK_KIA: KelompokKia[] = [
             'Anak bisa menunjuk yang diinginkan tanpa menangis/merengek, mengeluarkan suara yang menyenangkan, atau menarik tangan ibu?',
             'Anak bisa memperlihatkan rasa cemburu/bersaing?',
         ]),stimulasi:['Bercerita tentang gambar, menyebut nama benda, dan menyanyi bersama.','Bermain balok atau puzzle serta belajar menggambar.','Dampingi bermain bola, berjalan, dan merapikan mainan.'] },
-    { id:'18-24b',label:'18–24 bulan',jenis:'perkembangan',mulaiBulan:18,sebelumBulan:24,halaman:'69',halamanPdf:36,
+    { id:'18-24b',label:'18–24 bulan',jenis:'perkembangan',mulaiBulan:18,sebelumBulan:24,...rujukan('69'),
         pertanyaan:butir('18b24b',[
             'Anak bisa berdiri sendiri tanpa berpegangan selama 30 detik?',
             'Anak bisa berjalan tanpa terhuyung-huyung?',
@@ -104,7 +111,7 @@ export const KELOMPOK_KIA: KelompokKia[] = [
             'Anak bisa membantu atau menirukan pekerjaan rumah tangga?',
             'Anak bisa memegang cangkir sendiri dan belajar makan-minum sendiri?',
         ]),stimulasi:['Ajak anak bicara, bertanya, bercerita, dan mengikuti perintah sederhana.','Latih merapikan mainan serta makan bersama menggunakan sendok.','Bermain balok, puzzle, menggambar, dan bola sambil didampingi.'] },
-    { id:'2-3t',label:'2–3 tahun',jenis:'perkembangan',mulaiBulan:24,sebelumBulan:36,halaman:'79',halamanPdf:41,
+    { id:'2-3t',label:'2–3 tahun',jenis:'perkembangan',mulaiBulan:24,sebelumBulan:36,...rujukan('79'),
         pertanyaan:butir('2t3t',[
             'Anak bisa jalan naik tangga sendiri?',
             'Anak bisa bermain dan menendang bola kecil?',
@@ -116,7 +123,7 @@ export const KELOMPOK_KIA: KelompokKia[] = [
             'Anak bisa makan nasi sendiri tanpa banyak tumpah?',
             'Anak bisa melepas pakaiannya sendiri?',
         ]),stimulasi:['Bacakan cerita, ajak tanya jawab, serta sebutkan nama dan kegunaan benda.','Ajak menyusun balok, memasang puzzle, menggambar, dan mengelompokkan benda.','Dampingi latihan cuci tangan, berpakaian, merapikan mainan, dan bermain bola.'] },
-    { id:'3-4t',label:'3–4 tahun',jenis:'perkembangan',mulaiBulan:36,sebelumBulan:48,halaman:'81',halamanPdf:42,
+    { id:'3-4t',label:'3–4 tahun',jenis:'perkembangan',mulaiBulan:36,sebelumBulan:48,...rujukan('81'),
         pertanyaan:butir('3t4t',[
             'Anak bisa berdiri dengan satu kaki selama dua detik?',
             'Anak bisa melompat dengan kedua kaki diangkat?',
@@ -132,7 +139,7 @@ export const KELOMPOK_KIA: KelompokKia[] = [
             'Anak bisa mengenakan sepatu sendiri?',
             'Anak bisa mengenakan celana panjang, kemeja, atau baju?',
         ]),stimulasi:['Bacakan cerita dan ajak anak menceritakan pengalamannya.','Bermain puzzle, menggambar, mencocokkan benda, dan menghitung.','Latih merawat diri, merapikan mainan, dan mengikuti aturan bermain dengan pendampingan.'] },
-    { id:'4-5t',label:'4–5 tahun',jenis:'perkembangan',mulaiBulan:48,sebelumBulan:60,halaman:'82',halamanPdf:43,
+    { id:'4-5t',label:'4–5 tahun',jenis:'perkembangan',mulaiBulan:48,sebelumBulan:60,...rujukan('82'),
         pertanyaan:butir('4t5t',[
             'Anak bisa berdiri dengan satu kaki selama enam detik?',
             'Anak bisa melompat-lompat dengan satu kaki?',
@@ -149,7 +156,7 @@ export const KELOMPOK_KIA: KelompokKia[] = [
             'Anak bisa membandingkan atau membedakan sesuatu dari ukuran dan bentuknya?',
             'Anak bisa menyebut angka dan menghitung jari?',
         ]),stimulasi:['Bermain peran dan ajak anak bercerita tentang pengalamannya.','Ajak menggambar orang, mengenal huruf, nama hari, dan angka berurutan.','Latih mengikuti aturan permainan, memakai pakaian, dan menyikat gigi dengan pendampingan.'] },
-    { id:'5-6t',label:'5–6 tahun',jenis:'perkembangan',mulaiBulan:60,sebelumBulan:72,halaman:'83',halamanPdf:43,
+    { id:'5-6t',label:'5–6 tahun',jenis:'perkembangan',mulaiBulan:60,sebelumBulan:72,...rujukan('83'),
         pertanyaan:butir('5t6t',[
             'Anak bisa berjalan lurus?',
             'Anak bisa berdiri dengan satu kaki selama sebelas detik?',
@@ -168,27 +175,27 @@ export const KELOMPOK_KIA: KelompokKia[] = [
 ];
 
 export function panduanMakanKia(umurBulan: number) {
-    if (umurBulan < 6) return { halaman:'38',halamanPdf:21,isi:[
+    if (umurBulan < 6) return { ...rujukan('38'),isi:[
         'Berikan ASI saja sampai usia 6 bulan; tambahan lain mengikuti anjuran tenaga kesehatan.',
         'Susui sesuai kebutuhan bayi. Bila ada kendala menyusui, temui tenaga kesehatan atau konselor menyusui.',
         'Pantau berat, panjang badan, dan perkembangan bayi setiap bulan.',
     ]};
-    if (umurBulan < 9) return { halaman:'56–59',halamanPdf:30,isi:[
+    if (umurBulan < 9) return { ...rujukan('58–59'),isi:[
         'Mulai MPASI sejak usia 6 bulan sambil melanjutkan ASI. Berikan makanan lumat dan kental.',
         'Berikan 2–3 kali makan utama dan 1–2 kali selingan setiap hari sesuai panduan Buku KIA.',
         'Utamakan protein hewani, variasikan makanan, dan jaga kebersihan makanan serta peralatannya.',
     ]};
-    if (umurBulan < 12) return { halaman:'58–59',halamanPdf:31,isi:[
+    if (umurBulan < 12) return { ...rujukan('58–59'),isi:[
         'Lanjutkan ASI dan berikan MPASI dengan tekstur dicincang; perhatikan respons anak saat makan.',
         'Berikan 3–4 kali makan utama dan 1–2 kali selingan setiap hari sesuai panduan Buku KIA.',
         'Variasikan makanan dengan protein hewani, makanan pokok, sayur, dan buah.',
     ]};
-    if (umurBulan < 24) return { halaman:'58, 64–65',halamanPdf:34,isi:[
+    if (umurBulan < 24) return { ...rujukan('64–65'),isi:[
         'Berikan makanan keluarga yang bervariasi sesuai kemampuan makan anak dan lanjutkan ASI hingga 2 tahun atau lebih.',
         'Berikan 3–4 kali makan utama dan 1–2 kali selingan; sertakan sumber protein hewani.',
         'Ajak anak belajar makan sendiri; ciptakan suasana makan yang tenang tanpa menonton layar.',
     ]};
-    return { halaman:'78',halamanPdf:41,isi:[
+    return { ...rujukan('78'),isi:[
         'Biasakan makan utama 3 kali sehari bersama keluarga dengan makanan yang bervariasi.',
         'Lengkapi dengan protein hewani dan nabati, sayur, buah, serta air putih sesuai kebutuhan.',
         'Batasi selingan yang terlalu manis, asin, atau berlemak; biasakan aktivitas fisik dan cuci tangan.',

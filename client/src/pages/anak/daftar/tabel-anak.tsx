@@ -1,4 +1,5 @@
 import { ChevronRight, Pencil, RefreshCw, Upload } from 'lucide-react';
+import JenisKelaminBadge from '@/components/jenis-kelamin-badge';
 import StateHalaman from '@/components/state-halaman';
 import StatusGiziBadge from '@/components/status-gizi-badge';
 import {
@@ -229,8 +230,9 @@ export function TabelAnak({
                             className="flex min-h-16 items-center gap-3 px-4.5 py-3 hover:bg-surface-subtle"
                         >
                             <span className="min-w-0 flex-1">
-                                <span className="block text-base font-bold text-primary">
-                                    {namaTampil(baris.nama)}
+                                <span className="flex flex-wrap items-center gap-2 text-base font-bold text-primary">
+                                    <span>{namaTampil(baris.nama)}</span>
+                                    <JenisKelaminBadge jk={baris.jk} />
                                 </span>
                                 <span className="mt-0.5 block text-sm text-muted-foreground">
                                     {umurRingkas(baris.umurBulan)}
@@ -319,9 +321,10 @@ export function TabelAnak({
                                 <TableCell className="py-1">
                                     <Link
                                         href={`/balita/${baris.anakId}`}
-                                        className="inline-flex min-h-13 items-center gap-1 font-bold text-primary"
+                                        className="inline-flex min-h-13 items-center gap-2 font-bold text-primary"
                                     >
-                                        {namaTampil(baris.nama)}
+                                        <span>{namaTampil(baris.nama)}</span>
+                                        <JenisKelaminBadge jk={baris.jk} />
                                         <ChevronRight
                                             className="size-4.5 shrink-0"
                                             strokeWidth={2.5}

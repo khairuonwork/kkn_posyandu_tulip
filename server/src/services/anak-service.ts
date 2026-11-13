@@ -5,7 +5,7 @@ import type { Pool } from "pg";
 import type { PenggunaAktif } from "../auth/peran.ts";
 import { dalamTransaksi } from "../db/transaksi.ts";
 import * as anakRepo from "../repositories/anak-repository.ts";
-import { hitungDanSimpanDalamTransaksi } from "./gizi-service.ts";
+import { hitungDanSimpanDalamTransaksi, hitungUlangAnakDalamTransaksi } from "./gizi-service.ts";
 import { muatTabelStandar } from '../repositories/standar-lms-repository.ts';
 import { validasiProfilKeluarga } from './profil-keluarga.ts';
 
@@ -54,7 +54,7 @@ export async function ubahProfil(
     }
     if (data.desil !== undefined && data.desil !== null && (typeof data.desil !== 'number' || !Number.isInteger(data.desil) || data.desil < 1 || data.desil > 10))
         throw new GalatAnak(400, 'Kelompok Desil harus bilangan 1 sampai 10.');
-    if ((data.desil !== undefined || data.desilKelompok !== undefined) && (typeof data.periodeId !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(data.periodeId)))
+    if ((data.desil !== undefined || data.desilKelompok !== undefined || data.gng !== undefined) && (typeof data.periodeId !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(data.periodeId)))
         throw new GalatAnak(400, 'Pilih periode berlaku untuk Kelompok Desil.');
     if (data.kbIbu !== undefined && data.kbIbu !== null && typeof data.kbIbu !== 'boolean')
         throw new GalatAnak(400, 'Data KB Ibu harus Iya atau Tidak.');
@@ -89,8 +89,10 @@ export async function ubahProfil(
         const hasil = await dalamTransaksi(
             pool,
             { pengguna: pengguna.id, sumber: "web" },
-            (db) =>
-                anakRepo.ubahProfilAnak(db, pengguna, anakId, {
+            async (db) => {
+                const sebelum = await anakRepo.kunciDasarPenilaian(db, pengguna, anakId);
+                if (sebelum === null) return 'tidak_ada' as const;
+                const status = await anakRepo.ubahProfilAnak(db, pengguna, anakId, {
                     nama,
                     nik: nikMentah || null,
                     namaOrtu,
@@ -105,7 +107,12 @@ export async function ubahProfil(
                     ...keluarga,
                     desil: data.desil as number | null | undefined,
                     periodeId: data.periodeId as string | undefined,
-                }),
+                });
+                if (status === "berhasil" && (sebelum.jk !== jk || sebelum.tglLahir !== tglLahir)) {
+                    await hitungUlangAnakDalamTransaksi(pool, db, anakId);
+                }
+                return status;
+            },
         );
         if (hasil === "tidak_ada")
             throw new GalatAnak(404, "Anak tidak ditemukan.");
@@ -345,6 +352,11 @@ export async function simpanPengukuran(
                 likaCm,
                 ntob: teks(data, "ntob") || null,
                 statusKehadiran: status,
+                // undefined = APK lama tidak mengirim, sehingga catatan lama dipertahankan.
+                catatanKhusus:
+                    data.catatan_khusus === undefined
+                        ? undefined
+                        : teks(data, "catatan_khusus").slice(0, 500) || null,
             });
             if (hasil?.berubah) await hitungDanSimpanDalamTransaksi(db, hasil.id, tabel);
             return hasil;

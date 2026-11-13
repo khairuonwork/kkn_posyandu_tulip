@@ -82,7 +82,10 @@ export default function Pelatihan({ demo = false, demoAktif = false, onDemoAktif
     const [galat, setGalat] = useState('');
     const [sibuk, setSibuk] = useState(false);
     const muat = async () => {
-        if (demo) return;
+        if (demo) {
+return;
+}
+
         try {
             const d = (await api('')) as Data;
             setData(d);
@@ -104,10 +107,14 @@ export default function Pelatihan({ demo = false, demoAktif = false, onDemoAktif
     };
     useEffect(() => {
         if (demo) {
-            setData({ aktif: demoAktif ? { id: 'demo', periode_id: 1, jumlah_sasaran: 101, mulai_pada: new Date().toISOString() } : null, sumber: [{ id: 1, periode: '2026-06', posyandu: 'Posyandu Tulip', jumlah: 101 }] });
-            setPilihan('1');
-            return;
+            const timer = window.setTimeout(() => {
+                setData({ aktif: demoAktif ? { id: 'demo', periode_id: 1, jumlah_sasaran: 101, mulai_pada: new Date().toISOString() } : null, sumber: [{ id: 1, periode: '2026-06', posyandu: 'Posyandu Tulip', jumlah: 101 }] });
+                setPilihan('1');
+            }, 0);
+
+            return () => window.clearTimeout(timer);
         }
+
         let alive = true;
         void api('')
             .then((d: Data) => {
@@ -142,8 +149,10 @@ export default function Pelatihan({ demo = false, demoAktif = false, onDemoAktif
         if (demo) {
             onDemoAktif?.(!akhiri);
             setData((d) => d ? { ...d, aktif: akhiri ? null : { id: 'demo', periode_id: 1, jumlah_sasaran: 101, mulai_pada: new Date().toISOString() } } : d);
+
             return;
         }
+
         const pesan = akhiri
             ? 'Akhiri pelatihan dan hapus seluruh data simulasi di server? Semua tablet harus selesai dan tersinkron. Bersihkan data lokal latihan sebelum masuk mode riil.'
             : 'Mulai pelatihan untuk seluruh web dan tablet pada server ini? Pastikan seluruh pekerjaan riil sudah tersinkron. Peserta harus masuk kembali dan sinkronkan sasaran latihan.';
@@ -243,6 +252,11 @@ export default function Pelatihan({ demo = false, demoAktif = false, onDemoAktif
                                 </select>
                             </div>
                         )}
+                        <p className="mt-4 text-sm text-muted-foreground">
+                            Bulan sumber dipakai untuk simulasi layanan. Periode
+                            sebelumnya tersedia untuk membuka riwayat ukur,
+                            grafik, dan laporan.
+                        </p>
                         {!demo && <ol className="mt-6 list-decimal space-y-3 pl-5 leading-relaxed">
                             <li>
                                 Sinkronkan pekerjaan riil semua tablet sebelum

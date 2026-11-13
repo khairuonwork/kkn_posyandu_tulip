@@ -227,7 +227,13 @@ export function Cangkang({
                       ]
                     : []),
             ]
-                .filter((butir) => butir.peran.includes(peran) && (butir.href !== '/kms' || peran === 'kms' || superAdmin))
+                .filter(
+                    (butir) =>
+                        butir.peran.includes(peran) &&
+                        (butir.href !== '/kms' ||
+                            peran === 'kms' ||
+                            superAdmin),
+                )
                 .map((butir) => {
                     const aktif = butir.href === '/beranda'
                         ? bacaRute(alamat).nama === 'beranda' && !(demo && alamat === '/kms/selesai')

@@ -144,9 +144,9 @@ export function TabStatus({
 
                     <p className="mt-2 max-w-[80ch] text-sm text-pretty text-muted-foreground">
                         Acuan standar pertumbuhan WHO 2006, dihitung dari
-                        parameter LMS. Nilainya sama dengan tabel Permenkes No. 2
-                        Tahun 2020. Indeks mengikuti umur anak: BB/PB di bawah 24
-                        bulan, BB/TB untuk 24 bulan ke atas.
+                        parameter LMS. Nilainya sama dengan tabel Permenkes No.
+                        2 Tahun 2020. Indeks mengikuti umur anak: BB/PB di bawah
+                        24 bulan, BB/TB untuk 24 bulan ke atas.
                     </p>
 
                     {terbaru.catatanUkur?.jenisUkur !== undefined && (
@@ -163,16 +163,15 @@ export function TabStatus({
 
             {!tersembunyi && (
                 <PendampinganKia
-                    key={anak.id}
+                    key={`${anak.id}-${anak.tglLahir}-${periode.id}-${terbaru?.tanggalUkur ?? 'hari-ini'}`}
                     anakId={anak.id}
+                    periode={periode.id}
                     sumberLive={sumberLive}
                     alasanTanpaWa={
                         peran === 'kms' ? undefined : alasanTanpaDataWa
                     }
                     onInfoKiaChange={onInfoKiaChange}
-                    onKirimWa={
-                        peran === 'kms' ? undefined : onBukaWa
-                    }
+                    onKirimWa={peran === 'kms' ? undefined : onBukaWa}
                 />
             )}
         </>

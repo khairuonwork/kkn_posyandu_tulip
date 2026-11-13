@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { konteksPelatihan } from "./pelatihan-context.ts";
 import type { Pool } from "pg";
 
 import { beranda, periode } from "../services/beranda-service.ts";
@@ -15,7 +16,7 @@ export function ruteBeranda(pool: Pool): Router {
 
     rute.get("/periode", wajibBoleh("lihat-dashboard"), async (req, res, next) => {
         try {
-            res.json(await periode(pool, req.pengguna!));
+            res.json(await periode(pool, req.pengguna!, !!konteksPelatihan.getStore()?.id));
         } catch (galat) { next(galat); }
     });
 

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { dalamTransaksi } from '../src/db/transaksi.ts';
-import { checkIn, daftar, konfirmasiKms } from '../src/repositories/antrean-repository.ts';
+import { checkIn, daftar, konfirmasiKms, lepasKms, panggilKms, panggilKmsBerikutnya } from '../src/repositories/antrean-repository.ts';
 import { daftarPanggilan, sesiKms, ubahPanggilan } from '../src/repositories/panggilan-kms-repository.ts';
 import type { AksiPanggilan } from '../src/repositories/panggilan-kms-repository.ts';
 import { simpanPengukuran } from '../src/services/anak-service.ts';
@@ -65,7 +65,7 @@ test('panggilan KMS melindungi peserta dan meja serentak, lalu selesai setelah t
         assert.deepEqual(await daftarPanggilan(db.pool, periodeId, tanggal, rekaman.at(-1)!.id), []);
 
         const petugas = { ...pengguna, id: mejaSatu, peran: 'kms' as const };
-        const selesai = () => tx(mejaSatu, (klien) => konfirmasiKms(klien, petugas, a.id, true));
+        const selesai = () => tx(mejaSatu, (klien) => konfirmasiKms(klien, petugas, a.id, true, 'Catatan uji'));
         assert.equal(await selesai(), null);
         assert.equal(await aksi(mejaSatu, a.id, 'tiba'), 'berhasil');
         assert.equal(await selesai(), null);
@@ -76,8 +76,25 @@ test('panggilan KMS melindungi peserta dan meja serentak, lalu selesai setelah t
         assert.equal(diukur.tibaKms, true);
         assert.equal(diukur.sudahDiukur, true);
         assert.equal((await selesai())?.status, 'done');
+        assert.equal((await db.pool.query('SELECT catatan_kms FROM pengukuran WHERE anak_id=$1 AND periode_id=$2', [a.anakId, periodeId])).rows[0].catatan_kms, 'Catatan uji');
         assert.equal(await aksi(mejaDua, b.id, 'kembalikan'), 'berhasil');
         assert.equal(await aksi(mejaSama, b.id, 'panggil'), 'berhasil');
+        const akunSama = { ...pengguna, id: mejaSama, peran: 'kms' as const };
+        const akunDua = { ...pengguna, id: mejaDua, peran: 'kms' as const };
+        assert.equal((await tx(mejaDua, klien => panggilKms(klien, akunDua, b.id))).status, 'milik-lain');
+        assert.equal((await tx(mejaSama, klien => lepasKms(klien, akunSama, b.id))).status, 'ok');
+        const sebelum = (await daftarPanggilan(db.pool, periodeId, tanggal, '0')).length;
+        assert.equal((await tx(mejaSama, klien => panggilKmsBerikutnya(klien, akunSama, periodeId, tanggal))).status, 'ok');
+        const setelah = await daftarPanggilan(db.pool, periodeId, tanggal, '0');
+        assert.equal(setelah.length, sebelum + 1);
+        assert.equal(setelah.at(-1)?.nomor, b.nomor);
+        assert.equal(setelah.at(-1)?.meja, 1);
+        assert.equal((await tx(mejaSama, klien => lepasKms(klien, akunSama, b.id))).status, 'ok');
+        const balapan = await Promise.all([
+            tx(mejaSama, klien => panggilKms(klien, akunSama, b.id)),
+            aksi(mejaDua, b.id, 'panggil'),
+        ]);
+        assert.equal(Number(balapan[0].status === 'ok') + Number(balapan[1] === 'berhasil'), 1);
     } finally {
         await db.tutup();
     }

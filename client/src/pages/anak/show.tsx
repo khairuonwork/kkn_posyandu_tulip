@@ -311,7 +311,10 @@ export default function DetailAnak({
                                 aria-controls={`panel-${tab.nilai}`}
                                 tabIndex={aktif ? 0 : -1}
                                 onClick={() => {
-                                    if (tab.nilai === tabAktif) return;
+                                    if (tab.nilai === tabAktif) {
+return;
+}
+
                                     const indeksAktif = TAB_DETAIL.findIndex(
                                         (item) => item.nilai === tabAktif,
                                     );
@@ -321,6 +324,7 @@ export default function DetailAnak({
                                 onKeyDown={(event) => {
                                     const jumlah = TAB_DETAIL.length;
                                     let berikut: number;
+
                                     switch (event.key) {
                                         case 'ArrowRight':
                                             berikut = (indeksTab + 1) % jumlah;
@@ -356,38 +360,38 @@ export default function DetailAnak({
             </div>
 
             <div className="detail-panel" data-arah={arahTab}>
-            <TabProfil
-                anak={anak}
-                nama={nama}
-                inisial={inisial}
-                umur={umur}
-                tersembunyi={tabAktif !== 'profil'}
-            />
+                <TabProfil
+                    anak={anak}
+                    nama={nama}
+                    inisial={inisial}
+                    umur={umur}
+                    tersembunyi={tabAktif !== 'profil'}
+                />
 
-            <TabStatus
-                anak={anak}
-                terbaru={terbaru}
-                hasilTerakhir={hasilTerakhir}
-                periode={periode}
-                peran={peran}
-                terurut={terurut}
-                indeks={indeks}
-                indeksTidakWajar={indeksTidakWajar}
-                perluRujukan={perluRujukan}
-                perluWaspada={perluWaspada}
-                perluTindakLanjut={perluTindakLanjut}
-                edukasiKms={edukasiKms}
-                ambang={ambang}
-                umur={umur}
-                sumberLive={sumberLive}
-                alasanTanpaDataWa={alasanTanpaDataWa}
-                tersembunyi={tabAktif !== 'status'}
-                onInfoKiaChange={setInfoKiaWa}
-                onBukaWa={(info) => {
-                    setInfoKiaWa(info);
-                    setDialog('wa');
-                }}
-            />
+                <TabStatus
+                    anak={anak}
+                    terbaru={terbaru}
+                    hasilTerakhir={hasilTerakhir}
+                    periode={periode}
+                    peran={peran}
+                    terurut={terurut}
+                    indeks={indeks}
+                    indeksTidakWajar={indeksTidakWajar}
+                    perluRujukan={perluRujukan}
+                    perluWaspada={perluWaspada}
+                    perluTindakLanjut={perluTindakLanjut}
+                    edukasiKms={edukasiKms}
+                    ambang={ambang}
+                    umur={umur}
+                    sumberLive={sumberLive}
+                    alasanTanpaDataWa={alasanTanpaDataWa}
+                    tersembunyi={tabAktif !== 'status'}
+                    onInfoKiaChange={setInfoKiaWa}
+                    onBukaWa={(info) => {
+                        setInfoKiaWa(info);
+                        setDialog('wa');
+                    }}
+                />
 
             <TabKurva
                 anak={anak}
@@ -409,25 +413,25 @@ export default function DetailAnak({
                 tersembunyi={tabAktif !== 'kurva'}
             />
 
-            <TabGrafik
-                anak={anak}
-                nama={nama}
-                umur={umur}
-                periode={periode}
-                terbaru={terbaru}
-                pengukuran={pengukuran}
-                standarLms={standarLms}
-                tersembunyi={tabAktif !== 'grafik'}
-            />
+                <TabGrafik
+                    anak={anak}
+                    nama={nama}
+                    umur={umur}
+                    periode={periode}
+                    terbaru={terbaru}
+                    pengukuran={pengukuran}
+                    standarLms={standarLms}
+                    tersembunyi={tabAktif !== 'grafik'}
+                />
 
-            <TabRiwayat
-                pengukuran={pengukuran}
-                umur={umur}
-                umurDisorot={umurDisorot}
-                setUmurDisorot={setUmurDisorot}
-                janggal={janggal}
-                tersembunyi={tabAktif !== 'riwayat'}
-            />
+                <TabRiwayat
+                    pengukuran={pengukuran}
+                    umur={umur}
+                    umurDisorot={umurDisorot}
+                    setUmurDisorot={setUmurDisorot}
+                    janggal={janggal}
+                    tersembunyi={tabAktif !== 'riwayat'}
+                />
             </div>
 
             {dialog === 'ubah' && (

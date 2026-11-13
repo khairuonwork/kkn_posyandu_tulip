@@ -14,6 +14,7 @@ export type EdukasiLembarKia = {
         jenis: 'perawatan' | 'perkembangan';
         halaman: string;
         halamanPdf: number;
+        sisiHalaman?: 'kiri' | 'kanan' | null;
         stimulasi: string[];
     } | null;
     makan: {

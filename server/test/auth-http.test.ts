@@ -1,3 +1,7 @@
+import { ubahProfil } from '../src/services/anak-service.ts';
+import { hitungDanSimpan } from '../src/services/gizi-service.ts';
+import { hitungPenilaian } from '../src/antropometri/penilaian-gizi.ts';
+import { muatTabelStandar } from '../src/repositories/standar-lms-repository.ts';
 import {paketSinkronisasi} from '../src/repositories/anak-repository.ts';
 /**
  * Autentikasi lewat HTTP, diuji terhadap server dan basis data sungguhan.
@@ -299,6 +303,50 @@ describe(
 
             assert.equal(res.status, 404);
             assert.match(res.headers.get('content-type') ?? '', /application\/json/);
+        });
+
+        test('koreksi jenis kelamin menilai ulang seluruh bulan secara atomik; nilai ukur tetap dan nama saja tidak memicu hitung ulang', async () => {
+            await pool.query(`INSERT INTO standar_lms(versi,indeks,jk,kunci,l,m,s)
+                SELECT versi,indeks,jk,kunci,l,m,s FROM public.standar_lms WHERE versi='WHO-2006'
+                ON CONFLICT(versi,indeks,jk,kunci) DO NOTHING`);
+            const actor = {id:(await pool.query('SELECT id FROM pengguna WHERE username=$1',[USERNAME_BIDAN])).rows[0].id,peran:'bidan' as const,rt:null,aktif:true,posyanduIds:[idPosyandu]};
+            const child = (await pool.query(`INSERT INTO anak(wilayah_rt_id,nama,nama_baku,tgl_lahir,jk,buku_kia)
+                VALUES($1,'KOREKSI UJI','koreksi uji','2024-01-01','L',true) RETURNING id`,[idRt])).rows[0].id;
+            const periods:number[]=[];
+            const profile={nama:'KOREKSI UJI',nik:null,namaOrtu:'',noWa:null,rt:'07',jk:'P',tglLahir:'2024-01-01',anakKe:null,bbLahirKg:null,bukuKia:true};
+            try {
+                for(const month of [9,10]){
+                    const period=(await pool.query('INSERT INTO periode(posyandu_id,bulan,tahun) VALUES($1,$2,2026) RETURNING id',[idPosyandu,month])).rows[0].id;
+                    periods.push(period);
+                    const id=(await pool.query(`INSERT INTO pengukuran(anak_id,periode_id,tanggal_ukur,bb_kg,tinggi_cm,jenis_ukur,lila_cm,lika_cm)
+                        VALUES($1,$2,$3,11.2,85,'TB',15,48) RETURNING id`,[child,period,`2026-${month.toString().padStart(2,'0')}-10`])).rows[0].id;
+                    await hitungDanSimpan(pool,id);
+                }
+                const raw=async()=>(await pool.query('SELECT * FROM pengukuran WHERE anak_id=$1 ORDER BY id',[child])).rows;
+                const scores=async()=>(await pool.query(`SELECT pg.* FROM penilaian_gizi pg JOIN pengukuran p ON p.id=pg.pengukuran_id WHERE p.anak_id=$1 ORDER BY pg.id`,[child])).rows;
+                const before=await raw();const beforeScores=await scores();
+                await ubahProfil(pool,actor,child,profile);
+                const after=await scores();assert.notDeepEqual(after.map(r=>r.z_score),beforeScores.map(r=>r.z_score));
+                assert.deepEqual(await raw(),before,'nilai ukur asli dan metadata tidak berubah');
+                const table=await muatTabelStandar(pool);
+                for(const r of before){
+                    const date=String(r.tanggal_ukur instanceof Date ? [r.tanggal_ukur.getFullYear(),String(r.tanggal_ukur.getMonth()+1).padStart(2,'0'),String(r.tanggal_ukur.getDate()).padStart(2,'0')].join('-'):r.tanggal_ukur);
+                    const expected=hitungPenilaian(table,{tglLahir:'2024-01-01',jk:'P',tanggalUkur:date,bbKg:11.2,tinggiCm:85,jenisUkur:'TB',lilaCm:15,likaCm:48});
+                    for(const e of expected){const saved=after.find(v=>v.pengukuran_id===r.id&&v.indeks===e.indeks);assert.ok(saved);assert.equal(saved.z_score===null?null:Number(saved.z_score),e.zScore);assert.equal(saved.kategori,e.kategori);}
+                }
+                await ubahProfil(pool,actor,child,{...profile,nama:'NAMA BARU UJI'});
+                assert.deepEqual(await scores(),after,'nama saja tidak menulis ulang penilaian');
+                await pool.query('ALTER TABLE penilaian_gizi ADD CONSTRAINT uji_tolak_penilaian CHECK(false) NOT VALID');
+                try {
+                    await assert.rejects(ubahProfil(pool,actor,child,{...profile,jk:'L'}));
+                    assert.equal((await pool.query('SELECT jk FROM anak WHERE id=$1',[child])).rows[0].jk,'P','profil ikut rollback bila penilaian gagal');
+                    assert.deepEqual(await scores(),after,'penilaian tidak boleh tersimpan sebagian');
+                    assert.deepEqual(await raw(),before);
+                } finally { await pool.query('ALTER TABLE penilaian_gizi DROP CONSTRAINT uji_tolak_penilaian'); }
+            } finally {
+                await pool.query('DELETE FROM anak WHERE id=$1',[child]);
+                await pool.query('DELETE FROM periode WHERE id=ANY($1::bigint[])',[periods]);
+            }
         });
 
         test('paket tablet menyertakan anak baru meskipun belum terdaftar sebagai sasaran bulan aktif', async () => {

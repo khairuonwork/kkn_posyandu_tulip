@@ -49,6 +49,7 @@ export const CONTOH_ANTREAN_KMS: AntreanKms[] = [
         rt: '02',
         status: 'kms_review',
         checkedInAt: '2026-10-11T08:30:00Z',
+        prioritasKms: { skor: 1200, jumlahT: 2, alasan: ['2T'] },
     },
     {
         id: 'q-demo-2',
@@ -59,6 +60,7 @@ export const CONTOH_ANTREAN_KMS: AntreanKms[] = [
         rt: '01',
         status: 'kms_review',
         checkedInAt: '2026-10-11T08:42:00Z',
+        prioritasKms: { skor: 500, jumlahT: 0, alasan: ['Gizi buruk'] },
     },
     {
         id: 'q-demo-3',
@@ -103,6 +105,7 @@ return [];
         null,
     );
     const [pesan, setPesan] = useState<string | null>(null);
+    const [catatanKms, setCatatanKms] = useState<Record<string, string>>({});
     const [versi, setVersi] = useState(0);
     const [itemBerhasil, setItemBerhasil] = useState<string | null>(null);
     const permintaan = useRef(0);
@@ -180,7 +183,10 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
         (item) => item.status !== 'done' && item.status !== 'cancelled',
     );
     const aktif = terbuka.filter((item) => item.mejaKms != null);
-    const menunggu = terbuka.filter((item) => item.mejaKms == null);
+    const menunggu = terbuka.filter((item) => item.mejaKms == null).sort((a, b) =>
+        (b.prioritasKms?.skor ?? 0) - (a.prioritasKms?.skor ?? 0) ||
+        (a.urutan ?? a.nomor) - (b.urutan ?? b.nomor),
+    );
     const mejaSibuk = aktif.some((item) => item.mejaKms === mejaKms);
     const selesai = items.filter((item) => item.status === 'done');
     const kataCari = pencarian.trim().toLocaleLowerCase('id-ID');
@@ -202,7 +208,7 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
         if (demo) {
             setItems((lama) =>
                 lama.map((it) =>
-                    it.id === item.id ? { ...it, status: 'done' as const } : it,
+                    it.id === item.id ? { ...it, status: 'done' as const, catatanKms: catatanKms[item.id]?.trim() || it.catatanKms } : it,
                 ),
             );
             setPesan(`A${String(item.nomor).padStart(2, '0')} selesai diperiksa.`);
@@ -214,7 +220,7 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
         }
 
         try {
-            await konfirmasiSelesaiKms(item.id, onSesiBerakhir);
+            await konfirmasiSelesaiKms(item.id, onSesiBerakhir, catatanKms[item.id]);
             setItems((lama) =>
                 lama.map((it) =>
                     it.id === item.id ? { ...it, status: 'done' } : it,
@@ -485,7 +491,16 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
                                                 ' · Belum diukur'}
                                             {demo && item.sudahDiukur && ' · Sudah diukur'}
                                         </p>
+                                        {item.kmsPetugasNama && <p className="text-sm text-muted-foreground">Petugas: {item.kmsPetugasNama}</p>}
+                                        {item.catatan && <p className="text-sm">Catatan pendaftaran: {item.catatan}</p>}
+                                        {item.catatanKhusus && <p className="text-sm">Catatan pengukuran: {item.catatanKhusus}</p>}
+                                        {item.masihMenyusui != null && <p className="text-sm">Masih menyusui: {item.masihMenyusui ? 'Ya' : 'Tidak'}</p>}
+                                        {item.asiEksklusif != null && <p className="text-sm">ASI eksklusif: {item.asiEksklusif ? 'Ya' : 'Tidak'}</p>}
                                     </div>
+                                    {item.mejaKms === mejaKms && item.tibaKms && <label className="grid gap-1 text-sm font-semibold">
+                                        Catatan KMS
+                                        <textarea className="isian min-h-20 w-full" maxLength={500} value={catatanKms[item.id] ?? ''} onChange={(event) => setCatatanKms((lama) => ({ ...lama, [item.id]: event.target.value }))} />
+                                    </label>}
                                     {item.mejaKms === mejaKms && (
                                         <div className="flex flex-wrap items-center gap-2">
                                             {item.anakId > 0 && <Link
@@ -618,6 +633,10 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
                             </label>
                         )}
                         {demo && mejaSibuk && <p className="text-sm text-muted-foreground">Selesaikan atau kembalikan peserta di meja Anda untuk memanggil peserta lain.</p>}
+                        {status === 'siap' && menunggu.length > 0 && <div className="flex flex-wrap items-center gap-3">
+                            <button type="button" className="tombol-kedua min-h-11" disabled={mejaKms === null || mejaSibuk || sedangKonfirmasi !== null} onClick={() => void panggilan(menunggu[0], 'panggil')}>Panggil peserta berikutnya</button>
+                            <p className="text-sm text-muted-foreground">Urutan mengikuti prioritas 1T/2T dan status gizi.</p>
+                        </div>}
                         {demo && status === 'siap' && menunggu.length > 0 && hasilAntrean.length === 0 && (
                             <p role="status" className="rounded-xl border border-border bg-card p-4 text-sm">Tidak ada peserta yang cocok dengan pencarian.</p>
                         )}
@@ -680,6 +699,7 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
                                                     <h3 className="text-base font-black break-words text-foreground">
                                                         {item.nama}
                                                     </h3>
+                                                    {!!item.prioritasKms?.alasan.length && <span className="rounded-full bg-tone-amber-bg px-2 py-1 text-xs font-bold text-tone-amber">{item.prioritasKms.alasan.join(', ')}</span>}
                                                     <span className="inline-flex items-center gap-1 rounded-full border border-tone-amber/20 bg-tone-amber-bg px-2.5 py-0.5 text-xs font-bold text-tone-amber">
                                                         <Clock className="size-3" />
                                                         {item.sudahDiukur

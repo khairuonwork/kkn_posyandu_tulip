@@ -52,23 +52,26 @@ export default function Dialog({
     const [menutup, setMenutup] = useState(false);
     const timerTutup = useRef<ReturnType<typeof setTimeout> | null>(null);
     const tutup = () => {
-        if (!animasiDetail || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        if (
+            !animasiDetail ||
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        ) {
             onTutup();
 
             return;
         }
 
         if (timerTutup.current !== null) {
-return;
-}
+            return;
+        }
 
         setMenutup(true);
         timerTutup.current = setTimeout(onTutup, 210);
     };
     useEffect(() => {
         if (!galat) {
-return;
-}
+            return;
+        }
 
         const sebelumnya = document.activeElement as HTMLElement | null;
         tombolTutupGalat.current?.focus();
@@ -76,8 +79,8 @@ return;
         return () => {
             requestAnimationFrame(() => {
                 if (sebelumnya?.isConnected) {
-sebelumnya.focus();
-}
+                    sebelumnya.focus();
+                }
             });
         };
     }, [galat]);
@@ -113,12 +116,12 @@ sebelumnya.focus();
 
         return () => {
             if (timerTutup.current !== null) {
-clearTimeout(timerTutup.current);
-}
+                clearTimeout(timerTutup.current);
+            }
 
             if (pemicu?.isConnected) {
-pemicu.focus();
-}
+                pemicu.focus();
+            }
         };
     }, []);
 
@@ -139,15 +142,17 @@ pemicu.focus();
                 }
             }}
             onClickCapture={(e) => {
-                const tombol = (e.target as Element).closest<HTMLElement>('[data-tutup-dialog]');
+                const tombol = (e.target as Element).closest<HTMLElement>(
+                    '[data-tutup-dialog]',
+                );
 
                 if (tombol) {
                     e.preventDefault();
                     e.stopPropagation();
 
                     if (tombol.dataset.tutupDialog) {
-onAksiTutup?.(tombol.dataset.tutupDialog);
-}
+                        onAksiTutup?.(tombol.dataset.tutupDialog);
+                    }
 
                     mintaTutup();
                 }

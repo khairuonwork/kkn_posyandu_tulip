@@ -25,12 +25,14 @@ import type { DiskusiKiaWa } from '@/lib/pesan-wa';
 
 export default function PendampinganKia({
     anakId,
+    periode,
     sumberLive,
     onKirimWa,
     onInfoKiaChange,
     alasanTanpaWa = null,
 }: {
     anakId: number;
+    periode?: string;
     sumberLive: boolean;
     onKirimWa?: (infoKia: DiskusiKiaWa | null) => void;
     onInfoKiaChange?: (infoKia: DiskusiKiaWa | null) => void;
@@ -45,7 +47,7 @@ export default function PendampinganKia({
         }
 
         const abort = new AbortController();
-        void ambilPendampinganKia(anakId, abort.signal)
+        void ambilPendampinganKia(anakId, abort.signal, periode)
             .then(setData)
             .catch((error: unknown) => {
                 if (!abort.signal.aborted) {
@@ -58,7 +60,7 @@ export default function PendampinganKia({
             });
 
         return () => abort.abort();
-    }, [anakId, sumberLive, ulang]);
+    }, [anakId, periode, sumberLive, ulang]);
 
     return (
         <section
@@ -111,6 +113,7 @@ export default function PendampinganKia({
                     key={`${anakId}-${data.tanggal}-${data.kelompok?.id ?? 'tanpa'}`}
                     data={data}
                     anakId={anakId}
+                    periode={periode}
                     onTersimpan={setData}
                     onKirimWa={onKirimWa}
                     onInfoKiaChange={onInfoKiaChange}
@@ -129,6 +132,7 @@ export default function PendampinganKia({
 function IsiPendampingan({
     data,
     anakId,
+    periode,
     onTersimpan,
     onKirimWa,
     onInfoKiaChange,
@@ -136,6 +140,7 @@ function IsiPendampingan({
 }: {
     data: Panduan;
     anakId: number;
+    periode?: string;
     onTersimpan: (data: Panduan) => void;
     onKirimWa?: (infoKia: DiskusiKiaWa | null) => void;
     onInfoKiaChange?: (infoKia: DiskusiKiaWa | null) => void;
@@ -217,16 +222,20 @@ function IsiPendampingan({
         setSibuk(true);
 
         try {
-            const baru = await simpanPendampinganKia(anakId, {
-                tanggal: data.tanggal,
-                versiBuku: data.sumber.versi,
-                kelompokId: kelompok.id,
-                revisi: data.terkini?.revisi ?? 0,
-                jawaban,
-                catatan,
-                tindakLanjut,
-                dibahas,
-            });
+            const baru = await simpanPendampinganKia(
+                anakId,
+                {
+                    tanggal: data.tanggal,
+                    versiBuku: data.sumber.versi,
+                    kelompokId: kelompok.id,
+                    revisi: data.terkini?.revisi ?? 0,
+                    jawaban,
+                    catatan,
+                    tindakLanjut,
+                    dibahas,
+                },
+                periode,
+            );
             onTersimpan(baru);
             setBerubah(false);
             setPesan(
@@ -276,7 +285,10 @@ function IsiPendampingan({
                 <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-surface-subtle px-4 py-2.5 text-sm">
                     <div className="flex flex-wrap items-center gap-2">
                         <span className="font-semibold text-muted-foreground">
-                            Usia hari ini ({tanggalPanjang(data.tanggal)}):
+                            {data.acuan === 'pengukuran'
+                                ? 'Usia saat diukur'
+                                : 'Usia hari ini'}{' '}
+                            · {tanggalPanjang(data.tanggal)}
                         </span>
                         <span className="rounded-md bg-primary px-2.5 py-0.5 text-xs font-extrabold text-primary-foreground">
                             {data.umur?.label ??
@@ -289,7 +301,7 @@ function IsiPendampingan({
                         )}
                     </div>
                     <span className="text-xs font-medium text-muted-foreground">
-                        Panduan otomatis menyesuaikan usia anak saat ini
+                        Kelompok berdasarkan usia pada tanggal di atas
                     </span>
                 </div>
                 {kelompok ? (
@@ -319,15 +331,13 @@ function IsiPendampingan({
                                                         className="size-3.5 shrink-0"
                                                         aria-hidden="true"
                                                     />
-                                                    <span>
-                                                        Selesai dibahas hari ini
-                                                    </span>
+                                                    <span>Selesai dibahas</span>
                                                 </span>
                                             ) : (
                                                 'Belum selesai dibahas'
                                             )
                                         ) : (
-                                            'Belum diisi hari ini'
+                                            'Belum diisi'
                                         )}
                                     </span>
                                     {hitung.total > 0 && (
@@ -344,14 +354,18 @@ function IsiPendampingan({
                                         target="_blank"
                                         rel="noreferrer"
                                     >
-                                        Buka Buku KIA 2024 · Halaman{' '}
-                                        {kelompok.halaman}
+                                        Buku KIA 2024 · hlm. {kelompok.halaman}{' '}
+                                        cetak (PDF {kelompok.halamanPdf}
+                                        {kelompok.sisiHalaman
+                                            ? ` · ${kelompok.sisiHalaman}`
+                                            : ''}
+                                        )
                                     </a>
                                     <span className="text-sm font-medium text-muted-foreground">
                                         {data.terkini
                                             ? data.terkini.dibahas
-                                                ? 'Diskusi hari ini sudah ditandai selesai bersama orang tua.'
-                                                : 'Catatan hari ini tersimpan; diskusi belum selesai.'
+                                                ? 'Diskusi sudah ditandai selesai bersama orang tua.'
+                                                : 'Catatan untuk tanggal ini tersimpan dan diskusi masih terbuka.'
                                             : 'Klik tombol di kanan untuk mengisi bersama orang tua.'}
                                     </span>
                                 </div>

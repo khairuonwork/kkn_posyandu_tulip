@@ -112,44 +112,57 @@ export function useLaporanServer(
         return () => controller.abort();
     }, [aktif, periode, onSesiBerakhir, versi]);
 
-    const unduh = useCallback(async (format: 'zscore' | 'f1' = 'zscore') => {
-        const res = await fetch(
-            `/api/v1/laporan/${format === 'f1' ? 'f1/' : ''}unduh?periode=${encodeURIComponent(periode)}`,
-            {
-                credentials: 'same-origin',
-                cache: 'no-store',
-            },
-        );
-
-        if (res.status === 401) {
-            onSesiBerakhir();
-
-            throw new Error('Sesi telah berakhir.');
-        }
-
-        if (res.status === 403) {
-            throw new Error('Akun ini belum memiliki izin mengunduh rekap.');
-        }
-
-        if (res.status === 404) {
-            throw new Error(
-                'Rute unduhan laporan belum tersedia pada server API yang aktif. Perbarui server lalu coba lagi.',
+    const unduh = useCallback(
+        async (format: 'zscore' | 'f1' = 'zscore') => {
+            const res = await fetch(
+                `/api/v1/laporan/${format === 'f1' ? 'f1/' : ''}unduh?periode=${encodeURIComponent(periode)}`,
+                {
+                    credentials: 'same-origin',
+                    cache: 'no-store',
+                },
             );
-        }
 
-        if (!res.ok) {
-            const pesan = await res.json().catch(() => null) as {galat?: string} | null;
-            if (pesan?.galat) throw new Error(pesan.galat);
-            throw new Error(`Berkas tidak dapat dibuat (HTTP ${res.status}).`);
-        }
+            if (res.status === 401) {
+                onSesiBerakhir();
 
-        const url = URL.createObjectURL(await res.blob());
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `laporan-${format === 'f1' ? 'f1' : 'posyandu'}-${periode}.xlsx`;
-        link.click();
-        window.setTimeout(() => URL.revokeObjectURL(url), 0);
-    }, [periode, onSesiBerakhir]);
+                throw new Error('Sesi telah berakhir.');
+            }
+
+            if (res.status === 403) {
+                throw new Error(
+                    'Akun ini belum memiliki izin mengunduh rekap.',
+                );
+            }
+
+            if (res.status === 404) {
+                throw new Error(
+                    'Rute unduhan laporan belum tersedia pada server API yang aktif. Perbarui server lalu coba lagi.',
+                );
+            }
+
+            if (!res.ok) {
+                const pesan = (await res.json().catch(() => null)) as {
+                    galat?: string;
+                } | null;
+
+                if (pesan?.galat) {
+                    throw new Error(pesan.galat);
+                }
+
+                throw new Error(
+                    `Berkas tidak dapat dibuat (HTTP ${res.status}).`,
+                );
+            }
+
+            const url = URL.createObjectURL(await res.blob());
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `laporan-${format === 'f1' ? 'f1' : 'posyandu'}-${periode}.xlsx`;
+            link.click();
+            window.setTimeout(() => URL.revokeObjectURL(url), 0);
+        },
+        [periode, onSesiBerakhir],
+    );
 
     return {
         data: data?.periode === periode ? data : null,

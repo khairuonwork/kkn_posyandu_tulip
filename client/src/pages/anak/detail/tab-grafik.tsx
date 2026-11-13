@@ -1,5 +1,4 @@
 import GrafikPertumbuhan from '@/components/grafik-pertumbuhan';
-import { useRef } from 'react';
 import type { BarisLms } from '@/lib/z-score';
 import type { Anak, Pengukuran, Periode } from '@/types/posyandu';
 
@@ -22,7 +21,6 @@ export function TabGrafik({
     standarLms: BarisLms[];
     tersembunyi: boolean;
 }) {
-    const animasiSudahDiputar = useRef(false);
     return (
         <section
             id="panel-grafik"
@@ -38,7 +36,6 @@ export function TabGrafik({
             ) : (
                 <GrafikPertumbuhan
                     aktif={!tersembunyi}
-                    animasiSudahDiputar={animasiSudahDiputar}
                     kelamin={anak.jk}
                     nama={nama}
                     umurBalita={umur}
