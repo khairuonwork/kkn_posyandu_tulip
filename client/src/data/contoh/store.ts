@@ -1084,7 +1084,9 @@ export function laporanDemo(periodeId?: string): LaporanLive {
         const bln = umur === null ? null : umur % 12;
         const isT = item.ntob === 'T';
         const isN = item.ntob === 'N';
-        const is2T = isT && item.anakId % 3 === 0;
+        const periodeSebelumnya = data.periode[data.periode.findIndex((periode) => periode.id === targetPeriode) - 1];
+        const sebelumnya = data.pengukuran.find((ukur) => ukur.anakId === item.anakId && ukur.periodeId === periodeSebelumnya?.id);
+        const is2T = isT && sebelumnya?.ntob === 'T';
 
         return {
             anakId: item.anakId,
@@ -1106,11 +1108,11 @@ export function laporanDemo(periodeId?: string): LaporanLive {
             statusKehadiran: item.statusKehadiran,
             penilaian: {
                 'PERMENKES-2-2020': item.penilaian,
-                'WHO-2006': item.penilaian,
+                'WHO-2006': {},
             },
             nt: isN ? 'N' : isT ? 'T' : null,
-            kenaikanGram: isN ? 450 : isT ? 120 : null,
-            kbmGram: 300,
+            kenaikanGram: null,
+            kbmGram: null,
             duaT: is2T,
             jumlahTBerturut: is2T ? 2 : isT ? 1 : 0,
             status2T: is2T ? '2T' : isT ? '1T' : undefined,

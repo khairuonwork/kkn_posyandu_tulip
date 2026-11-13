@@ -278,7 +278,7 @@ export default function DetailAnak({
                 </>
             }
         >
-            {alasanTanpaWa !== null && (
+            {peran !== 'kms' && alasanTanpaWa !== null && (
                 <p
                     role="status"
                     className="mb-5 flex items-start gap-2.5 text-sm text-muted-foreground"
@@ -298,7 +298,7 @@ export default function DetailAnak({
                 aria-label="Kategori detail anak"
             >
                 <div className="flex flex-wrap gap-1.5">
-                    {TAB_DETAIL.map((tab) => {
+                    {TAB_DETAIL.map((tab, indeksTab) => {
                         const aktif = tabAktif === tab.nilai;
 
                         return (
@@ -309,12 +309,44 @@ export default function DetailAnak({
                                 role="tab"
                                 aria-selected={aktif}
                                 aria-controls={`panel-${tab.nilai}`}
+                                tabIndex={aktif ? 0 : -1}
                                 onClick={() => {
                                     if (tab.nilai === tabAktif) return;
-                                    setArahTab(TAB_DETAIL.findIndex((item) => item.nilai === tab.nilai) > TAB_DETAIL.findIndex((item) => item.nilai === tabAktif) ? 'maju' : 'mundur');
+                                    const indeksAktif = TAB_DETAIL.findIndex(
+                                        (item) => item.nilai === tabAktif,
+                                    );
+                                    setArahTab(indeksTab > indeksAktif ? 'maju' : 'mundur');
                                     setTabAktif(tab.nilai);
                                 }}
-                                className="tab"
+                                onKeyDown={(event) => {
+                                    const jumlah = TAB_DETAIL.length;
+                                    let berikut: number;
+                                    switch (event.key) {
+                                        case 'ArrowRight':
+                                            berikut = (indeksTab + 1) % jumlah;
+                                            break;
+                                        case 'ArrowLeft':
+                                            berikut = (indeksTab + jumlah - 1) % jumlah;
+                                            break;
+                                        case 'Home':
+                                            berikut = 0;
+                                            break;
+                                        case 'End':
+                                            berikut = jumlah - 1;
+                                            break;
+                                        default:
+                                            return;
+                                    }
+
+                                    event.preventDefault();
+                                    const tujuan = event.currentTarget.parentElement
+                                        ?.querySelector<HTMLButtonElement>(
+                                            `#tab-${TAB_DETAIL[berikut].nilai}`,
+                                        );
+                                    tujuan?.focus();
+                                    tujuan?.click();
+                                }}
+                                className="tab aria-selected:bg-primary aria-selected:text-primary-foreground"
                             >
                                 {tab.label}
                             </button>
@@ -368,6 +400,12 @@ export default function DetailAnak({
                 umurDisorot={umurDisorot}
                 riwayatKurva={riwayatKurva}
                 titikPerluVerifikasi={titikPerluVerifikasi}
+                tanggalUkurTerakhir={hasilTerakhir?.tanggalUkur}
+                onLihatRiwayat={() => {
+                    setArahTab('maju');
+                    setTabAktif('riwayat');
+                    document.getElementById('tab-riwayat')?.focus();
+                }}
                 tersembunyi={tabAktif !== 'kurva'}
             />
 
@@ -426,7 +464,7 @@ export default function DetailAnak({
                     buatTautan={
                         sumberLive
                             ? () => buatTautanLembar(anak.id, periode.id)
-                            : undefined
+                            : async () => `${window.location.href.split('#')[0]}#/hasil-demo/${anak.id}/${periode.id}`
                     }
                     onTutup={() => setDialog(null)}
                 />

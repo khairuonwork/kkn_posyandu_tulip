@@ -58,8 +58,8 @@ const NADA_KESIMPULAN: Record<Kesimpulan, { kartu: string; judul: string }> = {
 
 const tanggalBerlaku = (iso: string) => tanggalPanjang(iso.slice(0, 10));
 
-export default function LembarHasil({ token }: { token: string }) {
-    const lembar = useLembar(token);
+export default function LembarHasil({ token, contoh }: { token: string; contoh?: LembarApi | null }) {
+    const lembar = useLembar(token, contoh);
 
     return (
         <div className="min-h-screen bg-background text-foreground">
@@ -84,6 +84,7 @@ export default function LembarHasil({ token }: { token: string }) {
             </header>
 
             <main className="mx-auto max-w-2xl px-4 pt-6 pb-10">
+                {contoh !== undefined && <p role="status" className="mb-4">Lembar hasil contoh · simulasi demo.</p>}
                 {lembar.status === 'memuat' && (
                     <p
                         role="status"
@@ -582,10 +583,10 @@ function Baris({
 
 function Legenda() {
     const butir: [string, string][] = [
-        ['#1E8C34', '−1 sampai +1 SD'],
-        ['#6FB63C', '−2 s.d. −1 / +1 s.d. +2 SD'],
-        ['#F2C300', '−3 s.d. −2 / +2 s.d. +3 SD'],
-        ['#D92B0C', 'Garis −3 SD'],
+        ['#167044', 'Median'],
+        ['#A65B13', '−1 dan +1 SD'],
+        ['#C52F39', '−2 dan +2 SD'],
+        ['#16211C', '−3 dan +3 SD'],
     ];
 
     return (
@@ -654,8 +655,8 @@ function Dokumen({
     }, [pratinjau]);
     useEffect(() => {
         if (!menutup) {
-return;
-}
+            return;
+        }
 
         const durasi = window.matchMedia('(prefers-reduced-motion: reduce)')
             .matches
@@ -997,6 +998,7 @@ return;
                                     lebar={335}
                                     tinggi={235}
                                     teks={10.5}
+                                    labelZ
                                     berbaring={berbaring}
                                 />
                             </div>
@@ -1012,7 +1014,7 @@ return;
                         Titik menunjukkan hasil ukur anak pada usia tersebut.
                         Sumbu bawah menunjukkan umur; sumbu samping menunjukkan
                         hasil ukur. Bahas posisi titik dan arah perubahannya
-                        bersama kader atau bidan. Warna pita saja bukan
+                        bersama kader atau bidan. Posisi titik saja bukan
                         diagnosis.
                     </p>
                 </div>

@@ -17,6 +17,8 @@ import { useEffect, useState } from 'react';
 import { bacaRute, boleh, Cangkang, KartuAkun } from '@/app-shell';
 import {
     daftarRt,
+    data,
+    detailAnak,
     PENGATURAN_BAWAAN,
     PENGGUNA_CONTOH,
     periodeTerbaru,
@@ -26,12 +28,17 @@ import { Layar } from '@/layar';
 import { navigate, useAlamat } from '@/lib/nav';
 import type { AnakBaru, PatchAnak } from '@/pages/anak/index';
 import Login from '@/pages/auth/login';
+import LembarHasil from '@/pages/hasil/lembar';
+import RuangTungguKms from '@/pages/kms/ruang-tunggu';
 import type { TabPeriode } from '@/pages/laporan/index';
 import type {
     Ambang,
     StandarisasiAntropometri,
 } from '@/pages/pengaturan/index';
 import type { Pengguna, Peran } from '@/types/posyandu';
+import KmsSelesaiDemo from './KmsSelesaiDemo';
+import PelatihanDemo from './PelatihanDemo';
+import type { SesiDemo } from './PelatihanDemo';
 
 /**
  * Hasil penimbangan yang masih tertahan di perangkat kader.
@@ -42,30 +49,46 @@ import type { Pengguna, Peran } from '@/types/posyandu';
  */
 const ANTREAN_CONTOH = { jumlah: 3, sejak: '13 Juni, pukul 09.12' };
 
-const NAMA_PERAN: Record<Peran, string> = {
+type PeranDemo = Peran | 'superadmin';
+const NAMA_PERAN: Record<PeranDemo, string> = {
     kader: 'Kader',
     bidan: 'Bidan',
     admin: 'Admin',
     kms: 'Petugas KMS',
+    superadmin: 'Superadmin',
 };
 
-const KETERANGAN_PERAN: Record<Peran, string> = {
+const KETERANGAN_PERAN: Record<PeranDemo, string> = {
     kader: 'Mencatat penimbangan di RT binaannya',
     bidan: 'Melihat semua RT, mengoreksi data',
     admin: 'Mengubah batas dan mengelola pengguna',
     kms: 'Membaca analisis dan menyelesaikan tahap penjelasan KMS',
+    superadmin: 'Mengelola simulasi pelatihan dan pemeriksaan KMS',
 };
 
-const URUTAN_PERAN: Peran[] = ['kader', 'bidan', 'admin'];
+const URUTAN_PERAN: PeranDemo[] = ['kader', 'bidan', 'admin', 'kms', 'superadmin'];
 
 /** Perpindahan seketika terasa seperti tautan, bukan seperti masuk aplikasi. */
 const JEDA_MASUK_MS = 400;
 
 export default function DemoApp() {
-    const [peran, setPeran] = useState<Peran | null>(null);
+    const [peran, setPeran] = useState<PeranDemo | null>(() =>
+        window.location.hash.split('?')[0] === '#/kms/ruang-tunggu' ? 'kms' : null,
+    );
     // Bawaan Bidan: peran dengan kemampuan terbanyak, sehingga demo dimulai
     // dari tampilan paling lengkap.
-    const [peranDipilih, setPeranDipilih] = useState<Peran>('bidan');
+    const [peranDipilih, setPeranDipilih] = useState<PeranDemo>('bidan');
+    const alamat = useAlamat();
+    const hasil = /^\/hasil-demo\/(\d+)\/(\d{4}-\d{2})$/.exec(alamat);
+
+    if (hasil) {
+        const detail = detailAnak(Number(hasil[1]));
+
+        return <LembarHasil token="demo" contoh={detail && detail.anak.jk !== null && data.periode.some((p) => p.id === hasil[2]) ? {
+            anak: { namaDepan: (detail.anak.nama ?? 'Balita').split(' ')[0], jk: detail.anak.jk },
+            periodeId: hasil[2], kedaluwarsa: '2099-12-31', pengukuran: detail.pengukuran.filter((p) => p.periodeId <= hasil[2]),
+        } : null} />;
+    }
 
     if (peran === null) {
         return (
@@ -85,7 +108,10 @@ export default function DemoApp() {
                         setTimeout(lanjut, JEDA_MASUK_MS),
                     );
                     setPeran(peranDipilih);
-                    navigate('/beranda');
+                    const hash = window.location.hash;
+                    const tujuan = (peranDipilih === 'kms' || peranDipilih === 'superadmin') && (hash === '#/kms/ruang-tunggu' || hash === '#/kms/selesai')
+                        ? hash.slice(1) : peranDipilih === 'kms' ? '/kms' : '/beranda';
+                    navigate(tujuan);
 
                     return null;
                 }}
@@ -110,11 +136,12 @@ function PortalDemo({
     onGantiPeran,
     onKeluar,
 }: {
-    peran: Peran;
-    onGantiPeran: (peran: Peran) => void;
+    peran: PeranDemo;
+    onGantiPeran: (peran: PeranDemo) => void;
     onKeluar: () => void;
 }) {
     const [periodeId, setPeriodeId] = useState(periodeTerbaru);
+    const [sesiPelatihan, setSesiPelatihan] = useState<SesiDemo | null>(null);
     const [tabLaporan, setTabLaporan] = useState<TabPeriode>('bulanan');
     const [koreksi, setKoreksi] = useState<Record<number, PatchAnak>>({});
     const [tambahan, setTambahan] = useState<AnakBaru[]>([]);
@@ -134,19 +161,27 @@ function PortalDemo({
     );
 
     const alamat = useAlamat();
-    const rute = bacaRute(alamat);
+    const superAdmin = peran === 'superadmin';
+    const peranAplikasi: Peran = superAdmin ? 'admin' : peran;
+    const rute = bacaRute(alamat === '/kms/selesai' ? '/kms' : alamat);
 
     // Mengganti peran ke yang lebih terbatas bisa meninggalkan pemirsa di layar
     // yang tidak lagi boleh dibuka; alamatnya dikembalikan ke Beranda.
     useEffect(() => {
-        if (!boleh(rute, peran)) {
-            navigate('/beranda');
+        if (!boleh(rute, peranAplikasi, superAdmin)) {
+            navigate(peran === 'kms' ? '/kms' : '/beranda');
         }
-    }, [peran, rute]);
+    }, [peran, peranAplikasi, rute, superAdmin]);
+
+    if (rute.nama === 'ruang-tunggu-kms' && (peran === 'kms' || superAdmin)) {
+        return <RuangTungguKms demo onSesiBerakhir={() => undefined} />;
+    }
 
     return (
         <Cangkang
-            peran={peran}
+            demo
+            peran={peranAplikasi}
+            superAdmin={superAdmin}
             periodeId={periodeId}
             onPindahPeriode={setPeriodeId}
             kakiSidebar={
@@ -157,9 +192,10 @@ function PortalDemo({
                 />
             }
         >
-            <Layar
+            {sesiPelatihan && <p role="status" className="border-b border-border bg-tone-amber-bg px-5 py-3">Sesi pelatihan demo aktif · hasil latihan hanya tersedia di halaman Sesi Pelatihan.</p>}
+            {alamat === '/kms/selesai' && (peran === 'kms' || superAdmin) ? <KmsSelesaiDemo /> : rute.nama === 'pelatihan' && superAdmin ? <PelatihanDemo sesi={sesiPelatihan} onSesi={setSesiPelatihan} /> : <Layar
                 rute={rute}
-                peran={peran}
+                peran={peranAplikasi}
                 onSesiBerakhir={() => undefined}
                 periodeId={periodeId}
                 onPindahPeriode={setPeriodeId}
@@ -214,7 +250,7 @@ function PortalDemo({
 
                     return null;
                 }}
-            />
+            />}
         </Cangkang>
     );
 }
@@ -226,8 +262,8 @@ function KartuPeran({
     onGanti,
 }: {
     nama: string;
-    peran: Peran;
-    onGanti: (peran: Peran) => void;
+    peran: PeranDemo;
+    onGanti: (peran: PeranDemo) => void;
 }) {
     return (
         // Satu baris dari 640 px: tiga kartu bertumpuk mendorong tombol Masuk
@@ -280,8 +316,8 @@ function PemilihPeran({
     onGanti,
     onKeluar,
 }: {
-    peran: Peran;
-    onGanti: (peran: Peran) => void;
+    peran: PeranDemo;
+    onGanti: (peran: PeranDemo) => void;
     onKeluar: () => void;
 }) {
     // Nama akun contoh untuk peran ini, supaya kartu akun demo sama dengan
@@ -301,7 +337,7 @@ function PemilihPeran({
                         <select
                             aria-label="Ganti peran demo"
                             value={peran}
-                            onChange={(e) => onGanti(e.target.value as Peran)}
+                            onChange={(e) => onGanti(e.target.value as PeranDemo)}
                             className="h-6.5 cursor-pointer appearance-none bg-transparent pr-5 text-sm text-[#2f6b4d]"
                         >
                             {URUTAN_PERAN.map((p) => (

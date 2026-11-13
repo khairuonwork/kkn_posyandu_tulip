@@ -28,6 +28,7 @@ import { useSesi } from '@/lib/sesi';
 import type { AnakBaru, PatchAnak } from '@/pages/anak/index';
 import Login from '@/pages/auth/login';
 import LembarHasil from '@/pages/hasil/lembar';
+import RuangTungguKms from '@/pages/kms/ruang-tunggu';
 import type { TabPeriode } from '@/pages/laporan/index';
 import Pelatihan, { PenandaPelatihan } from '@/pages/pelatihan';
 import type {
@@ -202,6 +203,10 @@ function Portal({
 
     if (!boleh(rute, peran, superAdmin)) {
         return <Memeriksa />;
+    }
+
+    if (rute.nama === 'ruang-tunggu-kms') {
+        return <RuangTungguKms onSesiBerakhir={onSesiBerakhir} />;
     }
 
     return (

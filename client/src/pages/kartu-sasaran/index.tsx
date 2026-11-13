@@ -262,7 +262,7 @@ export default function KartuSasaran({
                                         semuaTerlihatDipilih
                                     }
                                     data-lengkap={semuaTerlihatDipilih}
-                                    className="kartu-aksi-pilih tombol-kedua gap-2 px-4 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="kartu-aksi-pilih tombol-kedua gap-2 px-4 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     <CheckCheck
                                         className="size-3.5 shrink-0"
@@ -278,7 +278,7 @@ export default function KartuSasaran({
                                     type="button"
                                     onClick={() => setPilihan(new Set())}
                                     disabled={pilihan.size === 0}
-                                    className="kartu-aksi-kosongkan tombol-kedua gap-2 px-4 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="kartu-aksi-kosongkan tombol-kedua gap-2 px-4 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     <X className="size-4" aria-hidden="true" />
                                     Kosongkan
@@ -386,7 +386,7 @@ export default function KartuSasaran({
 
                     <section
                         aria-labelledby="judul-tampilan"
-                        className="kartu flex min-w-0 flex-col p-4.5 lg:min-h-0"
+                        className="kartu flex min-w-0 flex-col p-4.5 lg:min-h-0 lg:overflow-y-auto"
                     >
                         <div className="flex items-center justify-between gap-2 border-b border-border pb-3">
                             <div>

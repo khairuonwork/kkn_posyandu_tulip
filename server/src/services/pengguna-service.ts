@@ -169,6 +169,19 @@ export async function ubahAkun(
                 throw new GalatAkun(409, 'Akun superadmin Mirae harus tetap aktif dengan peran admin.');
             }
             validasiCakupan(pelaku, baru, lama.superAdmin && pelaku.superAdmin);
+            if (lama.mejaKms != null && (baru.mejaKms !== lama.mejaKms ||
+                baru.posyanduId !== lama.posyanduId || !baru.aktif)) {
+                const aktif = await klien.query(
+                    `SELECT 1 FROM antrean_layanan q JOIN periode p ON p.id=q.periode_id
+                       WHERE p.posyandu_id=$1 AND p.sesi_ditutup_pada IS NULL AND q.meja_kms=$2
+                         AND q.tanggal=(now() AT TIME ZONE 'Asia/Jakarta')::date
+                         AND q.status NOT IN ('done', 'cancelled') LIMIT 1`,
+                    [lama.posyanduId, lama.mejaKms],
+                );
+                if (aktif.rows.length > 0) {
+                    throw new GalatAkun(409, 'Selesaikan atau kembalikan peserta aktif sebelum mengubah penugasan meja.');
+                }
+            }
             const turun = lama.peran === 'admin' && lama.aktif && (baru.peran !== 'admin' || !baru.aktif);
 
             // Tanpa admin aktif, tidak ada seorang pun yang bisa membuka layar

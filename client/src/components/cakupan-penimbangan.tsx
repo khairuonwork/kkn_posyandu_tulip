@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Dialog, { KakiDialog } from '@/components/dialog';
 import DialogGagal from '@/components/dialog-gagal';
 import { pecahan, persenSaja } from '@/lib/format';
 import type { CakupanPeriode } from '@/pages/dashboard';
@@ -108,7 +109,7 @@ export default function CakupanPenimbangan({
                                                 <div
                                                     aria-label={label}
                                                     role="img"
-                                                    className={`relative w-full rounded-t-md ${nilai === null ? '' : seri.warna}`}
+                                                    className="relative w-full"
                                                     style={{
                                                         height:
                                                             nilai === null
@@ -116,6 +117,7 @@ export default function CakupanPenimbangan({
                                                                 : `${Math.max(1, (nilai / puncak) * 100)}%`,
                                                     }}
                                                 >
+                                                    {nilai !== null && <span aria-hidden="true" className={`beranda-batang absolute inset-0 rounded-t-md ${seri.warna}`} />}
                                                     <span
                                                         className={`absolute bottom-full left-1/2 mb-1 -translate-x-1/2 text-xs font-bold whitespace-nowrap tabular-nums ${seri.teks}`}
                                                     >
@@ -172,10 +174,13 @@ export function FormKehadiranHariH({
     const [galat, setGalat] = useState('');
     const [sibuk, setSibuk] = useState(false);
     const kelompok = [...new Set(isi.map((r) => r.periodeDbId))];
+    const berubah = isi.some((r, i) => r.jumlah !== (rows[i].sumber === 'manual' && rows[i].hadirHariH !== null ? String(rows[i].hadirHariH) : '') || r.tanggal !== (rows[i].tanggalHariH ?? '')); 
 
     return (
+        <Dialog judul="Kehadiran hari H" keterangan="Catat jumlah balita yang hadir pada hari buka Posyandu." lebar="w-[720px]"
+            berubah={berubah} menyimpan={sibuk} onTutup={onTutup}>
         <form
-            className="mt-5 space-y-4 border-t border-border pt-4"
+            className="flex min-h-0 flex-1 flex-col"
             onSubmit={async (e) => {
                 e.preventDefault();
                 setGalat('');
@@ -213,6 +218,7 @@ export function FormKehadiranHariH({
                 }
             }}
         >
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5 sm:px-7">
             <p className="text-sm text-muted-foreground">
                 Isi jumlah yang datang secara fisik pada hari H, tanpa sweeping.
                 Isi 0 bila tidak ada yang hadir; kosongkan untuk memakai daftar
@@ -297,7 +303,8 @@ export function FormKehadiranHariH({
                     onTutup={() => setGalat('')}
                 />
             )}
-            <div className="flex flex-wrap gap-3">
+            </div>
+            <KakiDialog>
                 <button
                     type="submit"
                     className="tombol-utama"
@@ -309,11 +316,12 @@ export function FormKehadiranHariH({
                     type="button"
                     className="tombol-kedua"
                     disabled={sibuk}
-                    onClick={onTutup}
+                    data-tutup-dialog="batal"
                 >
                     Batal
                 </button>
-            </div>
+            </KakiDialog>
         </form>
+        </Dialog>
     );
 }

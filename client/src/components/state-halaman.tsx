@@ -1,15 +1,18 @@
 import { CircleAlert, Inbox, RefreshCw } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 export default function StateHalaman({
     jenis,
     judul,
     pesan,
+    ikonKosong = Inbox,
     children,
 }: {
     jenis: 'memuat' | 'galat' | 'kosong';
     judul: string;
     pesan?: string;
+    ikonKosong?: LucideIcon;
     children?: ReactNode;
 }) {
     const Ikon =
@@ -17,7 +20,7 @@ export default function StateHalaman({
             ? RefreshCw
             : jenis === 'galat'
               ? CircleAlert
-              : Inbox;
+              : ikonKosong;
 
     return (
         <div

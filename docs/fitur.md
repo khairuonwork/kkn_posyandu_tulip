@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | **Jenis** | Orientasi |
-| **Status** | Final Approved / v2.1-Modular |
-| **Perubahan berarti terakhir** | 1 November 2026 |
+| **Status** | hidup |
+| **Perubahan berarti terakhir** | 13 November 2026 |
 
 Seluruh kemampuan SIMPATIK Posyandu beserta keadaannya hari ini. Untuk tahu **apa yang sudah bisa dipakai**, baca tabel pertama saja.
 
@@ -17,13 +17,13 @@ Urutan pengerjaan yang berlaku ada di [Rencana kerja](rencana-kerja.md). Perilak
 | Kemampuan | Keadaan |
 |---|---|
 | Perhitungan status gizi enam indeks (WHO LMS) | **Berjalan dan terbukti** — setara perhitungan acuan sampai 4,4 × 10⁻¹⁵ pada 2.076 kasus uji |
-| Perhitungan umur, skema basis data, aturan integritasnya | **Berjalan** — PostgreSQL 16/17, migrasi 001–027, advisory lock transaksi |
+| Perhitungan umur, skema basis data, aturan integritasnya | **Berjalan** — PostgreSQL 16/17, migrasi hingga 030, advisory lock transaksi |
 | Login, peran RBAC (Kader, Bidan, Admin, Petugas KMS, Superadmin) | **Berjalan** — ditegakkan server, termasuk pembatasan RT kader, hak antrean KMS, dan cakupan superadmin |
 | Kelola akun di Pengaturan › Pengguna dan peran | **Berjalan** — tersimpan ke basis data lewat `/api/pengguna`, khusus admin/superadmin, tercatat di audit |
 | Sepuluh layar web modular: Beranda, Data Balita, Detail Balita, Detail riwayat, Pemeriksaan KMS, Kartu Balita, Laporan, Sasaran & Impor, Pengaturan, Sesi Pelatihan | **Berjalan dan tersambung live ke PostgreSQL** — React 19 modular; Beranda memuat filter RT dan Real D/S; Detail memuat grafik pertumbuhan kurva KIA, kelompok Desil, KB Ibu, dan panduan KIA; Laporan memuat rekap live dan ekspor F1; Sesi Pelatihan memuat sandbox terisolasi |
 | Kartu balita ber-QR dan pemindaiannya | **Berjalan** — kartu dibuat/cetak dari Portal dan QR dipindai langsung dari aplikasi Android ([format](arsitektur.md#kartu-balita)) |
 | Sinkronisasi tablet dan transaksi pengukuran | **Berjalan** — transaksi atomik (ukur + sasaran + gizi), advisory lock transaksi, batch insert penilaian, idempotensi kiriman relai offline-first |
-| Antrean pemeriksaan KMS real-time | **Berjalan** — aliran antrean dari meja ukur tablet langsung tampil di layar Pemeriksaan KMS (`#/kms`) dengan auto-refresh / streaming |
+| Antrean dan pemanggilan KMS | Antrean setelah check-in, pemanggilan menurut meja dan suara ruang tunggu; lihat [panduan antrean KMS](panduan-antrean-kms.md). Versi demo menyediakan tata letak dan kontrol simulasi tersendiri. |
 | Mode Pelatihan Sandbox (Dual-Schema) | **Berjalan** — skema terisolasi `latihan_<uuid>` untuk latihan kader tanpa risiko mencemari atau menghapus data riil produksi |
 | Pencatatan riwayat perubahan (audit) | **Berjalan** — trigger sembilan tabel (`anak`, `orang_tua`, `pengukuran`, `layanan`, `periode`, `wilayah_rt`, `pengguna`, `cakupan_hari_h`, `pelatihan_sesi`) |
 | Pemasukan data arsip Excel & Sasaran Live | **Berjalan** — impor historis Juli–Agustus 2026 dan modul in-app pratinjau/penerbitan sasaran langsung di web |

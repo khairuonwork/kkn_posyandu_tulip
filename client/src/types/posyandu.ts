@@ -33,6 +33,7 @@ export type Pengguna = {
     /** Cluster tunggal bagi akun operasional; null untuk superadmin global. */
     posyanduId?: number | null;
     posyanduNama?: string | null;
+    mejaKms?: number | null;
     rw?: string | null;
     superAdmin?: boolean;
 };

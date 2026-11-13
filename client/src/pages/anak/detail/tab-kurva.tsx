@@ -1,5 +1,8 @@
+import { ChartLine } from 'lucide-react';
 import GrafikPertumbuhan from '@/components/grafik-pertumbuhan';
+import StateHalaman from '@/components/state-halaman';
 import { useRef } from 'react';
+import { tanggalPanjang } from '@/lib/format';
 import type { BarisLms } from '@/lib/z-score';
 import type { Anak, Pengukuran, Periode } from '@/types/posyandu';
 
@@ -14,6 +17,8 @@ export function TabKurva({
     umurDisorot,
     riwayatKurva,
     titikPerluVerifikasi,
+    tanggalUkurTerakhir,
+    onLihatRiwayat,
     tersembunyi,
 }: {
     anak: Anak;
@@ -26,6 +31,8 @@ export function TabKurva({
     umurDisorot: number | null;
     riwayatKurva: [number, number][];
     titikPerluVerifikasi: number;
+    tanggalUkurTerakhir?: string | null;
+    onLihatRiwayat: () => void;
     tersembunyi: boolean;
 }) {
     const animasiSudahDiputar = useRef(false);
@@ -39,9 +46,22 @@ export function TabKurva({
             hidden={tersembunyi}
         >
             {riwayatKurva.length === 0 ? (
-                <p className="mt-2 text-base text-muted-foreground">
-                    Belum ada pengukuran berat yang dapat digambarkan.
-                </p>
+                <div className="kartu">
+                    <StateHalaman
+                        jenis="kosong"
+                        ikonKosong={ChartLine}
+                        judul="Kurva KMS belum tersedia"
+                        pesan={tanggalUkurTerakhir
+                            ? `Belum ada data berat badan yang bisa ditampilkan pada kurva. Pengukuran terakhir: ${tanggalPanjang(tanggalUkurTerakhir)}.`
+                            : 'Belum ada data berat badan yang bisa ditampilkan pada kurva.'}
+                    >
+                        {pengukuran.length > 0 && (
+                            <button type="button" className="tombol-kedua" onClick={onLihatRiwayat}>
+                                Lihat riwayat ukur
+                            </button>
+                        )}
+                    </StateHalaman>
+                </div>
             ) : anak.jk === null ? (
                 <p className="mt-2 text-base text-muted-foreground">
                     Jenis kelamin belum tercatat. Lengkapi lewat Ubah data
@@ -57,6 +77,7 @@ export function TabKurva({
                     kelamin={anak.jk}
                     nama={nama}
                     umurBalita={umur}
+                    tglLahir={anak.tglLahir}
                     keterangan={keterangan}
                     pengukuran={pengukuran}
                     standar={standarLms}

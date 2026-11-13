@@ -4,12 +4,14 @@ import type { Pool } from "pg";
 
 import type { StatusAntrean } from "../repositories/antrean-repository.ts";
 import * as antreanRepo from "../repositories/antrean-repository.ts";
+import { daftarPanggilan, mejaAkunKms, sesiKms, ubahPanggilan } from "../repositories/panggilan-kms-repository.ts";
 import { dalamTransaksi } from "../db/transaksi.ts";
 import { wajibBoleh } from "./middleware.ts";
 import { boleh } from "../auth/peran.ts";
 
 const STATUS: readonly StatusAntrean[] = ["waiting", "called", "serving", "kms_review", "done", "cancelled"];
 const TANGGAL = /^\d{4}-\d{2}-\d{2}$/;
+const tanggalJakarta = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Jakarta", dateStyle: "short" });
 
 function gagal(res: Response, status: number, pesan: string) {
     res.status(status).json({ galat: pesan });
@@ -17,6 +19,56 @@ function gagal(res: Response, status: number, pesan: string) {
 
 export function ruteAntrean(pool: Pool): Router {
     const rute = Router();
+
+    rute.get(["/antrean-kms", "/panggilan-kms"], wajibBoleh("konfirmasi-kms"), async (req, res) => {
+        const setelah = req.query.setelah ?? null;
+        if (setelah !== null && (typeof setelah !== "string" || !/^\d{1,18}$/.test(setelah))) {
+            gagal(res, 400, "Penanda panggilan tidak valid.");
+            return;
+        }
+        const pengguna = req.pengguna!;
+        const tanggal = tanggalJakarta.format(new Date());
+        const sesi = await sesiKms(pool, pengguna, tanggal.slice(0, 7));
+        res.set("Cache-Control", "no-store");
+        if (req.path === "/panggilan-kms") {
+            const lingkup = sesi ? `${sesi.id}:${tanggal}` : null;
+            const panggilan = sesi ? await daftarPanggilan(pool, sesi.id, tanggal, req.query.lingkup === lingkup ? setelah : null) : [];
+            res.json({ panggilan, lingkup });
+            return;
+        }
+        res.json({
+            items: sesi ? (await antreanRepo.daftar(pool, pengguna, sesi.id, tanggal)).map(({
+                id, anakId, nomor, nama, namaOrtu, rt, status, checkedInAt, mejaKms, tibaKms, sudahDiukur,
+            }) => ({ id, anakId, nomor, nama, namaOrtu, rt, status, checkedInAt, mejaKms, tibaKms, sudahDiukur })) : [],
+            mejaKms: sesi ? sesi.mejaKms : await mejaAkunKms(pool, pengguna.id),
+        });
+    });
+
+    rute.post("/antrean-kms/:id/panggilan", wajibBoleh("konfirmasi-kms"), async (req, res) => {
+        const { id } = req.params;
+        const { aksi, meja } = req.body ?? {};
+        if (typeof id !== "string" || !/^antrean_\d{8}_\d+$/.test(id) ||
+            typeof meja !== "number" || !Number.isInteger(meja) || meja < 1 || meja > 99 ||
+            (aksi !== "panggil" && aksi !== "ulang" && aksi !== "tiba" && aksi !== "kembalikan")) {
+            gagal(res, 400, "Aksi panggilan tidak valid.");
+            return;
+        }
+        const pengguna = req.pengguna!;
+        const tanggal = tanggalJakarta.format(new Date());
+        const sesi = await sesiKms(pool, pengguna, tanggal.slice(0, 7));
+        if (!sesi) { gagal(res, 404, "Sesi antrean belum tersedia."); return; }
+        const hasil = await dalamTransaksi(pool, { pengguna: pengguna.id, sumber: "web-kms" }, db =>
+            ubahPanggilan(db, pengguna.id, sesi.id, tanggal, id, aksi, meja));
+        if (hasil === "tanpa-meja") {
+            gagal(res, 403, "Meja KMS belum ditetapkan atau sesi sudah ditutup.");
+            return;
+        }
+        if (hasil === "bentrok") {
+            gagal(res, 409, "Peserta atau meja sudah berubah. Periksa antrean terbaru.");
+            return;
+        }
+        res.json({ ok: true });
+    });
 
     rute.get("/antrean", wajibBoleh("lihat-anak"), async (req, res, next) => {
         const periodeRaw = typeof req.query.periodeId === "string" ? req.query.periodeId : "";
@@ -102,8 +154,8 @@ export function ruteAntrean(pool: Pool): Router {
         }
         try {
             const item = await dalamTransaksi(pool, { pengguna: req.pengguna!.id, sumber: "web-kms" }, db =>
-                antreanRepo.konfirmasiKms(db, req.pengguna!, id));
-            if (!item) { gagal(res, 409, "Antrean belum menunggu pemeriksaan KMS atau sesi sudah ditutup."); return; }
+                antreanRepo.konfirmasiKms(db, req.pengguna!, id, !req.headers.authorization?.startsWith("Bearer ")));
+            if (!item) { gagal(res, 409, "Pastikan peserta sudah tiba di meja Anda, data ukur lengkap, dan sesi masih terbuka."); return; }
             res.json({ item });
         } catch (error) { next(error); }
     });

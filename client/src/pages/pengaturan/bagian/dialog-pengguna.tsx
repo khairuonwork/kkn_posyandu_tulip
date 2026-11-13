@@ -40,6 +40,7 @@ export function DialogPengguna({
     const [nama, setNama] = useState(pengguna?.nama ?? '');
     const [username, setUsername] = useState(pengguna?.username ?? '');
     const [peran, setPeran] = useState<Peran>(pengguna?.peran ?? 'kader');
+    const [mejaKms, setMejaKms] = useState(pengguna?.mejaKms?.toString() ?? '');
     const [posyanduId, setPosyanduId] = useState<number | null>(
         pengguna?.posyanduId ?? posyandu[0]?.id ?? null,
     );
@@ -64,7 +65,9 @@ export function DialogPengguna({
     const fokusIsian = useRef<HTMLElement | null>(null);
     const berubah = nama !== (pengguna?.nama ?? '') || username !== (pengguna?.username ?? '') ||
         peran !== (pengguna?.peran ?? 'kader') || posyanduId !== (pengguna?.posyanduId ?? posyandu[0]?.id ?? null) ||
-        rt !== (pengguna?.rt ?? rtUntukPosyandu[0]?.rt ?? '') || aktif !== (pengguna?.aktif ?? true) || kataSandi !== '';
+        rt !== (pengguna?.rt ?? rtUntukPosyandu[0]?.rt ?? '') || aktif !== (pengguna?.aktif ?? true) ||
+        mejaKms !== (pengguna?.mejaKms?.toString() ?? '') || kataSandi !== '';
+    const mejaTidakSah = peran === 'kms' && mejaKms !== '' && !/^[1-9]\d?$/.test(mejaKms);
 
     // Huruf kecil dipaksakan, sama seperti di server: "Kader01" tetap kader01.
     const usernameBersih = username.trim().toLowerCase();
@@ -115,6 +118,7 @@ fokusIsian.current = e.target;
                         bentrok ||
                         salahBentuk ||
                         galatSandi !== null ||
+                        mejaTidakSah ||
                         cakupanKosong ||
                         menyimpan
                     ) {
@@ -130,6 +134,7 @@ fokusIsian.current = e.target;
                         peran,
                         rt: peran === 'kader' ? rt : null,
                         posyanduId,
+                        mejaKms: peran === 'kms' && mejaKms !== '' ? Number(mejaKms) : null,
                         aktif,
                         kataSandi,
                     })
@@ -225,6 +230,7 @@ requestAnimationFrame(() => fokusIsian.current?.focus());
                                 onChange={(e) => {
                                     const id = Number(e.target.value) || null;
                                     setPosyanduId(id);
+                                    setMejaKms('');
                                     setRt(
                                         wilayahRt.find((w) => w.posyanduId === id)?.rt ?? '',
                                     );
@@ -242,6 +248,26 @@ requestAnimationFrame(() => fokusIsian.current?.focus());
                             </select>
                         )}
                     </KolomPengguna>
+                    {peran === 'kms' && (
+                        <KolomPengguna
+                            id="pengguna-meja-kms"
+                            label="Nomor meja KMS"
+                            galat={dicoba && mejaTidakSah ? 'Masukkan nomor meja 1 sampai 99.' : null}
+                        >
+                            <input
+                                id="pengguna-meja-kms"
+                                inputMode="numeric"
+                                value={mejaKms}
+                                aria-invalid={dicoba && mejaTidakSah}
+                                aria-describedby="pengguna-meja-kms-ket"
+                                onChange={(e) => setMejaKms(e.target.value)}
+                                className="isian w-full"
+                            />
+                            <p id="pengguna-meja-kms-ket" className="mt-1.5 text-sm text-muted-foreground">
+                                Kosongkan jika petugas belum mendapat meja.
+                            </p>
+                        </KolomPengguna>
+                    )}
                     <KolomPengguna
                         id="pengguna-rt"
                         label={

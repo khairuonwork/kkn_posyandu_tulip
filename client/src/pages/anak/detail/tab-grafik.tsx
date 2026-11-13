@@ -42,6 +42,7 @@ export function TabGrafik({
                     kelamin={anak.jk}
                     nama={nama}
                     umurBalita={umur}
+                    tglLahir={anak.tglLahir}
                     keterangan={
                         terbaru === null
                             ? `Grafik ini hanya menampilkan riwayat; belum ada pengukuran pada ${periode.label}.`

@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | **Jenis** | Orientasi |
-| **Status** | Final Approved / v2.1-Modular |
-| **Perubahan berarti terakhir** | 1 November 2026 |
+| **Status** | hidup |
+| **Perubahan berarti terakhir** | 13 November 2026 |
 
 Halaman pertama bagi anggota tim baru. Isinya: aplikasi ini apa, layarnya apa saja, siapa yang memakainya, dan apa yang dibaca berikutnya. Sekitar sepuluh menit.
 
@@ -50,7 +50,7 @@ Sepuluh layar setelah masuk, ditambah layar Masuk. Alamatnya memakai tanda `#`, 
 | 2 | Data Balita | `#/balita` | K · B · A | Daftar balita: cari, saring aktif/arsip/RT, tambah, dan ubah | `anak/index.tsx` (modular) |
 | 3 | Detail Balita | `#/balita/{id}` | K · B · A | Identitas (Desil, KB), KMS, grafik 6 indeks kurva KIA, status gizi & KIA | `anak/show.tsx` (modular) |
 | 4 | Detail riwayat penimbangan | `#/balita/{id}/riwayat` | K · B · A | Semua hasil ukur satu balita | `anak/riwayat.tsx` (modular) |
-| 5 | Pemeriksaan KMS | `#/kms` | KMS · A | Antrean balita real-time menunggu penjelasan hasil ukur dan konfirmasi selesai | `kms/index.tsx` |
+| 5 | Pemeriksaan KMS | `#/kms` | KMS · A | Antrean setelah check-in, pemanggilan ke meja dan konfirmasi selesai | `kms/index.tsx` |
 | 6 | Kartu Balita | `#/kartu-sasaran` | B · A | Pilih balita, lalu cetak kartu ber-QR A4 (8 kartu/lembar) | `kartu-sasaran/index.tsx` |
 | 7 | Laporan | `#/laporan` | K · B · A | Rekap SKDN per RT, z-score, riwayat 2T+, dan ekspor resmi Excel F1 & Buku 7 | `laporan/index.tsx` |
 | 8 | Sasaran & Impor | `#/sasaran` | A | Pratinjau staging, validasi, dan penerbitan sasaran live dari berkas Excel | `sasaran/index.tsx` (modular) |
@@ -117,7 +117,7 @@ Lima bagian yang kini tersusun modular: Batas angka ukur, Ambang rujukan, Penggu
 
 ### 9. Pemeriksaan KMS & Antrean Meja
 
-Layar antrean real-time balita yang baru saja ditimbang di meja ukur tablet Android. Petugas KMS dapat memanggil anak, membuka grafik kurva pertumbuhan KIA, menjelaskan status gizi kepada orang tua, dan menekan konfirmasi selesai untuk memajukan antrean.
+Peserta dapat masuk antrean setelah check-in, termasuk sebelum pengukuran. Petugas KMS memanggil peserta ke meja sesuai penugasan akun dan mengonfirmasi layanan setelah peserta tiba dan pengukuran lengkap. Cara memakai layar ruang tunggu dan menguji demo ada di [Panduan antrean KMS](panduan-antrean-kms.md).
 
 ### 10. Sesi Pelatihan (Sandbox)
 

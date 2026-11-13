@@ -2,10 +2,11 @@
  * Skor berasal dari hasil penilaian tersimpan; komponen hanya menggambar.
  */
 
-import { BookOpen, CircleCheck } from 'lucide-react';
-import { useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { BookOpen, CircleCheck, Minus, Plus, RotateCcw } from 'lucide-react';
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent, ReactNode, RefObject } from 'react';
 import GrafikBeratTinggi from '@/components/grafik-berat-tinggi';
+import GrafikDenganAcuan from '@/components/grafik-dengan-acuan';
 import { nadaKategori } from '@/components/status-gizi-badge';
 import {
     angka,
@@ -139,6 +140,7 @@ export const WARNA_NADA: Record<string, string> = {
 export type Titik = {
     periodeId: string;
     umur: number;
+    posisiUmur: number;
     nilai: number;
     tanggal: string | null;
     z: number | null;
@@ -149,7 +151,31 @@ export type Titik = {
  * Titik yang layak digambar: hadir, berumur 0–60 bulan, bernilai positif, dan
  * tidak ditandai tidak wajar. Urutannya menurut umur, lalu tanggal.
  */
-export function susunTitik(pengukuran: Pengukuran[], spek: Spek): Titik[] {
+export function posisiUmurGrafik(tglLahir: string | null, tanggal: string | null, umur: number): number {
+    const parse = (iso: string | null) => {
+        if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
+        const waktu = Date.parse(`${iso}T00:00:00Z`);
+        return Number.isFinite(waktu) && new Date(waktu).toISOString().slice(0, 10) === iso ? waktu : null;
+    };
+    const lahir = parse(tglLahir);
+    const ukur = parse(tanggal);
+    if (lahir === null || ukur === null || umur >= 60) return umur;
+
+    const tanggalLahir = new Date(lahir);
+    const ulangBulan = (n: number) => {
+        const tahun = tanggalLahir.getUTCFullYear();
+        const bulan = tanggalLahir.getUTCMonth() + n;
+        const hari = tanggalLahir.getUTCDate();
+        const akhir = new Date(Date.UTC(tahun, bulan + 1, 0)).getUTCDate();
+        return Date.UTC(tahun, bulan, Math.min(hari, akhir));
+    };
+    const awal = ulangBulan(umur);
+    const akhir = ulangBulan(umur + 1);
+    if (ukur < awal || ukur >= akhir) return umur;
+    return umur + (ukur - awal) / (akhir - awal);
+}
+
+export function susunTitik(pengukuran: Pengukuran[], spek: Spek, tglLahir: string | null = null): Titik[] {
     return pengukuran
         .flatMap((p) => {
             const nilai = spek.nilai(p);
@@ -171,6 +197,7 @@ export function susunTitik(pengukuran: Pengukuran[], spek: Spek): Titik[] {
                 {
                     periodeId: p.periodeId,
                     umur: p.umurBulan,
+                    posisiUmur: posisiUmurGrafik(tglLahir, p.tanggalUkur, p.umurBulan),
                     nilai,
                     tanggal: p.tanggalUkur,
                     z: penilaian?.z ?? null,
@@ -199,6 +226,7 @@ type Props = {
     nama: string;
     /** Umur balita pada periode yang dilihat; menentukan PB/U atau TB/U. */
     umurBalita: number | null;
+    tglLahir: string | null;
     /** Kalimat konteks di bawah judul: hubungan grafik dengan periode. */
     keterangan: string;
     pengukuran: Pengukuran[];
@@ -212,6 +240,7 @@ type Props = {
 export default function GrafikPertumbuhan({
     kelamin,
     umurBalita,
+    tglLahir,
     keterangan,
     pengukuran,
     standar,
@@ -235,6 +264,32 @@ export default function GrafikPertumbuhan({
     const panelTersedia = PANEL_AWAL.filter((awal) => awal <= umurTerakhir);
 
     const [jenis, setJenis] = useState<JenisGrafik | 'BB_TB'>('BB_U');
+    const [targetZoom, setTargetZoom] = useState(1);
+    const [zoom, setZoom] = useState(1);
+    const zoomSaatIni = useRef(1);
+    useEffect(() => {
+        const awal = zoomSaatIni.current;
+        if (awal === targetZoom) return;
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            zoomSaatIni.current = targetZoom;
+            setZoom(targetZoom);
+            return;
+        }
+        const mulai = performance.now();
+        let frame = 0;
+        const gerak = (waktu: number) => {
+            const kemajuan = Math.min((waktu - mulai) / 300, 1);
+            const halus = 1 - (1 - kemajuan) ** 3;
+            const nilai = awal + (targetZoom - awal) * halus;
+            zoomSaatIni.current = nilai;
+            setZoom(nilai);
+            if (kemajuan < 1) frame = requestAnimationFrame(gerak);
+        };
+        frame = requestAnimationFrame(gerak);
+        return () => cancelAnimationFrame(frame);
+    }, [targetZoom]);
+    const plotLebar = PLOT_LEBAR * zoom;
+    const lebarGrafik = KIRI + plotLebar + 16;
     const [arahIndeks, setArahIndeks] = useState<'maju' | 'mundur' | null>(null);
     const pilihJenis = (pilihan: JenisGrafik | 'BB_TB') => {
         if (pilihan === jenis) return;
@@ -260,7 +315,7 @@ export default function GrafikPertumbuhan({
         animasiSudahDiputar.current = true;
         if (!bukaan.current || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
         animasi.current = bukaan.current.animate(
-            [{ width: '0px' }, { width: `${PLOT_LEBAR + 32}px` }],
+            [{ width: '0px' }, { width: `${bukaan.current.width.baseVal.value}px` }],
             { duration: 700, easing: 'ease-out' },
         );
         return () => { animasi.current?.cancel(); animasi.current = null; };
@@ -296,8 +351,8 @@ export default function GrafikPertumbuhan({
         spek.indeks === 'TB_U' && !berdiri ? 'Panjang badan, cm' : spek.sumbu;
 
     const seri = useMemo(
-        () => susunTitik(pengukuran, spek),
-        [pengukuran, spek],
+        () => susunTitik(pengukuran, spek, tglLahir),
+        [pengukuran, spek, tglLahir],
     );
     const lms = useMemo(
         () =>
@@ -315,7 +370,7 @@ export default function GrafikPertumbuhan({
     const bulan = Array.from({ length: akhirTampil - awalTampil + 1 }, (_, i) => awalTampil + i);
     const bulanHidup = bulan.filter((u) => u >= spek.mulai && lms.has(u));
     const dalamPanel = seri.filter(
-        (t) => t.umur >= awalTampil && t.umur <= akhirTampil,
+        (t) => t.posisiUmur >= awalTampil && (t.posisiUmur < akhirTampil || (akhirTampil === 60 && t.posisiUmur === 60)),
     );
 
     // Skala tegak mengikuti pita ±3 SD pada panel ini, dilebarkan bila ada
@@ -335,11 +390,15 @@ export default function GrafikPertumbuhan({
     const tinggi =
         Math.ceil(Math.max(...batas, -Infinity) / spek.langkah) * spek.langkah;
     const rentang = tinggi > rendah ? tinggi - rendah : 1;
+    const tinggiDiperbesar = Math.max(PLOT_TINGGI, rentang * 28);
+    const plotTinggi = PLOT_TINGGI + (tinggiDiperbesar - PLOT_TINGGI) * Math.min(1, (zoom - 1) * 2);
+    const tinggiGrafik = ATAS + plotTinggi + BAWAH;
+    const langkahLabel = zoom > 1 ? 0.5 : spek.langkah;
 
     const x = (umur: number) =>
-        KIRI + ((umur - awalTampil) / (akhirTampil - awalTampil)) * PLOT_LEBAR;
+        KIRI + ((umur - awalTampil) / (akhirTampil - awalTampil)) * plotLebar;
     const y = (nilai: number) =>
-        ATAS + ((tinggi - nilai) / rentang) * PLOT_TINGGI;
+        ATAS + ((tinggi - nilai) / rentang) * plotTinggi;
 
     const garisKe = (titik: [number, number][]) =>
         titik.map(([px, py]) => `${px},${py}`).join(' ');
@@ -355,7 +414,7 @@ export default function GrafikPertumbuhan({
 
     const garisUtama: number[] = [];
 
-    for (let v = rendah; v <= tinggi + 1e-9; v += spek.langkah) {
+    for (let v = rendah; v <= tinggi + 1e-9; v += langkahLabel) {
         garisUtama.push(v);
     }
 
@@ -418,17 +477,59 @@ export default function GrafikPertumbuhan({
 
         const lebar = 252;
         const tinggiKartu = 84;
-        const cx = x(titikAktif.umur);
+        const cx = x(titikAktif.posisiUmur);
         const cy = y(titikAktif.nilai);
         const kiri = Math.min(
             Math.max(cx - lebar / 2, KIRI + 4),
-            KIRI + PLOT_LEBAR - lebar - 4,
+            KIRI + plotLebar - lebar - 4,
         );
         const atas =
             cy - tinggiKartu - 16 > ATAS ? cy - tinggiKartu - 16 : cy + 16;
 
         return { cx, cy, kiri, atas, lebar, tinggiKartu };
     })();
+
+    const kontrolZoom = (
+        <div
+            className="flex items-center justify-end gap-1"
+            role="group"
+            aria-label="Kontrol skala grafik"
+        >
+            <button
+                type="button"
+                className="tombol-kedua !min-h-11 !w-11 !px-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50"
+                aria-label="Perkecil grafik"
+                title="Perkecil grafik"
+                disabled={targetZoom === 1}
+                onClick={() => setTargetZoom((nilai) => Math.max(1, nilai - 0.5))}
+            >
+                <Minus className="size-5" aria-hidden="true" />
+            </button>
+            <span className="min-w-14 text-center text-sm font-semibold text-foreground" aria-live="polite">
+                {targetZoom * 100}%
+            </span>
+            <button
+                type="button"
+                className="tombol-kedua !min-h-11 !w-11 !px-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50"
+                aria-label="Perbesar grafik"
+                title="Perbesar grafik"
+                disabled={targetZoom === 3}
+                onClick={() => setTargetZoom((nilai) => Math.min(3, nilai + 0.5))}
+            >
+                <Plus className="size-5" aria-hidden="true" />
+            </button>
+            <button
+                type="button"
+                className="tombol-kedua !min-h-11 !w-11 !px-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50"
+                aria-label="Kembalikan ukuran grafik"
+                title="Kembalikan ukuran grafik"
+                disabled={targetZoom === 1}
+                onClick={() => setTargetZoom(1)}
+            >
+                <RotateCcw className="size-5" aria-hidden="true" />
+            </button>
+        </div>
+    );
 
     return (
         <div className="overflow-hidden rounded-xl border border-border bg-card">
@@ -615,6 +716,8 @@ export default function GrafikPertumbuhan({
                     umurBalita={umurBalita}
                     pengukuran={pengukuran}
                     standar={standar}
+                    zoom={zoom}
+                    kontrolZoom={kontrolZoom}
                 />
                 </div>
             ) : (
@@ -627,8 +730,8 @@ export default function GrafikPertumbuhan({
                             {panelTersedia.map((awal) => {
                                 const jumlah = seri.filter(
                                     (t) =>
-                                        t.umur >= awal &&
-                                        t.umur <= awal + PANEL_BULAN,
+                                        t.posisiUmur >= Math.max(awal, spek.mulai) &&
+                                        (t.posisiUmur < awal + PANEL_BULAN || (awal === 48 && t.posisiUmur === 60)),
                                 ).length;
                                 const aktif = panel === awal;
 
@@ -681,25 +784,30 @@ export default function GrafikPertumbuhan({
                         </p>
                     )}
                     <>
+                        <div className="px-5 pt-3 sm:px-6">{kontrolZoom}</div>
                         {/* Grafik menggulir di dalam wadahnya sendiri; badan
                         halaman tidak pernah menggulir mendatar. `tabIndex`
                         membuat wadah bisa digeser dengan panah papan tombol. */}
-                        <div
+                        <div className={`mt-2 px-5 sm:px-6 ${arahIndeks ? `detail-indeks-${arahIndeks}` : ''}`}>
+                        <GrafikDenganAcuan
                             key={jenis}
-                            className={`mt-2 overflow-x-auto px-5 sm:px-6 ${arahIndeks ? `detail-indeks-${arahIndeks}` : ''}`}
-                            tabIndex={0}
-                            role="region"
-                            aria-label="Grafik pertumbuhan, dapat digeser mendatar"
+                            label="Grafik pertumbuhan, dapat digeser mendatar"
+                            tinggi={tinggiGrafik}
+                            revisi={`${jenis}:${panel}:${zoom}`}
+                            garis={[-3, -2, -1, 0, 1, 2, 3].map((z) => ({ z, titik: titikSd(z) }))}
                         >
+                            <div className="min-w-[820px]" style={{ aspectRatio: `${LEBAR - KANAN + 16} / ${tinggiGrafik}` }}>
                             <svg
-                                viewBox={`0 0 ${LEBAR} ${TINGGI}`}
-                                className="h-auto w-full min-w-[820px] bg-white"
+                                viewBox={`0 0 ${lebarGrafik} ${tinggiGrafik}`}
+                                preserveAspectRatio="none"
+                                className="h-full bg-white"
+                                style={{ width: `${(lebarGrafik / (LEBAR - KANAN + 16)) * 100}%` }}
                                 role="img"
                                 aria-label={`Grafik ${judulTampil(spek).toLowerCase()}, acuan ${acuan} WHO 2006, rentang ${awalTampil} sampai ${akhirTampil} bulan`}
                             >
                                 <defs>
                                     <clipPath id={idBukaan} clipPathUnits="userSpaceOnUse">
-                                        <rect ref={bukaan} x={KIRI - 16} y={0} width={PLOT_LEBAR + 32} height={TINGGI} />
+                                        <rect ref={bukaan} x={KIRI - 16} y={0} width={plotLebar + 32} height={tinggiGrafik} />
                                     </clipPath>
                                 </defs>
                                 {/* Garis bantu minggu: tiga per bulan. */}
@@ -712,7 +820,7 @@ export default function GrafikPertumbuhan({
                                                 x1={x(u + pecahan)}
                                                 x2={x(u + pecahan)}
                                                 y1={ATAS}
-                                                y2={ATAS + PLOT_TINGGI}
+                                                y2={ATAS + plotTinggi}
                                                 stroke="#E8ECE9"
                                                 strokeWidth={0.5}
                                             />
@@ -722,7 +830,7 @@ export default function GrafikPertumbuhan({
                                     <line
                                         key={`h${v}`}
                                         x1={KIRI}
-                                        x2={KIRI + PLOT_LEBAR}
+                                        x2={KIRI + plotLebar}
                                         y1={y(v)}
                                         y2={y(v)}
                                         stroke="#E8ECE9"
@@ -733,7 +841,7 @@ export default function GrafikPertumbuhan({
                                     <line
                                         key={`u${v}`}
                                         x1={KIRI}
-                                        x2={KIRI + PLOT_LEBAR}
+                                        x2={KIRI + plotLebar}
                                         y1={y(v)}
                                         y2={y(v)}
                                         stroke="#CAD2CC"
@@ -746,7 +854,7 @@ export default function GrafikPertumbuhan({
                                         x1={x(u)}
                                         x2={x(u)}
                                         y1={ATAS}
-                                        y2={ATAS + PLOT_TINGGI}
+                                        y2={ATAS + plotTinggi}
                                         stroke="#CAD2CC"
                                         strokeWidth={0.7}
                                     />
@@ -754,7 +862,6 @@ export default function GrafikPertumbuhan({
 
                                 {[-3, -2, -1, 0, 1, 2, 3].map((z) => {
                                     const titik = titikSd(z);
-                                    const ujung = titik.at(-1);
 
                                     return (
                                         <g key={`sd${z}`}>
@@ -765,22 +872,6 @@ export default function GrafikPertumbuhan({
                                                 stroke={warnaGarisSd(z)}
                                                 strokeWidth={z === 0 ? 2 : 1.5}
                                             />
-                                            {ujung && (
-                                                <text
-                                                    x={ujung[0] + 10}
-                                                    y={ujung[1] + 4}
-                                                    fontSize={12}
-                                                    fontWeight={700}
-                                                    fill={warnaGarisSd(z)}
-                                                    stroke="#FFFFFF"
-                                                    strokeWidth={3}
-                                                    paintOrder="stroke"
-                                                >
-                                                    {z === 0
-                                                        ? 'Median'
-                                                        : `${z > 0 ? '+' : '−'}${Math.abs(z)} SD`}
-                                                </text>
-                                            )}
                                         </g>
                                     );
                                 })}
@@ -795,7 +886,7 @@ export default function GrafikPertumbuhan({
                                             fontWeight={600}
                                             fill={TEKS_SEKUNDER}
                                         >
-                                            {angka(v, 0)}
+                                            {angka(v, v % 1 === 0 ? 0 : 1)}
                                         </text>
                                     </g>
                                 ))}
@@ -803,7 +894,7 @@ export default function GrafikPertumbuhan({
                                     <text
                                         key={`t${u}`}
                                         x={x(u)}
-                                        y={ATAS + PLOT_TINGGI + 19}
+                                        y={ATAS + plotTinggi + 19}
                                         textAnchor="middle"
                                         fontSize={13}
                                         fontWeight={600}
@@ -813,8 +904,8 @@ export default function GrafikPertumbuhan({
                                     </text>
                                 ))}
                                 <text
-                                    x={KIRI + PLOT_LEBAR / 2}
-                                    y={TINGGI - 6}
+                                    x={KIRI + plotLebar / 2}
+                                    y={tinggiGrafik - 6}
                                     textAnchor="middle"
                                     fontSize={13}
                                     fontWeight={700}
@@ -823,7 +914,7 @@ export default function GrafikPertumbuhan({
                                     Umur, bulan
                                 </text>
                                 <text
-                                    x={-(ATAS + PLOT_TINGGI / 2)}
+                                    x={-(ATAS + plotTinggi / 2)}
                                     y={14}
                                     transform="rotate(-90)"
                                     textAnchor="middle"
@@ -842,7 +933,7 @@ export default function GrafikPertumbuhan({
                                             clipPath={`url(#${idBukaan})`}
                                             points={garisKe(
                                                 bagian.map((t) => [
-                                                    x(t.umur),
+                                                    x(t.posisiUmur),
                                                     y(t.nilai),
                                                 ]),
                                             )}
@@ -856,7 +947,7 @@ export default function GrafikPertumbuhan({
                                             clipPath={`url(#${idBukaan})`}
                                             points={garisKe(
                                                 bagian.map((t) => [
-                                                    x(t.umur),
+                                                    x(t.posisiUmur),
                                                     y(t.nilai),
                                                 ]),
                                             )}
@@ -887,7 +978,7 @@ export default function GrafikPertumbuhan({
                                             {isTerbaru && (
                                                 <circle
                                                     clipPath={`url(#${idBukaan})`}
-                                                    cx={x(t.umur)}
+                                                    cx={x(t.posisiUmur)}
                                                     cy={y(t.nilai)}
                                                     r={13}
                                                     fill="none"
@@ -899,7 +990,7 @@ export default function GrafikPertumbuhan({
                                             {t.z !== null && (
                                                 <text
                                                     x={
-                                                        x(t.umur) +
+                                                        x(t.posisiUmur) +
                                                         (sesudah
                                                             ? -12
                                                             : sebelum
@@ -946,7 +1037,7 @@ export default function GrafikPertumbuhan({
                                             )}
                                             <circle
                                                 clipPath={`url(#${idBukaan})`}
-                                                cx={x(t.umur)}
+                                                cx={x(t.posisiUmur)}
                                                 cy={y(t.nilai)}
                                                 r={
                                                     dipilih
@@ -975,7 +1066,7 @@ export default function GrafikPertumbuhan({
                                             titiknya; isi detailnya muncul saat
                                             disorot, diketuk, atau difokus. */}
                                             <circle
-                                                cx={x(t.umur)}
+                                                cx={x(t.posisiUmur)}
                                                 cy={y(t.nilai)}
                                                 r={15}
                                                 fill="transparent"
@@ -1013,7 +1104,7 @@ export default function GrafikPertumbuhan({
                                             x1={kartu.cx}
                                             x2={kartu.cx}
                                             y1={kartu.cy}
-                                            y2={ATAS + PLOT_TINGGI}
+                                            y2={ATAS + plotTinggi}
                                             stroke={TINTA}
                                             strokeWidth={1.4}
                                             strokeDasharray="5 4"
@@ -1029,7 +1120,7 @@ export default function GrafikPertumbuhan({
                                         />
                                         <rect
                                             x={kartu.cx - 17}
-                                            y={ATAS + PLOT_TINGGI + 4}
+                                            y={ATAS + plotTinggi + 4}
                                             width={34}
                                             height={21}
                                             rx={4}
@@ -1037,7 +1128,7 @@ export default function GrafikPertumbuhan({
                                         />
                                         <text
                                             x={kartu.cx}
-                                            y={ATAS + PLOT_TINGGI + 19}
+                                            y={ATAS + plotTinggi + 19}
                                             textAnchor="middle"
                                             fontSize={12.5}
                                             fontWeight={700}
@@ -1117,6 +1208,8 @@ export default function GrafikPertumbuhan({
                                     </g>
                                 )}
                             </svg>
+                            </div>
+                        </GrafikDenganAcuan>
                         </div>
 
                         {seri.length > 0 && dalamPanel.length === 0 && (

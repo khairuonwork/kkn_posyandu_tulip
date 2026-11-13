@@ -76,12 +76,13 @@ export function PenandaPelatihan({
     );
 }
 
-export default function Pelatihan() {
+export default function Pelatihan({ demo = false, demoAktif = false, onDemoAktif }: { demo?: boolean; demoAktif?: boolean; onDemoAktif?: (aktif: boolean) => void }) {
     const [data, setData] = useState<Data | null>(null);
     const [pilihan, setPilihan] = useState('');
     const [galat, setGalat] = useState('');
     const [sibuk, setSibuk] = useState(false);
     const muat = async () => {
+        if (demo) return;
         try {
             const d = (await api('')) as Data;
             setData(d);
@@ -102,6 +103,11 @@ export default function Pelatihan() {
         }
     };
     useEffect(() => {
+        if (demo) {
+            setData({ aktif: demoAktif ? { id: 'demo', periode_id: 1, jumlah_sasaran: 101, mulai_pada: new Date().toISOString() } : null, sumber: [{ id: 1, periode: '2026-06', posyandu: 'Posyandu Tulip', jumlah: 101 }] });
+            setPilihan('1');
+            return;
+        }
         let alive = true;
         void api('')
             .then((d: Data) => {
@@ -131,8 +137,13 @@ export default function Pelatihan() {
         return () => {
             alive = false;
         };
-    }, []);
+    }, [demo, demoAktif]);
     const tindakan = async (akhiri: boolean) => {
+        if (demo) {
+            onDemoAktif?.(!akhiri);
+            setData((d) => d ? { ...d, aktif: akhiri ? null : { id: 'demo', periode_id: 1, jumlah_sasaran: 101, mulai_pada: new Date().toISOString() } } : d);
+            return;
+        }
         const pesan = akhiri
             ? 'Akhiri pelatihan dan hapus seluruh data simulasi di server? Semua tablet harus selesai dan tersinkron. Bersihkan data lokal latihan sebelum masuk mode riil.'
             : 'Mulai pelatihan untuk seluruh web dan tablet pada server ini? Pastikan seluruh pekerjaan riil sudah tersinkron. Peserta harus masuk kembali dan sinkronkan sasaran latihan.';
@@ -165,6 +176,7 @@ export default function Pelatihan() {
             subjudul="Simulasi alur layanan menggunakan salinan sasaran. Khusus superadmin."
             ikon={FlaskConical}
         >
+            {demo && <p role="status" className="mb-4">Simulasi demo: perubahan hanya berlaku selama sesi ini.</p>}
             <section className="kartu mx-auto w-full max-w-4xl p-5 sm:p-7">
                 <h2 className="text-xl font-extrabold">
                     {data?.aktif
@@ -198,8 +210,7 @@ export default function Pelatihan() {
                                     {data.aktif.jumlah_sasaran} sasaran latihan
                                 </strong>
                                 <p className="mt-2">
-                                    Web dan Android pada server ini sedang
-                                    memakai sandbox yang sama.
+                                    {demo ? 'Sesi ini hanya simulasi di browser.' : 'Web dan Android pada server ini sedang memakai sandbox yang sama.'}
                                 </p>
                                 <Link
                                     href="/sasaran"
@@ -232,7 +243,7 @@ export default function Pelatihan() {
                                 </select>
                             </div>
                         )}
-                        <ol className="mt-6 list-decimal space-y-3 pl-5 leading-relaxed">
+                        {!demo && <ol className="mt-6 list-decimal space-y-3 pl-5 leading-relaxed">
                             <li>
                                 Sinkronkan pekerjaan riil semua tablet sebelum
                                 mulai.
@@ -253,14 +264,14 @@ export default function Pelatihan() {
                                 Setelahnya bersihkan data lokal latihan di
                                 Android, lalu masuk kembali ke mode riil.
                             </li>
-                        </ol>
-                        <p className="mt-5 text-sm text-muted-foreground">
+                        </ol>}
+                        {!demo && <p className="mt-5 text-sm text-muted-foreground">
                             Sesi berlaku untuk seluruh server. Pengakhiran
                             menghapus sasaran, antrean, hasil ukur, survei, dan
                             laporan latihan di server. Kiriman latihan yang
                             tertahan ditolak pada mode riil. Pembersihan lokal
                             tablet masih manual pada APK saat ini.
-                        </p>
+                        </p>}
                         <div className="mt-7 flex flex-wrap gap-3">
                             <button
                                 type="button"

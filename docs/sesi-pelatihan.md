@@ -1,5 +1,8 @@
 # Sesi Pelatihan
 
+Sesi pada server berbeda dari simulasi developer di browser. Untuk menguji demo
+tanpa database, ikuti [Panduan antrean KMS](panduan-antrean-kms.md#uji-simulasi-developer).
+
 Pengelolaan sementara hanya untuk akun `super_admin=true`. Menu berada di sidebar
 **Sesi Pelatihan**. Superadmin memilih periode sumber, misalnya Oktober 2026
 dengan 92 sasaran, lalu memulai sesi.

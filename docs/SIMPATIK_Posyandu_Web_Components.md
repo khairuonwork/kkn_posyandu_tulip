@@ -67,6 +67,7 @@ export type Rute =
 | `#/balita/:id` | `detail` | `pages/anak/show.tsx` | Kartu detail balita, tab kurva WHO, tab status, riwayat |
 | `#/balita/:id/riwayat` | `riwayat` | `pages/anak/riwayat.tsx` | Tabel khusus penimbangan kronologis balita |
 | `#/kms` | `kms` | `pages/kms/index.tsx` | Layar antrean pemeriksaan KMS real-time Dokter/Bidan |
+| `#/kms/ruang-tunggu` | `ruang-tunggu-kms` | `pages/kms/ruang-tunggu.tsx` | Nomor dan meja panggilan, serta pengaturan suara browser |
 | `#/sasaran` | `sasaran` | `pages/sasaran/index.tsx` | Manajemen sasaran bulanan dan panel impor berkas Excel |
 | `#/kartu-sasaran` | `kartu-sasaran` | `pages/kartu-sasaran/index.tsx` | Pratinjau kartu timbang sasaran siap cetak fisik |
 | `#/laporan` | `laporan` | `pages/laporan/index.tsx` | Rekapitulasi indikator SKDN & generator ekspor Excel F1 |
@@ -339,9 +340,10 @@ Tabel berikut adalah acuan lengkap bagi pengembang untuk mengetahui fungsi hook 
 | `pages/anak/show.tsx` | `useDetailAnakServer` (`lib/anak.ts`)| `GET /api/v1/anak/:id` | Saat kartu detail balita dibuka |
 | `pages/anak/detail/dialog-ubah.tsx`| `simpanProfilAnak()` (`lib/anak.ts`) | `PATCH /api/v1/anak/:id` | Saat kader/bidan menyimpan perubahan profil |
 | `components/dialog-kirim-wa.tsx` | `buatTautanLembar()` (`lib/lembar.ts`)| `POST /api/v1/lembar` | Saat tombol bagikan WhatsApp diklik |
-| `pages/kms/index.tsx` | Internal Polling Hook (`pages/kms/`) | `GET /api/v1/antrean?status=kms_review`| Polling real-time setiap 3–5 detik |
-| `pages/kms/index.tsx` | Internal Action | `POST /api/v1/antrean/:id/konfirmasi-kms` | Saat Bidan menekan tombol Konfirmasi Selesai |
-| `pages/kms/index.tsx` | Internal Action | `POST /api/v1/antrean/konfirmasi-semua-kms` | Saat Bidan menekan tombol Konfirmasi Semua |
+| `pages/kms/index.tsx` | `ambilAntreanHariIni()` | `GET /api/v1/antrean-kms` | Memuat ulang antrean setiap 3 detik |
+| `pages/kms/index.tsx` | `ubahPanggilanKms()` | `POST /api/v1/antrean-kms/:id/panggilan` | Panggil, panggil ulang, tandai tiba, atau kembalikan |
+| `pages/kms/index.tsx` | `konfirmasiSelesaiKms()` | `POST /api/v1/antrean/:id/konfirmasi-kms` | Mengonfirmasi selesai setelah syarat terpenuhi |
+| `pages/kms/ruang-tunggu.tsx` | `ambilPanggilan()` | `GET /api/v1/panggilan-kms` | Membaca panggilan baru untuk tampilan dan suara |
 | `pages/sasaran/index.tsx` | Internal Fetcher (`pages/sasaran/`) | `GET /api/v1/sasaran` & `GET /api/v1/sasaran/periode` | Saat halaman sasaran dibuka atau periode diganti |
 | `pages/sasaran/komponen/panel-impor.tsx` | `pratinjauSasaran()` (`lib/sasaran.ts`)| `POST /api/v1/sasaran/pratinjau` | Saat berkas spreadsheet `.xlsx` selesai dipilih |
 | `pages/sasaran/komponen/panel-impor.tsx` | `imporSasaran()` (`lib/sasaran.ts`) | `POST /api/v1/sasaran/impor` | Saat tombol eksekusi impor ditekan |
@@ -377,4 +379,12 @@ Bagi pengembang yang akan melanjutkan atau memelihara frontend SIMPATIK Posyandu
    - Jalankan `npm run build` (`vite build`) untuk memverifikasi proses bundling dan minifikasi produksi berhasil secara bersih.
 
 ---
-*Dokumen ini merupakan panduan arsitektur komponen frontend dan antarmuka web resmi untuk sistem SIMPATIK Posyandu KKN Tematik 2026.*
+## BAB 8: Perilaku antarmuka saat ini
+
+- Beranda memisahkan Ringkasan dan Statistik & Tren; isian kehadiran hari H dibuka dalam dialog. Grafik tren memakai animasi dan menghormati pengaturan gerak sistem.
+- Detail balita menyediakan grafik pertumbuhan dengan kontrol perbesaran, garis acuan dan navigasi keyboard antar tab. Lembar hasil menampilkan legenda garis acuan; tautan hasil demo hanya contoh dan bergantung pada akses ke alamat demo.
+- Laporan demo menggunakan data contoh serta unduhan contoh, sementara laporan aplikasi memakai API. Batas unduhan F1 demo dijelaskan pada [panduan antrean KMS](panduan-antrean-kms.md#uji-simulasi-developer).
+- Demo KMS menyediakan pencarian, tampilan dua kolom dan menu pemeriksaan selesai; lihat [panduan antrean KMS](panduan-antrean-kms.md). Simulasi pelatihan di demo tidak mengaktifkan sandbox server. Kondisi memuat, kosong dan gagal menggunakan komponen state halaman.
+- Tombol dan filter yang disentuh perubahan antarmuka menyertakan label, status, atau ukuran target untuk penggunaan keyboard dan layar sentuh. Ini bukan klaim bahwa seluruh aplikasi telah lulus audit aksesibilitas.
+
+*Dokumen ini merupakan panduan arsitektur komponen frontend dan antarmuka web untuk SIMPATIK Posyandu.*

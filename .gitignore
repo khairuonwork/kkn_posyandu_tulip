@@ -33,5 +33,8 @@ graphify-out/
 /output/excel-reference/
 /output/pdf/
 
+# Berkas binary kompilasi PDF dokumentasi (disimpan lokal, tidak masuk Git repo).
+docs/*.pdf
+
 # Cadangan data kesehatan lokal; tidak boleh masuk Git.
 /.backup-data/

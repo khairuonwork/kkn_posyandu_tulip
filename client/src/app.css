@@ -358,6 +358,63 @@
 .kms-area.bantuan-terbuka {
     transition-duration: 280ms;
 }
+.kms-demo-layout {
+    display: grid;
+    gap: 1.25rem;
+    align-content: start;
+    grid-template-areas: 'ringkasan' 'pesan' 'meja' 'antrean' 'lain' 'selesai';
+}
+.kms-demo-ringkasan { grid-area: ringkasan; }
+.kms-demo-pesan { grid-area: pesan; }
+.kms-demo-meja {
+    grid-area: meja;
+    min-height: 15rem;
+}
+.kms-demo-meja-kosong {
+    display: flex;
+    min-height: 8rem;
+    flex-direction: column;
+    justify-content: center;
+}
+.kms-demo-antrean { grid-area: antrean; }
+.kms-demo-lain { grid-area: lain; }
+.kms-demo-selesai { grid-area: selesai; }
+.kms-demo-daftar {
+    max-height: max(18rem, calc(100dvh - 22rem));
+    overflow-y: auto;
+    align-content: start;
+    padding: 2px 4px 2px 2px;
+    scrollbar-gutter: stable;
+}
+.kms-demo-panel-judul {
+    display: flex;
+    align-items: center;
+    min-height: 2.75rem;
+}
+.kms-demo-pratinjau {
+    min-height: 12rem;
+    max-height: clamp(9rem, 25dvh, 16rem);
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+}
+.kms-demo-daftar:focus-visible, .kms-demo-pratinjau:focus-visible {
+    outline: 3px solid var(--color-primary);
+    outline-offset: 2px;
+}
+@media (min-width: 1200px) {
+    .kms-area:not(.bantuan-terbuka) .kms-demo-layout {
+        grid-template-columns: minmax(0, 1.1fr) repeat(2, minmax(0, .5fr));
+        grid-template-rows: auto auto min-content 1fr;
+        grid-template-areas:
+            'ringkasan ringkasan ringkasan'
+            'pesan pesan pesan'
+            'antrean meja meja'
+            'antrean lain selesai';
+    }
+    .kms-demo-item > :last-child {
+        flex-shrink: 0;
+    }
+}
 .kms-area .bantuan-detail {
     opacity: 1;
     transition: transform 280ms cubic-bezier(.16, 1, .3, 1), opacity 280ms ease-out, display 280ms allow-discrete;
@@ -376,8 +433,13 @@
     from { background-color: var(--color-tone-green-bg); transform: translateY(-8px); }
     to { background-color: transparent; transform: translateY(0); }
 }
+@keyframes kms-demo-perubahan {
+    from { background-color: var(--color-tone-green-bg); }
+    to { background-color: var(--color-card); }
+}
 @media (prefers-reduced-motion: no-preference) {
     .kms-item-berhasil { animation: kms-item-berhasil 210ms ease-out; }
+    .kms-demo-perubahan { animation: kms-demo-perubahan 280ms ease-out; }
 }
 @media (prefers-reduced-motion: reduce) {
     .kms-area, .kms-area .bantuan-detail { transition: none; }
@@ -425,8 +487,8 @@
     width: 128px;
 }
 .kartu-aksi-pilih[data-lengkap='true'] {
-    background: var(--accent);
-    color: var(--primary);
+    background: var(--primary);
+    color: var(--primary-foreground);
     border-color: var(--primary);
     opacity: 1;
     cursor: default;
@@ -1022,6 +1084,17 @@ main > div:has(.detail-area.bantuan-terbuka) > p[role='status'] {
     .perangkat-keluar { animation: perangkat-keluar 210ms ease-in forwards; }
 }
 @keyframes beranda-form-masuk { from { opacity: 0; clip-path: inset(0 0 100%); transform: translateY(-8px); } to { opacity: 1; clip-path: inset(0); transform: none; } }
+
+@media (prefers-reduced-motion: no-preference) {
+    #beranda-panel-statistik:not([hidden]) .beranda-batang {
+        transform-origin: bottom;
+        animation: beranda-batang-masuk 550ms cubic-bezier(.22, 1, .36, 1) both;
+    }
+}
+@keyframes beranda-batang-masuk {
+    from { transform: scaleY(.05); }
+    to { transform: scaleY(1); }
+}
 @keyframes beranda-form-keluar { to { opacity: 0; clip-path: inset(0 0 100%); transform: translateY(-5px); } }
 @keyframes perangkat-masuk { from { opacity: 0; transform: translateY(16px) scale(.97); } to { opacity: 1; transform: none; } }
 @keyframes perangkat-keluar { to { opacity: 0; transform: translateY(8px) scale(.98); } }

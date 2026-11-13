@@ -26,6 +26,7 @@ export type PenggunaPublik = {
     aktif: boolean;
     posyanduId: number | null;
     posyanduNama: string | null;
+    mejaKms: number | null;
     rw: string | null;
     superAdmin: boolean;
 };
@@ -35,11 +36,11 @@ export type PosyanduPublik = { id: number; nama: string; rw: string };
 const KOLOM_PUBLIK = `
     p.id, p.nama, p.username, p.peran, p.aktif, w.rt,
     p.super_admin AS "superAdmin", posyandu.id AS "posyanduId",
-    posyandu.nama AS "posyanduNama", posyandu.rw
+    posyandu.nama AS "posyanduNama", posyandu.rw, posyandu.meja_kms AS "mejaKms"
     FROM pengguna p
     LEFT JOIN wilayah_rt w ON w.id = p.wilayah_rt_id
     LEFT JOIN LATERAL (
-        SELECT po.id, po.nama, po.rw FROM pengguna_posyandu up
+        SELECT po.id, po.nama, po.rw, up.meja_kms FROM pengguna_posyandu up
         JOIN posyandu po ON po.id = up.posyandu_id
         WHERE up.pengguna_id = p.id ORDER BY po.id LIMIT 1
     ) posyandu ON true
@@ -155,10 +156,10 @@ export async function adaAksesPosyandu(db: Kueri, pengguna: PenggunaAktif, posya
     return (pengguna.posyanduIds ?? []).includes(posyanduId);
 }
 
-export async function simpanKeanggotaan(db: PoolClient, penggunaId: number, posyanduId: number | null): Promise<void> {
+export async function simpanKeanggotaan(db: PoolClient, penggunaId: number, posyanduId: number | null, mejaKms: number | null = null): Promise<void> {
     await db.query('DELETE FROM pengguna_posyandu WHERE pengguna_id=$1', [penggunaId]);
     if (posyanduId !== null) {
-        await db.query('INSERT INTO pengguna_posyandu (pengguna_id,posyandu_id) VALUES ($1,$2)', [penggunaId, posyanduId]);
+        await db.query('INSERT INTO pengguna_posyandu (pengguna_id,posyandu_id,meja_kms) VALUES ($1,$2,$3)', [penggunaId, posyanduId, mejaKms]);
     }
 }
 
@@ -174,7 +175,7 @@ export async function sisipkan(
          RETURNING id`,
         [isian.nama, isian.username, hash, isian.peran, wilayahRtId, isian.aktif],
     );
-    await simpanKeanggotaan(db, rows[0].id, isian.posyanduId ?? null);
+    await simpanKeanggotaan(db, rows[0].id, isian.posyanduId ?? null, isian.mejaKms);
 
     return rows[0].id;
 }
@@ -194,7 +195,7 @@ export async function perbarui(
           WHERE id = $1`,
         [id, isian.nama, isian.username, isian.peran, wilayahRtId, isian.aktif, hash],
     );
-    await simpanKeanggotaan(db, id, isian.posyanduId ?? null);
+    await simpanKeanggotaan(db, id, isian.posyanduId ?? null, isian.mejaKms);
 }
 
 export type PenggunaUntukMasuk = {

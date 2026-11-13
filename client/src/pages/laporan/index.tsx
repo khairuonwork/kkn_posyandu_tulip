@@ -111,6 +111,7 @@ type Props = {
     onPindahPeriode?: (id: string) => void;
     laporanLive?: ReturnType<typeof useLaporanServer>;
     bolehUnduh?: boolean;
+    demo?: boolean;
 };
 
 export default function Laporan({
@@ -126,6 +127,7 @@ export default function Laporan({
     onPindahPeriode,
     laporanLive,
     bolehUnduh = false,
+    demo = false,
 }: Props) {
     const alamat = useAlamat();
     const [rt, setRt] = useState('');
@@ -154,7 +156,7 @@ export default function Laporan({
         return (
             <TabTumbuhKembang
                 periode={periode}
-                modeLive={laporanLive !== undefined}
+                modeLive={!demo && laporanLive !== undefined}
                 onSesiBerakhir={laporanLive?.onSesiBerakhir}
             />
         );
@@ -168,6 +170,7 @@ export default function Laporan({
                 bolehUnduh={bolehUnduh}
                 wilayahRt={wilayahRt}
                 alamat={alamat}
+                demo={demo}
             />
         );
     }
@@ -401,12 +404,14 @@ function LaporanDataLive({
     bolehUnduh,
     wilayahRt = [],
     alamat,
+    demo,
 }: {
     periode: Periode;
     laporan: ReturnType<typeof useLaporanServer>;
     bolehUnduh: boolean;
     wilayahRt?: string[];
     alamat: string;
+    demo: boolean;
 }) {
     const [bantuanTerbuka, setBantuanTerbuka] = useState(false);
     const tombolBantuan = useRef<HTMLButtonElement>(null);
@@ -634,7 +639,7 @@ return;
                             <span className="laporan-unduh-label"><span aria-hidden={mengunduh === 'zscore'}>Excel Z-score &amp; 2T</span>{mengunduh === 'zscore' && <span className="laporan-unduh-proses" role="status">Menyiapkan…</span>}</span>
                         </button>
                     )}
-                    <button
+                    {<button
                         type="button"
                         className="tombol-utama laporan-unduh text-xs font-extrabold shadow-sm"
                         disabled={mengunduh !== null}
@@ -643,10 +648,11 @@ return;
                     >
                         <Download className="size-3.5" aria-hidden="true" />{' '}
                         <span className="laporan-unduh-label"><span aria-hidden={mengunduh === 'f1'}>Unduh F1 Excel</span>{mengunduh === 'f1' && <span className="laporan-unduh-proses" role="status">Menyiapkan F1…</span>}</span>
-                    </button>
+                    </button>}
                 </div>
             }
         >
+            {demo && <p role="status" className="mb-4">Data dan unduhan adalah simulasi demo.</p>}
             <div
                 className={
                     bantuanTerbuka
@@ -657,8 +663,7 @@ return;
                 <div className="detail-utama w-full space-y-6">
                     {/* Banner Edukasi Panduan Ibu Kader (Disesuaikan per Tab) */}
 
-                    {/* Strip 3 Kartu Ringkasan Metrik (Disesuaikan per Tab) */}
-                    <div className="grid gap-4 sm:grid-cols-3">
+                    <div className={`grid gap-4 ${tab === 'zscore' ? 'sm:grid-cols-2' : 'sm:grid-cols-3'}`}>
                         {tab === 'zscore' ? (
                             <>
                                 <article className="flex flex-col justify-between rounded-2xl border border-border bg-card p-5 shadow-sm">
@@ -667,9 +672,6 @@ return;
                                             <p className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
                                                 Balita Diukur
                                             </p>
-                                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-extrabold text-primary">
-                                                Meja 2–4
-                                            </span>
                                         </div>
                                         <p className="mt-2 text-3xl font-extrabold text-foreground tabular-nums">
                                             {data?.ringkasan.anakDiukur ?? 0}
@@ -718,25 +720,6 @@ return;
                                     </p>
                                 </article>
 
-                                <article className="flex flex-col justify-between rounded-2xl border border-border bg-card p-5 shadow-sm">
-                                    <div>
-                                        <div className="flex items-center justify-between">
-                                            <p className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
-                                                Standar Antropometri
-                                            </p>
-                                            <span className="rounded-full border border-border bg-surface-subtle px-2 py-0.5 text-[10px] font-extrabold text-foreground">
-                                                Baku Kemenkes
-                                            </span>
-                                        </div>
-                                        <p className="mt-2 text-lg font-extrabold text-foreground">
-                                            Permenkes RI No. 2/2020
-                                        </p>
-                                    </div>
-                                    <p className="mt-2 text-xs font-medium text-muted-foreground">
-                                        Tabel parameter LMS WHO 2006 resmi untuk
-                                        perhitungan 6 indeks z-score.
-                                    </p>
-                                </article>
                             </>
                         ) : (
                             <>
@@ -970,7 +953,8 @@ return;
                                     <button
                                         type="button"
                                         onClick={() => setRtDipilih('semua')}
-                                        className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-colors ${
+                                        aria-pressed={rtDipilih === 'semua'}
+                                        className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-colors max-lg:min-h-[44px] max-lg:min-w-[44px] pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] ${
                                             rtDipilih === 'semua'
                                                 ? 'bg-primary text-white shadow-xs'
                                                 : 'border border-border bg-surface text-muted-foreground hover:bg-surface-subtle'
@@ -994,7 +978,8 @@ return;
                                                 key={rt}
                                                 type="button"
                                                 onClick={() => setRtDipilih(rt)}
-                                                className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-colors ${
+                                                aria-pressed={rtDipilih === rt}
+                                                className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-colors max-lg:min-h-[44px] max-lg:min-w-[44px] pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] ${
                                                     rtDipilih === rt
                                                         ? 'bg-primary text-white shadow-xs'
                                                         : 'border border-border bg-surface text-muted-foreground hover:bg-surface-subtle'

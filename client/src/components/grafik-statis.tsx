@@ -1,23 +1,19 @@
 /**
  * Satu grafik pertumbuhan tanpa interaksi, untuk Lembar Hasil dan PDF-nya.
  *
- * Gambarnya sama dengan `grafik-pertumbuhan.tsx` (pita WHO, garis SD, satu
+ * Gambarnya mengikuti `grafik-pertumbuhan.tsx` (garis SD, satu
  * garis balita), tetapi tanpa tombol, hover, dan kartu rincian, serta dengan
  * ukuran yang bisa diatur: dua kolom di A4 tidak boleh memakai kanvas 960 px.
  * Warna, jenis grafik, dan penyusunan titiknya diambil dari berkas itu.
  */
 
 import { angka, zScore } from '@/lib/format';
-import { periodeGrafikBersambung } from '@/lib/grafik-acuan';
+import { periodeGrafikBersambung, warnaGarisSd } from '@/lib/grafik-acuan';
 import { nilaiPadaZ } from '@/lib/z-score';
 import type { TabelLms } from '@/lib/z-score';
 import type { JenisKelamin, Pengukuran } from '@/types/posyandu';
 import {
-    GARIS_MERAH,
     PANEL_BULAN,
-    PITA_HIJAU_MUDA,
-    PITA_HIJAU_TUA,
-    PITA_KUNING,
     SPEK,
     susunTitik,
     TEKS_SEKUNDER,
@@ -58,16 +54,23 @@ export default function GrafikStatis({
     const baris = tabel.get(`${indeks}|${kelamin}`) ?? [];
     const lms = new Map(baris.map((b) => [b.kunci, b]));
     const kiri = Math.round(teks * 3.2);
-    const kanan = Math.round(teks * 2.6);
+    const kanan = Math.round(teks * 4.6);
     const atas = teks + 4;
     const bawah = Math.round(teks * 4);
     const plotLebar = lebar - kiri - kanan;
     const plotTinggi = tinggi - atas - bawah;
 
-    const bulan = Array.from({ length: PANEL_BULAN + 1 }, (_, i) => panel + i);
+    const awal = Math.max(panel, spek.mulai);
+    const bulan = Array.from(
+        { length: panel + PANEL_BULAN - awal + 1 },
+        (_, i) => awal + i,
+    );
     const hidup = bulan.filter((u) => u >= spek.mulai && lms.has(u));
     const titik = susunTitik(pengukuran, spek).filter(
-        (t) => t.umur >= panel && t.umur <= panel + PANEL_BULAN,
+        (t) =>
+            t.posisiUmur >= awal &&
+            (t.posisiUmur < panel + PANEL_BULAN ||
+                (panel + PANEL_BULAN === 60 && t.posisiUmur === 60)),
     );
 
     const batas = [
@@ -85,7 +88,7 @@ export default function GrafikStatis({
     const rentang = tertinggi > rendah ? tertinggi - rendah : 1;
 
     const x = (umur: number) =>
-        kiri + ((umur - panel) / PANEL_BULAN) * plotLebar;
+        kiri + ((umur - awal) / (panel + PANEL_BULAN - awal)) * plotLebar;
     const y = (nilai: number) =>
         atas + ((tertinggi - nilai) / rentang) * plotTinggi;
     const garisKe = (t: [number, number][]) =>
@@ -98,20 +101,6 @@ export default function GrafikStatis({
                 ? []
                 : [[x(u), y(nilaiPadaZ(b, z))] as [number, number]];
         });
-    const pita = (bawahZ: number, atasZ: number, warna: string) => {
-        const a = sd(atasZ);
-        const b = sd(bawahZ);
-
-        return a.length === 0 || b.length === 0 ? null : (
-            <polygon
-                key={`${bawahZ}-${atasZ}`}
-                points={garisKe([...a, ...b.slice().reverse()])}
-                fill={warna}
-                opacity={0.5}
-            />
-        );
-    };
-
     const garis: number[] = [];
 
     for (let v = rendah; v <= tertinggi + 1e-9; v += spek.langkah) {
@@ -146,7 +135,6 @@ export default function GrafikStatis({
 
     const sumbu =
         spek.indeks === 'TB_U' && berbaring ? 'Panjang badan, cm' : spek.sumbu;
-    const sebelumLILA = indeks === 'LILA_U' && panel < spek.mulai;
     const judul =
         spek.indeks === 'TB_U' && berbaring ? 'Panjang badan' : spek.judul;
 
@@ -157,22 +145,6 @@ export default function GrafikStatis({
             role="img"
             aria-label={`Grafik ${judul.toLowerCase()}, rentang ${panel} sampai ${panel + PANEL_BULAN} bulan`}
         >
-            {pita(-3, -2, PITA_KUNING)}
-            {pita(2, 3, PITA_KUNING)}
-            {pita(-2, -1, PITA_HIJAU_MUDA)}
-            {pita(1, 2, PITA_HIJAU_MUDA)}
-            {pita(-1, 1, PITA_HIJAU_TUA)}
-
-            {sebelumLILA && (
-                <rect
-                    x={x(panel)}
-                    y={atas}
-                    width={x(spek.mulai) - x(panel)}
-                    height={plotTinggi}
-                    fill="#E4E7E2"
-                />
-            )}
-
             {garis.map((v) => (
                 <line
                     key={`h${v}`}
@@ -180,9 +152,8 @@ export default function GrafikStatis({
                     x2={kiri + plotLebar}
                     y1={y(v)}
                     y2={y(v)}
-                    stroke={TINTA}
-                    strokeWidth={0.6}
-                    opacity={0.35}
+                    stroke="#CAD2CC"
+                    strokeWidth={0.7}
                 />
             ))}
             {bulan.map((u) => (
@@ -192,9 +163,8 @@ export default function GrafikStatis({
                     x2={x(u)}
                     y1={atas}
                     y2={atas + plotTinggi}
-                    stroke={TINTA}
-                    strokeWidth={1.3}
-                    opacity={0.8}
+                    stroke="#CAD2CC"
+                    strokeWidth={0.7}
                 />
             ))}
             {[-3, -2, -1, 0, 1, 2, 3].map((z) => (
@@ -202,8 +172,8 @@ export default function GrafikStatis({
                     key={`sd${z}`}
                     points={garisKe(sd(z))}
                     fill="none"
-                    stroke={z === -3 ? GARIS_MERAH : TINTA}
-                    strokeWidth={z === -3 ? 2 : z === 0 ? 1.4 : 0.9}
+                    stroke={warnaGarisSd(z)}
+                    strokeWidth={z === 0 ? 2 : 1.5}
                 />
             ))}
 
@@ -220,18 +190,29 @@ export default function GrafikStatis({
                         >
                             {angka(v, 0)}
                         </text>
-                        <text
-                            x={kiri + plotLebar + 6}
-                            y={y(v) + teks / 3}
-                            fontSize={teks}
-                            fontWeight={600}
-                            fill={TEKS_SEKUNDER}
-                        >
-                            {angka(v, 0)}
-                        </text>
                     </g>
                 ),
             )}
+            {[-3, -2, -1, 0, 1, 2, 3].map((z) => {
+                const akhir = sd(z).at(-1);
+                return akhir ? (
+                    <text
+                        key={`label${z}`}
+                        x={akhir[0] + 4}
+                        y={akhir[1] + teks / 3}
+                        fontSize={teks}
+                        fontWeight={700}
+                        fill={warnaGarisSd(z)}
+                        stroke="white"
+                        strokeWidth={3}
+                        paintOrder="stroke"
+                    >
+                        {z === 0
+                            ? 'Median'
+                            : `${z > 0 ? '+' : '−'}${Math.abs(z)} SD`}
+                    </text>
+                ) : null;
+            })}
             {bulan.map((u) => (
                 <text
                     key={`t${u}`}
@@ -271,7 +252,7 @@ export default function GrafikStatis({
                 <g key={`s${bagian[0].umur}`}>
                     <polyline
                         points={garisKe(
-                            bagian.map((t) => [x(t.umur), y(t.nilai)]),
+                            bagian.map((t) => [x(t.posisiUmur), y(t.nilai)]),
                         )}
                         fill="none"
                         stroke="#FFFFFF"
@@ -281,7 +262,7 @@ export default function GrafikStatis({
                     />
                     <polyline
                         points={garisKe(
-                            bagian.map((t) => [x(t.umur), y(t.nilai)]),
+                            bagian.map((t) => [x(t.posisiUmur), y(t.nilai)]),
                         )}
                         fill="none"
                         stroke={TINTA}
@@ -295,13 +276,17 @@ export default function GrafikStatis({
                 const akhir = i === titik.length - 1;
                 // Label titik di tepi kiri dibaca ke kanan supaya tidak
                 // menimpa angka sumbu tegak.
-                const tepiKiri = x(t.umur) - kiri < teks * 2;
+                const tepiKiri = x(t.posisiUmur) - kiri < teks * 2;
 
                 return (
                     <g key={`${t.umur}|${t.tanggal}|${i}`}>
                         {labelZ && t.z !== null && (
                             <text
-                                x={tepiKiri ? x(t.umur) - 4 : x(t.umur)}
+                                x={
+                                    tepiKiri
+                                        ? x(t.posisiUmur) - 4
+                                        : x(t.posisiUmur)
+                                }
                                 y={Math.max(atas + teks + 2, y(t.nilai) - 11)}
                                 textAnchor={tepiKiri ? 'start' : 'middle'}
                                 fontSize={teks}
@@ -315,8 +300,19 @@ export default function GrafikStatis({
                                 {zScore(t.z)}
                             </text>
                         )}
+                        {akhir && (
+                            <circle
+                                cx={x(t.posisiUmur)}
+                                cy={y(t.nilai)}
+                                r={10}
+                                fill="none"
+                                stroke="#10B981"
+                                strokeWidth={2}
+                                strokeDasharray="4 2"
+                            />
+                        )}
                         <circle
-                            cx={x(t.umur)}
+                            cx={x(t.posisiUmur)}
                             cy={y(t.nilai)}
                             r={akhir ? 6 : 4.5}
                             fill={akhir ? TINTA : '#FFFFFF'}

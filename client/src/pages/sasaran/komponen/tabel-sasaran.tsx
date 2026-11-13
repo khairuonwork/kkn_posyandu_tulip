@@ -56,8 +56,8 @@ export function TabelSasaran({
                         Sasaran yang aktif di perangkat
                     </h2>
                     <p className="mt-1 max-w-[72ch] text-base text-muted-foreground">
-                        Android membaca daftar ini. Data Balita tetap
-                        menampilkan seluruh anak yang pernah terdaftar.
+                        Aplikasi Android memakai daftar ini saat pelayanan.
+                        Daftar lengkap anak tetap tersedia di Data Balita.
                     </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -235,7 +235,7 @@ export function TabelSasaran({
                         </div>
 
                         <div className="border-b border-border p-4 sm:px-6">
-                            <label className="flex min-h-11 max-w-lg items-center gap-3 rounded-lg border border-border-strong bg-surface px-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring">
+                            <label className="relative flex min-h-11 max-w-lg items-center gap-3 rounded-lg border border-border-strong bg-surface px-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring">
                                 <Search
                                     className="size-5 text-muted-foreground"
                                     aria-hidden="true"
@@ -313,7 +313,7 @@ export function TabelSasaran({
                                             <button
                                                 type="button"
                                                 onClick={() => mulaiEdit(item)}
-                                                className="tombol-kedua min-h-8 px-2.5 py-1 text-xs font-semibold"
+                                                className="tombol-kedua min-h-[44px] px-2.5 py-1 text-xs font-semibold"
                                                 aria-label={`Edit sasaran ${item.nama}`}
                                             >
                                                 <Pencil
@@ -413,7 +413,7 @@ export function TabelSasaran({
                                                     onClick={() =>
                                                         mulaiEdit(item)
                                                     }
-                                                    className="tombol-kedua min-h-9 px-3"
+                                                    className="tombol-kedua min-h-9 px-3 max-lg:min-h-[44px] pointer-coarse:min-h-[44px]"
                                                     aria-label={`Edit sasaran ${item.nama}`}
                                                 >
                                                     <Pencil

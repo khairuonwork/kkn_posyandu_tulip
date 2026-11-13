@@ -41,8 +41,8 @@ export function PanelImpor({
                     Unggah atau ganti sasaran bulanan
                 </h2>
                 <p className="mt-1 max-w-[74ch] text-base text-muted-foreground">
-                    Sistem mencari header setiap sheet, sehingga format Januari
-                    dan Februari yang berbeda posisi tetap dapat dibaca.
+                    Pilih file Excel dari Puskesmas, lalu periksa isi dan
+                    periodenya sebelum menerbitkan daftar sasaran.
                 </p>
             </div>
             <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_360px]">

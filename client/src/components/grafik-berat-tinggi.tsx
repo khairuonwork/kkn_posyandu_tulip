@@ -1,5 +1,7 @@
 import { useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { nadaKategori } from '@/components/status-gizi-badge';
+import GrafikDenganAcuan from '@/components/grafik-dengan-acuan';
 import { angka, satuan, tanggalRingkas, zScore } from '@/lib/format';
 import { periodeGrafikBersambung, warnaGarisSd } from '@/lib/grafik-acuan';
 import { labelKategoriGizi } from '@/lib/kategori';
@@ -12,11 +14,15 @@ export default function GrafikBeratTinggi({
     umurBalita,
     pengukuran,
     standar,
+    zoom,
+    kontrolZoom,
 }: {
     kelamin: JenisKelamin;
     umurBalita: number | null;
     pengukuran: Pengukuran[];
     standar: BarisLms[];
+    zoom: number;
+    kontrolZoom: ReactNode;
 }) {
     const [jenis, setJenis] = useState<'PB' | 'TB'>(
         (umurBalita ?? 0) < 24 ? 'PB' : 'TB',
@@ -28,7 +34,7 @@ export default function GrafikBeratTinggi({
     useLayoutEffect(() => {
         if (!bukaan.current || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
         const animasi = bukaan.current.animate(
-            [{ width: '0px' }, { width: '820px' }],
+            [{ width: '0px' }, { width: `${bukaan.current.width.baseVal.value}px` }],
             { duration: 700, easing: 'ease-out' },
         );
         return () => animasi.cancel();
@@ -84,22 +90,28 @@ export default function GrafikBeratTinggi({
                       ) / 2,
                   ) * 2,
               );
-    const x = (v: number) => 62 + ((v - bawahX) / (atasX - bawahX)) * 820;
-    const y = (v: number) => 340 - ((v - min) / (max - min || 1)) * 320;
+    const plotLebar = 820 * zoom;
+    const lebarGrafik = 78 + plotLebar;
+    const x = (v: number) => 62 + ((v - bawahX) / (atasX - bawahX)) * plotLebar;
+    const tinggiDiperbesar = Math.max(320, (max - min) * 28);
+    const plotTinggi = 320 + (tinggiDiperbesar - 320) * Math.min(1, (zoom - 1) * 2);
+    const bawahGrafik = 20 + plotTinggi;
+    const tinggiGrafik = bawahGrafik + 60;
+    const y = (v: number) => bawahGrafik - ((v - min) / (max - min || 1)) * plotTinggi;
     const sumbuX = Array.from(
         { length: Math.floor((atasX - bawahX) / 5) + 1 },
         (_, i) => bawahX + i * 5,
     );
     const sumbuY = Array.from(
-        { length: Math.floor((max - min) / 2) + 1 },
-        (_, i) => min + i * 2,
+        { length: Math.floor((max - min) / (zoom > 1 ? 0.5 : 2)) + 1 },
+        (_, i) => min + i * (zoom > 1 ? 0.5 : 2),
     );
     const kartu =
         detail && detail.bbKg! >= min && detail.bbKg! <= max
             ? {
                   x: x(detail.tinggiCm!),
                   y: y(detail.bbKg!),
-                  kiri: Math.max(66, Math.min(x(detail.tinggiCm!) - 150, 578)),
+                  kiri: Math.max(66, Math.min(x(detail.tinggiCm!) - 150, 62 + plotLebar - 304)),
                   atas:
                       y(detail.bbKg!) - 114 >= 24
                           ? y(detail.bbKg!) - 114
@@ -160,21 +172,29 @@ export default function GrafikBeratTinggi({
             {acuan.length === 0 ? (
                 <p role="status">Acuan BB/{jenis} belum tersedia.</p>
             ) : (
-                <div
-                    className="overflow-x-auto"
-                    tabIndex={0}
-                    role="region"
-                    aria-label="Grafik berat menurut panjang atau tinggi, dapat digeser mendatar"
+                <>
+                {kontrolZoom}
+                <GrafikDenganAcuan
+                    label="Grafik berat menurut panjang atau tinggi, dapat digeser mendatar"
+                    tinggi={tinggiGrafik}
+                    revisi={`${jenis}:${zoom}`}
+                    garis={[-3, -2, -1, 0, 1, 2, 3].map((z) => ({
+                        z,
+                        titik: acuan.map((b) => [x(b.kunci), y(nilaiPadaZ(b, z))]),
+                    }))}
                 >
+                    <div className="min-w-[740px]" style={{ aspectRatio: `898 / ${tinggiGrafik}` }}>
                     <svg
-                        viewBox="0 0 940 400"
-                        className="h-auto w-full min-w-[740px] bg-white"
+                        viewBox={`0 0 ${lebarGrafik} ${tinggiGrafik}`}
+                        preserveAspectRatio="none"
+                        className="h-full bg-white"
+                        style={{ width: `${(lebarGrafik / 898) * 100}%` }}
                         role="img"
                         aria-label={`Grafik BB/${jenis}, berat badan menurut ${jenis === 'PB' ? 'panjang' : 'tinggi'} badan, WHO 2006`}
                     >
                         <defs>
                             <clipPath id={clipId}>
-                                <rect ref={bukaan} x={62} y={20} width={820} height={320} />
+                                <rect ref={bukaan} x={62} y={20} width={plotLebar} height={plotTinggi} />
                             </clipPath>
                         </defs>
                         {sumbuX.map((v) => (
@@ -183,12 +203,12 @@ export default function GrafikBeratTinggi({
                                     x1={x(v)}
                                     x2={x(v)}
                                     y1={20}
-                                    y2={340}
+                                    y2={bawahGrafik}
                                     stroke="#D1D6D2"
                                 />
                                 <text
                                     x={x(v)}
-                                    y={360}
+                                    y={bawahGrafik + 20}
                                     textAnchor="middle"
                                     fontSize={12}
                                     fill="#16211C"
@@ -201,7 +221,7 @@ export default function GrafikBeratTinggi({
                             <g key={`y${v}`}>
                                 <line
                                     x1={62}
-                                    x2={882}
+                                    x2={62 + plotLebar}
                                     y1={y(v)}
                                     y2={y(v)}
                                     stroke="#D1D6D2"
@@ -213,7 +233,7 @@ export default function GrafikBeratTinggi({
                                     fontSize={12}
                                     fill="#16211C"
                                 >
-                                    {angka(v, 0)}
+                                    {angka(v, v % 1 === 0 ? 0 : 1)}
                                 </text>
                             </g>
                         ))}
@@ -231,21 +251,6 @@ export default function GrafikBeratTinggi({
                                     stroke={warnaGarisSd(z)}
                                     strokeWidth={z === 0 ? 2 : 1.5}
                                 />
-                                <text
-                                    x={890}
-                                    y={Math.max(
-                                        24,
-                                        Math.min(
-                                            340,
-                                            y(nilaiPadaZ(acuan.at(-1)!, z)) + 4,
-                                        ),
-                                    )}
-                                    fontSize={12}
-                                    fill={warnaGarisSd(z)}
-                                >
-                                    {z > 0 ? '+' : ''}
-                                    {z} SD
-                                </text>
                             </g>
                         ))}
                         {segmen.map((list, i) => (
@@ -318,8 +323,8 @@ export default function GrafikBeratTinggi({
                             );
                         })}
                         <text
-                            x={472}
-                            y={390}
+                            x={62 + plotLebar / 2}
+                            y={tinggiGrafik - 10}
                             textAnchor="middle"
                             fontSize={14}
                             fill="#16211C"
@@ -327,7 +332,7 @@ export default function GrafikBeratTinggi({
                             {jenis === 'PB' ? 'Panjang' : 'Tinggi'} badan, cm
                         </text>
                         <text
-                            transform="translate(18 180) rotate(-90)"
+                            transform={`translate(18 ${20 + plotTinggi / 2}) rotate(-90)`}
                             textAnchor="middle"
                             fontSize={14}
                             fill="#16211C"
@@ -344,7 +349,7 @@ export default function GrafikBeratTinggi({
                                     x1={kartu.x}
                                     x2={kartu.x}
                                     y1={kartu.y}
-                                    y2={340}
+                                    y2={bawahGrafik}
                                     stroke="#16211C"
                                     strokeDasharray="5 4"
                                 />
@@ -358,7 +363,7 @@ export default function GrafikBeratTinggi({
                                 />
                                 <rect
                                     x={kartu.x - 22}
-                                    y={344}
+                                    y={bawahGrafik + 4}
                                     width={44}
                                     height={21}
                                     rx={4}
@@ -366,7 +371,7 @@ export default function GrafikBeratTinggi({
                                 />
                                 <text
                                     x={kartu.x}
-                                    y={359}
+                                    y={bawahGrafik + 19}
                                     textAnchor="middle"
                                     fontSize={12}
                                     fontWeight={700}
@@ -437,7 +442,9 @@ export default function GrafikBeratTinggi({
                             </g>
                         )}
                     </svg>
-                </div>
+                    </div>
+                </GrafikDenganAcuan>
+                </>
             )}
             <p className="mt-3 text-sm text-muted-foreground">
                 Hitam ±3 SD · Merah ±2 SD · Jingga ±1 SD · Hijau 0 SD. Garis

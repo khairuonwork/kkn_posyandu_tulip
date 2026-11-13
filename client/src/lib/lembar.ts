@@ -115,10 +115,11 @@ export async function buatTautanLembar(
     }
 }
 
-export function useLembar(token: string): StatusLembar {
+export function useLembar(token: string, contoh?: LembarApi | null): StatusLembar {
     const [state, setState] = useState<StatusLembar>({ status: 'memuat' });
 
     useEffect(() => {
+        if (contoh !== undefined) return;
         const controller = new AbortController();
 
         fetch(`/api/v1/lembar/${encodeURIComponent(token)}`, {
@@ -145,7 +146,7 @@ export function useLembar(token: string): StatusLembar {
             });
 
         return () => controller.abort();
-    }, [token]);
+    }, [token, contoh]);
 
-    return state;
+    return contoh === undefined ? state : contoh === null ? { status: 'tidak-sah' } : { status: 'siap', data: contoh };
 }

@@ -282,41 +282,7 @@ Semua endpoint diawali dengan prefix `/api` dan menggunakan format JSON murni.
 
 ### 4.3 Layanan Antrean & Pemeriksaan KMS Real-Time
 
-#### `GET /api/kms/antrean`
-- **Tujuan:** Mengambil daftar anak yang telah diukur hari ini dan sedang menunggu penjelasan KMS oleh dokter atau bidan.
-- **Header:** Mendukung `X-Mode-Pelatihan: 1` saat berada di sandbox.
-- **Response `200 OK`:**
-  ```json
-  {
-    "periode": "2026-10",
-    "tanggal": "2026-10-09",
-    "menunggu": [
-      {
-        "antreanId": 45,
-        "nomorAntrean": 12,
-        "anakId": 101,
-        "nama": "Ahmad Faris",
-        "umurBulan": 28,
-        "waktuUkur": "2026-10-09T08:45:00Z",
-        "bbKg": 12.4,
-        "tinggiCm": 89.5,
-        "kategoriBbTb": "Gizi baik"
-      }
-    ]
-  }
-  ```
-
-#### `POST /api/kms/konfirmasi`
-- **Tujuan:** Konfirmasi bahwa orang tua telah mendapat edukasi hasil KMS; memindahkan slot antrean ke anak berikutnya.
-- **Request Body:**
-  ```json
-  {
-    "antreanId": 45,
-    "anakId": 101,
-    "catatanEdukasi": "Diskusikan variasi gizi seimbang dan lanjutkan pemantauan"
-  }
-  ```
-- **Response `200 OK`:** `{"sukses": true, "selesaiPada": "2026-10-09T08:52:10Z"}`
+Peserta dapat masuk antrean setelah check-in, sebelum pengukuran. Layar KMS membaca `GET /api/v1/antrean-kms`; tindakan per meja memakai `POST /api/v1/antrean-kms/:id/panggilan`, dan layar ruang tunggu membaca `GET /api/v1/panggilan-kms`. Konfirmasi memakai `POST /api/v1/antrean/:id/konfirmasi-kms` setelah syaratnya terpenuhi. Bentuk payload, izin dan galat ada di [kontrak API bagian 3.4](SIMPATIK_Posyandu_REST_API_Contract.md#34-antrean--pemeriksaan-kms-real-time).
 
 ---
 
@@ -528,32 +494,30 @@ sequenceDiagram
     participant API as REST API Backend (Express)
     participant Engine as Anthropometry Engine
     participant DB as PostgreSQL Database
-    actor B as Bidan / Dokter
-    participant Web as Layar KMS Web (Bidan)
+    actor B as Petugas KMS
+    participant Web as Layar KMS
+    participant Tunggu as Layar ruang tunggu
 
-    Note over K,App: Anak Tiba di Meja Penimbangan
-    K->>App: Masukkan BB (kg) & TB (cm)
-    App->>API: POST /api/pengukuran {anakId, bb, tb, caraUkur}
-    API->>Engine: hitungStatusGizi(bb, tb, umur, jk)
-    Engine-->>API: {zScore, kategoriBB_TB, kategoriTB_U, NTOB}
-    API->>DB: INSERT INTO pengukuran & UPDATE antrean (status='menunggu_kms')
-    API-->>App: 201 Created (Hasil tersimpan)
-
-    Note over Web,B: Layar KMS Otomatis Menerima Data
+    K->>App: Daftarkan peserta
+    App->>API: POST /api/v1/antrean
+    API->>DB: Simpan check-in dan nomor antrean
+    API-->>App: Antrean tersimpan
     loop Polling Interval 3 Detik
-        Web->>API: GET /api/kms/antrean
-        API->>DB: SELECT antrean WHERE status='menunggu_kms'
-        DB-->>API: Daftar balita menunggu KMS
-        API-->>Web: 200 OK [Data balita + status gizi + kurva]
+        Web->>API: GET /api/v1/antrean-kms
+        API-->>Web: Daftar peserta dan meja akun
     end
-
-    Web->>B: Notifikasi: "Ahmad Faris (28 bln) siap diperiksa"
-    B->>Web: Buka Kurva Pertumbuhan & Riwayat KMS
-    B->>K: Edukasi Orang Tua Mengenai Hasil Pertumbuhan
-    B->>Web: Klik "Konfirmasi Selesai"
-    Web->>API: POST /api/kms/konfirmasi {antreanId, anakId}
-    API->>DB: UPDATE antrean SET status='selesai'
-    API-->>Web: Slot antrean kosong / siap untuk balita berikutnya
+    B->>Web: Pilih dan panggil peserta
+    Web->>API: POST /api/v1/antrean-kms/:id/panggilan
+    API->>DB: Periksa meja dan simpan panggilan dalam transaksi
+    Tunggu->>API: GET /api/v1/panggilan-kms
+    API-->>Tunggu: Nomor, meja dan nama untuk suara
+    K->>App: Simpan pengukuran peserta
+    App->>API: POST /api/v1/pengukuran
+    API->>Engine: Hitung penilaian gizi
+    API->>DB: Simpan hasil ukur
+    B->>Web: Tandai tiba dan konfirmasi selesai
+    Web->>API: POST /api/v1/antrean/:id/konfirmasi-kms
+    API->>DB: Selesaikan jika syarat terpenuhi
 ```
 
 ### 6.2 Alur Perhitungan Antropometri WHO LMS 2006
@@ -621,7 +585,7 @@ systemctl --user restart simpatik-user.service
 Migrasi tersimpan dalam direktori `server/db/migrations/` dan dieksekusi secara berurutan:
 ```bash
 cd server
-npm run db:migrasi
+npm run migrate
 ```
 
 ### 8.3 Prosedur Cadangan (Backup) & Pemulihan (Disaster Recovery)

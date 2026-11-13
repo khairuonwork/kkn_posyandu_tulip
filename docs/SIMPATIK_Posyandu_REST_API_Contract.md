@@ -390,32 +390,28 @@ Sistem menggunakan arsitektur autentikasi ganda (*Dual-Authentication Scheme*) u
 
 ### 3.4 Antrean & Pemeriksaan KMS Real-Time
 
+Layar KMS memuat daftar melalui `GET /api/v1/antrean-kms` setiap tiga detik. Pendaftaran dapat mendahului pengukuran. Tanggal layanan dan periode untuk endpoint KMS memakai waktu Asia/Jakarta. Semua endpoint KMS di bawah memerlukan izin `konfirmasi-kms`: akun KMS atau superadmin. Aksi panggilan juga memerlukan akun aktif berperan KMS yang memiliki penugasan meja untuk posyandu dan sesi terbuka.
+
+#### `GET /api/v1/antrean-kms`
+
+Respons `200`: `{ "items": [...], "mejaKms": 1 }`; meja dapat `null`. Setiap item mencakup `id`, `anakId`, `nomor`, `nama`, `namaOrtu`, `rt`, `status`, `checkedInAt`, `mejaKms`, `tibaKms`, dan `sudahDiukur`. Jika belum ada sesi periode yang sesuai, daftar kosong.
+
+#### `GET /api/v1/panggilan-kms`
+
+Query opsional `lingkup` dan `setelah` adalah penanda hasil sebelumnya; `setelah` berupa 1–18 digit. Respons: `{ "panggilan": [{ "id": "1", "nomor": 12, "meja": 2, "nama": "Bima Arya Pratama" }], "lingkup": "15:2026-11-13" }`. Nama dapat `null`; lingkup juga dapat `null` jika sesi tidak ada. Tanpa penanda yang cocok, hasil paling baru dikembalikan; dengan penanda yang cocok, maksimal 50 panggilan berikutnya dikembalikan menurut urutan ID. Respons memakai `Cache-Control: no-store`. Panggilan ulang membuat peristiwa baru.
+
+#### `POST /api/v1/antrean-kms/:id/panggilan`
+
+Body: `{ "aksi": "panggil", "meja": 2 }`; `aksi` dapat `panggil`, `ulang`, `tiba`, atau `kembalikan`, dan `meja` bilangan bulat 1–99 yang harus sesuai penugasan akun. Sukses: `200 { "ok": true }`. Input salah menghasilkan `400`, tidak ada sesi `404`, meja belum ditetapkan atau sesi ditutup `403`, dan perubahan peserta/meja yang bentrok `409`. Pengecekan dan perubahan dilakukan dalam transaksi.
+
 #### `GET /api/v1/antrean`
 * **Fungsi:** Mengambil daftar antrean penimbangan dan antrean pemeriksaan KMS hari ini.
 * **Izin Akses:** `wajibBoleh('lihat-anak')`.
-* **Asal Pemanggil:** Layar KMS Bidan (`pages/kms/index.tsx` dipolling tiap 3 detik) & Layar Antrean Tablet.
+* **Asal Pemanggil:** Layar antrean tablet; layar KMS memakai endpoint khusus di atas.
 * **Query Params:**
   - `periodeId`: `2026-10` (format YYYY-MM untuk web, integer untuk tablet)
   - `tanggal`: `2026-10-09`
-* **Respons `200 OK`:**
-  ```json
-  {
-    "items": [
-      {
-        "id": "antrean_20261009_1",
-        "nomorAntrean": 1,
-        "sasaranId": 88,
-        "anakId": 101,
-        "nama": "Ahmad Faris",
-        "status": "kms_review",
-        "bbKg": 12.4,
-        "tinggiCm": 89.5,
-        "kategoriBbTb": "Gizi baik",
-        "catatan": null
-      }
-    ]
-  }
-  ```
+* **Respons `200 OK`:** Objek `items` berisi baris antrean; bentuk baris mengikuti `BarisAntrean` di `server/src/repositories/antrean-repository.ts`.
 
 #### `POST /api/v1/antrean`
 * **Fungsi:** Check-in balita ke antrean hari ini (biasanya saat memindai kartu QR di Meja 1).
@@ -446,14 +442,14 @@ Sistem menggunakan arsitektur autentikasi ganda (*Dual-Authentication Scheme*) u
 
 #### `POST /api/v1/antrean/:id/konfirmasi-kms`
 * **Fungsi:** Petugas KMS atau superadmin mengonfirmasi edukasi KMS selesai; memindahkan antrean ke status `done`.
-* **Izin Akses:** `wajibBoleh(['konfirmasi-kms', 'catat-pengukuran-lapangan'])`.
+* **Izin Akses:** `wajibBoleh('konfirmasi-kms')`.
 * **Asal Pemanggil:** Tombol "Konfirmasi Selesai" di Layar KMS Web Bidan (`pages/kms/index.tsx`).
-* **Respons `200 OK`:** Objek antrean terbarui dengan status `done`.
+* **Respons `200 OK`:** Objek antrean terbarui dengan status `done`. Jalur web memerlukan peserta sudah tiba di meja akun dan pengukuran pada tanggal yang sama lengkap. Jalur Bearer tetap mendukung konfirmasi lama pada `kms_review` tanpa meja; peserta yang sudah dipanggil ke meja mengikuti syarat meja dan kedatangan.
 
 #### `POST /api/v1/antrean/konfirmasi-semua-kms`
 * **Fungsi:** Tindakan batch untuk menyelesaikan seluruh sisa balita di antrean KMS secara serentak di akhir acara.
-* **Izin Akses:** `wajibBoleh(['konfirmasi-kms', 'catat-pengukuran-lapangan'])`.
-* **Asal Pemanggil:** Tombol "Konfirmasi Semua" di Layar KMS Web.
+* **Izin Akses:** `wajibBoleh('konfirmasi-kms')`.
+* **Batas:** Hanya antrean `kms_review` yang belum memiliki meja KMS.
 * **Request Body:** `{"periodeId": 15, "tanggal": "2026-10-09"}`
 * **Respons `200 OK`:** `{"ok": true, "jumlah": 8}`
 

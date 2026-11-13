@@ -169,7 +169,14 @@ export function BagianPengguna({
                                     {p.username}
                                 </span>
                             </TableCell>
-                            <TableCell>{NAMA_PERAN[p.peran]}</TableCell>
+                            <TableCell>
+                                {NAMA_PERAN[p.peran]}
+                                {p.peran === 'kms' && (
+                                    <span className="block text-sm text-muted-foreground">
+                                        {p.mejaKms == null ? 'Meja belum ditetapkan' : `Meja KMS ${p.mejaKms}`}
+                                    </span>
+                                )}
+                            </TableCell>
                             <TableCell className="whitespace-nowrap">
                                 {p.superAdmin ? (
                                     <span className="font-semibold text-primary">

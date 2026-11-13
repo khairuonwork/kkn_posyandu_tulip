@@ -26,8 +26,8 @@ node scripts\buat-env-supabase.cjs
 
 Jangan commit atau mengirim `server/.env`. Pastikan `DATABASE_URL` menunjuk ke
 database yang memang akan digunakan. Jangan jalankan migrasi terhadap database
-live hanya untuk menyalakan server. Fitur antrean bersama tablet dan tahap KMS
-membutuhkan migrasi `012`–`015`. Tinjau file SQL dan pastikan cadangan database
+live hanya untuk menyalakan server. Fitur antrean bersama tablet dan pemanggilan KMS
+membutuhkan migrasi sampai `030`. Tinjau file SQL dan pastikan cadangan database
 tersedia terlebih dahulu; baru jalankan perintah berikut dari akar repo untuk
 database yang memang dituju:
 

@@ -588,9 +588,6 @@ export async function upsertPengukuran(
         return null;
     }
 
-    await db.query("SELECT pg_advisory_xact_lock(hashtext($1))", [
-        `${anak.rows[0].id}:${data.tanggalUkur.slice(0, 7)}`,
-    ]);
     const tanggal = new Date(`${data.tanggalUkur}T00:00:00Z`);
     const bulan = tanggal.getUTCMonth() + 1;
     const tahun = tanggal.getUTCFullYear();
@@ -614,6 +611,16 @@ export async function upsertPengukuran(
             );
         }
     }
+
+    if (data.statusKehadiran === "hadir") {
+        // Pendaftaran dan pengukuran memakai pengunci nomor antrean yang sama.
+        await db.query("SELECT pg_advisory_xact_lock($1::integer, $2::integer)", [
+            periode.rows[0].id, Number(data.tanggalUkur.replaceAll("-", "")),
+        ]);
+    }
+    await db.query("SELECT pg_advisory_xact_lock(hashtext($1))", [
+        `${anak.rows[0].id}:${data.tanggalUkur.slice(0, 7)}`,
+    ]);
 
     const sasaranSebelum = await db.query<{
         status: string;
@@ -735,7 +742,7 @@ export async function upsertPengukuran(
                     await db.query(
                         `UPDATE antrean_layanan
                             SET status='kms_review',
-                                called_at=coalesce(called_at, now()),
+                                called_at=CASE WHEN meja_kms IS NULL THEN coalesce(called_at, now()) ELSE called_at END,
                                 updated_by=$2, updated_at=now()
                           WHERE id=$1`,
                         [antreanAda.rows[0].id, pengguna.id],

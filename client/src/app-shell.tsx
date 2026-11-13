@@ -10,6 +10,8 @@
 import {
     Baby,
     BadgeCheck,
+    CircleCheck,
+    ClipboardList,
     CreditCard,
     FileText,
     FlaskConical,
@@ -39,6 +41,7 @@ export type Rute =
     | { nama: 'kartu-sasaran'; id?: number }
     | { nama: 'pengaturan' }
     | { nama: 'kms' }
+    | { nama: 'ruang-tunggu-kms' }
     | { nama: 'pelatihan' };
 
 /** Router portal, seluruhnya, tanpa pustaka tambahan. */
@@ -78,6 +81,8 @@ export function bacaRute(alamat: string): Rute {
 
         case '/kms':
             return { nama: 'kms' };
+        case '/kms/ruang-tunggu':
+            return { nama: 'ruang-tunggu-kms' };
         case '/pelatihan':
             return { nama: 'pelatihan' };
 
@@ -97,12 +102,13 @@ export function boleh(rute: Rute, peran: Peran, superAdmin = false): boolean {
     if (peran === 'kms') {
         return (
             rute.nama === 'kms' ||
+            rute.nama === 'ruang-tunggu-kms' ||
             rute.nama === 'detail' ||
             rute.nama === 'riwayat'
         );
     }
 
-    if (rute.nama === 'kms') {
+    if (rute.nama === 'kms' || rute.nama === 'ruang-tunggu-kms') {
         return peran === 'admin' && superAdmin;
     }
 
@@ -157,6 +163,7 @@ const NAV: ButirNav[] = [
 ];
 
 type CangkangProps = {
+    demo?: boolean;
     superAdmin?: boolean;
     cakupanPosyandu?: string;
     peran: Peran;
@@ -177,6 +184,7 @@ type CangkangProps = {
 const LEBAR_SIDEBAR = '(min-width: 64rem)';
 
 export function Cangkang({
+    demo = false,
     superAdmin = false,
     cakupanPosyandu,
     peran,
@@ -187,6 +195,7 @@ export function Cangkang({
     kakiSidebar,
 }: CangkangProps) {
     const alamat = useAlamat();
+    const antreanHariIni = bacaRute(alamat).nama === 'kms' || (demo && alamat === '/kms/selesai');
     const laci = useRef<HTMLDialogElement>(null);
     const tanggalKegiatan =
         periode.find((p) => p.id === periodeId)?.tanggalKegiatan ?? null;
@@ -221,13 +230,13 @@ export function Cangkang({
                 .filter((butir) => butir.peran.includes(peran) && (butir.href !== '/kms' || peran === 'kms' || superAdmin))
                 .map((butir) => {
                     const aktif = butir.href === '/beranda'
-                        ? bacaRute(alamat).nama === 'beranda'
-                        : alamat.startsWith(butir.href);
-                    const Ikon = butir.ikon;
+                        ? bacaRute(alamat).nama === 'beranda' && !(demo && alamat === '/kms/selesai')
+                        : alamat.startsWith(butir.href) && !(demo && butir.href === '/kms' && alamat === '/kms/selesai');
+                    const Ikon = demo && butir.href === '/kms' ? ClipboardList : butir.ikon;
 
                     return (
+                        <div key={butir.href}>
                         <Link
-                            key={butir.href}
                             href={butir.href}
                             aria-current={aktif ? 'page' : undefined}
                             // Memilih menu berarti selesai dengan laci, termasuk
@@ -246,6 +255,15 @@ export function Cangkang({
                             />
                             {butir.label}
                         </Link>
+                        {demo && butir.href === '/kms' && (
+                            <Link href="/kms/selesai" aria-current={alamat === '/kms/selesai' ? 'page' : undefined}
+                                onClick={() => laci.current?.close()}
+                                className={`mt-0.5 flex min-h-14 items-center gap-3.5 rounded-lg px-3.5 text-base pendek:pointer-fine:min-h-10 ${alamat === '/kms/selesai' ? 'bg-primary font-bold text-primary-foreground' : 'font-medium text-foreground'}`}>
+                                <CircleCheck className="size-5 shrink-0" strokeWidth={2.5} aria-hidden="true" />
+                                Pemeriksaan selesai
+                            </Link>
+                        )}
+                        </div>
                     );
                 })}
         </nav>
@@ -279,7 +297,7 @@ export function Cangkang({
                     <Merek />
                 </div>
 
-                <div className="ml-auto flex items-center gap-3">
+                {!antreanHariIni && <div className="ml-auto flex items-center gap-3">
                     <label
                         htmlFor="periode-atas"
                         className="text-sm font-semibold text-muted-foreground max-sm:sr-only"
@@ -293,7 +311,7 @@ export function Cangkang({
                         onGanti={onPindahPeriode}
                         className="w-50"
                     />
-                </div>
+                </div>}
             </div>
 
             {/* <dialog> asli: fokus terkurung di dalam laci, Esc menutupnya,
@@ -330,7 +348,7 @@ export function Cangkang({
                     <div className="mt-5.5">{menu}</div>
 
                     <div className="mt-auto space-y-2.5 pt-4">
-                        <StatusTablet />
+                        {demo ? <p className="text-sm text-muted-foreground">Status perangkat · simulasi demo</p> : <StatusTablet />}
                         {kakiSidebar !== undefined && kakiSidebar}
                     </div>
                 </div>
@@ -351,7 +369,7 @@ export function Cangkang({
 
                 {/* Periode adalah lingkup seluruh aplikasi, bukan milik satu
                     layar — tempatnya bersama navigasi. */}
-                <div className="px-2 pt-4.5 pendek:pointer-fine:pt-3">
+                {!antreanHariIni && <div className="px-2 pt-4.5 pendek:pointer-fine:pt-3">
                     <label
                         htmlFor="periode-sisi"
                         className="block text-sm font-semibold text-muted-foreground"
@@ -370,12 +388,12 @@ export function Cangkang({
                             Data terakhir {tanggalPanjang(tanggalKegiatan)}
                         </p>
                     )}
-                </div>
+                </div>}
 
                 <div className="mt-5.5 pendek:pointer-fine:mt-3">{menu}</div>
 
                 <div className="mt-auto space-y-2.5 pt-4 pendek:pointer-fine:pt-2.5">
-                    <StatusTablet />
+                    {demo ? <p className="text-sm text-muted-foreground">Status perangkat · simulasi demo</p> : <StatusTablet />}
                     {kakiSidebar !== undefined && kakiSidebar}
                 </div>
             </aside>
@@ -403,9 +421,9 @@ export function Cangkang({
                     .slice(0, 5)
                     .map((butir) => {
                         const aktif = butir.href === '/beranda'
-                            ? bacaRute(alamat).nama === 'beranda'
+                            ? bacaRute(alamat).nama === 'beranda' && !(demo && alamat === '/kms/selesai')
                             : alamat.startsWith(butir.href);
-                        const Ikon = butir.ikon;
+                        const Ikon = demo && butir.href === '/kms' ? ClipboardList : butir.ikon;
 
                         return (
                             <Link

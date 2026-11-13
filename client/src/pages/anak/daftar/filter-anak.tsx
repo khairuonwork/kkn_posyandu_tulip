@@ -73,7 +73,7 @@ export function FilterAnak({
                         aria-selected={tabAktif === id}
                         tabIndex={tabAktif === id ? 0 : -1}
                         onClick={() => setTabAktif(id)}
-                        className={`-mb-px flex min-h-12 items-center gap-2 border-b-2 px-3.5 text-sm font-bold transition-colors sm:px-5 ${tabAktif === id ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:bg-surface-subtle hover:text-foreground'}`}
+                        className={`-mb-px flex min-h-12 items-center gap-2 border-b-2 px-3.5 text-sm font-bold transition-colors sm:px-5 max-lg:min-h-[44px] pointer-coarse:min-h-[44px] ${tabAktif === id ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:bg-surface-subtle hover:text-foreground'}`}
                     >
                         {id === 'hari-ini' ? (
                             <ClipboardCheck

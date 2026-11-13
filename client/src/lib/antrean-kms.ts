@@ -8,63 +8,20 @@ export type AntreanKms = {
     status:
         'waiting' | 'called' | 'serving' | 'kms_review' | 'done' | 'cancelled';
     checkedInAt: string;
+    mejaKms?: number | null;
+    tibaKms?: boolean;
+    sudahDiukur?: boolean;
 };
 
-export async function ambilAntreanHariIni(
-    periodeId: string,
-    signal: AbortSignal,
+export type AksiPanggilan = 'panggil' | 'ulang' | 'tiba' | 'kembalikan';
+export type PanggilanKms = { id: string; nomor: number; meja: number; nama?: string | null };
+
+async function mintaKms<T>(
+    path: string,
     onSesiBerakhir: () => void,
-): Promise<AntreanKms[]> {
-    const parts = new Intl.DateTimeFormat('en-CA', {
-        timeZone: 'Asia/Jakarta',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-    }).formatToParts(new Date());
-    const date = Object.fromEntries(
-        parts.map((part) => [part.type, part.value]),
-    );
-    const tanggal = `${date.year}-${date.month}-${date.day}`;
-    const params = new URLSearchParams({ periodeId, tanggal });
-    const res = await fetch(`/api/v1/antrean?${params}`, {
-        credentials: 'same-origin',
-        cache: 'no-store',
-        signal,
-    });
-
-    if (res.status === 401) {
-        onSesiBerakhir();
-
-        throw new Error('Sesi telah berakhir. Silakan masuk kembali.');
-    }
-
-    const body = (await res.json().catch(() => ({}))) as {
-        items?: AntreanKms[];
-        galat?: string;
-    };
-
-    if (!res.ok) {
-        throw new Error(
-            body.galat ?? `Antrean gagal dimuat (HTTP ${res.status}).`,
-        );
-    }
-
-    return body.items ?? [];
-}
-
-export async function konfirmasiSelesaiKms(
-    id: string,
-    onSesiBerakhir: () => void,
-): Promise<void> {
-    const res = await fetch(
-        `/api/v1/antrean/${encodeURIComponent(id)}/konfirmasi-kms`,
-        {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: { 'content-type': 'application/json' },
-            body: '{}',
-        },
-    );
+    opsi: RequestInit,
+): Promise<T> {
+    const res = await fetch(`/api/v1/${path}`, { cache: 'no-store', ...opsi });
 
     if (res.status === 401) {
         onSesiBerakhir();
@@ -75,6 +32,73 @@ export async function konfirmasiSelesaiKms(
     if (!res.ok) {
         const body = (await res.json().catch(() => ({}))) as { galat?: string };
 
-        throw new Error(body.galat ?? `Konfirmasi gagal (HTTP ${res.status}).`);
+        throw new Error(
+            body.galat ?? 'Antrean tidak dapat diakses. Coba lagi.',
+        );
     }
+
+    return (await res.json()) as T;
+}
+
+export function ambilAntreanHariIni(
+    signal: AbortSignal,
+    onSesiBerakhir: () => void,
+) {
+    return mintaKms<{ items: AntreanKms[]; mejaKms: number | null }>(
+        'antrean-kms',
+        onSesiBerakhir,
+        { signal },
+    );
+}
+
+export function ambilPanggilan(
+    lingkup: string | null,
+    setelah: string | null,
+    signal: AbortSignal,
+    onSesiBerakhir: () => void,
+) {
+    const query = new URLSearchParams();
+
+    if (lingkup !== null) {
+        query.set('lingkup', lingkup);
+    }
+
+    if (setelah !== null) {
+        query.set('setelah', setelah);
+    }
+
+    return mintaKms<{ panggilan: PanggilanKms[]; lingkup: string | null }>(
+        `panggilan-kms?${query}`,
+        onSesiBerakhir,
+        { signal },
+    );
+}
+
+export function ubahPanggilanKms(
+    id: string,
+    aksi: AksiPanggilan,
+    meja: number,
+    onSesiBerakhir: () => void,
+) {
+    return mintaKms(
+        `antrean-kms/${encodeURIComponent(id)}/panggilan`,
+        onSesiBerakhir,
+        {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ aksi, meja }),
+        },
+    );
+}
+
+export function konfirmasiSelesaiKms(id: string, onSesiBerakhir: () => void) {
+    return mintaKms(
+        `antrean/${encodeURIComponent(id)}/konfirmasi-kms`,
+        onSesiBerakhir,
+        {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: '{}',
+        },
+    );
 }

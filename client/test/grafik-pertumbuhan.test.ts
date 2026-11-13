@@ -15,6 +15,7 @@ test('dua periode pada umur yang sama tetap punya identitas dan label masing-mas
         const {
             default: Grafik,
             susunTitik,
+            posisiUmurGrafik,
             SPEK,
         } = await vite.ssrLoadModule('/src/components/grafik-pertumbuhan.tsx');
         const { umurBulanPada } =
@@ -44,7 +45,7 @@ test('dua periode pada umur yang sama tetap punya identitas dan label masing-mas
             catatanUkur: null,
             penilaian: { BB_U: { z, kategori: 'Normal', tidakWajar: false } },
         }));
-        const titik = susunTitik(pengukuran, SPEK[0]);
+        const titik = susunTitik(pengukuran, SPEK[0], '2024-02-09');
         assert.deepEqual(
             titik.map((t: { umur: number }) => t.umur),
             [29, 29],
@@ -53,11 +54,19 @@ test('dua periode pada umur yang sama tetap punya identitas dan label masing-mas
             titik.map((t: { periodeId: string }) => t.periodeId),
             ['2026-07', '2026-08'],
         );
+        assert.ok(titik[0].posisiUmur > 29 && titik[0].posisiUmur < titik[1].posisiUmur);
+        assert.ok(titik[1].posisiUmur < 30 && titik[1].posisiUmur > 29.9);
+        assert.equal(posisiUmurGrafik('2024-02-09', '2026-08-09', 30), 30);
+        assert.equal(posisiUmurGrafik(null, '2026-08-08', 29), 29);
+        assert.equal(posisiUmurGrafik('2024-02-09', null, 29), 29);
+        assert.equal(posisiUmurGrafik('2024-01-31', '2024-02-29', 0), 0);
+        assert.equal(posisiUmurGrafik('2024-02-09', '2029-03-01', 60), 60);
 
         const props = {
             kelamin: 'P',
             nama: 'Contoh',
             umurBalita: 32,
+            tglLahir: '2024-02-09',
             keterangan: 'Data uji',
             pengukuran,
             standar: Array.from({ length: 13 }, (_, i) => ({
@@ -80,6 +89,9 @@ test('dua periode pada umur yang sama tetap punya identitas dan label masing-mas
             /<text[^>]*text-anchor="start"[^>]*>\+1,41 SD<\/text>/,
         );
         assert.equal((html.match(/role="button"/g) ?? []).length, 2);
+        const posisi = [...html.matchAll(/<circle[^>]*cx="([\d.]+)"[^>]*role="button"/g)].map((m) => Number(m[1]));
+        assert.equal(posisi.length, 2);
+        assert.ok(posisi[0] < posisi[1]);
 
         const september = {
             ...pengukuran[0],

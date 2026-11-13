@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | **Jenis** | Orientasi — peta dokumentasi |
-| **Status** | Final Approved / v2.1-Modular |
-| **Perubahan berarti terakhir** | 1 November 2026 |
+| **Status** | hidup |
+| **Perubahan berarti terakhir** | 13 November 2026 |
 
 **SIMPATIK Posyandu** — sistem pencatatan, pemantauan, dan pelaporan status gizi balita Posyandu Tulip RW 18, Kelurahan Citeureup.
 
@@ -55,6 +55,7 @@ Tim yang menerima pengelolaan host/API dapat mulai dari [Panduan serah-terima se
 | **[Status lingkup](prd/prd-utama.md#13-status-lingkup)** | Persetujuan dan target rilis; dibaca terpisah dari prioritas dan status pengerjaan |
 | **[Panduan Kirim ke WhatsApp](panduan-kirim-whatsapp.md)** | Menyiapkan tombol kirim hasil dan tautan Lembar Hasil: kunci, alamat, nomor uji, dan cara mengecek |
 | **[Sesi pelatihan](sesi-pelatihan.md)** | Menyiapkan, menjalankan, dan mengakhiri latihan terisolasi |
+| **[Panduan antrean KMS](panduan-antrean-kms.md)** | Menetapkan meja, memakai suara, dan menguji simulasi dua tab |
 | **[Panduan penulisan](panduan-penulisan.md)** | Cara menulis dokumen di repo ini. Baca sebelum menambah atau menyunting apa pun di sini |
 
 ---

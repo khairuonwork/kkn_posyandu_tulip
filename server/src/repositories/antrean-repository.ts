@@ -22,14 +22,25 @@ export type BarisAntrean = {
     calledAt: string | null;
     completedAt: string | null;
     updatedAt: string;
+    mejaKms: number | null;
+    tibaKms: boolean;
+    sudahDiukur: boolean;
 };
+
+const SUDAH_DIUKUR = `EXISTS (
+    SELECT 1 FROM pengukuran ukur WHERE ukur.anak_id=s.anak_id
+        AND ukur.periode_id=q.periode_id AND ukur.tanggal_ukur=q.tanggal
+        AND ukur.status_kehadiran='hadir' AND ukur.bb_kg > 0 AND ukur.tinggi_cm > 0
+)`;
 
 const PILIH = `SELECT q.id, q.periode_id AS "periodeId", q.sasaran_id AS "sasaranId", a.id AS "anakId",
                       to_char(q.tanggal, 'YYYY-MM-DD') AS tanggal,
                       q.nomor, q.urutan, coalesce(a.nik, 'ANAK-' || a.id::text) AS "childIdentity",
                       a.nama, o.nama AS "namaOrtu", w.rt, q.status, q.catatan,
                       q.checked_in_at AS "checkedInAt", q.called_at AS "calledAt",
-                      q.completed_at AS "completedAt", q.updated_at AS "updatedAt"
+                      q.completed_at AS "completedAt", q.updated_at AS "updatedAt",
+                      q.meja_kms AS "mejaKms", q.tiba_kms AS "tibaKms",
+                      ${SUDAH_DIUKUR} AS "sudahDiukur"
                  FROM antrean_layanan q
                  JOIN sasaran s ON s.id = q.sasaran_id
                  JOIN periode pe ON pe.id=q.periode_id
@@ -93,6 +104,7 @@ export async function checkIn(
             );
             await db.query(
                 `UPDATE antrean_layanan SET status='waiting', catatan=$2, urutan=$3,
+                    meja_kms=NULL, tiba_kms=false,
                     checked_in_at=now(), called_at=NULL, completed_at=NULL,
                     updated_by=$4 WHERE id=$1`,
                 [id, catatan, max.rows[0].urutan + 1, pengguna.id],
@@ -131,7 +143,8 @@ export async function ubahStatus(
           JOIN anak a ON a.id=s.anak_id
           JOIN periode p ON p.id=q.periode_id AND p.sesi_ditutup_pada IS NULL
            LEFT JOIN wilayah_rt w ON w.id=a.wilayah_rt_id
-          WHERE q.id=$1 AND ($2::boolean OR p.posyandu_id=ANY($3::bigint[])) FOR UPDATE OF q`, [id, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
+          WHERE q.id=$1 AND (q.meja_kms IS NULL OR q.status IN ('done', 'cancelled'))
+            AND ($2::boolean OR p.posyandu_id=ANY($3::bigint[])) FOR UPDATE OF q`, [id, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
     );
     if (!current.rows[0]) return null;
     let nextOrder = urutan;
@@ -146,6 +159,8 @@ export async function ubahStatus(
     const { rows } = await db.query<BarisAntrean>(
         `UPDATE antrean_layanan q
             SET status=$2, catatan=coalesce($3, q.catatan),
+                meja_kms=CASE WHEN $2 IN ('waiting', 'cancelled') THEN NULL ELSE q.meja_kms END,
+                tiba_kms=CASE WHEN $2 IN ('waiting', 'cancelled') THEN false ELSE q.tiba_kms END,
                 urutan=coalesce($4, q.urutan),
                 called_at=CASE WHEN $2='called' THEN now() WHEN $2='waiting' THEN NULL ELSE q.called_at END,
                 completed_at=CASE WHEN $2='done' THEN now() WHEN $2='waiting' THEN NULL ELSE q.completed_at END,
@@ -173,20 +188,42 @@ export async function konfirmasiKms(
     db: PoolClient,
     pengguna: PenggunaAktif,
     id: string,
+    wajibTiba = false,
 ): Promise<BarisAntrean | null> {
+    const { rows: jadwal } = await db.query<{ periodeId: number; tanggalKunci: number }>(
+        `SELECT periode_id AS "periodeId", to_char(tanggal, 'YYYYMMDD')::integer AS "tanggalKunci"
+           FROM antrean_layanan WHERE id=$1`, [id],
+    );
+    if (!jadwal[0]) return null;
+    await db.query("SELECT pg_advisory_xact_lock($1::integer, $2::integer)", [
+        jadwal[0].periodeId, jadwal[0].tanggalKunci,
+    ]);
     const { rows } = await db.query<{ id: string; sasaranId: number; periodeId: number }>(
         `UPDATE antrean_layanan q
             SET status='done', completed_at=now(), updated_by=$2
           FROM periode p
          WHERE q.id=$1 AND p.id=q.periode_id AND p.sesi_ditutup_pada IS NULL
            AND ($3::boolean OR p.posyandu_id=ANY($4::bigint[]))
-           AND q.status='kms_review'
+           AND (
+               (NOT $5::boolean AND q.meja_kms IS NULL AND q.status='kms_review')
+               OR (q.status NOT IN ('done', 'cancelled') AND q.tiba_kms AND EXISTS (
+                   SELECT 1 FROM pengguna_posyandu up JOIN pengguna u ON u.id=up.pengguna_id
+                   WHERE up.pengguna_id=$2 AND up.posyandu_id=p.posyandu_id AND up.meja_kms=q.meja_kms
+                     AND u.aktif AND u.peran='kms'
+               ) AND EXISTS (
+                   SELECT 1 FROM sasaran s WHERE s.id=q.sasaran_id AND ${SUDAH_DIUKUR}
+               ))
+           )
          RETURNING q.id, q.sasaran_id AS "sasaranId", q.periode_id AS "periodeId"`,
-        [id, pengguna.id, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
+        [id, pengguna.id, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? [], wajibTiba],
     );
     if (!rows[0]) {
         // Idempoten: bila sudah berstatus 'done', kembalikan baris yang ada
-        const existing = await db.query<BarisAntrean>(`${PILIH} WHERE q.id=$1 AND q.status='done'`, [id]);
+        const existing = await db.query<BarisAntrean>(
+            `${PILIH} WHERE q.id=$1 AND q.status='done'
+             AND ($2::boolean OR pe.posyandu_id=ANY($3::bigint[]))`,
+            [id, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
+        );
         return existing.rows[0] ?? null;
     }
     await db.query(
@@ -206,6 +243,9 @@ export async function konfirmasiSemuaKms(
     periodeId: number,
     tanggal: string,
 ): Promise<number> {
+    await db.query("SELECT pg_advisory_xact_lock($1::integer, $2::integer)", [
+        periodeId, Number(tanggal.replaceAll("-", "")),
+    ]);
     const { rows } = await db.query<{ id: string; sasaranId: number }>(
         `UPDATE antrean_layanan q
             SET status='done', completed_at=now(), updated_by=$2
@@ -213,7 +253,7 @@ export async function konfirmasiSemuaKms(
          WHERE q.periode_id=$3 AND q.tanggal=$4::date
            AND p.id=q.periode_id AND p.sesi_ditutup_pada IS NULL
            AND ($5::boolean OR p.posyandu_id=ANY($6::bigint[]))
-           AND q.status='kms_review'
+           AND q.status='kms_review' AND q.meja_kms IS NULL
          RETURNING q.id, q.sasaran_id AS "sasaranId"`,
         [tanggal, pengguna.id, periodeId, tanggal, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
     );

@@ -9,6 +9,7 @@
 import { Baby, UserPlus } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Halaman from '@/components/halaman';
+import Pilih from '@/components/pilih';
 import { susunTabel } from '@/lib/z-score';
 import { FilterAnak } from './daftar/filter-anak';
 import { FormTambah } from './daftar/form-tambah';
@@ -208,17 +209,16 @@ export default function DaftarAnak({
                 <label htmlFor="lingkup-balita" className="text-sm font-bold">
                     Daftar balita
                 </label>
-                <select
+                <Pilih
                     id="lingkup-balita"
-                    className="isian"
                     value={lingkup}
-                    onChange={(e) => setLingkup(e.target.value)}
+                    onChange={setLingkup}
                 >
                     <option value="aktif">Balita Aktif ({jumlahAktif})</option>
                     <option value="arsip">
                         Semua data / Arsip ({anakDalamLingkup.length})
                     </option>
-                </select>
+                </Pilih>
             </div>
 
             <section className="kartu flex flex-col overflow-hidden lg:min-h-0 lg:flex-1">

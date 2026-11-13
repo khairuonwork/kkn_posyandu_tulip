@@ -76,3 +76,31 @@ test('KMS menerima periode portal dan mempertahankan ID tablet', async () => {
         await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
     }
 });
+
+test('meja akun KMS tetap terlihat saat periode bulan ini belum tersedia', async () => {
+    const pool = {
+        async query(sql: string) {
+            if (sql.includes('FROM periode p')) return { rows: [] };
+            if (sql.includes('FROM pengguna_posyandu')) return { rows: [{ mejaKms: 3 }] };
+            throw new Error('Query tidak diharapkan');
+        },
+    } as unknown as Pool;
+    const app = express();
+    app.use((req, _res, next) => {
+        req.pengguna = { id: 1, peran: 'kms', rt: null, aktif: true, posyanduIds: [7] };
+        next();
+    });
+    app.use(ruteAntrean(pool));
+    const server = app.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    try {
+        const res = await fetch(`http://127.0.0.1:${address.port}/antrean-kms`);
+        assert.equal(res.status, 200);
+        assert.deepEqual(await res.json(), { items: [], mejaKms: 3 });
+    } finally {
+        server.closeAllConnections();
+        await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+    }
+});

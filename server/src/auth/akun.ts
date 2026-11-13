@@ -29,6 +29,7 @@ export type IsianAkun = {
     rt: string | null;
     /** Satu akun operasional bekerja pada satu cluster Posyandu/RW. */
     posyanduId?: number | null;
+    mejaKms?: number | null;
     aktif: boolean;
 };
 
@@ -58,6 +59,13 @@ export function bacaIsianAkun(badan: unknown, lama?: IsianAkun): HasilBacaAkun {
         : (lama?.posyanduId ?? null);
     const kataSandi =
         typeof b.kataSandi === 'string' && b.kataSandi !== '' ? b.kataSandi : null;
+    const mejaKms = 'mejaKms' in b ? b.mejaKms
+        : posyanduId === lama?.posyanduId ? lama?.mejaKms ?? null : null;
+
+    if (mejaKms !== null &&
+        (typeof mejaKms !== 'number' || !Number.isInteger(mejaKms) || mejaKms < 1 || mejaKms > 99)) {
+        return { galat: 'Nomor meja KMS harus berupa bilangan bulat antara 1 dan 99.' };
+    }
 
     if (nama === '' || username === '') {
         return { galat: 'Nama lengkap dan nama pengguna harus diisi.' };
@@ -97,6 +105,7 @@ export function bacaIsianAkun(badan: unknown, lama?: IsianAkun): HasilBacaAkun {
             // Bidan dan admin melihat seluruh RW; RT binaan tidak berarti apa-apa.
             rt: peran === 'kader' ? rt : null,
             posyanduId,
+            ...(peran === 'kms' ? { mejaKms } : {}),
             aktif,
         },
         kataSandi,

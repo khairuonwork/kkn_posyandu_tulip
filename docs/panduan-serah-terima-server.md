@@ -2,6 +2,8 @@
 
 Panduan ini untuk tim yang menyiapkan, menjalankan, dan memelihara REST API SIMPATIK. Server aplikasi adalah satu-satunya jalur dari website dan Android menuju PostgreSQL; kredensial database hanya berada di lingkungan server.
 
+Untuk migrasi dan uji pemanggilan per meja, lihat [Panduan antrean KMS](panduan-antrean-kms.md). Periksa target database dan siapkan cadangan sebelum menjalankan migrasi pada lingkungan operasional.
+
 ## Peta komponen
 
 ```text

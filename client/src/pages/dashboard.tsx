@@ -158,7 +158,7 @@ export default function Dashboard({
     sasaranHistoris = false,
 }: Props) {
     const [formHariH, setFormHariH] = useState(false);
-    const [formMenutup, setFormMenutup] = useState(false);
+    const tombolHariH = useRef<HTMLButtonElement>(null);
     const [pesanHariH, setPesanHariH] = useState(false);
     const [tabAktif, setTabAktif] = useState<'ringkasan' | 'statistik'>(
         'ringkasan',
@@ -206,24 +206,10 @@ export default function Dashboard({
             });
         }
     }, [periode.id, rtPilihan, memuat]);
-    useEffect(() => {
-        if (!formMenutup) {
-            return;
-        }
-
-        const timer = window.setTimeout(
-            () => {
-                setFormHariH(false);
-                setFormMenutup(false);
-            },
-            window.matchMedia('(prefers-reduced-motion: reduce)').matches
-                ? 0
-                : 180,
-        );
-
-        return () => window.clearTimeout(timer);
-    }, [formMenutup]);
-    const tutupForm = () => setFormMenutup(true);
+    const tutupForm = () => {
+        setFormHariH(false);
+        requestAnimationFrame(() => tombolHariH.current?.focus({ preventScroll: true }));
+    };
     const pilihTab = (id: 'ringkasan' | 'statistik') => {
         if (id !== tabAktif) {
             setTabAktif(id);
@@ -330,7 +316,7 @@ export default function Dashboard({
                                     )
                                     ?.focus();
                             }}
-                            className="tab"
+                            className="tab aria-selected:!bg-primary aria-selected:!text-white"
                         >
                             {label}
                         </button>
@@ -429,6 +415,7 @@ export default function Dashboard({
                                     />
                                     <Kpi
                                         ikon={Scale}
+                                        nada="biru"
                                         label="Ditimbang (D)"
                                         nilai={ringkasan.ditimbang}
                                         keterangan={
@@ -455,6 +442,7 @@ export default function Dashboard({
                                     />
                                     <Kpi
                                         ikon={TrendingUp}
+                                        nada="naik"
                                         label="Berat naik (N)"
                                         nilai={ringkasan.naik}
                                         keterangan={`${persenSaja(ringkasan.naik, ringkasan.ditimbang)}% dari D`}
@@ -502,6 +490,7 @@ export default function Dashboard({
                                                 <KepalaKartu
                                                     judul={judul}
                                                     sub={sub}
+                                                    hijau
                                                 />
                                                 <ul className="mt-4 divide-y divide-rule">
                                                     {rows.map((row) => (
@@ -525,6 +514,7 @@ export default function Dashboard({
                                         <KepalaKartu
                                             judul="Status gizi BB/PB atau BB/TB"
                                             sub={`Berat menurut tinggi/panjang badan · ${statusGizi.ditimbang} ditimbang`}
+                                            hijau
                                         />
 
                                         <ul className="mt-4 divide-y divide-rule">
@@ -588,45 +578,27 @@ export default function Dashboard({
                                             <button
                                                 type="button"
                                                 className="tombol-kedua shrink-0 font-bold"
-                                                aria-expanded={formHariH}
-                                                onClick={() =>
-                                                    formHariH
-                                                        ? tutupForm()
-                                                        : setFormHariH(true)
-                                                }
+                                                ref={tombolHariH}
+                                                aria-haspopup="dialog"
+                                                onClick={() => setFormHariH(true)}
                                             >
-                                                {formHariH
-                                                    ? 'Tutup isian hari H'
-                                                    : 'Isi kehadiran hari H'}
+                                                Isi kehadiran hari H
                                             </button>
                                         </div>
                                     )}
                                 {formHariH &&
                                     bolehUbahHariH &&
                                     onSimpanHariH && (
-                                        <div
-                                            className={
-                                                formMenutup
-                                                    ? 'beranda-form-keluar'
-                                                    : 'beranda-form-masuk'
-                                            }
-                                            inert={formMenutup}
-                                        >
-                                            <FormKehadiranHariH
-                                                key={`${periode.id}:${rtPilihan}`}
-                                                rows={kehadiranHariH.filter(
-                                                    (r) =>
-                                                        rtPilihan === '' ||
-                                                        r.rt === rtPilihan,
-                                                )}
-                                                onSimpan={async (items) => {
-                                                    setPesanHariH(false);
-                                                    await onSimpanHariH(items);
-                                                    setPesanHariH(true);
-                                                }}
-                                                onTutup={tutupForm}
-                                            />
-                                        </div>
+                                        <FormKehadiranHariH
+                                            key={`${periode.id}:${rtPilihan}`}
+                                            rows={kehadiranHariH.filter((r) => rtPilihan === '' || r.rt === rtPilihan)}
+                                            onSimpan={async (items) => {
+                                                setPesanHariH(false);
+                                                await onSimpanHariH(items);
+                                                setPesanHariH(true);
+                                            }}
+                                            onTutup={tutupForm}
+                                        />
                                     )}
                                 {pesanHariH && (
                                     <p
@@ -809,13 +781,17 @@ function Kpi({
     label: string;
     nilai: number | string;
     keterangan: string;
-    nada?: 'hijau' | 'netral' | 'oranye';
+    nada?: 'hijau' | 'netral' | 'oranye' | 'biru' | 'naik';
 }) {
     const kelasIkon =
         nada === 'netral'
             ? 'bg-surface-alt text-muted-foreground'
             : nada === 'oranye'
               ? 'bg-tone-amber-bg text-tone-amber'
+              : nada === 'biru'
+                ? 'bg-tone-blue-bg text-tone-blue'
+                : nada === 'naik'
+                  ? 'bg-[#e3f3df] text-[#286526]'
               : 'bg-accent text-primary';
 
     return (
@@ -846,11 +822,11 @@ function Kpi({
 }
 
 /** Judul kartu dengan keterangan redup di kanannya. */
-function KepalaKartu({ judul, sub }: { judul: string; sub: ReactNode }) {
+function KepalaKartu({ judul, sub, hijau = false }: { judul: string; sub: ReactNode; hijau?: boolean }) {
     return (
-        <div className="flex flex-col gap-1.5">
+        <div className={hijau ? '-mx-5 -mt-5 flex flex-col gap-1.5 rounded-t-[19px] bg-primary px-5 py-4 text-white sm:-mx-6 sm:-mt-6 sm:px-6' : 'flex flex-col gap-1.5'}>
             <h2 className="text-lg font-extrabold">{judul}</h2>
-            <span className="text-sm text-muted-foreground">{sub}</span>
+            <span className={hijau ? 'text-sm text-white' : 'text-sm text-muted-foreground'}>{sub}</span>
         </div>
     );
 }
@@ -1009,9 +985,7 @@ function BarisTren({
                                 lainnya dalam persen ruang batang; `pt-7`
                                 menyisakan tempat untuk angka di atasnya. */}
                             <span
-                                className={`relative w-full max-w-[24px] rounded-t-[3px] ${
-                                    terakhir ? warna.batang : 'bg-input'
-                                }`}
+                                className="relative w-full max-w-[24px]"
                                 style={{
                                     height:
                                         n === 0
@@ -1019,6 +993,7 @@ function BarisTren({
                                             : `${(n / puncak) * 100}%`,
                                 }}
                             >
+                                <span aria-hidden="true" className={`absolute inset-0 rounded-t-[3px] ${n > 0 ? 'beranda-batang' : ''} ${terakhir ? warna.batang : 'bg-input'}`} />
                                 <span
                                     className={`absolute bottom-full left-1/2 mb-px -translate-x-1/2 leading-tight tabular-nums ${
                                         terakhir
@@ -1047,12 +1022,12 @@ function DaftarPerhatian({ anak }: { anak: AnakPerluPerhatian[] }) {
             aria-labelledby="judul-perlu"
             className="beranda-perhatian kartu flex min-w-0 flex-col overflow-hidden"
         >
-            <div className="flex flex-col gap-1.5 border-b border-rule px-5 py-5 sm:px-6">
+            <div className="flex flex-col gap-1.5 bg-primary px-5 py-5 text-white sm:px-6">
                 <h2 id="judul-perlu" className="text-lg font-extrabold">
                     Perlu perhatian
                 </h2>
                 {anak.length > 0 && (
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-sm text-white">
                         {anak.length} balita
                         {anak.length > 1 && ' · paling mendesak di atas'}
                     </span>
@@ -1135,7 +1110,7 @@ function DaftarPerhatian({ anak }: { anak: AnakPerluPerhatian[] }) {
                         aria-expanded={semua}
                         aria-controls="daftar-perhatian"
                         onClick={() => setSemua(!semua)}
-                        className="min-h-11 rounded-lg px-2 text-sm font-bold text-primary hover:bg-accent"
+                        className="min-h-11 rounded-lg px-2 text-sm font-bold text-primary hover:bg-accent max-lg:min-h-[44px] pointer-coarse:min-h-[44px]"
                     >
                         {semua
                             ? 'Ringkas daftar'

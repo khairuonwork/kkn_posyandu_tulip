@@ -43,6 +43,8 @@ Kontrak HTTP aktual untuk website dan aplikasi Android. Keduanya memanggil API S
 
 ## 3. Anak, Pengukuran & Alur Layanan
 
+Endpoint pemanggilan per meja dan ruang tunggu, termasuk penanda panggilan, dijelaskan pada [kontrak API bagian 3.4](../SIMPATIK_Posyandu_REST_API_Contract.md#34-antrean--pemeriksaan-kms-real-time).
+
 | Method | Path | Akses | Kegunaan |
 |---|---|---|---|
 | `GET` | `/api/v1/anak` | lihat-anak | Cari/daftar anak (filter RT, cari, periode) |

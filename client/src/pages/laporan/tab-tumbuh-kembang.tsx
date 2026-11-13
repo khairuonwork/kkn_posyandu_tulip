@@ -47,6 +47,7 @@ export default function TabTumbuhKembang({
                     <TabLaporan aktif="tumbuh-kembang" />
                 </nav>
                 <div key={`${periode.id}-${laporan.status}`} className="laporan-ganti p-5 sm:p-6">
+                    {!modeLive && <p role="status" className="mb-4 font-semibold">Data survei berikut adalah simulasi demo.</p>}
                     <p className="mb-5 text-sm text-muted-foreground">
                         Semua survei perkembangan pada {periode.label} yang
                         memiliki jawaban “Tidak”, termasuk catatan yang belum

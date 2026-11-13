@@ -9,6 +9,8 @@
  */
 
 import { useState } from 'react';
+import type { IsianHariH, KehadiranHariH } from '@/components/cakupan-penimbangan';
+import { unduhLaporanDemo } from '@/lib/laporan-demo';
 import type { Rute } from '@/app-shell';
 import StateHalaman from '@/components/state-halaman';
 import {
@@ -19,6 +21,7 @@ import {
     daftarRt,
     data,
     detailAnak,
+    laporanDemo,
     PENGATURAN_TERAKHIR_DIUBAH,
     periodeSasaranDemo,
     periodeTerakhirTerisi,
@@ -226,6 +229,7 @@ export function Layar({
     onSesiBerakhir,
 }: LayarProps) {
     const [rtBeranda, setRtBeranda] = useState('');
+    const [kehadiranDemo, setKehadiranDemo] = useState<Record<string, IsianHariH[]>>({});
     const periode = modeDataLive
         ? (periodeServer?.find((p) => p.id === periodeId) ?? null)
         : cariPeriode(periodeId);
@@ -271,13 +275,19 @@ export function Layar({
 
         const live = modeDataLive ? berandaServer?.data : null;
         const rtDashboard = rtLingkup ?? (rtBeranda || null);
+        const rekapDemo = rekapPerRt([periodeId], rtLingkup).baris;
+        const hariDemo: KehadiranHariH[] = rekapDemo.map((baris) => {
+            const wilayahRtId = Number(baris.rt);
+            const tersimpan = kehadiranDemo[periodeId]?.find((item) => item.wilayahRtId === wilayahRtId);
+            return { periodeId, periodeDbId: 1, wilayahRtId, rt: baris.rt, posyandu: 'Posyandu Tulip', tanggalHariH: tersimpan?.tanggalHariH ?? periode.tanggalKegiatan, hadirHariH: tersimpan ? tersimpan.hadirHariH : baris.d, sumber: 'manual', sasaran: baris.s };
+        });
 
         return (
             <Dashboard
-                kehadiranHariH={live?.kehadiranHariH}
-                bolehUbahHariH={live?.bolehUbahHariH}
+                kehadiranHariH={modeDataLive ? live?.kehadiranHariH : hariDemo}
+                bolehUbahHariH={modeDataLive ? live?.bolehUbahHariH : peran !== 'kader'}
                 onSimpanHariH={
-                    modeDataLive ? berandaServer?.simpanHariH : undefined
+                    modeDataLive ? berandaServer?.simpanHariH : async (items) => setKehadiranDemo((prev) => ({ ...prev, [periodeId]: [...(prev[periodeId] ?? []).filter((lama) => !items.some((baru) => lama.wilayahRtId === baru.wilayahRtId)), ...items] }))
                 }
                 rtPilihan={modeDataLive ? berandaServer?.rtPilihan : rtBeranda}
                 wilayahRt={live?.wilayahRt ?? wilayahRt}
@@ -325,7 +335,13 @@ export function Layar({
                 }
                 cakupanEnamBulan={
                     live?.cakupanEnamBulan ??
-                    (modeDataLive ? [] : cakupanEnamBulan(rtDashboard))
+                    (modeDataLive ? [] : cakupanEnamBulan(rtDashboard).map((bulan) => {
+                        const entries = kehadiranDemo[bulan.periodeId];
+                        if (!entries) return bulan;
+                        const rtData = rekapPerRt([bulan.periodeId], rtDashboard).baris;
+                        const nilai = rtData.map((r) => entries.find((e) => e.wilayahRtId === Number(r.rt))?.hadirHariH ?? r.d);
+                        return { ...bulan, hadirHariH: nilai.reduce((jumlah, n) => jumlah + n, 0) };
+                    }))
                 }
                 trenGizi={
                     live?.trenGizi ??
@@ -491,7 +507,21 @@ export function Layar({
                 kelurahan={data.meta.kelurahan}
                 periodeTerisi={periodeTerakhirTerisi()}
                 onPindahPeriode={onPindahPeriode}
-                laporanLive={modeDataLive ? laporanServer : undefined}
+                laporanLive={modeDataLive ? laporanServer : {
+                    data: (() => {
+                        const laporan = laporanDemo(periodeId);
+                        if (rtLingkup === null) return laporan;
+                        const bulanan = laporan.bulanan.filter((baris) => baris.rt === rtLingkup);
+                        const riwayat2T = laporan.riwayat2T.filter((baris) => baris.rt === rtLingkup);
+                        return { ...laporan, bulanan, riwayat2T, ringkasan: { ...laporan.ringkasan, anakDiukur: bulanan.length, denganDuaT: riwayat2T.length } };
+                    })(),
+                    status: 'siap',
+                    pesanGalat: null,
+                    muatUlang: () => undefined,
+                    unduh: (format = 'zscore') => unduhLaporanDemo(periodeId, format, rtLingkup),
+                    onSesiBerakhir: () => undefined,
+                }}
+                demo={!modeDataLive}
                 bolehUnduh={peran === 'bidan' || peran === 'admin'}
             />
         );
@@ -514,7 +544,6 @@ export function Layar({
         return (
             <PemeriksaanKms
                 demo={!modeDataLive}
-                periodeId={periodeId}
                 onSesiBerakhir={onSesiBerakhir}
             />
         );

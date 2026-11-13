@@ -157,6 +157,7 @@ export default function SasaranImpor({
     }, [cari, sasaran]);
 
     const periksa = async () => {
+        if (sasaranAwal) { setGalat('Impor Excel tidak tersedia dalam demo.'); return; }
         if (file === null) {
             return;
         }
@@ -186,6 +187,7 @@ export default function SasaranImpor({
     };
 
     const terbitkan = async () => {
+        if (sasaranAwal) { setGalat('Penerbitan tidak tersedia dalam demo.'); return; }
         if (file === null || sheetAktif === undefined || isiBase64 === '') {
             return;
         }
@@ -236,6 +238,7 @@ export default function SasaranImpor({
     };
 
     const cariAnakMaster = async () => {
+        if (sasaranAwal) { setGalat('Pencarian master tidak tersedia dalam demo.'); return; }
         if (!sasaran?.periode || cariCalon.trim().length < 2) {
             return;
         }
@@ -259,6 +262,7 @@ export default function SasaranImpor({
     };
 
     const tambahAnak = async (item: CalonSasaran) => {
+        if (sasaranAwal) { setGalat('Penambahan sasaran tidak tersedia dalam demo.'); return; }
         if (!sasaran?.periode) {
             return;
         }
@@ -302,6 +306,7 @@ export default function SasaranImpor({
     };
 
     const simpanEdit = async () => {
+        if (sasaranAwal) { setGalat('Perubahan sasaran tidak tersedia dalam demo.'); return; }
         if (editId === null) {
             return;
         }
@@ -325,6 +330,7 @@ export default function SasaranImpor({
     };
 
     const bukaPratinjauReset = async () => {
+        if (sasaranAwal) { setGalat('Reset tidak tersedia dalam demo.'); return; }
         if (!sasaran?.periode) {
             return;
         }
@@ -349,6 +355,7 @@ export default function SasaranImpor({
     };
 
     const jalankanResetHariIni = async () => {
+        if (sasaranAwal) { setGalat('Reset tidak tersedia dalam demo.'); return; }
         if (
             !sasaran?.periode ||
             !pratinjauReset ||
@@ -394,7 +401,7 @@ export default function SasaranImpor({
         <Halaman
             ikon={Upload}
             judul="Sasaran & impor"
-            subjudul="Kelola daftar layanan bulanan tanpa menghapus master Data Balita atau riwayat pengukuran."
+            subjudul="Siapkan dan kelola daftar balita yang akan dilayani setiap bulan."
         >
             <div className="w-full space-y-6">
                 {galat !== '' &&
