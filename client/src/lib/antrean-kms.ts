@@ -1,13 +1,24 @@
+export type PrioritasKms = {
+    skor: number;
+    jumlahT: number;
+    /** Label singkat, mis. "2T" atau "Gizi kurang". */
+    alasan: string[];
+};
+
 export type AntreanKms = {
     id: string;
     anakId: number;
     nomor: number;
+    urutan?: number;
     nama: string;
     namaOrtu: string | null;
     rt: string | null;
     status:
         'waiting' | 'called' | 'serving' | 'kms_review' | 'done' | 'cancelled';
     checkedInAt: string;
+    updatedAt?: string;
+    /** Catatan meja pendaftaran (saat check-in antrean). */
+    catatan?: string | null;
     /** Jawaban pendaftaran (APK); null = tidak ditanyakan karena usia. */
     masihMenyusui?: boolean | null;
     asiEksklusif?: boolean | null;
@@ -15,13 +26,16 @@ export type AntreanKms = {
     catatanKhusus?: string | null;
     /** Catatan/pengamatan khusus KMS, mis. 2T, 3T, atau anak sakit. */
     catatanKms?: string | null;
+    /** Akun KMS yang memanggil/memeriksa; tetap terisi setelah selesai. */
+    kmsPetugasId?: number | null;
+    kmsPetugasNama?: string | null;
+    kmsDipanggilPada?: string | null;
+    /** true bila akun yang sedang masuk adalah pemeriksanya. */
+    kmsMilikSaya?: boolean;
+    prioritasKms?: PrioritasKms | null;
 };
 
-export async function ambilAntreanHariIni(
-    periodeId: string,
-    signal: AbortSignal,
-    onSesiBerakhir: () => void,
-): Promise<AntreanKms[]> {
+export function tanggalHariIniJakarta(): string {
     const parts = new Intl.DateTimeFormat('en-CA', {
         timeZone: 'Asia/Jakarta',
         year: 'numeric',
@@ -31,8 +45,49 @@ export async function ambilAntreanHariIni(
     const date = Object.fromEntries(
         parts.map((part) => [part.type, part.value]),
     );
-    const tanggal = `${date.year}-${date.month}-${date.day}`;
-    const params = new URLSearchParams({ periodeId, tanggal });
+
+    return `${date.year}-${date.month}-${date.day}`;
+}
+
+async function kirim<T>(
+    url: string,
+    body: unknown,
+    onSesiBerakhir: () => void,
+    pesanGagal: string,
+): Promise<T> {
+    const res = await fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+    });
+
+    if (res.status === 401) {
+        onSesiBerakhir();
+
+        throw new Error('Sesi telah berakhir. Silakan masuk kembali.');
+    }
+
+    const isi = (await res.json().catch(() => ({}))) as T & {
+        galat?: string;
+    };
+
+    if (!res.ok) {
+        throw new Error(isi.galat ?? `${pesanGagal} (HTTP ${res.status}).`);
+    }
+
+    return isi;
+}
+
+export async function ambilAntreanHariIni(
+    periodeId: string,
+    signal: AbortSignal,
+    onSesiBerakhir: () => void,
+): Promise<AntreanKms[]> {
+    const params = new URLSearchParams({
+        periodeId,
+        tanggal: tanggalHariIniJakarta(),
+    });
     const res = await fetch(`/api/v1/antrean?${params}`, {
         credentials: 'same-origin',
         cache: 'no-store',
@@ -59,31 +114,67 @@ export async function ambilAntreanHariIni(
     return body.items ?? [];
 }
 
+/** Memanggil anak berprioritas tertinggi; null bila antrean KMS kosong. */
+export async function panggilKmsBerikutnya(
+    periodeId: string,
+    onSesiBerakhir: () => void,
+): Promise<AntreanKms | null> {
+    const hasil = await kirim<{ item: AntreanKms | null }>(
+        '/api/v1/antrean/panggil-kms-berikutnya',
+        { periodeId, tanggal: tanggalHariIniJakarta() },
+        onSesiBerakhir,
+        'Panggilan gagal',
+    );
+
+    return hasil.item;
+}
+
+export async function panggilKms(
+    id: string,
+    onSesiBerakhir: () => void,
+): Promise<AntreanKms> {
+    return (
+        await kirim<{ item: AntreanKms }>(
+            `/api/v1/antrean/${encodeURIComponent(id)}/panggil-kms`,
+            {},
+            onSesiBerakhir,
+            'Panggilan gagal',
+        )
+    ).item;
+}
+
+export async function lepasKms(
+    id: string,
+    onSesiBerakhir: () => void,
+): Promise<void> {
+    await kirim(
+        `/api/v1/antrean/${encodeURIComponent(id)}/lepas-kms`,
+        {},
+        onSesiBerakhir,
+        'Gagal mengembalikan ke antrean',
+    );
+}
+
 export async function konfirmasiSelesaiKms(
     id: string,
     onSesiBerakhir: () => void,
     catatanKms?: string,
 ): Promise<void> {
     const catatan = catatanKms?.trim();
-    const res = await fetch(
+    await kirim(
         `/api/v1/antrean/${encodeURIComponent(id)}/konfirmasi-kms`,
-        {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify(catatan ? { catatanKms: catatan } : {}),
-        },
+        catatan ? { catatanKms: catatan } : {},
+        onSesiBerakhir,
+        'Konfirmasi gagal',
     );
+}
 
-    if (res.status === 401) {
-        onSesiBerakhir();
-
-        throw new Error('Sesi telah berakhir. Silakan masuk kembali.');
-    }
-
-    if (!res.ok) {
-        const body = (await res.json().catch(() => ({}))) as { galat?: string };
-
-        throw new Error(body.galat ?? `Konfirmasi gagal (HTTP ${res.status}).`);
-    }
+/** Urutan tampil: prioritas tertinggi dahulu, lalu urutan datang. */
+export function urutkanAntreanKms(items: AntreanKms[]): AntreanKms[] {
+    return [...items].sort(
+        (a, b) =>
+            (b.prioritasKms?.skor ?? 0) - (a.prioritasKms?.skor ?? 0) ||
+            (a.updatedAt ?? '').localeCompare(b.updatedAt ?? '') ||
+            (a.urutan ?? a.nomor) - (b.urutan ?? b.nomor),
+    );
 }

@@ -1,6 +1,7 @@
 import type { Pool, PoolClient } from "pg";
 
 import type { PenggunaAktif } from "../auth/peran.ts";
+import { prioritasUntukAnak } from "../services/prioritas-kms.ts";
 
 export type StatusAntrean = "waiting" | "called" | "serving" | "kms_review" | "done" | "cancelled";
 
@@ -22,6 +23,10 @@ export type BarisAntrean = {
     asiEksklusif: boolean | null;
     catatanKhusus: string | null;
     catatanKms: string | null;
+    /** Akun KMS yang memanggil/memeriksa; tetap terisi setelah selesai. */
+    kmsPetugasId: number | null;
+    kmsPetugasNama: string | null;
+    kmsDipanggilPada: string | null;
     checkedInAt: string;
     calledAt: string | null;
     completedAt: string | null;
@@ -34,6 +39,8 @@ const PILIH = `SELECT q.id, q.periode_id AS "periodeId", q.sasaran_id AS "sasara
                       a.nama, o.nama AS "namaOrtu", w.rt, q.status, q.catatan,
                       q.masih_menyusui AS "masihMenyusui", q.asi_eksklusif AS "asiEksklusif",
                       p.catatan_khusus AS "catatanKhusus", p.catatan_kms AS "catatanKms",
+                      q.kms_petugas_id::int AS "kmsPetugasId", pk.nama AS "kmsPetugasNama",
+                      q.kms_dipanggil_pada AS "kmsDipanggilPada",
                       q.checked_in_at AS "checkedInAt", q.called_at AS "calledAt",
                       q.completed_at AS "completedAt", q.updated_at AS "updatedAt"
                  FROM antrean_layanan q
@@ -42,7 +49,8 @@ const PILIH = `SELECT q.id, q.periode_id AS "periodeId", q.sasaran_id AS "sasara
                  JOIN anak a ON a.id = s.anak_id AND a.deleted_at IS NULL
                  LEFT JOIN orang_tua o ON o.id = a.orang_tua_id
                  LEFT JOIN wilayah_rt w ON w.id = a.wilayah_rt_id
-                 LEFT JOIN pengukuran p ON p.anak_id = a.id AND p.periode_id = q.periode_id`;
+                 LEFT JOIN pengukuran p ON p.anak_id = a.id AND p.periode_id = q.periode_id
+                 LEFT JOIN pengguna pk ON pk.id = q.kms_petugas_id`;
 
 export async function daftar(pool: Pool, pengguna: PenggunaAktif, periodeId: number, tanggal: string) {
     // Antrean layanan adalah antrean bersama lintas RT dalam Posyandu.
@@ -241,15 +249,138 @@ export async function ubahStatus(
 }
 
 /** Satu-satunya transisi ke done: setelah pengguna KMS mengonfirmasi hasil. */
+export type HasilPanggilKms =
+    | { status: "ok"; item: BarisAntrean }
+    | { status: "kosong" }
+    | { status: "tidak-ditemukan" }
+    | { status: "milik-lain"; petugas: string | null }
+    | { status: "masih-memeriksa"; item: BarisAntrean };
+
+async function barisKms(db: PoolClient, id: string): Promise<BarisAntrean | null> {
+    return (await db.query<BarisAntrean>(`${PILIH} WHERE q.id=$1`, [id])).rows[0] ?? null;
+}
+
+/** Anak yang sedang diperiksa akun ini pada hari tersebut, bila ada. */
+async function sedangDiperiksa(db: PoolClient, pengguna: PenggunaAktif, periodeId: number, tanggal: string) {
+    const { rows } = await db.query<{ id: string }>(
+        `SELECT id FROM antrean_layanan
+          WHERE periode_id=$1 AND tanggal=$2::date AND status='kms_review' AND kms_petugas_id=$3`,
+        [periodeId, tanggal, pengguna.id],
+    );
+    return rows[0]?.id ?? null;
+}
+
+/** Memanggil anak tertentu dari antrean KMS atas nama akun yang masuk. */
+export async function panggilKms(db: PoolClient, pengguna: PenggunaAktif, id: string): Promise<HasilPanggilKms> {
+    const { rows } = await db.query<{ periodeId: number; tanggal: string; petugas: number | null }>(
+        `SELECT q.periode_id::int AS "periodeId", to_char(q.tanggal, 'YYYY-MM-DD') AS tanggal, q.kms_petugas_id::int AS petugas
+           FROM antrean_layanan q JOIN periode p ON p.id=q.periode_id
+          WHERE q.id=$1 AND q.status='kms_review' AND p.sesi_ditutup_pada IS NULL
+            AND ($2::boolean OR p.posyandu_id=ANY($3::bigint[]))
+          FOR UPDATE OF q`,
+        [id, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
+    );
+    const kini = rows[0];
+    if (!kini) return { status: "tidak-ditemukan" };
+    if (kini.petugas !== null && kini.petugas !== pengguna.id) {
+        const item = await barisKms(db, id);
+        return { status: "milik-lain", petugas: item?.kmsPetugasNama ?? null };
+    }
+    const aktif = await sedangDiperiksa(db, pengguna, kini.periodeId, kini.tanggal);
+    if (aktif !== null && aktif !== id) {
+        const item = await barisKms(db, aktif);
+        return item ? { status: "masih-memeriksa", item } : { status: "tidak-ditemukan" };
+    }
+    await db.query(
+        `UPDATE antrean_layanan SET kms_petugas_id=$2, kms_dipanggil_pada=coalesce(kms_dipanggil_pada, now()), updated_by=$2
+          WHERE id=$1`,
+        [id, pengguna.id],
+    );
+    const item = await barisKms(db, id);
+    return item ? { status: "ok", item } : { status: "tidak-ditemukan" };
+}
+
+/** Memanggil anak berprioritas tertinggi yang belum diperiksa siapa pun. */
+export async function panggilKmsBerikutnya(
+    db: PoolClient,
+    pengguna: PenggunaAktif,
+    periodeId: number,
+    tanggal: string,
+): Promise<HasilPanggilKms> {
+    const izin = await db.query(
+        `SELECT 1 FROM periode WHERE id=$1 AND sesi_ditutup_pada IS NULL
+            AND ($2::boolean OR posyandu_id=ANY($3::bigint[]))`,
+        [periodeId, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
+    );
+    if (!izin.rows[0]) return { status: "tidak-ditemukan" };
+    // Satu kunci per hari layanan: dua petugas tidak mendapat anak yang sama.
+    const tanggalKunci = Number(tanggal.replaceAll("-", ""));
+    await db.query("SELECT pg_advisory_xact_lock($1::integer, $2::integer)", [periodeId, tanggalKunci]);
+    const aktif = await sedangDiperiksa(db, pengguna, periodeId, tanggal);
+    if (aktif !== null) {
+        const item = await barisKms(db, aktif);
+        return item ? { status: "masih-memeriksa", item } : { status: "tidak-ditemukan" };
+    }
+    const calon = (await db.query<{ id: string; anakId: number; urutan: number }>(
+        `SELECT q.id, s.anak_id::int AS "anakId", q.urutan
+           FROM antrean_layanan q JOIN sasaran s ON s.id=q.sasaran_id
+          WHERE q.periode_id=$1 AND q.tanggal=$2::date AND q.status='kms_review' AND q.kms_petugas_id IS NULL
+          ORDER BY q.updated_at, q.urutan`,
+        [periodeId, tanggal],
+    )).rows;
+    if (calon.length === 0) return { status: "kosong" };
+    const prioritas = await prioritasUntukAnak(db, periodeId, calon.map(c => c.anakId));
+    // Skor tertinggi lebih dahulu; skor sama mengikuti urutan tiba di KMS.
+    const terpilih = calon
+        .map((c, urutanTiba) => ({ ...c, urutanTiba, skor: prioritas.get(c.anakId)?.skor ?? 0 }))
+        .sort((a, b) => b.skor - a.skor || a.urutanTiba - b.urutanTiba)[0];
+    await db.query(
+        `UPDATE antrean_layanan SET kms_petugas_id=$2, kms_dipanggil_pada=now(), updated_by=$2 WHERE id=$1`,
+        [terpilih.id, pengguna.id],
+    );
+    const item = await barisKms(db, terpilih.id);
+    return item ? { status: "ok", item } : { status: "tidak-ditemukan" };
+}
+
+/** Mengembalikan anak ke antrean KMS; hanya pemanggil atau superadmin. */
+export async function lepasKms(db: PoolClient, pengguna: PenggunaAktif, id: string): Promise<HasilPanggilKms> {
+    const { rows } = await db.query<{ petugas: number | null }>(
+        `SELECT q.kms_petugas_id::int AS petugas FROM antrean_layanan q JOIN periode p ON p.id=q.periode_id
+          WHERE q.id=$1 AND q.status='kms_review' AND p.sesi_ditutup_pada IS NULL
+            AND ($2::boolean OR p.posyandu_id=ANY($3::bigint[]))
+          FOR UPDATE OF q`,
+        [id, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
+    );
+    if (!rows[0]) return { status: "tidak-ditemukan" };
+    if (rows[0].petugas !== null && rows[0].petugas !== pengguna.id && !pengguna.superAdmin) {
+        const item = await barisKms(db, id);
+        return { status: "milik-lain", petugas: item?.kmsPetugasNama ?? null };
+    }
+    await db.query(
+        `UPDATE antrean_layanan SET kms_petugas_id=NULL, kms_dipanggil_pada=NULL, updated_by=$2 WHERE id=$1`,
+        [id, pengguna.id],
+    );
+    const item = await barisKms(db, id);
+    return item ? { status: "ok", item } : { status: "tidak-ditemukan" };
+}
+
 export async function konfirmasiKms(
     db: PoolClient,
     pengguna: PenggunaAktif,
     id: string,
     catatanKms?: string | null,
 ): Promise<BarisAntrean | null> {
+    // Anak yang sedang diperiksa petugas lain tidak boleh diselesaikan akun ini.
+    const pemilik = await db.query<{ petugas: number | null }>(
+        `SELECT kms_petugas_id::int AS petugas FROM antrean_layanan WHERE id=$1 FOR UPDATE`, [id],
+    );
+    const petugas = pemilik.rows[0]?.petugas ?? null;
+    if (petugas !== null && petugas !== pengguna.id && !pengguna.superAdmin) return null;
     const { rows } = await db.query<{ id: string; sasaranId: number; periodeId: number }>(
         `UPDATE antrean_layanan q
-            SET status='done', completed_at=now(), updated_by=$2
+            SET status='done', completed_at=now(), updated_by=$2,
+                kms_petugas_id=coalesce(q.kms_petugas_id, $2),
+                kms_dipanggil_pada=coalesce(q.kms_dipanggil_pada, now())
           FROM periode p
          WHERE q.id=$1 AND p.id=q.periode_id AND p.sesi_ditutup_pada IS NULL
            AND ($3::boolean OR p.posyandu_id=ANY($4::bigint[]))
