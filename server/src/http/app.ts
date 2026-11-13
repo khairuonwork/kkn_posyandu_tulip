@@ -44,6 +44,15 @@ export function buatApp(
     app.set("trust proxy", konfigurasi.trustProxy);
     app.disable("x-powered-by");
 
+    // Penanda server yang melayani (utama/kembar) untuk diagnosis; tanpa rahasia.
+    const idServer = (process.env.SERVER_ID ?? "").trim().slice(0, 40);
+    if (idServer) {
+        app.use((_req, res, next) => {
+            res.set("X-Simpatik-Server", idServer);
+            next();
+        });
+    }
+
     // Catat hasil login saja, tanpa password, token, cookie, atau badan permintaan.
     app.use((req, res, next) => {
         if (req.method === "POST" && ["/api/masuk", "/api/v1/masuk"].includes(req.path)) {

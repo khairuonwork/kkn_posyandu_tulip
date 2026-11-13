@@ -8,8 +8,23 @@ import { bacaManifest, folderRilis, POLA_BERKAS, terbitkanRilis } from "../servi
  * Pembaruan APK langsung dari server. Versi dan unduhan bersifat publik
  * (hanya-baca) agar tablet yang belum masuk tetap dapat diperbarui.
  */
-export function ruteAplikasi(folder = folderRilis()): Router {
+/**
+ * Alamat publik semua server (utama + kembar) dari env SERVER_PUBLIK, dipisah koma.
+ * Aplikasi menyimpan daftar ini agar tetap tersambung bila satu alamat berubah atau mati.
+ */
+export function daftarServerPublik(env: NodeJS.ProcessEnv = process.env): string[] {
+    return [...new Set((env.SERVER_PUBLIK ?? "").split(",")
+        .map(alamat => alamat.trim().replace(/\/+$/, ""))
+        .filter(alamat => /^https:\/\/[^/\s]+\/api\/v1$/.test(alamat)))].slice(0, 10);
+}
+
+export function ruteAplikasi(folder = folderRilis(), server = daftarServerPublik()): Router {
     const rute = Router();
+
+    rute.get("/aplikasi/server", (_req, res) => {
+        res.set("Cache-Control", "no-store");
+        res.json({ server });
+    });
 
     rute.get("/aplikasi/versi", async (_req, res, next) => {
         try {

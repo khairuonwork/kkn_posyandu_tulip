@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Unduh SIMPATIK Posyandu</title>
+    <link rel="icon" href="/favicon.ico">
+    <style>
+        body { margin: 0; padding: 2rem 1.25rem; background: #f4f7f4; color: #162b24; font: 1rem/1.6 system-ui, sans-serif; }
+        main { max-width: 32rem; margin: 4vh auto; }
+        h1 { font-size: 1.9rem; line-height: 1.2; }
+        a { color: #075e42; }
+        #unduh { display: inline-block; padding: .75rem 1.1rem; background: #09694b; color: white; border-radius: .5rem; font-weight: 650; }
+        #unduh[hidden] { display: none; }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Unduh SIMPATIK Posyandu</h1>
+        <p id="status" role="status">Menyiapkan rilis Android terbaru…</p>
+        <p><a id="unduh" hidden>Unduh APK</a></p>
+        <p><a href="/">Buka portal SIMPATIK</a></p>
+        <noscript>Aktifkan JavaScript untuk mengunduh aplikasi.</noscript>
+    </main>
+    <script>
+        async function siapkanUnduhan() {
+            const status = document.getElementById('status');
+            const unduh = document.getElementById('unduh');
+            try {
+                const response = await fetch('/api/v1/aplikasi/versi', {
+                    cache: 'no-store',
+                    signal: AbortSignal.timeout(10000)
+                });
+                if (!response.ok) throw new Error('Rilis tidak tersedia');
+                const rilis = await response.json();
+                if (typeof rilis.unduh !== 'string' ||
+                    !/^\/aplikasi\/unduh\/[A-Za-z0-9._-]{1,120}\.apk$/.test(rilis.unduh)) {
+                    throw new Error('Alamat unduh tidak valid');
+                }
+                unduh.href = '/api/v1' + rilis.unduh;
+                unduh.download = rilis.unduh.split('/').pop();
+                unduh.textContent = 'Unduh APK' + (typeof rilis.versionName === 'string' ? ' ' + rilis.versionName : '');
+                unduh.hidden = false;
+                status.textContent = 'Jika unduhan belum berjalan, ketuk tombol Unduh APK.';
+                unduh.click();
+            } catch {
+                status.textContent = 'Rilis belum dapat dimuat. Muat ulang halaman ini untuk mencoba lagi.';
+            }
+        }
+        siapkanUnduhan();
+    </script>
+</body>
+</html>

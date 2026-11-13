@@ -87,3 +87,26 @@ test('POST rilis hanya untuk superadmin', async () => {
         });
     } finally { rmSync(folder, { recursive: true, force: true }); }
 });
+
+test('daftar server publik hanya memuat alamat HTTPS /api/v1 yang valid', async () => {
+    const { daftarServerPublik } = await import('../src/http/aplikasi-controller.ts');
+    assert.deepEqual(daftarServerPublik({ SERVER_PUBLIK: ' https://a.example/api/v1/ ,http://b.example/api/v1,https://a.example/api/v1,javascript:x,https://c.example/api/v1' }),
+        ['https://a.example/api/v1', 'https://c.example/api/v1']);
+    assert.deepEqual(daftarServerPublik({}), []);
+    const folder = mkdtempSync(path.join(os.tmpdir(), 'rilis-server-'));
+    try {
+        const app = express();
+        app.use('/api/v1', ruteAplikasi(folder, ['https://kembar.example/api/v1']));
+        const server = app.listen(0, '127.0.0.1');
+        await once(server, 'listening');
+        const address = server.address();
+        assert.ok(address && typeof address !== 'string');
+        try {
+            const body = await (await fetch(`http://127.0.0.1:${address.port}/api/v1/aplikasi/server`)).json() as { server: string[] };
+            assert.deepEqual(body.server, ['https://kembar.example/api/v1']);
+        } finally {
+            server.closeAllConnections();
+            await new Promise<void>((resolve, reject) => server.close(e => e ? reject(e) : resolve()));
+        }
+    } finally { rmSync(folder, { recursive: true, force: true }); }
+});
