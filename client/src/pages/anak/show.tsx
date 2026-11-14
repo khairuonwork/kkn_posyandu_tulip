@@ -229,6 +229,7 @@ export default function DetailAnak({
     return (
         <Halaman
             judul={nama}
+            sop={kembaliKe.href === '/kms' ? 'kms' : 'admin'}
             kembali={kembaliKe}
             subjudul={`${umur !== null ? `${umurPanjang(umur)}, ` : ''}${
                 anak.rt === null

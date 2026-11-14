@@ -192,6 +192,7 @@ export default function Dashboard({
         <Halaman
             ikon={House}
             judul="Beranda"
+            sop="admin"
             penuh={memuat ? 'lg' : false}
             /* Caveat periode ditulis satu tempat saja, tidak diulang tiap kartu. */
             subjudul={

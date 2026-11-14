@@ -11,6 +11,7 @@ import {
     Baby,
     BadgeCheck,
     CircleCheck,
+    CircleHelp,
     ClipboardList,
     CreditCard,
     FileText,
@@ -26,6 +27,7 @@ import { useEffect, useRef } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import FilterPeriode from '@/components/filter-periode';
 import StatusTablet from '@/components/status-tablet';
+import { DemoSop, PeranSop } from '@/components/tautan-sop';
 import { data } from '@/data/contoh/store';
 import { tanggalPanjang } from '@/lib/format';
 import { Link, useAlamat } from '@/lib/nav';
@@ -34,15 +36,17 @@ import type { Peran, Periode } from '@/types/posyandu';
 export type Rute =
     | { nama: 'beranda' }
     | { nama: 'balita' }
-    | { nama: 'detail'; id: number }
+    | { nama: 'detail'; id: number; dariKms?: boolean }
     | { nama: 'riwayat'; id: number }
     | { nama: 'laporan' }
     | { nama: 'sasaran' }
     | { nama: 'kartu-sasaran'; id?: number }
     | { nama: 'pengaturan' }
     | { nama: 'kms' }
+    | { nama: 'kms-selesai' }
     | { nama: 'ruang-tunggu-kms' }
-    | { nama: 'pelatihan' };
+    | { nama: 'pelatihan' }
+    | { nama: 'bantuan' };
 
 /** Router portal, seluruhnya, tanpa pustaka tambahan. */
 export function bacaRute(alamat: string): Rute {
@@ -52,7 +56,8 @@ export function bacaRute(alamat: string): Rute {
     const kartu = /^\/kartu-sasaran\/(\d+)$/.exec(bersih);
 
     if (detail !== null) {
-        return { nama: 'detail', id: Number(detail[1]) };
+        const dariKms = new URLSearchParams(alamat.split('?')[1]).get('asal') === 'kms';
+        return { nama: 'detail', id: Number(detail[1]), dariKms };
     }
 
     if (riwayat !== null) {
@@ -81,10 +86,14 @@ export function bacaRute(alamat: string): Rute {
 
         case '/kms':
             return { nama: 'kms' };
+        case '/kms/selesai':
+            return { nama: 'kms-selesai' };
         case '/kms/ruang-tunggu':
             return { nama: 'ruang-tunggu-kms' };
         case '/pelatihan':
             return { nama: 'pelatihan' };
+        case '/bantuan':
+            return { nama: 'bantuan' };
 
         default:
             return { nama: 'beranda' };
@@ -102,13 +111,15 @@ export function boleh(rute: Rute, peran: Peran, superAdmin = false): boolean {
     if (peran === 'kms') {
         return (
             rute.nama === 'kms' ||
+            rute.nama === 'kms-selesai' ||
+            rute.nama === 'bantuan' ||
             rute.nama === 'ruang-tunggu-kms' ||
             rute.nama === 'detail' ||
             rute.nama === 'riwayat'
         );
     }
 
-    if (rute.nama === 'kms' || rute.nama === 'ruang-tunggu-kms') {
+    if (rute.nama === 'kms' || rute.nama === 'kms-selesai' || rute.nama === 'ruang-tunggu-kms') {
         return peran === 'admin' && superAdmin;
     }
 
@@ -160,6 +171,7 @@ const NAV: ButirNav[] = [
         ikon: BadgeCheck,
         peran: ['kms', 'admin'],
     },
+    { href: '/bantuan', label: 'Bantuan', ikon: CircleHelp, peran: [...SEMUA, 'kms'] },
 ];
 
 type CangkangProps = {
@@ -195,7 +207,9 @@ export function Cangkang({
     kakiSidebar,
 }: CangkangProps) {
     const alamat = useAlamat();
-    const antreanHariIni = bacaRute(alamat).nama === 'kms' || (demo && alamat === '/kms/selesai');
+    const antreanHariIni = ['kms', 'kms-selesai'].includes(bacaRute(alamat).nama);
+    const tampilPeriode =
+        !antreanHariIni && !(peran === 'kms' && bacaRute(alamat).nama === 'bantuan');
     const laci = useRef<HTMLDialogElement>(null);
     const tanggalKegiatan =
         periode.find((p) => p.id === periodeId)?.tanggalKegiatan ?? null;
@@ -236,8 +250,8 @@ export function Cangkang({
                 )
                 .map((butir) => {
                     const aktif = butir.href === '/beranda'
-                        ? bacaRute(alamat).nama === 'beranda' && !(demo && alamat === '/kms/selesai')
-                        : alamat.startsWith(butir.href) && !(demo && butir.href === '/kms' && alamat === '/kms/selesai');
+                        ? bacaRute(alamat).nama === 'beranda' && alamat !== '/kms/selesai'
+                        : alamat.startsWith(butir.href) && !(butir.href === '/kms' && alamat === '/kms/selesai');
                     const Ikon = demo && butir.href === '/kms' ? ClipboardList : butir.ikon;
 
                     return (
@@ -261,7 +275,7 @@ export function Cangkang({
                             />
                             {butir.label}
                         </Link>
-                        {demo && butir.href === '/kms' && (
+                        {butir.href === '/kms' && (
                             <Link href="/kms/selesai" aria-current={alamat === '/kms/selesai' ? 'page' : undefined}
                                 onClick={() => laci.current?.close()}
                                 className={`mt-0.5 flex min-h-14 items-center gap-3.5 rounded-lg px-3.5 text-base pendek:pointer-fine:min-h-10 ${alamat === '/kms/selesai' ? 'bg-primary font-bold text-primary-foreground' : 'font-medium text-foreground'}`}>
@@ -303,7 +317,7 @@ export function Cangkang({
                     <Merek />
                 </div>
 
-                {!antreanHariIni && <div className="ml-auto flex items-center gap-3">
+                {tampilPeriode && <div className="ml-auto flex items-center gap-3">
                     <label
                         htmlFor="periode-atas"
                         className="text-sm font-semibold text-muted-foreground max-sm:sr-only"
@@ -375,7 +389,7 @@ export function Cangkang({
 
                 {/* Periode adalah lingkup seluruh aplikasi, bukan milik satu
                     layar — tempatnya bersama navigasi. */}
-                {!antreanHariIni && <div className="px-2 pt-4.5 pendek:pointer-fine:pt-3">
+                {tampilPeriode && <div className="px-2 pt-4.5 pendek:pointer-fine:pt-3">
                     <label
                         htmlFor="periode-sisi"
                         className="block text-sm font-semibold text-muted-foreground"
@@ -409,7 +423,11 @@ export function Cangkang({
                 isinya. Di bawah layar lebar (1024 px), diberi padding bawah
                 agar tidak tertutup bilah navigasi bawah ponsel. */}
             <main className="flex min-w-0 flex-1 flex-col pb-20 lg:min-h-0 lg:overflow-y-auto lg:pb-0">
-                {children}
+                <DemoSop.Provider value={demo}>
+                <PeranSop.Provider value={peran}>
+                    {children}
+                </PeranSop.Provider>
+                </DemoSop.Provider>
             </main>
 
             {/* Bilah Navigasi Bawah Gaya Aplikasi Mobile (Hanya tampil di ponsel/tablet < 1024 px) */}
@@ -427,7 +445,7 @@ export function Cangkang({
                     .slice(0, 5)
                     .map((butir) => {
                         const aktif = butir.href === '/beranda'
-                            ? bacaRute(alamat).nama === 'beranda' && !(demo && alamat === '/kms/selesai')
+                            ? bacaRute(alamat).nama === 'beranda' && alamat !== '/kms/selesai'
                             : alamat.startsWith(butir.href);
                         const Ikon = demo && butir.href === '/kms' ? ClipboardList : butir.ikon;
 

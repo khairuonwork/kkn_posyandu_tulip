@@ -1,17 +1,21 @@
 import { BookOpen, Lightbulb, X } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useEffect, useRef } from 'react';
+import { useSopHalaman } from '@/components/tautan-sop';
 export default function BantuanDetail({
     bagian,
     children,
+    sop,
     terbuka,
     onTutup,
 }: {
     bagian: string;
     children?: ReactNode;
+    sop?: 'admin' | 'kms';
     terbuka: boolean;
     onTutup: () => void;
 }) {
+    const tautanSop = useSopHalaman(sop);
     const panel = useRef<HTMLElement>(null);
     useEffect(() => {
         const main = panel.current?.closest('main');
@@ -74,7 +78,9 @@ export default function BantuanDetail({
                 </button>
             </header>
             <div className="bantuan-detail-isi p-4">
+                {bagian === 'kms' && tautanSop !== null && <div className="mb-4">{tautanSop}</div>}
                 {children}
+                {bagian !== 'kms' && tautanSop !== null && <div className="mt-4">{tautanSop}</div>}
                 {bagian === 'kartu' && (
                     <>
                         <p>

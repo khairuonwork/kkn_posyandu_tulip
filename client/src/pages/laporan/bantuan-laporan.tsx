@@ -16,6 +16,7 @@ export default function BantuanLaporan({
     return (
         <BantuanDetail
             bagian={tab === 'zscore' ? 'laporan-zscore' : 'laporan-2t'}
+            sop="admin"
             terbuka={bantuanTerbuka}
             onTutup={onTutup}
         >

@@ -169,6 +169,7 @@ export default function DaftarAnak({
             ikon={Baby}
             penuh="lg"
             judul="Data Balita"
+            sop="admin"
             subjudul={
                 sumberData === 'live'
                     ? statusMuat === 'memuat'

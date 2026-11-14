@@ -1,6 +1,5 @@
 import {
     BadgeCheck,
-    BookOpen,
     ChartLine,
     CircleCheck,
     CircleHelp,
@@ -107,7 +106,6 @@ return [];
     const [pesan, setPesan] = useState<string | null>(null);
     const [catatanKms, setCatatanKms] = useState<Record<string, string>>({});
     const [versi, setVersi] = useState(0);
-    const [itemBerhasil, setItemBerhasil] = useState<string | null>(null);
     const permintaan = useRef(0);
     const konfirmasiAktif = useRef(false);
 
@@ -190,7 +188,7 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
     const mejaSibuk = aktif.some((item) => item.mejaKms === mejaKms);
     const selesai = items.filter((item) => item.status === 'done');
     const kataCari = pencarian.trim().toLocaleLowerCase('id-ID');
-    const hasilAntrean = demo && kataCari
+    const hasilAntrean = kataCari
         ? menunggu.filter((item) => item.nama.toLocaleLowerCase('id-ID').includes(kataCari) || `a${String(item.nomor).padStart(2, '0')}`.includes(kataCari) || String(item.nomor).includes(kataCari))
         : menunggu;
 
@@ -212,7 +210,6 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
                 ),
             );
             setPesan(`A${String(item.nomor).padStart(2, '0')} selesai diperiksa.`);
-            setItemBerhasil(item.id);
             setSedangKonfirmasi(null);
             konfirmasiAktif.current = false;
 
@@ -226,7 +223,6 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
                     it.id === item.id ? { ...it, status: 'done' } : it,
                 ),
             );
-            setItemBerhasil(item.id);
             setPesan(`Pemeriksaan ${item.nama} telah dikonfirmasi selesai.`);
         } catch (error) {
             setGalat(
@@ -371,16 +367,16 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
                         : 'detail-area kms-area'
                 }
             >
-                <div className={demo ? "detail-utama kms-demo-layout" : "detail-utama flex flex-1 flex-col gap-5"}>
+                <div className="detail-utama kms-demo-layout">
                     {/* Ringkasan antrean hari ini */}
-                    {demo ? (
+                    {(
                         <section aria-label="Ringkasan antrean hari ini" className="kms-demo-ringkasan kartu grid grid-cols-2 divide-x divide-border py-4 sm:grid-cols-3">
                             <div className="col-span-2 flex min-w-0 flex-wrap items-center justify-between gap-2 px-5 pb-4 sm:col-span-1 sm:block sm:px-7 sm:pb-0">
                                 <div>
                                     <h2 className="text-sm font-semibold text-muted-foreground">Meja saya</h2>
-                                    <p className="mt-1 text-xl font-bold">Meja KMS {mejaKms}</p>
+                                    <p className="mt-1 text-xl font-bold">{mejaKms === null ? 'Belum ditetapkan' : `Meja KMS ${mejaKms}`}</p>
                                 </div>
-                                <label className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                                {demo && <label className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
                                     Meja simulasi
                                     <select className="isian" value={mejaKms ?? 1}
                                         onChange={(event) => setMejaKms(Number(event.target.value))}>
@@ -388,7 +384,7 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
                                             <option key={nomor} value={nomor}>Meja {nomor}</option>
                                         ))}
                                     </select>
-                                </label>
+                                </label>}
                             </div>
                             {[
                                 { label: 'Menunggu', nilai: menunggu.length, keterangan: 'Belum dipanggil', ikon: Clock },
@@ -408,23 +404,13 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
                                 </div>
                             ))}
                         </section>
-                    ) : <div className="flex flex-wrap items-center gap-3 text-sm tabular-nums">
-                        <span>
-                            Menunggu{' '}
-                            <strong className="ml-1">{menunggu.length}</strong>
-                        </span>
-                        <span aria-hidden="true">·</span>
-                        <span>
-                            Selesai{' '}
-                            <strong className="ml-1">{selesai.length}</strong>
-                        </span>
-                    </div>}
+                    )}
 
                     {/* Notifikasi Status Aksi */}
                     {pesan && (
                         <div
                             role="status"
-                            className={`pesan-masuk flex items-center gap-3 rounded-xl border border-tone-green/20 bg-tone-green-bg px-4.5 py-3 text-sm font-semibold text-tone-green shadow-2xs ${demo ? 'kms-demo-pesan' : ''}`}
+                            className="kms-demo-pesan pesan-masuk flex items-center gap-3 rounded-xl border border-tone-green/20 bg-tone-green-bg px-4.5 py-3 text-sm font-semibold text-tone-green shadow-2xs"
                         >
                             <CircleCheck className="size-5 shrink-0" />
                             <span className="flex-1">{pesan}</span>
@@ -441,15 +427,13 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
                     {status === 'siap' && (
                         <section
                             aria-labelledby="judul-meja-kms"
-                            className={demo ? "kms-demo-meja flex flex-col gap-3" : "flex flex-col gap-3"}
+                            className="kms-demo-meja flex flex-col gap-3"
                         >
                             <h2
                                 id="judul-meja-kms"
                                 className="text-lg font-bold"
                             >
-                                {demo ? 'Peserta di meja saya' : mejaKms == null
-                                    ? 'Meja belum ditetapkan'
-                                    : `Meja KMS ${mejaKms}`}
+                                Peserta di meja saya
                             </h2>
                             <p className="text-sm text-muted-foreground">
                                 {mejaKms == null
@@ -460,13 +444,13 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
                                         ? 'Pilih peserta dari antrean untuk dipanggil.'
                                         : 'Pilih peserta yang ingin dipanggil ke meja ini.'}
                             </p>
-                            {demo && !mejaSibuk && (
+                            {!mejaSibuk && (
                                 <div className="kms-demo-meja-kosong rounded-xl border border-border bg-card px-5 py-5">
                                     <h3 className="font-bold">Belum ada peserta di meja ini</h3>
                                     <p className="mt-1 text-sm text-muted-foreground">Peserta yang dipanggil akan tampil di sini.</p>
                                 </div>
                             )}
-                            {aktif.filter((item) => !demo || item.mejaKms === mejaKms).map((item) => (
+                            {aktif.filter((item) => item.mejaKms === mejaKms).map((item) => (
                                 <article
                                     key={demo ? `${item.id}-${item.tibaKms}` : item.id}
                                     className={demo
@@ -504,7 +488,7 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
                                     {item.mejaKms === mejaKms && (
                                         <div className="flex flex-wrap items-center gap-2">
                                             {item.anakId > 0 && <Link
-                                                href={`/balita/${item.anakId}`}
+                                                href={`/balita/${item.anakId}?asal=kms`}
                                                 className="tombol-kedua min-h-11"
                                             >
                                                 <ChartLine className="size-[16px] shrink-0" aria-hidden="true" />
@@ -611,7 +595,7 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
                     {/* Antrean Anak Menunggu Penjelasan */}
                     <section
                         aria-labelledby="judul-antrean-menunggu"
-                        className={demo ? "kms-demo-antrean flex min-w-0 flex-col gap-3" : "flex flex-col gap-3"}
+                        className="kms-demo-antrean flex min-w-0 flex-col gap-3"
                     >
                         <div className="flex items-center justify-between">
                             <div>
@@ -624,7 +608,7 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
                             </div>
                         </div>
 
-                        {demo && (
+                        {(
                             <label className="flex flex-col gap-1.5 text-sm font-semibold" htmlFor="cari-antrean-kms">
                                 Cari peserta
                                 <input id="cari-antrean-kms" className="isian w-full" type="search"
@@ -632,12 +616,12 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
                                     onChange={(event) => setPencarian(event.target.value)} />
                             </label>
                         )}
-                        {demo && mejaSibuk && <p className="text-sm text-muted-foreground">Selesaikan atau kembalikan peserta di meja Anda untuk memanggil peserta lain.</p>}
+                        {mejaSibuk && <p className="text-sm text-muted-foreground">Selesaikan atau kembalikan peserta di meja Anda untuk memanggil peserta lain.</p>}
                         {status === 'siap' && menunggu.length > 0 && <div className="flex flex-wrap items-center gap-3">
                             <button type="button" className="tombol-kedua min-h-11" disabled={mejaKms === null || mejaSibuk || sedangKonfirmasi !== null} onClick={() => void panggilan(menunggu[0], 'panggil')}>Panggil peserta berikutnya</button>
                             <p className="text-sm text-muted-foreground">Urutan mengikuti prioritas 1T/2T dan status gizi.</p>
                         </div>}
-                        {demo && status === 'siap' && menunggu.length > 0 && hasilAntrean.length === 0 && (
+                        {status === 'siap' && menunggu.length > 0 && hasilAntrean.length === 0 && (
                             <p role="status" className="rounded-xl border border-border bg-card p-4 text-sm">Tidak ada peserta yang cocok dengan pencarian.</p>
                         )}
 
@@ -678,13 +662,13 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
                         )}
 
                         {status === 'siap' && hasilAntrean.length > 0 && (
-                            <div className={demo ? 'kms-demo-daftar grid gap-3.5' : 'grid gap-3.5'}
-                                tabIndex={demo ? 0 : undefined} role={demo ? 'region' : undefined}
-                                aria-label={demo ? 'Daftar antrean pemeriksaan, dapat digulir' : undefined}>
+                            <div className="kms-demo-daftar grid gap-3.5"
+                                tabIndex={0} role="region"
+                                aria-label="Daftar antrean pemeriksaan, dapat digulir">
                                 {hasilAntrean.map((item) => (
                                     <article
                                         key={item.id}
-                                        className={`flex flex-col gap-4 rounded-2xl border border-border bg-card p-4.5 shadow-xs sm:p-5 lg:flex-row lg:items-center lg:justify-between ${demo ? 'kms-demo-item' : ''}`}
+                                        className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4.5 shadow-xs sm:p-5"
                                     >
                                         <div className="flex min-w-0 items-start gap-4">
                                             <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-base font-black text-white shadow-xs">
@@ -734,19 +718,12 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
                                                         WIB
                                                     </span>
                                                 </p>
-                                                {demo && item.anakId > 0 && <Link
-                                                    href={`/balita/${item.anakId}`}
-                                                    className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-primary underline underline-offset-2"
-                                                >
-                                                    <ExternalLink className="size-4" aria-hidden="true" />
-                                                    Lihat analisis & kurva
-                                                </Link>}
                                             </div>
                                         </div>
 
-                                        <div className="flex flex-wrap items-center gap-2.5 border-t border-border pt-2 lg:border-t-0 lg:pt-0">
-                                            {!demo && item.anakId > 0 && <Link
-                                                href={`/balita/${item.anakId}`}
+                                        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border pt-3">
+                                            {item.anakId > 0 && <Link
+                                                href={`/balita/${item.anakId}?asal=kms`}
                                                 className="tombol-kedua inline-flex min-h-11 items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold sm:text-sm"
                                             >
                                                 <ExternalLink
@@ -785,7 +762,7 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
                         )}
                     </section>
 
-                    {demo && (
+                    {(
                         <section aria-labelledby="judul-meja-lain" className="kms-demo-lain flex min-w-0 flex-col gap-2">
                             <div className="kms-demo-panel-judul">
                                 <h2 id="judul-meja-lain" className="text-lg font-bold">
@@ -808,7 +785,7 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
                         </section>
                     )}
 
-                    {demo && (
+                    {status === 'siap' && (
                         <section aria-labelledby="judul-selesai-demo" className="kms-demo-selesai flex min-w-0 flex-col gap-2">
                             <div className="kms-demo-panel-judul flex flex-wrap items-center justify-between gap-2">
                                 <h2 id="judul-selesai-demo" className="text-lg font-bold">Pemeriksaan selesai ({selesai.length})</h2>
@@ -825,176 +802,52 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
                             {selesai.length > 3 && <p className="text-sm text-muted-foreground">Menampilkan 3 dari {selesai.length} peserta.</p>}
                         </section>
                     )}
-                    {/* Selesai Diberi Penjelasan Hari Ini */}
-                    {!demo && status === 'siap' && selesai.length > 0 && (
-                        <section
-                            aria-labelledby="judul-selesai-kms"
-                            className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
-                        >
-                            <div className="flex items-center justify-between border-b border-border bg-surface-subtle px-5 py-3.5">
-                                <div className="flex items-center gap-2">
-                                    <CircleCheck className="size-4 text-tone-green" />
-                                    <h2
-                                        id="judul-selesai-kms"
-                                        className="text-sm font-extrabold text-foreground"
-                                    >
-                                        {demo
-                                            ? `Pemeriksaan selesai (${selesai.length})`
-                                            : `Sudah Selesai Diberi Penjelasan Hari Ini (${selesai.length} Balita)`}
-                                    </h2>
-                                </div>
-                                {!demo && (
-                                    <span className="text-xs font-semibold text-muted-foreground">
-                                        Terverifikasi Meja 4
-                                    </span>
-                                )}
-                            </div>
-                            <ul className="divide-y divide-border">
-                                {selesai.map((item) => (
-                                    <li
-                                        key={item.id}
-                                        className={`flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 text-sm transition-colors hover:bg-surface-subtle/50 ${itemBerhasil === item.id ? 'kms-item-berhasil' : ''}`}
-                                        onAnimationEnd={() =>
-                                            setItemBerhasil((id) =>
-                                                id === item.id ? null : id,
-                                            )
-                                        }
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <span className="flex size-7 items-center justify-center rounded-lg border border-border bg-surface-subtle text-xs font-extrabold text-foreground">
-                                                A
-                                                {String(item.nomor).padStart(
-                                                    2,
-                                                    '0',
-                                                )}
-                                            </span>
-                                            <span className="font-bold text-foreground">
-                                                {item.nama}
-                                            </span>
-                                            <span className="text-xs text-muted-foreground">
-                                                (
-                                                {item.rt
-                                                    ? `RT ${item.rt}`
-                                                    : 'RT —'}{' '}
-                                                · Orang tua:{' '}
-                                                {item.namaOrtu ?? '—'})
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="inline-flex items-center gap-1 rounded-full bg-tone-green-bg px-2.5 py-0.5 text-xs font-bold text-tone-green">
-                                                <CircleCheck className="size-3" />
-                                                Selesai diedukasi
-                                            </span>
-                                            {item.anakId > 0 && <Link
-                                                href={`/balita/${item.anakId}`}
-                                                className="ml-2 text-xs font-bold text-primary underline underline-offset-2 hover:opacity-80"
-                                            >
-                                                Buka kartu
-                                            </Link>}
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        </section>
-                    )}
                 </div>
                 <BantuanDetail
                     bagian="kms"
+                    sop="kms"
                     terbuka={bantuanTerbuka}
                     onTutup={() => {
                         setBantuanTerbuka(false);
                         tombolBantuan.current?.focus();
                     }}
                 >
-                    <section
-                        aria-labelledby="judul-panduan-kms"
-                        className="rounded-2xl border border-primary/20 bg-linear-to-r from-primary/5 via-primary/3 to-transparent p-5 shadow-xs sm:p-6"
-                    >
-                        <div className="flex items-start gap-4">
-                            <div className="hidden shrink-0 rounded-xl bg-primary/10 p-3 text-primary sm:flex">
-                                <BookOpen
-                                    className="size-6"
-                                    strokeWidth={2.25}
-                                />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2">
-                                    <h2
-                                        id="judul-panduan-kms"
-                                        className="text-base font-black tracking-tight text-foreground sm:text-lg"
-                                    >
-                                        Panduan Praktis Kader Meja 4 (Penyuluhan
-                                        & Penjelasan KMS)
-                                    </h2>
-                                    <span className="rounded-md bg-primary px-2 py-0.5 text-[10px] font-black tracking-wider text-white uppercase">
-                                        Meja 4
-                                    </span>
-                                </div>
-                                <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">
-                                    Meja 4 bertugas menjelaskan arah garis
-                                    pertumbuhan anak pada grafik KMS buku KIA,
-                                    memberikan konseling pemenuhan gizi seimbang
-                                    serta PMT lokal, dan mencatat rujukan jika
-                                    balita terindikasi tidak naik bobot badannya
-                                    (1T / 2T+).
+                    <section aria-labelledby="judul-panduan-kms">
+                        <h3 id="judul-panduan-kms" className="text-base font-bold">
+                            Panduan petugas KMS
+                        </h3>
+                        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                            Meja 4 bertugas menjelaskan arah garis pertumbuhan anak pada
+                            grafik KMS buku KIA, memberikan konseling pemenuhan gizi
+                            seimbang serta PMT lokal, dan mencatat rujukan jika balita
+                            terindikasi tidak naik bobot badannya (1T / 2T+).
+                        </p>
+                        <ol className="mt-4 divide-y divide-border border-y border-border">
+                            <li className="py-3">
+                                <h4 className="text-sm font-bold">1. Baca grafik dan status gizi</h4>
+                                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                                    Buka profil balita untuk meninjau arah garis kurva KMS
+                                    (N: Naik / T: Tidak Naik) serta indeks Z-score BB/U,
+                                    TB/U, dan BB/TB terkini.
                                 </p>
-
-                                <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                                    <div className="rounded-xl border border-border bg-card p-3.5 shadow-2xs">
-                                        <div className="flex items-center gap-2">
-                                            <span className="flex size-6 items-center justify-center rounded-lg bg-primary/10 text-xs font-black text-primary">
-                                                1
-                                            </span>
-                                            <p className="text-xs font-bold text-foreground">
-                                                Baca Grafik & Status Gizi
-                                            </p>
-                                        </div>
-                                        <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                                            Buka profil balita untuk meninjau
-                                            arah garis kurva KMS (N: Naik / T:
-                                            Tidak Naik) serta indeks Z-score
-                                            BB/U, TB/U, dan BB/TB terkini.
-                                        </p>
-                                    </div>
-
-                                    <div className="rounded-xl border border-border bg-card p-3.5 shadow-2xs">
-                                        <div className="flex items-center gap-2">
-                                            <span className="flex size-6 items-center justify-center rounded-lg bg-tone-amber-bg text-xs font-black text-tone-amber">
-                                                2
-                                            </span>
-                                            <p className="text-xs font-bold text-foreground">
-                                                Konseling & Edukasi Ortu
-                                            </p>
-                                        </div>
-                                        <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                                            Jelaskan tren berat badan secara
-                                            ramah, anjurkan variasi protein
-                                            hewani / ASI eksklusif, serta
-                                            diskusikan langkah pemulihan jika 1T
-                                            atau 2T+.
-                                        </p>
-                                    </div>
-
-                                    <div className="rounded-xl border border-border bg-card p-3.5 shadow-2xs">
-                                        <div className="flex items-center gap-2">
-                                            <span className="flex size-6 items-center justify-center rounded-lg bg-tone-green-bg text-xs font-black text-tone-green">
-                                                3
-                                            </span>
-                                            <p className="text-xs font-bold text-foreground">
-                                                Konfirmasi Selesai Antrean
-                                            </p>
-                                        </div>
-                                        <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                                            Setelah penjelasan dan buku KIA
-                                            terisi tuntas, tekan tombol{' '}
-                                            <strong>Konfirmasi Selesai</strong>{' '}
-                                            agar slot antrean berpindah ke anak
-                                            berikutnya.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                            </li>
+                            <li className="py-3">
+                                <h4 className="text-sm font-bold">2. Konseling dan edukasi orang tua</h4>
+                                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                                    Jelaskan tren berat badan secara ramah, anjurkan variasi
+                                    protein hewani / ASI eksklusif, serta diskusikan langkah
+                                    pemulihan jika 1T atau 2T+.
+                                </p>
+                            </li>
+                            <li className="py-3">
+                                <h4 className="text-sm font-bold">3. Konfirmasi selesai antrean</h4>
+                                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                                    Setelah penjelasan dan buku KIA terisi tuntas, tekan tombol{' '}
+                                    <strong>Konfirmasi Selesai</strong> agar slot antrean
+                                    berpindah ke anak berikutnya.
+                                </p>
+                            </li>
+                        </ol>
                     </section>
                 </BantuanDetail>
             </div>

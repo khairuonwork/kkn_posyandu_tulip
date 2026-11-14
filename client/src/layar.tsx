@@ -478,7 +478,7 @@ export function Layar({
                 onSimpan={(patch) => onSimpanAnak(rute.id, patch)}
                 sumberLive={modeDataLive}
                 kembaliKe={
-                    peran === 'kms'
+                    peran === 'kms' || (peran === 'admin' && rute.dariKms)
                         ? { href: '/kms', label: 'Pemeriksaan KMS' }
                         : undefined
                 }

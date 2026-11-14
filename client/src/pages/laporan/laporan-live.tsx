@@ -177,6 +177,7 @@ export default function LaporanDataLive({
             <Halaman
                 ikon={FileText}
                 judul="Laporan"
+                sop="admin"
                 subjudul={periode.label}
                 penuh="lg"
             >

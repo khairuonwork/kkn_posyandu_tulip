@@ -26,6 +26,7 @@ export default function TabTumbuhKembang({
         <Halaman
             ikon={FileText}
             judul="Laporan Bulanan Tumbuh Kembang"
+            sop="admin"
             subjudul={periode.label}
             penuh="lg"
             aksi={

@@ -401,6 +401,7 @@ export default function SasaranImpor({
         <Halaman
             ikon={Upload}
             judul="Sasaran & impor"
+            sop="admin"
             subjudul="Siapkan dan kelola daftar balita yang akan dilayani setiap bulan."
         >
             <div className="w-full space-y-6">

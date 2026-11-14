@@ -21,6 +21,7 @@ import { ruteSurveiKia } from './survei-kia-controller.ts';
 import { sesiMiddleware, wajibJson } from "./middleware.ts";
 import { rutePengguna } from "./pengguna-controller.ts";
 import { ruteSasaran } from "./sasaran-controller.ts";
+import { ruteSop } from "./sop-controller.ts";
 import { ruteCluster } from "./cluster-controller.ts";
 import { rutePerangkat } from './perangkat-controller.ts';
 import { muatKonfigurasi } from "../config.ts";
@@ -140,6 +141,7 @@ export function buatApp(
     // Pembaruan APK tidak memakai database; dipasang sebelum lingkup pelatihan.
     app.use("/api/v1", ruteAplikasi());
 
+    app.use('/api/sop', ruteSop());
     app.use('/api',lingkupPelatihan(authPool));
     app.use('/api',rutePengguna(pool));
     app.use('/api/v1', rutePerangkat(pool));

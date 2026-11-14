@@ -542,6 +542,7 @@ export default function KartuSasaran({
                 </div>
                 <BantuanDetail
                     bagian="kartu"
+                    sop="admin"
                     terbuka={bantuanTerbuka}
                     onTutup={() => {
                         setBantuanTerbuka(false);

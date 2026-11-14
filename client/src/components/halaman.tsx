@@ -12,6 +12,7 @@
 
 import { ArrowLeft } from 'lucide-react';
 import type { ComponentType, ReactNode } from 'react';
+import { useSopHalaman } from '@/components/tautan-sop';
 import { Head, Link } from '@/lib/nav';
 
 type Ikon = ComponentType<{ className?: string; strokeWidth?: number }>;
@@ -37,6 +38,7 @@ type Props = {
     kembali?: { href: string; label: string; teks?: boolean };
     /** Tombol di ujung kanan bilah. */
     aksi?: ReactNode;
+    sop?: 'admin' | 'kms';
     /**
      * Kabar keadaan di bilah kepala, mis. hasil ukur yang belum terkirim.
      * Di layar lebar duduk di kanan seperti aksi; di bawah 1024 px turun ke
@@ -67,10 +69,13 @@ export default function Halaman({
     ikon: Ikon,
     kembali,
     aksi,
+    sop,
     pita,
     penuh = false,
     children,
 }: Props) {
+    const tautanSop = useSopHalaman(sop);
+
     return (
         <>
             <Head title={judul} />
@@ -138,8 +143,9 @@ export default function Halaman({
                     )}
                 </div>
 
-                {aksi !== undefined && (
+                {(aksi !== undefined || tautanSop !== null) && (
                     <div className="flex max-w-full shrink-0 flex-wrap items-center gap-3">
+                        {tautanSop}
                         {aksi}
                     </div>
                 )}

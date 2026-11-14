@@ -192,6 +192,7 @@ export default function Pengaturan({
     return (
         <Halaman
             judul="Pengaturan"
+            sop="admin"
             penuh="lg"
             subjudul={
                 terakhirDiubah

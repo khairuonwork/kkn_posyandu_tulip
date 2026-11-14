@@ -28,6 +28,7 @@ import { Layar } from '@/layar';
 import { navigate, useAlamat } from '@/lib/nav';
 import type { AnakBaru, PatchAnak } from '@/pages/anak/index';
 import Login from '@/pages/auth/login';
+import Bantuan from '@/pages/bantuan';
 import LembarHasil from '@/pages/hasil/lembar';
 import RuangTungguKms from '@/pages/kms/ruang-tunggu';
 import type { TabPeriode } from '@/pages/laporan/index';
@@ -36,7 +37,7 @@ import type {
     StandarisasiAntropometri,
 } from '@/pages/pengaturan/index';
 import type { Pengguna, Peran } from '@/types/posyandu';
-import KmsSelesaiDemo from './KmsSelesaiDemo';
+import KmsSelesai from '@/pages/kms/selesai';
 import PelatihanDemo from './PelatihanDemo';
 import type { SesiDemo } from './PelatihanDemo';
 
@@ -163,7 +164,7 @@ function PortalDemo({
     const alamat = useAlamat();
     const superAdmin = peran === 'superadmin';
     const peranAplikasi: Peran = superAdmin ? 'admin' : peran;
-    const rute = bacaRute(alamat === '/kms/selesai' ? '/kms' : alamat);
+    const rute = bacaRute(alamat);
 
     // Mengganti peran ke yang lebih terbatas bisa meninggalkan pemirsa di layar
     // yang tidak lagi boleh dibuka; alamatnya dikembalikan ke Beranda.
@@ -193,7 +194,7 @@ function PortalDemo({
             }
         >
             {sesiPelatihan && <p role="status" className="border-b border-border bg-tone-amber-bg px-5 py-3">Sesi pelatihan demo aktif · hasil latihan hanya tersedia di halaman Sesi Pelatihan.</p>}
-            {alamat === '/kms/selesai' && (peran === 'kms' || superAdmin) ? <KmsSelesaiDemo /> : rute.nama === 'pelatihan' && superAdmin ? <PelatihanDemo sesi={sesiPelatihan} onSesi={setSesiPelatihan} /> : <Layar
+            {rute.nama === 'bantuan' ? <Bantuan demoPeran={peranAplikasi} onSesiBerakhir={() => undefined} /> : alamat === '/kms/selesai' && (peran === 'kms' || superAdmin) ? <KmsSelesai demo onSesiBerakhir={() => undefined} /> : rute.nama === 'pelatihan' && superAdmin ? <PelatihanDemo sesi={sesiPelatihan} onSesi={setSesiPelatihan} /> : <Layar
                 rute={rute}
                 peran={peranAplikasi}
                 onSesiBerakhir={() => undefined}

@@ -27,8 +27,10 @@ import { mulaiHeartbeatWeb } from '@/lib/perangkat';
 import { useSesi } from '@/lib/sesi';
 import type { AnakBaru, PatchAnak } from '@/pages/anak/index';
 import Login from '@/pages/auth/login';
+import Bantuan from '@/pages/bantuan';
 import LembarHasil from '@/pages/hasil/lembar';
 import RuangTungguKms from '@/pages/kms/ruang-tunggu';
+import KmsSelesai from '@/pages/kms/selesai';
 import type { TabPeriode } from '@/pages/laporan/index';
 import Pelatihan, { PenandaPelatihan } from '@/pages/pelatihan';
 import type {
@@ -232,7 +234,11 @@ function Portal({
             }
         >
             <PenandaPelatihan superAdmin={superAdmin} />
-            {rute.nama === 'pelatihan' ? (
+            {rute.nama === 'kms-selesai' ? (
+                <KmsSelesai onSesiBerakhir={onSesiBerakhir} />
+            ) : rute.nama === 'bantuan' ? (
+                <Bantuan onSesiBerakhir={onSesiBerakhir} />
+            ) : rute.nama === 'pelatihan' ? (
                 superAdmin ? (
                     <Pelatihan />
                 ) : (
