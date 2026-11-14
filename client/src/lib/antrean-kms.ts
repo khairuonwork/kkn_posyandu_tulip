@@ -22,6 +22,9 @@ export type AntreanKms = {
     /** Jawaban pendaftaran (APK); null = tidak ditanyakan karena usia. */
     masihMenyusui?: boolean | null;
     asiEksklusif?: boolean | null;
+    /** Jawaban pendaftaran: ibu ber-KB; null = tidak ditanyakan. */
+    ikutKb?: boolean | null;
+    jenisKb?: string | null;
     /** Catatan/pengamatan khusus dari meja pencatatan (APK). */
     catatanKhusus?: string | null;
     /** Catatan/pengamatan khusus KMS, mis. 2T, 3T, atau anak sakit. */
@@ -108,6 +111,51 @@ export async function ambilAntreanHariIni(
     if (!res.ok) {
         throw new Error(
             body.galat ?? `Antrean gagal dimuat (HTTP ${res.status}).`,
+        );
+    }
+
+    return body.items ?? [];
+}
+
+/** Catatan satu bulan, dikelompokkan menurut tahap asalnya. */
+export type CatatanBulanan = {
+    periode: string;
+    tanggal: string | null;
+    pendaftaran: {
+        catatan: string | null;
+        masihMenyusui: boolean | null;
+        asiEksklusif: boolean | null;
+        ikutKb: boolean | null;
+        jenisKb: string | null;
+    };
+    pengukuran: { catatanKhusus: string | null; catatan: string | null };
+    kms: { catatan: string | null; petugasNama: string | null };
+};
+
+export async function ambilRiwayatCatatan(
+    anakId: number,
+    signal: AbortSignal,
+    onSesiBerakhir: () => void,
+): Promise<CatatanBulanan[]> {
+    const res = await fetch(
+        `/api/v1/antrean/riwayat-catatan/${encodeURIComponent(String(anakId))}`,
+        { credentials: 'same-origin', cache: 'no-store', signal },
+    );
+
+    if (res.status === 401) {
+        onSesiBerakhir();
+
+        throw new Error('Sesi telah berakhir. Silakan masuk kembali.');
+    }
+
+    const body = (await res.json().catch(() => ({}))) as {
+        items?: CatatanBulanan[];
+        galat?: string;
+    };
+
+    if (!res.ok) {
+        throw new Error(
+            body.galat ?? `Riwayat catatan gagal dimuat (HTTP ${res.status}).`,
         );
     }
 

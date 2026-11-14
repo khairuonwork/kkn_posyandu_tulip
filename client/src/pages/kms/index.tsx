@@ -6,19 +6,22 @@ import {
     CircleHelp,
     Clock,
     ExternalLink,
+    History,
     Megaphone,
     RefreshCw,
     Stethoscope,
     Undo2,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import BantuanDetail from '@/components/bantuan-detail';
 import DialogGagal from '@/components/dialog-gagal';
 import Halaman from '@/components/halaman';
 import StateHalaman from '@/components/state-halaman';
-import type { AntreanKms } from '@/lib/antrean-kms';
+import type { AntreanKms, CatatanBulanan } from '@/lib/antrean-kms';
 import {
     ambilAntreanHariIni,
+    ambilRiwayatCatatan,
     konfirmasiSelesaiKms,
     lepasKms,
     panggilKms,
@@ -31,6 +34,7 @@ type Props = {
     periodeId: string;
     onSesiBerakhir: () => void;
     demo?: boolean;
+    bolehKelola?: boolean;
 };
 
 const tanggalHariIni = () =>
@@ -80,7 +84,111 @@ function LabelPrioritas({ item }: { item: AntreanKms }) {
     );
 }
 
-/** Catatan dari setiap tahap sebelumnya: pendaftaran dan pencatatan. */
+type Asal = 'pendaftaran' | 'pengukuran' | 'kms';
+
+const ASAL: Record<Asal, { label: string; kelas: string }> = {
+    pendaftaran: {
+        label: 'Dari pendaftaran',
+        kelas: 'border-tone-blue/25 bg-tone-blue-bg text-tone-blue',
+    },
+    pengukuran: {
+        label: 'Dari pengukuran',
+        kelas: 'border-tone-amber/30 bg-tone-amber-bg text-tone-amber',
+    },
+    kms: {
+        label: 'Dari KMS',
+        kelas: 'border-tone-green/30 bg-tone-green-bg text-tone-green',
+    },
+};
+
+/** Satu kelompok catatan dengan penanda asal tahapnya. */
+function KelompokAsal({
+    asal,
+    keterangan,
+    children,
+}: {
+    asal: Asal;
+    keterangan?: string | null;
+    children: ReactNode;
+}) {
+    return (
+        <div className="flex flex-col gap-1.5 rounded-xl border border-border bg-surface-subtle px-3 py-2">
+            <span className="flex flex-wrap items-center gap-2">
+                <span
+                    className={`rounded-full border px-2 py-0.5 text-[11px] font-extrabold tracking-wide uppercase ${ASAL[asal].kelas}`}
+                >
+                    {ASAL[asal].label}
+                </span>
+                {keterangan && (
+                    <span className="text-[11px] text-muted-foreground">
+                        {keterangan}
+                    </span>
+                )}
+            </span>
+            <div className="flex flex-col gap-1 text-foreground">
+                {children}
+            </div>
+        </div>
+    );
+}
+
+type IsiPendaftaran = {
+    catatan?: string | null;
+    masihMenyusui?: boolean | null;
+    asiEksklusif?: boolean | null;
+    ikutKb?: boolean | null;
+    jenisKb?: string | null;
+};
+
+const adaPendaftaran = (p: IsiPendaftaran) =>
+    !!p.catatan?.trim() ||
+    typeof p.masihMenyusui === 'boolean' ||
+    typeof p.asiEksklusif === 'boolean' ||
+    typeof p.ikutKb === 'boolean';
+
+function IsiPendaftaranKms({ data }: { data: IsiPendaftaran }) {
+    const jawaban: string[] = [];
+
+    if (typeof data.masihMenyusui === 'boolean') {
+        jawaban.push(`Ibu masih menyusui: ${yaTidak(data.masihMenyusui)}`);
+    }
+
+    if (typeof data.asiEksklusif === 'boolean') {
+        jawaban.push(`ASI eksklusif: ${yaTidak(data.asiEksklusif)}`);
+    }
+
+    if (typeof data.ikutKb === 'boolean') {
+        jawaban.push(
+            data.ikutKb
+                ? `Ibu ber-KB: Ya (${data.jenisKb?.trim() || 'jenis belum diisi'})`
+                : 'Ibu ber-KB: Tidak',
+        );
+    }
+
+    return (
+        <>
+            {jawaban.length > 0 && (
+                <span className="flex flex-wrap gap-1.5">
+                    {jawaban.map((teks) => (
+                        <span
+                            key={teks}
+                            className="rounded-full border border-border bg-card px-2.5 py-0.5 font-semibold"
+                        >
+                            {teks}
+                        </span>
+                    ))}
+                </span>
+            )}
+            {data.catatan?.trim() && (
+                <p>
+                    <strong>Catatan:</strong> {data.catatan.trim()}
+                </p>
+            )}
+        </>
+    );
+}
+
+/** Catatan dari setiap tahap sebelumnya, ditandai asal informasinya. */
 function CatatanTahap({
     item,
     ringkas = false,
@@ -88,48 +196,205 @@ function CatatanTahap({
     item: AntreanKms;
     ringkas?: boolean;
 }) {
-    const pendaftaran = item.catatan?.trim();
     const pencatatan = item.catatanKhusus?.trim();
-    const menyusui = typeof item.masihMenyusui === 'boolean';
-    const asi = typeof item.asiEksklusif === 'boolean';
+    const pendaftaran = adaPendaftaran(item);
 
-    if (!pendaftaran && !pencatatan && !menyusui && !asi) {
+    if (!pendaftaran && !pencatatan) {
         return ringkas ? null : (
             <p className="text-xs text-muted-foreground">
-                Tidak ada catatan dari pendaftaran maupun pencatatan.
+                Tidak ada catatan dari pendaftaran maupun pengukuran bulan ini.
             </p>
         );
     }
 
     return (
         <div className="flex flex-col gap-2 text-xs sm:text-sm">
-            {(menyusui || asi) && (
-                <div className="flex flex-wrap gap-2">
-                    {menyusui && (
-                        <span className="rounded-full border border-border bg-surface-subtle px-2.5 py-0.5 font-semibold">
-                            Ibu masih menyusui:{' '}
-                            <strong>{yaTidak(item.masihMenyusui!)}</strong>
-                        </span>
-                    )}
-                    {asi && (
-                        <span className="rounded-full border border-border bg-surface-subtle px-2.5 py-0.5 font-semibold">
-                            ASI eksklusif:{' '}
-                            <strong>{yaTidak(item.asiEksklusif!)}</strong>
-                        </span>
-                    )}
-                </div>
-            )}
             {pendaftaran && (
-                <p className="rounded-xl border border-border bg-surface-subtle px-3 py-2 text-foreground">
-                    <strong>Catatan pendaftaran:</strong> {pendaftaran}
-                </p>
+                <KelompokAsal asal="pendaftaran">
+                    <IsiPendaftaranKms data={item} />
+                </KelompokAsal>
             )}
             {pencatatan && (
-                <p className="rounded-xl border border-tone-amber/20 bg-tone-amber-bg px-3 py-2 text-foreground">
-                    <strong>Catatan pencatatan:</strong> {pencatatan}
-                </p>
+                <KelompokAsal asal="pengukuran">
+                    <p>
+                        <strong>Catatan / pengamatan khusus:</strong>{' '}
+                        {pencatatan}
+                    </p>
+                </KelompokAsal>
             )}
         </div>
+    );
+}
+
+const namaBulan = (periode: string) => {
+    const [tahun, bulan] = periode.split('-').map(Number);
+
+    return new Intl.DateTimeFormat('id-ID', {
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC',
+    }).format(new Date(Date.UTC(tahun, bulan - 1, 1)));
+};
+
+const CONTOH_RIWAYAT: CatatanBulanan[] = [
+    {
+        periode: '2026-10',
+        tanggal: '2026-10-11',
+        pendaftaran: {
+            catatan: 'Membawa Buku KIA.',
+            masihMenyusui: true,
+            asiEksklusif: null,
+            ikutKb: true,
+            jenisKb: 'Suntik 3 bulan',
+        },
+        pengukuran: { catatanKhusus: 'BB tidak naik.', catatan: null },
+        kms: { catatan: '1T, konseling MP-ASI.', petugasNama: 'Kader KMS 1' },
+    },
+    {
+        periode: '2026-09',
+        tanggal: '2026-09-13',
+        pendaftaran: {
+            catatan: null,
+            masihMenyusui: true,
+            asiEksklusif: null,
+            ikutKb: null,
+            jenisKb: null,
+        },
+        pengukuran: { catatanKhusus: null, catatan: null },
+        kms: { catatan: 'Pertumbuhan baik.', petugasNama: null },
+    },
+];
+
+/** Riwayat catatan per bulan; dimuat saat dibuka agar antrean tetap ringan. */
+function RiwayatCatatan({
+    anakId,
+    onSesiBerakhir,
+    demo,
+}: {
+    anakId: number;
+    onSesiBerakhir: () => void;
+    demo: boolean;
+}) {
+    const [terbuka, setTerbuka] = useState(false);
+    const [dimuat, setItems] = useState<CatatanBulanan[] | null>(null);
+    const [galat, setGalat] = useState<string | null>(null);
+    // Mode contoh tidak memanggil server.
+    const items = demo ? CONTOH_RIWAYAT : dimuat;
+
+    useEffect(() => {
+        if (!terbuka || demo || dimuat !== null) {
+            return;
+        }
+
+        const kontrol = new AbortController();
+        ambilRiwayatCatatan(anakId, kontrol.signal, onSesiBerakhir)
+            .then((hasil) => {
+                setItems(hasil);
+                setGalat(null);
+            })
+            .catch((error: unknown) => {
+                if (kontrol.signal.aborted) {
+                    return;
+                }
+
+                setGalat(
+                    error instanceof Error
+                        ? error.message
+                        : 'Riwayat catatan gagal dimuat.',
+                );
+            });
+
+        return () => kontrol.abort();
+    }, [terbuka, dimuat, demo, anakId, onSesiBerakhir]);
+
+    return (
+        <details
+            className="group rounded-xl border border-border bg-card text-xs sm:text-sm"
+            onToggle={(e) => setTerbuka(e.currentTarget.open)}
+        >
+            <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2 font-bold text-foreground">
+                <History className="size-4 text-primary" aria-hidden="true" />
+                Riwayat catatan per bulan
+                <span className="ml-auto text-xs font-semibold text-primary group-open:hidden">
+                    Lihat
+                </span>
+                <span className="ml-auto hidden text-xs font-semibold text-primary group-open:inline">
+                    Tutup
+                </span>
+            </summary>
+            <div className="flex flex-col gap-3 border-t border-border px-3 py-3">
+                {galat && (
+                    <p role="alert" className="text-destructive">
+                        {galat}{' '}
+                        <button
+                            type="button"
+                            className="font-bold underline underline-offset-2"
+                            onClick={() => {
+                                setGalat(null);
+                                setItems(null);
+                            }}
+                        >
+                            Coba lagi
+                        </button>
+                    </p>
+                )}
+                {!galat && items === null && (
+                    <p className="text-muted-foreground">Memuat riwayat…</p>
+                )}
+                {items?.length === 0 && (
+                    <p className="text-muted-foreground">
+                        Belum ada catatan di bulan mana pun.
+                    </p>
+                )}
+                {items?.map((bulan) => (
+                    <section
+                        key={bulan.periode}
+                        aria-label={`Catatan ${namaBulan(bulan.periode)}`}
+                        className="flex flex-col gap-2"
+                    >
+                        <h4 className="text-sm font-black text-foreground">
+                            {namaBulan(bulan.periode)}
+                        </h4>
+                        {adaPendaftaran(bulan.pendaftaran) && (
+                            <KelompokAsal asal="pendaftaran">
+                                <IsiPendaftaranKms data={bulan.pendaftaran} />
+                            </KelompokAsal>
+                        )}
+                        {(bulan.pengukuran.catatanKhusus ||
+                            bulan.pengukuran.catatan) && (
+                            <KelompokAsal asal="pengukuran">
+                                {bulan.pengukuran.catatanKhusus && (
+                                    <p>
+                                        <strong>
+                                            Catatan / pengamatan khusus:
+                                        </strong>{' '}
+                                        {bulan.pengukuran.catatanKhusus}
+                                    </p>
+                                )}
+                                {bulan.pengukuran.catatan && (
+                                    <p>
+                                        <strong>Catatan lain:</strong>{' '}
+                                        {bulan.pengukuran.catatan}
+                                    </p>
+                                )}
+                            </KelompokAsal>
+                        )}
+                        {bulan.kms.catatan && (
+                            <KelompokAsal
+                                asal="kms"
+                                keterangan={
+                                    bulan.kms.petugasNama
+                                        ? `oleh ${bulan.kms.petugasNama}`
+                                        : null
+                                }
+                            >
+                                <p>{bulan.kms.catatan}</p>
+                            </KelompokAsal>
+                        )}
+                    </section>
+                ))}
+            </div>
+        </details>
     );
 }
 
@@ -168,6 +433,8 @@ const CONTOH_ANTREAN_KMS: AntreanKms[] = [
         catatan: 'Membawa Buku KIA.',
         masihMenyusui: true,
         asiEksklusif: null,
+        ikutKb: true,
+        jenisKb: 'Pil KB',
         catatanKhusus: 'Anak rewel, batuk pilek sejak 2 hari.',
         prioritasKms: { skor: 1200, jumlahT: 2, alasan: ['2T'] },
     },
@@ -213,6 +480,7 @@ export default function PemeriksaanKms({
     periodeId,
     onSesiBerakhir,
     demo = false,
+    bolehKelola = true,
 }: Props) {
     const [bantuanTerbuka, setBantuanTerbuka] = useState(false);
     const tombolBantuan = useRef<HTMLButtonElement>(null);
@@ -507,7 +775,17 @@ export default function PemeriksaanKms({
                         </StateHalaman>
                     )}
 
-                    {status === 'siap' && (
+                    {!bolehKelola && (
+                        <p
+                            role="status"
+                            className="rounded-xl border border-border bg-surface-subtle px-4 py-2.5 text-xs font-medium text-muted-foreground sm:text-sm"
+                        >
+                            Mode lihat saja untuk Admin Posyandu. Pemanggilan
+                            dan konfirmasi selesai pemeriksaan dilakukan oleh
+                            petugas KMS.
+                        </p>
+                    )}
+                    {status === 'siap' && bolehKelola && (
                         <section
                             aria-labelledby="judul-meja-saya"
                             className="rounded-2xl border border-primary/30 bg-card p-4.5 shadow-sm sm:p-5"
@@ -534,6 +812,12 @@ export default function PemeriksaanKms({
                                         </span>
                                     </div>
                                     <CatatanTahap item={milikSaya} />
+                                    <RiwayatCatatan
+                                        key={milikSaya.anakId}
+                                        anakId={milikSaya.anakId}
+                                        onSesiBerakhir={onSesiBerakhir}
+                                        demo={demo}
+                                    />
                                     <label className="flex flex-col gap-1.5 text-xs font-bold text-foreground sm:text-sm">
                                         Catatan / pengamatan khusus KMS
                                         <textarea
@@ -697,31 +981,52 @@ export default function PemeriksaanKms({
                                                         />
                                                         Menunggu
                                                     </span>
-                                                    <button
-                                                        type="button"
-                                                        className="tombol-kedua inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold sm:text-sm"
-                                                        disabled={
-                                                            sedang !== null ||
-                                                            !!milikSaya
-                                                        }
-                                                        title={
-                                                            milikSaya
-                                                                ? 'Selesaikan atau kembalikan anak yang sedang Anda periksa terlebih dahulu.'
-                                                                : undefined
-                                                        }
-                                                        onClick={() =>
-                                                            void panggil(item)
-                                                        }
+                                                    <Link
+                                                        href={`/balita/${item.anakId}`}
+                                                        className="tombol-kedua inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold sm:text-sm"
                                                     >
-                                                        <ArrowUpRight
-                                                            className="size-4 text-primary"
+                                                        <ExternalLink
+                                                            className="size-3.5 text-primary"
                                                             aria-hidden="true"
                                                         />
-                                                        Panggil
-                                                    </button>
+                                                        Lihat analisis &amp;
+                                                        kurva
+                                                    </Link>
+                                                    {bolehKelola && (
+                                                        <button
+                                                            type="button"
+                                                            className="tombol-kedua inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold sm:text-sm"
+                                                            disabled={
+                                                                sedang !==
+                                                                    null ||
+                                                                !!milikSaya
+                                                            }
+                                                            title={
+                                                                milikSaya
+                                                                    ? 'Selesaikan atau kembalikan anak yang sedang Anda periksa terlebih dahulu.'
+                                                                    : undefined
+                                                            }
+                                                            onClick={() =>
+                                                                void panggil(
+                                                                    item,
+                                                                )
+                                                            }
+                                                        >
+                                                            <ArrowUpRight
+                                                                className="size-4 text-primary"
+                                                                aria-hidden="true"
+                                                            />
+                                                            Panggil
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                             <CatatanTahap item={item} ringkas />
+                                            <RiwayatCatatan
+                                                anakId={item.anakId}
+                                                onSesiBerakhir={onSesiBerakhir}
+                                                demo={demo}
+                                            />
                                         </article>
                                     ))}
                                 </div>

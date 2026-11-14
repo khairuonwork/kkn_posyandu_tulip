@@ -70,7 +70,18 @@ function jawabPanggilan(res: Response, hasil: antreanRepo.HasilPanggilKms) {
 export function ruteAntrean(pool: Pool): Router {
     const rute = Router();
 
-    rute.get("/antrean", wajibBoleh("lihat-anak"), async (req, res, next) => {
+    rute.get("/antrean/riwayat-catatan/:anakId", wajibBoleh("lihat-anak"), async (req, res, next) => {
+        const anakId = Number(req.params.anakId);
+        if (!Number.isSafeInteger(anakId) || anakId < 1) {
+            gagal(res, 400, "Anak tidak valid.");
+            return;
+        }
+        try {
+            res.json({ items: await antreanRepo.riwayatCatatan(pool, req.pengguna!, anakId) });
+        } catch (error) { next(error); }
+    });
+
+    rute.get("/antrean",wajibBoleh("lihat-anak"), async (req, res, next) => {
         const periodeRaw = typeof req.query.periodeId === "string" ? req.query.periodeId : "";
         const periodeBulan = /^\d{4}-(0[1-9]|1[0-2])$/.test(periodeRaw);
         let periodeId = Number(periodeRaw);
@@ -119,7 +130,11 @@ export function ruteAntrean(pool: Pool): Router {
         const menyusui = {
             masihMenyusui: yaTidak(req.body?.masihMenyusui),
             asiEksklusif: yaTidak(req.body?.asiEksklusif),
+            ikutKb: yaTidak(req.body?.ikutKb),
+            jenisKb: teksOpsional(req.body?.jenisKb, 80),
         };
+        // Jenis KB diwajibkan di APK; server tidak menolak agar antrean sinkron
+        // luring tidak tertahan, cukup disimpan kosong.
         if (!Number.isSafeInteger(periodeId) || periodeId < 1 || !Number.isSafeInteger(sasaranId) || sasaranId < 1 || !TANGGAL.test(tanggal)) {
             gagal(res, 400, "Data check-in antrean tidak valid.");
             return;
