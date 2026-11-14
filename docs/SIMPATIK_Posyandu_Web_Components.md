@@ -382,7 +382,7 @@ Bagi pengembang yang akan melanjutkan atau memelihara frontend SIMPATIK Posyandu
 ## BAB 8: Perilaku antarmuka saat ini
 
 - Beranda memisahkan Ringkasan dan Statistik & Tren; isian kehadiran hari H dibuka dalam dialog. Grafik tren memakai animasi dan menghormati pengaturan gerak sistem.
-- Detail balita menyediakan grafik pertumbuhan dengan kontrol perbesaran, garis acuan dan navigasi keyboard antar tab. Lembar hasil menampilkan legenda garis acuan; tautan hasil demo hanya contoh dan bergantung pada akses ke alamat demo.
+- Detail balita menyediakan grafik pertumbuhan dengan kontrol perbesaran, garis acuan dan navigasi keyboard antar tab. Lembar hasil orang tua memakai komponen Kurva KMS yang sama untuk memilih rentang umur, memperbesar grafik, dan melihat rincian titik. Pratinjau cetak dan PDF memakai grafik statis yang disesuaikan dengan ukuran A4. Tautan hasil demo hanya contoh dan bergantung pada akses ke alamat demo.
 - Laporan demo menggunakan data contoh serta unduhan contoh, sementara laporan aplikasi memakai API. Batas unduhan F1 demo dijelaskan pada [panduan antrean KMS](panduan-antrean-kms.md#uji-simulasi-developer).
 - Demo KMS menyediakan pencarian, tampilan dua kolom dan menu pemeriksaan selesai; lihat [panduan antrean KMS](panduan-antrean-kms.md). Simulasi pelatihan di demo tidak mengaktifkan sandbox server. Kondisi memuat, kosong dan gagal menggunakan komponen state halaman.
 - Tombol dan filter yang disentuh perubahan antarmuka menyertakan label, status, atau ukuran target untuk penggunaan keyboard dan layar sentuh. Ini bukan klaim bahwa seluruh aplikasi telah lulus audit aksesibilitas.

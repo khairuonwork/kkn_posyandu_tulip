@@ -66,11 +66,16 @@ export default function GrafikStatis({
         (_, i) => awal + i,
     );
     const hidup = bulan.filter((u) => u >= spek.mulai && lms.has(u));
-    const titik = susunTitik(pengukuran, spek).filter(
+    const seri = susunTitik(pengukuran, spek);
+    const titik = seri.filter(
         (t) =>
             t.posisiUmur >= awal &&
             (t.posisiUmur < panel + PANEL_BULAN ||
                 (panel + PANEL_BULAN === 60 && t.posisiUmur === 60)),
+    );
+    const tingkatLabel = Math.max(
+        1,
+        Math.ceil((teks * 5) / (plotLebar / PANEL_BULAN)),
     );
 
     const batas = [
@@ -273,7 +278,7 @@ export default function GrafikStatis({
                 </g>
             ))}
             {titik.map((t, i) => {
-                const akhir = i === titik.length - 1;
+                const akhir = t === seri[seri.length - 1];
                 // Label titik di tepi kiri dibaca ke kanan supaya tidak
                 // menimpa angka sumbu tegak.
                 const tepiKiri = x(t.posisiUmur) - kiri < teks * 2;
@@ -287,11 +292,14 @@ export default function GrafikStatis({
                                         ? x(t.posisiUmur) - 4
                                         : x(t.posisiUmur)
                                 }
-                                y={Math.max(atas + teks + 2, y(t.nilai) - 11)}
+                                y={Math.max(
+                                    atas + teks + 2,
+                                    y(t.nilai) - 11 - (i % tingkatLabel) * teks * 1.3,
+                                )}
                                 textAnchor={tepiKiri ? 'start' : 'middle'}
                                 fontSize={teks}
                                 fontWeight={700}
-                                fill={TINTA}
+                                fill={akhir ? '#047857' : TINTA}
                                 stroke="#FFFFFF"
                                 strokeWidth={3.5}
                                 strokeLinejoin="round"

@@ -4,7 +4,7 @@
 |---|---|
 | **Jenis** | Panduan |
 | **Status** | hidup |
-| **Perubahan berarti terakhir** | 5 Oktober 2026 |
+| **Perubahan berarti terakhir** | 14 November 2026 |
 
 Panduan ini menjelaskan **cara menyiapkan** tombol **Kirim ke WhatsApp** di Detail Balita dan tautan **Lembar Hasil** yang dikirim bersamanya. Isinya langkah demi langkah, untuk orang yang menyiapkan atau menjalankan portal.
 
@@ -18,6 +18,10 @@ Alasan rancangannya ada di [F03 — Kirim hasil ke WhatsApp](prd/feedback/F03-ki
 4. Orang tua membuka tautan di ponselnya. Halaman itu berisi hasil, grafik, dan tombol untuk menyimpan PDF.
 
 Tautan **berlaku 20 hari**. Sesudah itu orang tua melihat pesan "Tautan ini sudah tidak berlaku".
+
+Pada Kurva KMS, orang tua dapat memilih rentang umur, memperbesar grafik, dan mengetuk titik untuk melihat rincian pengukuran. Pada ponsel, grafik dapat digeser mendatar. Grafik memakai umur dalam bulan karena tanggal lahir tidak dikirim ke halaman publik.
+
+Tombol **Lihat tata letak cetak** membuka pratinjau. Tombol **Unduh ringkasan lengkap & kurva KMS (PDF)** membuka jendela cetak peramban; pilih **Simpan sebagai PDF**. Dokumen A4 memakai grafik statis dan mencakup kurva berat badan serta grafik pertumbuhan lainnya.
 
 ## Sebelum mulai
 
@@ -104,7 +108,7 @@ Selama portal hanya berjalan di jaringan lokal, **tautan hanya terbuka dari pons
    - jendela pratinjau memuat tautan yang berawalan alamat dari `VITE_ALAMAT_PUBLIK`;
    - selama pengujian, jendela itu menampilkan "Mode uji" dan nomor uji;
    - pesan masuk ke nomor uji setelah menekan Kirim di WhatsApp.
-5. Ketuk tautan di ponsel yang satu Wi-Fi. Halaman hasil harus terbuka, dan tombol **Unduh hasil lengkap (PDF)** membuka jendela cetak.
+5. Ketuk tautan di ponsel yang satu Wi-Fi. Pastikan halaman hasil terbuka, titik pada Kurva KMS dapat dipilih, dan tombol **Unduh ringkasan lengkap & kurva KMS (PDF)** membuka jendela cetak.
 
 ## Sebelum dipakai sungguhan
 

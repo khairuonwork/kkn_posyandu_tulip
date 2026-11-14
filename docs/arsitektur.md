@@ -4,7 +4,7 @@
 |---|---|
 | **Jenis** | Rujukan |
 | **Status** | hidup — daftar endpoint menyusul saat dibangun |
-| **Perubahan berarti terakhir** | 29 September 2026 |
+| **Perubahan berarti terakhir** | 14 November 2026 |
 
 Bagaimana SIMPATIK Posyandu disusun: teknologinya apa, permintaan mengalir ke mana, berkas ditaruh di mana, dan siapa boleh melakukan apa.
 
@@ -207,6 +207,7 @@ Alamatnya memakai hash (`#/balita/12`), bukan path. Router dan penjaga rutenya a
 | `#/laporan` | `laporan/index.tsx` | semua | Rekap SKDN per RT, bulanan atau enam bulan |
 | `#/sasaran` | `sasaran/index.tsx` | admin | Sasaran & Impor: rancangan alur impor data Puskesmas, belum membaca berkas |
 | `#/pengaturan` | `pengaturan/index.tsx` | bidan, admin | Batas angka ukur, ambang rujukan, pengguna dan peran (admin, tersambung ke `/api/pengguna`), standar perhitungan, riwayat perubahan |
+| `#/hasil/{token}` | `hasil/lembar.tsx` | publik dengan tautan sah | Lembar hasil orang tua, kurva KMS interaktif, pratinjau dan cetak PDF |
 | — | `auth/login.tsx` | — | Layar Masuk |
 
 Alamat lain jatuh ke Beranda, dan alamat yang tidak boleh dibuka suatu peran dikembalikan ke Beranda. Itu kenyamanan; penolakan yang mengikat tetap di server.
@@ -223,7 +224,8 @@ Daftar lengkapnya di [UI/UX bagian 4](rujukan/ui-ux.md#4-inventory-komponen). Du
 
 | Komponen | Keterangan |
 |---|---|
-| `components/grafik-pertumbuhan.tsx` | Grafik pertumbuhan dan kurva KMS BB/U; menggambar titik pengukuran dan acuan sebagai SVG. |
+| `components/grafik-pertumbuhan.tsx` | Grafik pertumbuhan dan kurva KMS BB/U interaktif pada detail balita dan lembar hasil orang tua; menggambar titik pengukuran dan acuan sebagai SVG. |
+| `components/grafik-statis.tsx` | Grafik pertumbuhan statis untuk pratinjau cetak dan PDF lembar hasil, memakai acuan dan penyusunan titik yang sama. |
 | `components/ui/table.tsx` | Tabel dari shadcn/ui, satu-satunya komponen yang diambil dari sana. Dipakai lima layar bertabel. |
 
 ### Kartu balita

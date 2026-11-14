@@ -14,6 +14,7 @@ import { BookOpen, Clock, Download, ShieldCheck } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import GrafikPertumbuhan from '@/components/grafik-pertumbuhan';
 import GrafikStatis from '@/components/grafik-statis';
 import PanduanKeluargaKia, {
     DiskusiKiaCetak,
@@ -353,26 +354,18 @@ function Isi({ data }: { data: LembarApi }) {
             </section>
 
             {terbaru.bbKg !== null && (
-                <section className="rounded-2xl border border-border bg-card p-3.5">
-                    <h2 className="text-lg font-extrabold">
-                        Grafik berat badan (KMS)
-                    </h2>
-                    <p className="mt-0.5 mb-2 text-sm text-muted-foreground">
-                        Titik hitam adalah berat badan {nama} tiap bulan.
-                    </p>
-                    <div className="mx-auto max-w-[420px]">
-                        <GrafikStatis
-                            indeks="BB_U"
-                            kelamin={data.anak.jk}
-                            pengukuran={pengukuran}
-                            tabel={tabel}
-                            panel={panel}
-                            lebar={330}
-                            tinggi={250}
-                            teks={10.5}
-                        />
-                    </div>
-                    <Legenda />
+                <section aria-label="Grafik berat badan">
+                    <GrafikPertumbuhan
+                        modeKms
+                        aktif
+                        kelamin={data.anak.jk}
+                        nama={nama}
+                        umurBalita={umur}
+                        tglLahir={null}
+                        keterangan={`Titik menunjukkan berat badan ${nama} pada setiap pengukuran.`}
+                        pengukuran={pengukuran}
+                        standar={standarLms}
+                    />
                 </section>
             )}
 
