@@ -72,6 +72,17 @@ function jawabPanggilan(res: Response, hasil: antreanRepo.HasilPanggilKms) {
 export function ruteAntrean(pool: Pool): Router {
     const rute = Router();
 
+    rute.get("/antrean/riwayat-catatan/:anakId", wajibBoleh("lihat-anak"), async (req, res, next) => {
+        const anakId = Number(req.params.anakId);
+        if (!Number.isSafeInteger(anakId) || anakId < 1) {
+            gagal(res, 400, "Anak tidak valid.");
+            return;
+        }
+        try {
+            res.json({ items: await antreanRepo.riwayatCatatan(pool, req.pengguna!, anakId) });
+        } catch (error) { next(error); }
+    });
+
     rute.get(["/antrean-kms", "/panggilan-kms"], wajibBoleh("konfirmasi-kms"), async (req, res) => {
         const setelah = req.query.setelah ?? null;
         if (setelah !== null && (typeof setelah !== "string" || !/^\d{1,18}$/.test(setelah))) {
@@ -91,8 +102,8 @@ export function ruteAntrean(pool: Pool): Router {
         const items = sesi ? await antreanRepo.daftar(pool, pengguna, sesi.id, tanggal) : [];
         const prioritas = sesi ? await prioritasUntukAnak(pool, sesi.id, items.map(item => item.anakId)) : new Map();
         res.json({
-            items: items.map(({ id, anakId, nomor, urutan, nama, namaOrtu, rt, status, checkedInAt, mejaKms, tibaKms, sudahDiukur, catatan, catatanKhusus, catatanKms, masihMenyusui, asiEksklusif, kmsPetugasId, kmsPetugasNama }) => ({
-                id, anakId, nomor, urutan, nama, namaOrtu, rt, status, checkedInAt, mejaKms, tibaKms, sudahDiukur, catatan, catatanKhusus, catatanKms, masihMenyusui, asiEksklusif, kmsPetugasId, kmsPetugasNama, prioritasKms: prioritas.get(anakId) ?? null,
+            items: items.map(({ id, anakId, nomor, urutan, nama, namaOrtu, rt, status, checkedInAt, mejaKms, tibaKms, sudahDiukur, catatan, catatanKhusus, catatanKms, masihMenyusui, asiEksklusif, ikutKb, jenisKb, kmsPetugasId, kmsPetugasNama }) => ({
+                id, anakId, nomor, urutan, nama, namaOrtu, rt, status, checkedInAt, mejaKms, tibaKms, sudahDiukur, catatan, catatanKhusus, catatanKms, masihMenyusui, asiEksklusif, ikutKb, jenisKb, kmsPetugasId, kmsPetugasNama, prioritasKms: prioritas.get(anakId) ?? null,
             })),
             mejaKms: sesi ? sesi.mejaKms : await mejaAkunKms(pool, pengguna.id),
         });
@@ -173,7 +184,11 @@ export function ruteAntrean(pool: Pool): Router {
         const menyusui = {
             masihMenyusui: yaTidak(req.body?.masihMenyusui),
             asiEksklusif: yaTidak(req.body?.asiEksklusif),
+            ikutKb: yaTidak(req.body?.ikutKb),
+            jenisKb: teksOpsional(req.body?.jenisKb, 80),
         };
+        // Jenis KB diwajibkan di APK; server tidak menolak agar antrean sinkron
+        // luring tidak tertahan, cukup disimpan kosong.
         if (!Number.isSafeInteger(periodeId) || periodeId < 1 || !Number.isSafeInteger(sasaranId) || sasaranId < 1 || !TANGGAL.test(tanggal)) {
             gagal(res, 400, "Data check-in antrean tidak valid.");
             return;

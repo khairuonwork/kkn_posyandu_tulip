@@ -22,6 +22,9 @@ export type BarisAntrean = {
     catatan: string | null;
     masihMenyusui: boolean | null;
     asiEksklusif: boolean | null;
+    /** Jawaban pendaftaran: ibu ber-KB; null = tidak ditanyakan. */
+    ikutKb: boolean | null;
+    jenisKb: string | null;
     catatanKhusus: string | null;
     catatanKms: string | null;
     /** Akun KMS yang memanggil/memeriksa; tetap terisi setelah selesai. */
@@ -48,6 +51,7 @@ const PILIH = `SELECT q.id, q.periode_id AS "periodeId", q.sasaran_id AS "sasara
                       q.nomor, q.urutan, coalesce(a.nik, 'ANAK-' || a.id::text) AS "childIdentity",
                       a.nama, o.nama AS "namaOrtu", w.rt, q.status, q.catatan,
                       q.masih_menyusui AS "masihMenyusui", q.asi_eksklusif AS "asiEksklusif",
+                      q.ikut_kb AS "ikutKb", q.jenis_kb AS "jenisKb",
                       p.catatan_khusus AS "catatanKhusus", p.catatan_kms AS "catatanKms",
                       q.kms_petugas_id::int AS "kmsPetugasId", pk.nama AS "kmsPetugasNama",
                       q.kms_dipanggil_pada AS "kmsDipanggilPada",
@@ -79,6 +83,9 @@ export async function daftar(pool: Pool, pengguna: PenggunaAktif, periodeId: num
 export type StatusMenyusui = {
     masihMenyusui?: boolean | null;
     asiEksklusif?: boolean | null;
+    /** Ibu ber-KB; jenisKb hanya disimpan bila ikutKb true. */
+    ikutKb?: boolean | null;
+    jenisKb?: string | null;
 };
 
 /**
@@ -148,15 +155,22 @@ export async function checkIn(
     // undefined dipertahankan sebagai "tidak diubah" agar APK lama tidak menghapus jawaban.
     const kirimMenyusui = menyusui.masihMenyusui !== undefined;
     const kirimAsi = menyusui.asiEksklusif !== undefined;
+    const kirimKb = menyusui.ikutKb !== undefined;
+    const ikutKb = menyusui.ikutKb ?? null;
+    // Jenis KB tidak berarti bila ibu tidak ber-KB.
+    const jenisKb = ikutKb === true ? menyusui.jenisKb ?? null : null;
     if (existing.rows[0]) {
-        if (kirimMenyusui || kirimAsi) {
+        if (kirimMenyusui || kirimAsi || kirimKb) {
             await db.query(
                 `UPDATE antrean_layanan
                     SET masih_menyusui=CASE WHEN $2::boolean THEN $3::boolean ELSE masih_menyusui END,
                         asi_eksklusif=CASE WHEN $4::boolean THEN $5::boolean ELSE asi_eksklusif END,
+                        ikut_kb=CASE WHEN $7::boolean THEN $8::boolean ELSE ikut_kb END,
+                        jenis_kb=CASE WHEN $7::boolean THEN $9::text ELSE jenis_kb END,
                         updated_by=$6
                   WHERE id=$1`,
-                [id, kirimMenyusui, menyusui.masihMenyusui ?? null, kirimAsi, menyusui.asiEksklusif ?? null, pengguna.id],
+                [id, kirimMenyusui, menyusui.masihMenyusui ?? null, kirimAsi, menyusui.asiEksklusif ?? null, pengguna.id,
+                    kirimKb, ikutKb, jenisKb],
             );
         }
         if (existing.rows[0].status === "cancelled") {
@@ -185,11 +199,11 @@ export async function checkIn(
         await db.query(
             `INSERT INTO antrean_layanan
                 (id, periode_id, sasaran_id, tanggal, nomor, urutan, catatan,
-                 masih_menyusui, asi_eksklusif, created_by, updated_by)
-             VALUES ($1,$2,$3,$4::date,$5,$6,$7,$9,$10,$8,$8)`,
+                 masih_menyusui, asi_eksklusif, ikut_kb, jenis_kb, created_by, updated_by)
+             VALUES ($1,$2,$3,$4::date,$5,$6,$7,$9,$10,$11,$12,$8,$8)`,
             [id, periodeId, actualSasaranId, tanggal, nomorBaru,
                 nomor.rows[0].urutan + 1, catatan, pengguna.id,
-                menyusui.masihMenyusui ?? null, menyusui.asiEksklusif ?? null],
+                menyusui.masihMenyusui ?? null, menyusui.asiEksklusif ?? null, ikutKb, jenisKb],
         );
     }
     const { rows } = await db.query<BarisAntrean>(`${PILIH} WHERE q.id=$1`, [id]);
@@ -472,4 +486,82 @@ export async function konfirmasiSemuaKms(
         );
     }
     return rows.length;
+}
+
+/** Catatan satu bulan dari setiap tahap layanan, untuk riwayat di meja KMS. */
+export type CatatanBulanan = {
+    periode: string;
+    tanggal: string | null;
+    pendaftaran: {
+        catatan: string | null;
+        masihMenyusui: boolean | null;
+        asiEksklusif: boolean | null;
+        ikutKb: boolean | null;
+        jenisKb: string | null;
+    };
+    pengukuran: { catatanKhusus: string | null; catatan: string | null };
+    kms: { catatan: string | null; petugasNama: string | null };
+};
+
+type BarisCatatanBulanan = {
+    periode: string;
+    tanggal: string | null;
+    catatan: string | null;
+    masihMenyusui: boolean | null;
+    asiEksklusif: boolean | null;
+    ikutKb: boolean | null;
+    jenisKb: string | null;
+    catatanKhusus: string | null;
+    catatanUkur: string | null;
+    catatanKms: string | null;
+    kmsPetugasNama: string | null;
+};
+
+const teks = (nilai: string | null) => nilai?.trim() || null;
+
+/**
+ * Riwayat catatan per bulan untuk satu anak, terbaru dahulu. Bulan tanpa
+ * catatan apa pun (termasuk jawaban YA/TIDAK) tidak ditampilkan.
+ */
+export async function riwayatCatatan(pool: Pool, pengguna: PenggunaAktif, anakId: number): Promise<CatatanBulanan[]> {
+    const { rows } = await pool.query<BarisCatatanBulanan>(
+        `SELECT to_char(make_date(pe.tahun, pe.bulan, 1), 'YYYY-MM') AS periode,
+                to_char(coalesce(q.tanggal, p.tanggal_ukur), 'YYYY-MM-DD') AS tanggal,
+                q.catatan, q.masih_menyusui AS "masihMenyusui", q.asi_eksklusif AS "asiEksklusif",
+                q.ikut_kb AS "ikutKb", q.jenis_kb AS "jenisKb",
+                p.catatan_khusus AS "catatanKhusus", p.catatan AS "catatanUkur",
+                p.catatan_kms AS "catatanKms", pk.nama AS "kmsPetugasNama"
+           FROM periode pe
+           LEFT JOIN LATERAL (
+                SELECT q.* FROM antrean_layanan q
+                  JOIN sasaran s ON s.id = q.sasaran_id
+                 WHERE s.anak_id = $1 AND q.periode_id = pe.id AND q.status <> 'cancelled'
+                 ORDER BY q.tanggal DESC, q.updated_at DESC
+                 LIMIT 1) q ON true
+           LEFT JOIN pengukuran p ON p.anak_id = $1 AND p.periode_id = pe.id
+           LEFT JOIN pengguna pk ON pk.id = q.kms_petugas_id
+          WHERE (q.id IS NOT NULL OR p.id IS NOT NULL)
+            AND ($2::boolean OR pe.posyandu_id = ANY($3::bigint[]))
+            AND EXISTS (SELECT 1 FROM anak a WHERE a.id = $1 AND a.deleted_at IS NULL)
+          ORDER BY pe.tahun DESC, pe.bulan DESC
+          LIMIT 36`,
+        [anakId, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
+    );
+    return rows
+        .map(baris => ({
+            periode: baris.periode,
+            tanggal: baris.tanggal,
+            pendaftaran: {
+                catatan: teks(baris.catatan),
+                masihMenyusui: baris.masihMenyusui,
+                asiEksklusif: baris.asiEksklusif,
+                ikutKb: baris.ikutKb,
+                jenisKb: teks(baris.jenisKb),
+            },
+            pengukuran: { catatanKhusus: teks(baris.catatanKhusus), catatan: teks(baris.catatanUkur) },
+            kms: { catatan: teks(baris.catatanKms), petugasNama: baris.kmsPetugasNama },
+        }))
+        .filter(b => b.pendaftaran.catatan || b.pendaftaran.masihMenyusui !== null
+            || b.pendaftaran.asiEksklusif !== null || b.pendaftaran.ikutKb !== null
+            || b.pengukuran.catatanKhusus || b.pengukuran.catatan || b.kms.catatan);
 }

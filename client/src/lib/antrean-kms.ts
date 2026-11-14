@@ -15,6 +15,9 @@ export type AntreanKms = {
     catatanKms?: string | null;
     masihMenyusui?: boolean | null;
     asiEksklusif?: boolean | null;
+    /** Jawaban pendaftaran: ibu ber-KB; null = tidak ditanyakan. */
+    ikutKb?: boolean | null;
+    jenisKb?: string | null;
     kmsPetugasId?: number | null;
     kmsPetugasNama?: string | null;
     mejaKms?: number | null;
@@ -110,4 +113,33 @@ export function konfirmasiSelesaiKms(id: string, onSesiBerakhir: () => void, cat
             body: JSON.stringify(catatanKms?.trim() ? { catatanKms: catatanKms.trim() } : {}),
         },
     );
+}
+
+/** Catatan satu bulan, dikelompokkan menurut tahap asalnya. */
+export type CatatanBulanan = {
+    periode: string;
+    tanggal: string | null;
+    pendaftaran: {
+        catatan: string | null;
+        masihMenyusui: boolean | null;
+        asiEksklusif: boolean | null;
+        ikutKb: boolean | null;
+        jenisKb: string | null;
+    };
+    pengukuran: { catatanKhusus: string | null; catatan: string | null };
+    kms: { catatan: string | null; petugasNama: string | null };
+};
+
+export async function ambilRiwayatCatatan(
+    anakId: number,
+    signal: AbortSignal,
+    onSesiBerakhir: () => void,
+): Promise<CatatanBulanan[]> {
+    const hasil = await mintaKms<{ items?: CatatanBulanan[] }>(
+        `antrean/riwayat-catatan/${encodeURIComponent(String(anakId))}`,
+        onSesiBerakhir,
+        { signal },
+    );
+
+    return hasil.items ?? [];
 }
