@@ -52,7 +52,7 @@ describe("matriks izin", () => {
         "lihat-kms": { kader: true, bidan: true, admin: true, kms: true },
         "lihat-rekap": { kader: true, bidan: true, admin: true, kms: false },
         "daftar-anak-lapangan": { kader: true, bidan: true, admin: true, kms: false },
-        "catat-pengukuran-lapangan": { kader: true, bidan: true, admin: true, kms: false },
+        "catat-pengukuran-lapangan": { kader: true, bidan: true, admin: true, kms: true },
         "catat-survei-kia": { kader: true, bidan: true, admin: true, kms: true },
         "selesaikan-sesi-lapangan": { kader: false, bidan: false, admin: true, kms: false },
         "konfirmasi-kms": { kader: false, bidan: false, admin: false, kms: true },

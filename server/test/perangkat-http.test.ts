@@ -15,6 +15,19 @@ test('laporan perangkat menolak identitas/angka rusak dan menerima klien Android
     assert.equal(bacaHeartbeat({deviceId:'uji-123',jenisPerangkat:'rw-lain'}), null);
     assert.equal(bacaHeartbeat({deviceId:'uji-123'})?.jenisPerangkat, 'android');
 });
+test('rincian data tertahan dibatasi, dibersihkan, dan opsional untuk klien lama', () => {
+    assert.equal(bacaHeartbeat({deviceId:'uji-123'})?.rincianTertunda, null);
+    assert.equal(bacaHeartbeat({deviceId:'uji-123',rincianTertunda:'rusak'}), null);
+    assert.equal(bacaHeartbeat({deviceId:'uji-123',rincianTertunda:[{jenis:'lain',id:'a'}]}), null);
+    const hasil = bacaHeartbeat({deviceId:'uji-123',rincianTertunda:[
+        {jenis:'pengukuran',id:'ukur-1',idAnak:233,tanggal:'2026-11-14',status:403,galat:'  Peran tidak berhak  ',dicobaPada:'2026-11-15T14:00:00Z'},
+        {jenis:'anak',id:'ANAK-9',idAnak:'x',tanggal:'14/11',status:7,galat:'g'.repeat(500)},
+    ]})?.rincianTertunda;
+    assert.deepEqual(hasil?.[0], {jenis:'pengukuran',id:'ukur-1',idAnak:233,tanggal:'2026-11-14',status:403,galat:'Peran tidak berhak',dicobaPada:'2026-11-15T14:00:00Z'});
+    assert.deepEqual([hasil?.[1].idAnak,hasil?.[1].tanggal,hasil?.[1].status,hasil?.[1].galat?.length],[null,null,null,200]);
+    const banyak = Array.from({length:80},(_,i)=>({jenis:'pengukuran',id:'u'+i}));
+    assert.equal(bacaHeartbeat({deviceId:'uji-123',rincianTertunda:banyak})?.rincianTertunda?.length, 50);
+});
 test('status melewati online, siaga dan offline tanpa menghapus catatan', () => {
     const awal = Date.parse('2026-10-21T00:00:00Z');
     assert.equal(statusPerangkat(new Date(awal).toISOString(), true, awal+45000).status, 'online');

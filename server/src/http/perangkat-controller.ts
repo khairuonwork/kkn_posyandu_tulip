@@ -8,6 +8,14 @@ export function rutePerangkat(pool: Pool): Router {
     rute.post('/heartbeat', wajibMasuk, async (req, res, next) => {
         const data = bacaHeartbeat(req.body);
         if (!data) { res.status(400).json({ galat: 'Identitas atau laporan perangkat tidak valid.' }); return; }
+        // Heartbeat hanya laporan status. Saat semua koneksi database sedang
+        // dipakai, jangan ikut mengantre: pengukuran dan antrean lebih penting,
+        // dan laporan berikutnya datang beberapa detik lagi.
+        if (pool.waitingCount > 0) {
+            res.set('Cache-Control', 'no-store');
+            res.status(202).json({ ok: true, status: 'ditunda', waktuServer: new Date().toISOString() });
+            return;
+        }
         try {
             const tersimpan = await simpanHeartbeat(pool, req.pengguna!, req.ip || req.socket.remoteAddress || '', data);
             if (!tersimpan) {
