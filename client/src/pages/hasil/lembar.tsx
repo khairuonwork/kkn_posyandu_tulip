@@ -59,7 +59,13 @@ const NADA_KESIMPULAN: Record<Kesimpulan, { kartu: string; judul: string }> = {
 
 const tanggalBerlaku = (iso: string) => tanggalPanjang(iso.slice(0, 10));
 
-export default function LembarHasil({ token, contoh }: { token: string; contoh?: LembarApi | null }) {
+export default function LembarHasil({
+    token,
+    contoh,
+}: {
+    token: string;
+    contoh?: LembarApi | null;
+}) {
     const lembar = useLembar(token, contoh);
 
     return (
@@ -85,7 +91,11 @@ export default function LembarHasil({ token, contoh }: { token: string; contoh?:
             </header>
 
             <main className="mx-auto max-w-2xl px-4 pt-6 pb-10">
-                {contoh !== undefined && <p role="status" className="mb-4">Lembar hasil contoh · simulasi demo.</p>}
+                {contoh !== undefined && (
+                    <p role="status" className="mb-4">
+                        Lembar hasil contoh · simulasi demo.
+                    </p>
+                )}
                 {lembar.status === 'memuat' && (
                     <p
                         role="status"

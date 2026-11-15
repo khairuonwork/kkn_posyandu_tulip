@@ -87,6 +87,8 @@ test('check-in APK lama tanpa field menyusui tetap diterima dan menyimpan NULL',
 
 test('konfirmasi KMS meneruskan catatan khusus ke pengukuran periode yang sama', async () => {
     const { pool, log } = poolTiruan(q => {
+        // konfirmasiKms mengunci hari layanan lebih dahulu dari baris antreannya.
+        if (q.text.includes("AS \"tanggalKunci\"")) return [{ periodeId: 2, tanggalKunci: 20261109 }];
         if (q.text.includes("SET status='done'")) return [{ id: baris.id, sasaranId: 7, periodeId: 2 }];
         if (q.text.includes('WHERE q.id=$1')) return [{ ...baris, status: 'done' }];
         return [];
@@ -106,6 +108,8 @@ test('konfirmasi KMS meneruskan catatan khusus ke pengukuran periode yang sama',
 
 test('konfirmasi KMS tanpa catatan tidak menimpa catatan yang sudah ada', async () => {
     const { pool, log } = poolTiruan(q => {
+        // konfirmasiKms mengunci hari layanan lebih dahulu dari baris antreannya.
+        if (q.text.includes("AS \"tanggalKunci\"")) return [{ periodeId: 2, tanggalKunci: 20261109 }];
         if (q.text.includes("SET status='done'")) return [{ id: baris.id, sasaranId: 7, periodeId: 2 }];
         if (q.text.includes('WHERE q.id=$1')) return [{ ...baris, status: 'done' }];
         return [];

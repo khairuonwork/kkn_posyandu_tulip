@@ -1095,8 +1095,17 @@ export function laporanDemo(periodeId?: string): LaporanLive {
         const bln = umur === null ? null : umur % 12;
         const isT = item.ntob === 'T';
         const isN = item.ntob === 'N';
-        const periodeSebelumnya = data.periode[data.periode.findIndex((periode) => periode.id === targetPeriode) - 1];
-        const sebelumnya = data.pengukuran.find((ukur) => ukur.anakId === item.anakId && ukur.periodeId === periodeSebelumnya?.id);
+        const periodeSebelumnya =
+            data.periode[
+                data.periode.findIndex(
+                    (periode) => periode.id === targetPeriode,
+                ) - 1
+            ];
+        const sebelumnya = data.pengukuran.find(
+            (ukur) =>
+                ukur.anakId === item.anakId &&
+                ukur.periodeId === periodeSebelumnya?.id,
+        );
         const is2T = isT && sebelumnya?.ntob === 'T';
 
         return {

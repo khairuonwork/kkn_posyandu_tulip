@@ -98,7 +98,38 @@ export function useLaporanTumbuhKembang(
     const terkini = hasil?.periode === periode && hasil.versi === versi;
 
     return {
-        data: !modeLive ? { periode, balita: laporanDemo(periode).bulanan.slice(0, 2).map((anak, i) => ({ anakId: anak.anakId, nama: anak.nama, survei: [{ surveiId: i + 1, tanggal: anak.tanggalUkur ?? `${periode}-01`, umurBulan: Math.floor((anak.umurHari ?? 0) / 30), kelompokId: 'contoh', kelompokLabel: 'Simulasi', kemampuan: [{ pertanyaanId: 'contoh', pertanyaan: 'Contoh', keterangan: 'Contoh jawaban simulasi untuk dibahas bersama keluarga.' }] }] })) } : terkini ? hasil.data : null,
+        data: !modeLive
+            ? {
+                  periode,
+                  balita: laporanDemo(periode)
+                      .bulanan.slice(0, 2)
+                      .map((anak, i) => ({
+                          anakId: anak.anakId,
+                          nama: anak.nama,
+                          survei: [
+                              {
+                                  surveiId: i + 1,
+                                  tanggal: anak.tanggalUkur ?? `${periode}-01`,
+                                  umurBulan: Math.floor(
+                                      (anak.umurHari ?? 0) / 30,
+                                  ),
+                                  kelompokId: 'contoh',
+                                  kelompokLabel: 'Simulasi',
+                                  kemampuan: [
+                                      {
+                                          pertanyaanId: 'contoh',
+                                          pertanyaan: 'Contoh',
+                                          keterangan:
+                                              'Contoh jawaban simulasi untuk dibahas bersama keluarga.',
+                                      },
+                                  ],
+                              },
+                          ],
+                      })),
+              }
+            : terkini
+              ? hasil.data
+              : null,
         status: !modeLive
             ? ('siap' as const)
             : !terkini

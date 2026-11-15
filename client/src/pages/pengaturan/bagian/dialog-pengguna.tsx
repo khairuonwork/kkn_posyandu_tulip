@@ -61,11 +61,17 @@ export function DialogPengguna({
         }
     }, [berhasil]);
     const fokusIsian = useRef<HTMLElement | null>(null);
-    const berubah = nama !== (pengguna?.nama ?? '') || username !== (pengguna?.username ?? '') ||
-        peran !== (pengguna?.peran ?? 'kader') || posyanduId !== (pengguna?.posyanduId ?? posyandu[0]?.id ?? null) ||
-        rt !== (pengguna?.rt ?? rtUntukPosyandu[0]?.rt ?? '') || aktif !== (pengguna?.aktif ?? true) ||
-        mejaKms !== (pengguna?.mejaKms?.toString() ?? '') || kataSandi !== '';
-    const mejaTidakSah = peran === 'kms' && mejaKms !== '' && !/^[1-9]\d?$/.test(mejaKms);
+    const berubah =
+        nama !== (pengguna?.nama ?? '') ||
+        username !== (pengguna?.username ?? '') ||
+        peran !== (pengguna?.peran ?? 'kader') ||
+        posyanduId !== (pengguna?.posyanduId ?? posyandu[0]?.id ?? null) ||
+        rt !== (pengguna?.rt ?? rtUntukPosyandu[0]?.rt ?? '') ||
+        aktif !== (pengguna?.aktif ?? true) ||
+        mejaKms !== (pengguna?.mejaKms?.toString() ?? '') ||
+        kataSandi !== '';
+    const mejaTidakSah =
+        peran === 'kms' && mejaKms !== '' && !/^[1-9]\d?$/.test(mejaKms);
 
     // Huruf kecil dipaksakan, sama seperti di server: "Kader01" tetap kader01.
     const usernameBersih = username.trim().toLowerCase();
@@ -137,7 +143,10 @@ export function DialogPengguna({
                         peran,
                         rt: peran === 'kader' ? rt : null,
                         posyanduId,
-                        mejaKms: peran === 'kms' && mejaKms !== '' ? Number(mejaKms) : null,
+                        mejaKms:
+                            peran === 'kms' && mejaKms !== ''
+                                ? Number(mejaKms)
+                                : null,
                         aktif,
                         kataSandi,
                     })
@@ -259,7 +268,11 @@ export function DialogPengguna({
                         <KolomPengguna
                             id="pengguna-meja-kms"
                             label="Nomor meja KMS"
-                            galat={dicoba && mejaTidakSah ? 'Masukkan nomor meja 1 sampai 99.' : null}
+                            galat={
+                                dicoba && mejaTidakSah
+                                    ? 'Masukkan nomor meja 1 sampai 99.'
+                                    : null
+                            }
                         >
                             <input
                                 id="pengguna-meja-kms"
@@ -270,7 +283,10 @@ export function DialogPengguna({
                                 onChange={(e) => setMejaKms(e.target.value)}
                                 className="isian w-full"
                             />
-                            <p id="pengguna-meja-kms-ket" className="mt-1.5 text-sm text-muted-foreground">
+                            <p
+                                id="pengguna-meja-kms-ket"
+                                className="mt-1.5 text-sm text-muted-foreground"
+                            >
                                 Kosongkan jika petugas belum mendapat meja.
                             </p>
                         </KolomPengguna>

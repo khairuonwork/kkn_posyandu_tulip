@@ -306,7 +306,11 @@ export default function LaporanDataLive({
                 </div>
             }
         >
-            {demo && <p role="status" className="mb-4">Data dan unduhan adalah simulasi demo.</p>}
+            {demo && (
+                <p role="status" className="mb-4">
+                    Data dan unduhan adalah simulasi demo.
+                </p>
+            )}
             <div
                 className={
                     bantuanTerbuka

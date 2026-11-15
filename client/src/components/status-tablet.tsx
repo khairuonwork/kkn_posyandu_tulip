@@ -456,8 +456,10 @@ export default function StatusTablet() {
                                                                 terakhir
                                                             </p>
                                                         )}
-                                                        {(p.rincianTertunda ?? [])
-                                                            .length > 0 && (
+                                                        {(
+                                                            p.rincianTertunda ??
+                                                            []
+                                                        ).length > 0 && (
                                                             <ul className="mt-1 space-y-0.5 text-amber-950">
                                                                 {(
                                                                     p.rincianTertunda ??

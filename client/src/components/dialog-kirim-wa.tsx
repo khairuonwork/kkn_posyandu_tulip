@@ -138,7 +138,11 @@ export default function DialogKirimWa({
                     </p>
                 </div>
                 {tautanHasil !== null && (
-                    <p className="text-sm text-muted-foreground">{tautanHasil.includes('#/hasil-demo/') ? 'Tautan contoh hanya dapat dibuka jika alamat demo ini dapat diakses penerima.' : ''}</p>
+                    <p className="text-sm text-muted-foreground">
+                        {tautanHasil.includes('#/hasil-demo/')
+                            ? 'Tautan contoh hanya dapat dibuka jika alamat demo ini dapat diakses penerima.'
+                            : ''}
+                    </p>
                 )}
                 {tautanHasil !== null && (
                     <a

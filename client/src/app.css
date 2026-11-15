@@ -417,8 +417,12 @@
     align-content: start;
     grid-template-areas: 'ringkasan' 'pesan' 'meja' 'antrean' 'lain' 'selesai';
 }
-.kms-demo-ringkasan { grid-area: ringkasan; }
-.kms-demo-pesan { grid-area: pesan; }
+.kms-demo-ringkasan {
+    grid-area: ringkasan;
+}
+.kms-demo-pesan {
+    grid-area: pesan;
+}
 .kms-demo-meja {
     grid-area: meja;
     min-height: 15rem;
@@ -429,9 +433,15 @@
     flex-direction: column;
     justify-content: center;
 }
-.kms-demo-antrean { grid-area: antrean; }
-.kms-demo-lain { grid-area: lain; }
-.kms-demo-selesai { grid-area: selesai; }
+.kms-demo-antrean {
+    grid-area: antrean;
+}
+.kms-demo-lain {
+    grid-area: lain;
+}
+.kms-demo-selesai {
+    grid-area: selesai;
+}
 .kms-demo-daftar {
     max-height: max(18rem, calc(100dvh - 22rem));
     overflow-y: auto;
@@ -450,13 +460,14 @@
     overflow-y: auto;
     scrollbar-gutter: stable;
 }
-.kms-demo-daftar:focus-visible, .kms-demo-pratinjau:focus-visible {
+.kms-demo-daftar:focus-visible,
+.kms-demo-pratinjau:focus-visible {
     outline: 3px solid var(--color-primary);
     outline-offset: 2px;
 }
 @media (min-width: 1200px) {
     .kms-area:not(.bantuan-terbuka) .kms-demo-layout {
-        grid-template-columns: minmax(0, 1.1fr) repeat(2, minmax(0, .5fr));
+        grid-template-columns: minmax(0, 1.1fr) repeat(2, minmax(0, 0.5fr));
         grid-template-rows: auto auto min-content 1fr;
         grid-template-areas:
             'ringkasan ringkasan ringkasan'
@@ -496,12 +507,20 @@
     }
 }
 @keyframes kms-demo-perubahan {
-    from { background-color: var(--color-tone-green-bg); }
-    to { background-color: var(--color-card); }
+    from {
+        background-color: var(--color-tone-green-bg);
+    }
+    to {
+        background-color: var(--color-card);
+    }
 }
 @media (prefers-reduced-motion: no-preference) {
-    .kms-item-berhasil { animation: kms-item-berhasil 210ms ease-out; }
-    .kms-demo-perubahan { animation: kms-demo-perubahan 280ms ease-out; }
+    .kms-item-berhasil {
+        animation: kms-item-berhasil 210ms ease-out;
+    }
+    .kms-demo-perubahan {
+        animation: kms-demo-perubahan 280ms ease-out;
+    }
 }
 @media (prefers-reduced-motion: reduce) {
     .kms-area,
@@ -1387,10 +1406,15 @@ main > div:has(.detail-area.bantuan-terbuka) > p[role='status'] {
 @media (prefers-reduced-motion: no-preference) {
     #beranda-panel-statistik:not([hidden]) .beranda-batang {
         transform-origin: bottom;
-        animation: beranda-batang-masuk 550ms cubic-bezier(.22, 1, .36, 1) both;
+        animation: beranda-batang-masuk 550ms cubic-bezier(0.22, 1, 0.36, 1)
+            both;
     }
 }
 @keyframes beranda-batang-masuk {
-    from { transform: scaleY(.05); }
-    to { transform: scaleY(1); }
+    from {
+        transform: scaleY(0.05);
+    }
+    to {
+        transform: scaleY(1);
+    }
 }

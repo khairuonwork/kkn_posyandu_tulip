@@ -11,7 +11,12 @@ import {
     teksPanggilan,
 } from '@/lib/suara-kms';
 
-type Pemutar = (nomor: number, meja: number, tes: boolean, nama?: string | null) => Promise<void>;
+type Pemutar = (
+    nomor: number,
+    meja: number,
+    tes: boolean,
+    nama?: string | null,
+) => Promise<void>;
 const KUNCI_SUARA = 'simpatik-suara-kms';
 
 export default function RuangTungguKms({
@@ -22,7 +27,9 @@ export default function RuangTungguKms({
     demo?: boolean;
 }) {
     const [terakhir, setTerakhir] = useState<PanggilanKms | null>(null);
-    const [status, setStatus] = useState<'memuat' | 'siap' | 'galat'>(demo ? 'siap' : 'memuat');
+    const [status, setStatus] = useState<'memuat' | 'siap' | 'galat'>(
+        demo ? 'siap' : 'memuat',
+    );
     const [aktif, setAktif] = useState(false);
     const [diinginkan, setDiinginkan] = useState(true);
     const [memulai, setMemulai] = useState(false);
@@ -38,7 +45,10 @@ export default function RuangTungguKms({
             return null;
         }
     });
-    const { tersedia, pilihan, tidakTersedia } = pilihSuara(daftarSuara, suaraTersimpan);
+    const { tersedia, pilihan, tidakTersedia } = pilihSuara(
+        daftarSuara,
+        suaraTersimpan,
+    );
     const pemutar = useRef<Pemutar | null>(null);
     const putaran = useRef(Promise.resolve());
     const media = useRef<HTMLAudioElement | null>(null);
@@ -51,8 +61,8 @@ export default function RuangTungguKms({
         const sintesis = window.speechSynthesis;
 
         if (!sintesis) {
-return;
-}
+            return;
+        }
 
         const muatSuara = () => setDaftarSuara(sintesis.getVoices());
         muatSuara();
@@ -61,34 +71,37 @@ return;
         return () => sintesis.removeEventListener('voiceschanged', muatSuara);
     }, []);
 
-    const ucapkan = useCallback((nomor: number, meja: number, tes = false, nama?: string | null) => {
-        const pemutarSaatIni = pemutar.current;
+    const ucapkan = useCallback(
+        (nomor: number, meja: number, tes = false, nama?: string | null) => {
+            const pemutarSaatIni = pemutar.current;
 
-        if (!pemutarSaatIni) {
-            return;
-        }
+            if (!pemutarSaatIni) {
+                return;
+            }
 
-        const putar = () =>
-            tampil.current && pemutar.current === pemutarSaatIni
-                ? pemutarSaatIni(nomor, meja, tes, nama)
-                : undefined;
-        putaran.current = putaran.current
-            .then(putar)
-            .catch((error: unknown) => {
-                if (!tampil.current || pemutar.current !== pemutarSaatIni) {
-                    return;
-                }
+            const putar = () =>
+                tampil.current && pemutar.current === pemutarSaatIni
+                    ? pemutarSaatIni(nomor, meja, tes, nama)
+                    : undefined;
+            putaran.current = putaran.current
+                .then(putar)
+                .catch((error: unknown) => {
+                    if (!tampil.current || pemutar.current !== pemutarSaatIni) {
+                        return;
+                    }
 
-                pemutar.current = null;
-                setAktif(false);
-                setMemulai(false);
-                setGalatSuara(
-                    error instanceof Error
-                        ? error.message
-                        : 'Suara gagal. Aktifkan kembali lalu panggil ulang.',
-                );
-            });
-    }, []);
+                    pemutar.current = null;
+                    setAktif(false);
+                    setMemulai(false);
+                    setGalatSuara(
+                        error instanceof Error
+                            ? error.message
+                            : 'Suara gagal. Aktifkan kembali lalu panggil ulang.',
+                    );
+                });
+        },
+        [],
+    );
 
     useEffect(() => {
         tampil.current = true;
@@ -99,15 +112,20 @@ return;
                 const terbaru = localStorage.getItem('simulasi-kms-panggilan');
 
                 if (!terbaru || terbaru === sebelumnya) {
-return;
-}
+                    return;
+                }
 
                 sebelumnya = terbaru;
 
                 try {
                     const panggilan = JSON.parse(terbaru) as PanggilanKms;
                     setTerakhir(panggilan);
-                    ucapkan(panggilan.nomor, panggilan.meja, false, panggilan.nama);
+                    ucapkan(
+                        panggilan.nomor,
+                        panggilan.meja,
+                        false,
+                        panggilan.nama,
+                    );
                 } catch {
                     setStatus('galat');
                 }
@@ -151,7 +169,12 @@ return;
                     for (const panggilan of data.panggilan) {
                         setelah = panggilan.id;
                         setTerakhir(panggilan);
-                        ucapkan(panggilan.nomor, panggilan.meja, false, panggilan.nama);
+                        ucapkan(
+                            panggilan.nomor,
+                            panggilan.meja,
+                            false,
+                            panggilan.nama,
+                        );
                     }
                 }
             } catch {
@@ -190,7 +213,9 @@ return;
 
         if (pakaiRekaman) {
             if (rekaman.length === 0) {
-                setGalatSuara('Pilih berkas rekaman di Pengaturan suara sebelum mengaktifkan suara.');
+                setGalatSuara(
+                    'Pilih berkas rekaman di Pengaturan suara sebelum mengaktifkan suara.',
+                );
                 setPengaturanTerbuka(true);
 
                 return;
@@ -281,7 +306,7 @@ return;
                         sintesis.cancel();
                         reject(
                             new Error(
-                                        'Suara tidak merespons. Periksa koneksi jika menggunakan suara daring, lalu aktifkan kembali dan panggil ulang.',
+                                'Suara tidak merespons. Periksa koneksi jika menggunakan suara daring, lalu aktifkan kembali dan panggil ulang.',
                             ),
                         );
                     }, 15_000);
@@ -297,7 +322,7 @@ return;
                         selesai();
                         reject(
                             new Error(
-                                        'Suara gagal diputar. Periksa koneksi jika menggunakan suara daring, lalu aktifkan kembali dan panggil ulang.',
+                                'Suara gagal diputar. Periksa koneksi jika menggunakan suara daring, lalu aktifkan kembali dan panggil ulang.',
                             ),
                         );
                     };
@@ -332,21 +357,59 @@ return;
                 {demo && <p>Mode simulasi developer</p>}
                 <div className="flex flex-wrap items-center gap-3">
                     <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm font-semibold">
-                        <input type="checkbox" role="switch" className="peer sr-only" checked={diinginkan}
-                            onChange={(event) => event.target.checked ? aktifkan() : matikan()} />
-                        <span aria-hidden="true" className="relative h-7 w-12 rounded-full bg-border-strong transition-colors peer-checked:bg-primary peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-primary after:absolute after:top-1 after:left-1 after:size-5 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-5" />
+                        <input
+                            type="checkbox"
+                            role="switch"
+                            className="peer sr-only"
+                            checked={diinginkan}
+                            onChange={(event) =>
+                                event.target.checked ? aktifkan() : matikan()
+                            }
+                        />
+                        <span
+                            aria-hidden="true"
+                            className="relative h-7 w-12 rounded-full bg-border-strong transition-colors peer-checked:bg-primary peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-primary after:absolute after:top-1 after:left-1 after:size-5 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-5"
+                        />
                         Suara panggilan
                     </label>
-                    <button type="button" className="tombol-kedua min-h-11 gap-2" onClick={() => setPengaturanTerbuka(true)}>
-                        <Settings2 aria-hidden="true" className="size-5" /> Pengaturan suara
+                    <button
+                        type="button"
+                        className="tombol-kedua min-h-11 gap-2"
+                        onClick={() => setPengaturanTerbuka(true)}
+                    >
+                        <Settings2 aria-hidden="true" className="size-5" />{' '}
+                        Pengaturan suara
                     </button>
-                    <Link href="/kms" className="tombol-kedua min-h-11">Kembali ke dashboard</Link>
+                    <Link href="/kms" className="tombol-kedua min-h-11">
+                        Kembali ke dashboard
+                    </Link>
                 </div>
             </header>
-            <div className="flex flex-wrap items-center gap-3 text-sm" role="status">
-                <span>{!diinginkan ? 'Suara dimatikan' : aktif ? 'Suara aktif' : memulai ? 'Mengaktifkan suara…' : 'Ketuk untuk mengaktifkan suara'}</span>
-                {diinginkan && !aktif && !memulai && <button type="button" className="tombol-kedua min-h-11" onClick={aktifkan}>Aktifkan suara</button>}
-                {galatSuara && <span className="text-tone-red">{galatSuara}</span>}
+            <div
+                className="flex flex-wrap items-center gap-3 text-sm"
+                role="status"
+            >
+                <span>
+                    {!diinginkan
+                        ? 'Suara dimatikan'
+                        : aktif
+                          ? 'Suara aktif'
+                          : memulai
+                            ? 'Mengaktifkan suara…'
+                            : 'Ketuk untuk mengaktifkan suara'}
+                </span>
+                {diinginkan && !aktif && !memulai && (
+                    <button
+                        type="button"
+                        className="tombol-kedua min-h-11"
+                        onClick={aktifkan}
+                    >
+                        Aktifkan suara
+                    </button>
+                )}
+                {galatSuara && (
+                    <span className="text-tone-red">{galatSuara}</span>
+                )}
             </div>
             <section
                 aria-label="Panggilan terbaru"
@@ -372,11 +435,16 @@ return;
                                 ? 'Memuat panggilan…'
                                 : status === 'galat'
                                   ? 'Panggilan belum dapat dimuat.'
-                                  : demo ? 'Menunggu panggilan baru' : 'Belum ada panggilan hari ini'}
+                                  : demo
+                                    ? 'Menunggu panggilan baru'
+                                    : 'Belum ada panggilan hari ini'}
                         </p>
-                        {demo && status === 'siap' && <p className="mt-2 text-sm text-muted-foreground">
-                            Biarkan layar ini terbuka, lalu panggil peserta dari tab Pemeriksaan KMS pada browser yang sama.
-                        </p>}
+                        {demo && status === 'siap' && (
+                            <p className="mt-2 text-sm text-muted-foreground">
+                                Biarkan layar ini terbuka, lalu panggil peserta
+                                dari tab Pemeriksaan KMS pada browser yang sama.
+                            </p>
+                        )}
                     </div>
                 )}
             </section>
@@ -385,111 +453,172 @@ return;
                     Sambungan terputus. Layar akan mencoba tersambung kembali.
                 </p>
             )}
-            {pengaturanTerbuka && <Dialog judul="Pengaturan suara" keterangan="Atur suara untuk perangkat ruang tunggu ini." lebar="w-[640px]" ikon={Settings2} onTutup={() => setPengaturanTerbuka(false)}>
-            <section aria-label="Pengaturan suara" className="grid gap-3 p-6">
-                {!pakaiRekaman && (
-                    <div className="grid gap-2">
-                        <label htmlFor="pilihan-suara-kms" className="text-sm font-semibold">
-                            Suara panggilan
-                        </label>
-                        <select
-                            id="pilihan-suara-kms"
-                            className="isian min-h-11 w-full max-w-xl"
-                            disabled={aktif || memulai || tersedia.length === 0}
-                            value={pilihan ? idSuara(pilihan) : ''}
-                            onChange={(event) => {
-                                const id = event.target.value;
-                                setSuaraTersimpan(id);
-                                setGalatSuara('');
+            {pengaturanTerbuka && (
+                <Dialog
+                    judul="Pengaturan suara"
+                    keterangan="Atur suara untuk perangkat ruang tunggu ini."
+                    lebar="w-[640px]"
+                    ikon={Settings2}
+                    onTutup={() => setPengaturanTerbuka(false)}
+                >
+                    <section
+                        aria-label="Pengaturan suara"
+                        className="grid gap-3 p-6"
+                    >
+                        {!pakaiRekaman && (
+                            <div className="grid gap-2">
+                                <label
+                                    htmlFor="pilihan-suara-kms"
+                                    className="text-sm font-semibold"
+                                >
+                                    Suara panggilan
+                                </label>
+                                <select
+                                    id="pilihan-suara-kms"
+                                    className="isian min-h-11 w-full max-w-xl"
+                                    disabled={
+                                        aktif ||
+                                        memulai ||
+                                        tersedia.length === 0
+                                    }
+                                    value={pilihan ? idSuara(pilihan) : ''}
+                                    onChange={(event) => {
+                                        const id = event.target.value;
+                                        setSuaraTersimpan(id);
+                                        setGalatSuara('');
 
-                                try {
-                                    localStorage.setItem(KUNCI_SUARA, id);
-                                } catch {
-                                    setGalatSuara('Pilihan suara tidak dapat disimpan di browser. Pilihan tetap berlaku selama halaman ini terbuka.');
+                                        try {
+                                            localStorage.setItem(
+                                                KUNCI_SUARA,
+                                                id,
+                                            );
+                                        } catch {
+                                            setGalatSuara(
+                                                'Pilihan suara tidak dapat disimpan di browser. Pilihan tetap berlaku selama halaman ini terbuka.',
+                                            );
+                                        }
+                                    }}
+                                >
+                                    {!pilihan && (
+                                        <option value="">
+                                            Pilih suara bahasa Indonesia
+                                        </option>
+                                    )}
+                                    {tersedia.map((suara) => (
+                                        <option
+                                            key={idSuara(suara)}
+                                            value={idSuara(suara)}
+                                        >
+                                            {suara.name} (
+                                            {suara.localService
+                                                ? 'Lokal'
+                                                : 'Daring'}
+                                            )
+                                        </option>
+                                    ))}
+                                </select>
+                                {(aktif || memulai) && (
+                                    <p className="text-sm text-muted-foreground">
+                                        Matikan suara untuk mengganti pilihan.
+                                    </p>
+                                )}
+                                {tidakTersedia && (
+                                    <p
+                                        role="status"
+                                        className="text-sm text-muted-foreground"
+                                    >
+                                        Suara yang disimpan tidak tersedia.{' '}
+                                        {pilihan
+                                            ? 'Suara lokal dipilih sementara.'
+                                            : 'Pilih suara lain atau gunakan rekaman lokal.'}
+                                    </p>
+                                )}
+                                {tersedia.length === 0 && (
+                                    <p
+                                        role="status"
+                                        className="text-sm text-muted-foreground"
+                                    >
+                                        Suara bahasa Indonesia belum tersedia.
+                                        Pasang suara Indonesia di perangkat atau
+                                        gunakan rekaman lokal.
+                                    </p>
+                                )}
+                            </div>
+                        )}
+                        <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm">
+                            <input
+                                type="checkbox"
+                                checked={pakaiRekaman}
+                                disabled={aktif || memulai}
+                                onChange={(e) =>
+                                    setPakaiRekaman(e.target.checked)
                                 }
-                            }}
-                        >
-                            {!pilihan && <option value="">Pilih suara bahasa Indonesia</option>}
-                            {tersedia.map((suara) => (
-                                <option key={idSuara(suara)} value={idSuara(suara)}>
-                                    {suara.name} ({suara.localService ? 'Lokal' : 'Daring'})
-                                </option>
-                            ))}
-                        </select>
-                        {(aktif || memulai) && <p className="text-sm text-muted-foreground">Matikan suara untuk mengganti pilihan.</p>}
-                        {tidakTersedia && (
-                            <p role="status" className="text-sm text-muted-foreground">
-                                Suara yang disimpan tidak tersedia. {pilihan ? 'Suara lokal dipilih sementara.' : 'Pilih suara lain atau gunakan rekaman lokal.'}
-                            </p>
-                        )}
-                        {tersedia.length === 0 && (
-                            <p role="status" className="text-sm text-muted-foreground">
-                                Suara bahasa Indonesia belum tersedia. Pasang suara Indonesia di perangkat atau gunakan rekaman lokal.
-                            </p>
-                        )}
-                    </div>
-                )}
-                <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm">
-                    <input
-                        type="checkbox"
-                        checked={pakaiRekaman}
-                        disabled={aktif || memulai}
-                        onChange={(e) => setPakaiRekaman(e.target.checked)}
-                    />
-                    Gunakan rekaman lokal
-                </label>
-                {pakaiRekaman && (
-                    <div className="grid gap-2 text-sm">
-                        <label htmlFor="rekaman-kms">
-                            Berkas rekaman panggilan
+                            />
+                            Gunakan rekaman lokal
                         </label>
-                        <input
-                            id="rekaman-kms"
-                            type="file"
-                            multiple
-                            accept="audio/*"
-                            disabled={aktif || memulai}
-                            onChange={(e) =>
-                                setRekaman(Array.from(e.target.files ?? []))
-                            }
-                        />
-                        <p className="text-muted-foreground">
-                            Pilih berkas audio bernama tes-suara, nomor-antrean,
-                            silakan-menuju-meja-kms, dan kata bilangan seperti
-                            satu, dua, belas, dan puluh.
-                        </p>
-                        <p className="text-muted-foreground">Rekaman lokal hanya membacakan nomor dan meja. Nama balita dibacakan oleh suara browser.</p>
-                    </div>
-                )}
-                <div className="flex flex-wrap items-center gap-2">
-                    <button
-                        type="button"
-                        className="tombol-utama min-h-11"
-                        onClick={
-                            aktif || memulai ? matikan : aktifkan
-                        }
-                        disabled={
-                            !aktif && !memulai && pakaiRekaman && rekaman.length === 0
-                        }
-                    >
-                        {aktif || memulai ? 'Matikan suara' : 'Aktifkan suara'}
-                    </button>
-                    <button
-                        type="button"
-                        className="tombol-kedua min-h-11"
-                        disabled={!aktif}
-                        onClick={() => ucapkan(0, 0, true)}
-                    >
-                        Tes suara
-                    </button>
-                </div>
-                {galatSuara && (
-                    <p role="alert" className="text-sm text-tone-red">
-                        {galatSuara}
-                    </p>
-                )}
-            </section>
-            </Dialog>}
+                        {pakaiRekaman && (
+                            <div className="grid gap-2 text-sm">
+                                <label htmlFor="rekaman-kms">
+                                    Berkas rekaman panggilan
+                                </label>
+                                <input
+                                    id="rekaman-kms"
+                                    type="file"
+                                    multiple
+                                    accept="audio/*"
+                                    disabled={aktif || memulai}
+                                    onChange={(e) =>
+                                        setRekaman(
+                                            Array.from(e.target.files ?? []),
+                                        )
+                                    }
+                                />
+                                <p className="text-muted-foreground">
+                                    Pilih berkas audio bernama tes-suara,
+                                    nomor-antrean, silakan-menuju-meja-kms, dan
+                                    kata bilangan seperti satu, dua, belas, dan
+                                    puluh.
+                                </p>
+                                <p className="text-muted-foreground">
+                                    Rekaman lokal hanya membacakan nomor dan
+                                    meja. Nama balita dibacakan oleh suara
+                                    browser.
+                                </p>
+                            </div>
+                        )}
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button
+                                type="button"
+                                className="tombol-utama min-h-11"
+                                onClick={aktif || memulai ? matikan : aktifkan}
+                                disabled={
+                                    !aktif &&
+                                    !memulai &&
+                                    pakaiRekaman &&
+                                    rekaman.length === 0
+                                }
+                            >
+                                {aktif || memulai
+                                    ? 'Matikan suara'
+                                    : 'Aktifkan suara'}
+                            </button>
+                            <button
+                                type="button"
+                                className="tombol-kedua min-h-11"
+                                disabled={!aktif}
+                                onClick={() => ucapkan(0, 0, true)}
+                            >
+                                Tes suara
+                            </button>
+                        </div>
+                        {galatSuara && (
+                            <p role="alert" className="text-sm text-tone-red">
+                                {galatSuara}
+                            </p>
+                        )}
+                    </section>
+                </Dialog>
+            )}
         </main>
     );
 }

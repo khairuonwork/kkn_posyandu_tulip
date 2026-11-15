@@ -3,7 +3,14 @@
  */
 
 import { BookOpen, CircleCheck, Minus, Plus, RotateCcw } from 'lucide-react';
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+    useEffect,
+    useId,
+    useLayoutEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import type { KeyboardEvent } from 'react';
 import GrafikBeratTinggi from '@/components/grafik-berat-tinggi';
 import GrafikDenganAcuan from '@/components/grafik-dengan-acuan';
@@ -151,22 +158,29 @@ export type Titik = {
  * Titik yang layak digambar: hadir, berumur 0–60 bulan, bernilai positif, dan
  * tidak ditandai tidak wajar. Urutannya menurut umur, lalu tanggal.
  */
-export function posisiUmurGrafik(tglLahir: string | null, tanggal: string | null, umur: number): number {
+export function posisiUmurGrafik(
+    tglLahir: string | null,
+    tanggal: string | null,
+    umur: number,
+): number {
     const parse = (iso: string | null) => {
         if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
-return null;
-}
+            return null;
+        }
 
         const waktu = Date.parse(`${iso}T00:00:00Z`);
 
-        return Number.isFinite(waktu) && new Date(waktu).toISOString().slice(0, 10) === iso ? waktu : null;
+        return Number.isFinite(waktu) &&
+            new Date(waktu).toISOString().slice(0, 10) === iso
+            ? waktu
+            : null;
     };
     const lahir = parse(tglLahir);
     const ukur = parse(tanggal);
 
     if (lahir === null || ukur === null || umur >= 60) {
-return umur;
-}
+        return umur;
+    }
 
     const tanggalLahir = new Date(lahir);
     const ulangBulan = (n: number) => {
@@ -181,13 +195,17 @@ return umur;
     const akhir = ulangBulan(umur + 1);
 
     if (ukur < awal || ukur >= akhir) {
-return umur;
-}
+        return umur;
+    }
 
     return umur + (ukur - awal) / (akhir - awal);
 }
 
-export function susunTitik(pengukuran: Pengukuran[], spek: Spek, tglLahir: string | null = null): Titik[] {
+export function susunTitik(
+    pengukuran: Pengukuran[],
+    spek: Spek,
+    tglLahir: string | null = null,
+): Titik[] {
     return pengukuran
         .flatMap((p) => {
             const nilai = spek.nilai(p);
@@ -209,7 +227,11 @@ export function susunTitik(pengukuran: Pengukuran[], spek: Spek, tglLahir: strin
                 {
                     periodeId: p.periodeId,
                     umur: p.umurBulan,
-                    posisiUmur: posisiUmurGrafik(tglLahir, p.tanggalUkur, p.umurBulan),
+                    posisiUmur: posisiUmurGrafik(
+                        tglLahir,
+                        p.tanggalUkur,
+                        p.umurBulan,
+                    ),
                     nilai,
                     tanggal: p.tanggalUkur,
                     z: penilaian?.z ?? null,
@@ -282,8 +304,8 @@ export default function GrafikPertumbuhan({
         const awal = zoomSaatIni.current;
 
         if (awal === targetZoom) {
-return;
-}
+            return;
+        }
 
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
             zoomSaatIni.current = targetZoom;
@@ -302,8 +324,8 @@ return;
             setZoom(nilai);
 
             if (kemajuan < 1) {
-frame = requestAnimationFrame(gerak);
-}
+                frame = requestAnimationFrame(gerak);
+            }
         };
         frame = requestAnimationFrame(gerak);
 
@@ -311,7 +333,9 @@ frame = requestAnimationFrame(gerak);
     }, [targetZoom]);
     const plotLebar = PLOT_LEBAR * zoom;
     const lebarGrafik = KIRI + plotLebar + 16;
-    const [arahIndeks, setArahIndeks] = useState<'maju' | 'mundur' | null>(null);
+    const [arahIndeks, setArahIndeks] = useState<'maju' | 'mundur' | null>(
+        null,
+    );
     const pilihJenis = (pilihan: JenisGrafik | 'BB_TB') => {
         if (pilihan === jenis) {
             return;
@@ -355,7 +379,10 @@ frame = requestAnimationFrame(gerak);
         }
 
         animasi.current = bukaan.current.animate(
-            [{ width: '0px' }, { width: `${bukaan.current.width.baseVal.value}px` }],
+            [
+                { width: '0px' },
+                { width: `${bukaan.current.width.baseVal.value}px` },
+            ],
             { duration: 700, easing: 'ease-out' },
         );
 
@@ -417,7 +444,10 @@ frame = requestAnimationFrame(gerak);
     );
     const bulanHidup = bulan.filter((u) => u >= spek.mulai && lms.has(u));
     const dalamPanel = seri.filter(
-        (t) => t.posisiUmur >= awalTampil && (t.posisiUmur < akhirTampil || (akhirTampil === 60 && t.posisiUmur === 60)),
+        (t) =>
+            t.posisiUmur >= awalTampil &&
+            (t.posisiUmur < akhirTampil ||
+                (akhirTampil === 60 && t.posisiUmur === 60)),
     );
 
     // Skala tegak mengikuti pita ±3 SD pada panel ini, dilebarkan bila ada
@@ -438,7 +468,9 @@ frame = requestAnimationFrame(gerak);
         Math.ceil(Math.max(...batas, -Infinity) / spek.langkah) * spek.langkah;
     const rentang = tinggi > rendah ? tinggi - rendah : 1;
     const tinggiDiperbesar = Math.max(PLOT_TINGGI, rentang * 28);
-    const plotTinggi = PLOT_TINGGI + (tinggiDiperbesar - PLOT_TINGGI) * Math.min(1, (zoom - 1) * 2);
+    const plotTinggi =
+        PLOT_TINGGI +
+        (tinggiDiperbesar - PLOT_TINGGI) * Math.min(1, (zoom - 1) * 2);
     const tinggiGrafik = ATAS + plotTinggi + BAWAH;
     const langkahLabel = zoom > 1 ? 0.5 : spek.langkah;
 
@@ -548,11 +580,16 @@ frame = requestAnimationFrame(gerak);
                 aria-label="Perkecil grafik"
                 title="Perkecil grafik"
                 disabled={targetZoom === 1}
-                onClick={() => setTargetZoom((nilai) => Math.max(1, nilai - 0.5))}
+                onClick={() =>
+                    setTargetZoom((nilai) => Math.max(1, nilai - 0.5))
+                }
             >
                 <Minus className="size-5" aria-hidden="true" />
             </button>
-            <span className="min-w-14 text-center text-sm font-semibold text-foreground" aria-live="polite">
+            <span
+                className="min-w-14 text-center text-sm font-semibold text-foreground"
+                aria-live="polite"
+            >
                 {targetZoom * 100}%
             </span>
             <button
@@ -561,7 +598,9 @@ frame = requestAnimationFrame(gerak);
                 aria-label="Perbesar grafik"
                 title="Perbesar grafik"
                 disabled={targetZoom === 3}
-                onClick={() => setTargetZoom((nilai) => Math.min(3, nilai + 0.5))}
+                onClick={() =>
+                    setTargetZoom((nilai) => Math.min(3, nilai + 0.5))
+                }
             >
                 <Plus className="size-5" aria-hidden="true" />
             </button>
@@ -764,15 +803,18 @@ frame = requestAnimationFrame(gerak);
                 </div>
             )}
             {jenis === 'BB_TB' ? (
-                <div key={jenis} className={arahIndeks ? `detail-indeks-${arahIndeks}` : ''}>
-                <GrafikBeratTinggi
-                    kelamin={kelamin}
-                    umurBalita={umurBalita}
-                    pengukuran={pengukuran}
-                    standar={standar}
-                    zoom={zoom}
-                    kontrolZoom={kontrolZoom}
-                />
+                <div
+                    key={jenis}
+                    className={arahIndeks ? `detail-indeks-${arahIndeks}` : ''}
+                >
+                    <GrafikBeratTinggi
+                        kelamin={kelamin}
+                        umurBalita={umurBalita}
+                        pengukuran={pengukuran}
+                        standar={standar}
+                        zoom={zoom}
+                        kontrolZoom={kontrolZoom}
+                    />
                 </div>
             ) : (
                 <>
@@ -784,8 +826,11 @@ frame = requestAnimationFrame(gerak);
                             {panelTersedia.map((awal) => {
                                 const jumlah = seri.filter(
                                     (t) =>
-                                        t.posisiUmur >= Math.max(awal, spek.mulai) &&
-                                        (t.posisiUmur < awal + PANEL_BULAN || (awal === 48 && t.posisiUmur === 60)),
+                                        t.posisiUmur >=
+                                            Math.max(awal, spek.mulai) &&
+                                        (t.posisiUmur < awal + PANEL_BULAN ||
+                                            (awal === 48 &&
+                                                t.posisiUmur === 60)),
                                 ).length;
                                 const aktif = panel === awal;
 
@@ -843,429 +888,494 @@ frame = requestAnimationFrame(gerak);
                         {/* Grafik menggulir di dalam wadahnya sendiri; badan
                         halaman tidak pernah menggulir mendatar. `tabIndex`
                         membuat wadah bisa digeser dengan panah papan tombol. */}
-                        <div className={`mt-2 px-5 sm:px-6 ${arahIndeks ? `detail-indeks-${arahIndeks}` : ''}`}>
-                        <GrafikDenganAcuan
-                            key={jenis}
-                            label="Grafik pertumbuhan, dapat digeser mendatar"
-                            tinggi={tinggiGrafik}
-                            revisi={`${jenis}:${panel}:${zoom}`}
-                            garis={[-3, -2, -1, 0, 1, 2, 3].map((z) => ({ z, titik: titikSd(z) }))}
+                        <div
+                            className={`mt-2 px-5 sm:px-6 ${arahIndeks ? `detail-indeks-${arahIndeks}` : ''}`}
                         >
-                            <div className="min-w-[820px]" style={{ aspectRatio: `${LEBAR - KANAN + 16} / ${tinggiGrafik}` }}>
-                            <svg
-                                viewBox={`0 0 ${lebarGrafik} ${tinggiGrafik}`}
-                                preserveAspectRatio="none"
-                                className="h-full bg-white"
-                                style={{ width: `${(lebarGrafik / (LEBAR - KANAN + 16)) * 100}%` }}
-                                role="img"
-                                aria-label={`Grafik ${judulTampil(spek).toLowerCase()}, acuan ${acuan} WHO 2006, rentang ${awalTampil} sampai ${akhirTampil} bulan`}
+                            <GrafikDenganAcuan
+                                key={jenis}
+                                label="Grafik pertumbuhan, dapat digeser mendatar"
+                                tinggi={tinggiGrafik}
+                                revisi={`${jenis}:${panel}:${zoom}`}
+                                garis={[-3, -2, -1, 0, 1, 2, 3].map((z) => ({
+                                    z,
+                                    titik: titikSd(z),
+                                }))}
                             >
-                                <defs>
-                                    <clipPath id={idBukaan} clipPathUnits="userSpaceOnUse">
-                                        <rect ref={bukaan} x={KIRI - 16} y={0} width={plotLebar + 32} height={tinggiGrafik} />
-                                    </clipPath>
-                                </defs>
-                                {/* Garis bantu minggu: tiga per bulan. */}
-                                {bulan
-                                    .slice(0, -1)
-                                    .flatMap((u) =>
-                                        [0.25, 0.5, 0.75].map((pecahan) => (
+                                <div
+                                    className="min-w-[820px]"
+                                    style={{
+                                        aspectRatio: `${LEBAR - KANAN + 16} / ${tinggiGrafik}`,
+                                    }}
+                                >
+                                    <svg
+                                        viewBox={`0 0 ${lebarGrafik} ${tinggiGrafik}`}
+                                        preserveAspectRatio="none"
+                                        className="h-full bg-white"
+                                        style={{
+                                            width: `${(lebarGrafik / (LEBAR - KANAN + 16)) * 100}%`,
+                                        }}
+                                        role="img"
+                                        aria-label={`Grafik ${judulTampil(spek).toLowerCase()}, acuan ${acuan} WHO 2006, rentang ${awalTampil} sampai ${akhirTampil} bulan`}
+                                    >
+                                        <defs>
+                                            <clipPath
+                                                id={idBukaan}
+                                                clipPathUnits="userSpaceOnUse"
+                                            >
+                                                <rect
+                                                    ref={bukaan}
+                                                    x={KIRI - 16}
+                                                    y={0}
+                                                    width={plotLebar + 32}
+                                                    height={tinggiGrafik}
+                                                />
+                                            </clipPath>
+                                        </defs>
+                                        {/* Garis bantu minggu: tiga per bulan. */}
+                                        {bulan
+                                            .slice(0, -1)
+                                            .flatMap((u) =>
+                                                [0.25, 0.5, 0.75].map(
+                                                    (pecahan) => (
+                                                        <line
+                                                            key={`m${u}-${pecahan}`}
+                                                            x1={x(u + pecahan)}
+                                                            x2={x(u + pecahan)}
+                                                            y1={ATAS}
+                                                            y2={
+                                                                ATAS +
+                                                                plotTinggi
+                                                            }
+                                                            stroke="#E8ECE9"
+                                                            strokeWidth={0.5}
+                                                        />
+                                                    ),
+                                                ),
+                                            )}
+                                        {garisHalus.map((v) => (
                                             <line
-                                                key={`m${u}-${pecahan}`}
-                                                x1={x(u + pecahan)}
-                                                x2={x(u + pecahan)}
-                                                y1={ATAS}
-                                                y2={ATAS + plotTinggi}
+                                                key={`h${v}`}
+                                                x1={KIRI}
+                                                x2={KIRI + plotLebar}
+                                                y1={y(v)}
+                                                y2={y(v)}
                                                 stroke="#E8ECE9"
                                                 strokeWidth={0.5}
                                             />
-                                        )),
-                                    )}
-                                {garisHalus.map((v) => (
-                                    <line
-                                        key={`h${v}`}
-                                        x1={KIRI}
-                                        x2={KIRI + plotLebar}
-                                        y1={y(v)}
-                                        y2={y(v)}
-                                        stroke="#E8ECE9"
-                                        strokeWidth={0.5}
-                                    />
-                                ))}
-                                {garisUtama.map((v) => (
-                                    <line
-                                        key={`u${v}`}
-                                        x1={KIRI}
-                                        x2={KIRI + plotLebar}
-                                        y1={y(v)}
-                                        y2={y(v)}
-                                        stroke="#CAD2CC"
-                                        strokeWidth={0.7}
-                                    />
-                                ))}
-                                {bulan.map((u) => (
-                                    <line
-                                        key={`b${u}`}
-                                        x1={x(u)}
-                                        x2={x(u)}
-                                        y1={ATAS}
-                                        y2={ATAS + plotTinggi}
-                                        stroke="#CAD2CC"
-                                        strokeWidth={0.7}
-                                    />
-                                ))}
-
-                                {[-3, -2, -1, 0, 1, 2, 3].map((z) => {
-                                    const titik = titikSd(z);
-
-                                    return (
-                                        <g key={`sd${z}`}>
-                                            <polyline
-                                                clipPath={`url(#${idBukaan})`}
-                                                points={garisKe(titik)}
-                                                fill="none"
-                                                stroke={warnaGarisSd(z)}
-                                                strokeWidth={z === 0 ? 2 : 1.5}
+                                        ))}
+                                        {garisUtama.map((v) => (
+                                            <line
+                                                key={`u${v}`}
+                                                x1={KIRI}
+                                                x2={KIRI + plotLebar}
+                                                y1={y(v)}
+                                                y2={y(v)}
+                                                stroke="#CAD2CC"
+                                                strokeWidth={0.7}
                                             />
-                                        </g>
-                                    );
-                                })}
+                                        ))}
+                                        {bulan.map((u) => (
+                                            <line
+                                                key={`b${u}`}
+                                                x1={x(u)}
+                                                x2={x(u)}
+                                                y1={ATAS}
+                                                y2={ATAS + plotTinggi}
+                                                stroke="#CAD2CC"
+                                                strokeWidth={0.7}
+                                            />
+                                        ))}
 
-                                {garisUtama.map((v) => (
-                                    <g key={`l${v}`}>
-                                        <text
-                                            x={KIRI - 8}
-                                            y={y(v) + 4}
-                                            textAnchor="end"
-                                            fontSize={12.5}
-                                            fontWeight={600}
-                                            fill={TEKS_SEKUNDER}
-                                        >
-                                            {angka(v, v % 1 === 0 ? 0 : 1)}
-                                        </text>
-                                    </g>
-                                ))}
-                                {bulan.map((u) => (
-                                    <text
-                                        key={`t${u}`}
-                                        x={x(u)}
-                                        y={ATAS + plotTinggi + 19}
-                                        textAnchor="middle"
-                                        fontSize={13}
-                                        fontWeight={600}
-                                        fill={TEKS_SEKUNDER}
-                                    >
-                                        {u}
-                                    </text>
-                                ))}
-                                <text
-                                    x={KIRI + plotLebar / 2}
-                                    y={tinggiGrafik - 6}
-                                    textAnchor="middle"
-                                    fontSize={13}
-                                    fontWeight={700}
-                                    fill={TINTA}
-                                >
-                                    Umur, bulan
-                                </text>
-                                <text
-                                    x={-(ATAS + plotTinggi / 2)}
-                                    y={14}
-                                    transform="rotate(-90)"
-                                    textAnchor="middle"
-                                    fontSize={13}
-                                    fontWeight={700}
-                                    fill={TINTA}
-                                >
-                                    {sumbuTampil}
-                                </text>
+                                        {[-3, -2, -1, 0, 1, 2, 3].map((z) => {
+                                            const titik = titikSd(z);
 
-                                {segmen.map((bagian) => (
-                                    <g key={`s${bagian[0].umur}`}>
-                                        {/* Halo putih supaya garis tetap terbaca di
-                                        atas pita berwarna. */}
-                                        <polyline
-                                            clipPath={`url(#${idBukaan})`}
-                                            points={garisKe(
-                                                bagian.map((t) => [
-                                                    x(t.posisiUmur),
-                                                    y(t.nilai),
-                                                ]),
-                                            )}
-                                            fill="none"
-                                            stroke="#FFFFFF"
-                                            strokeWidth={8}
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                        />
-                                        <polyline
-                                            clipPath={`url(#${idBukaan})`}
-                                            points={garisKe(
-                                                bagian.map((t) => [
-                                                    x(t.posisiUmur),
-                                                    y(t.nilai),
-                                                ]),
-                                            )}
-                                            fill="none"
-                                            stroke={TINTA}
-                                            strokeWidth={3.2}
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                        />
-                                    </g>
-                                ))}
+                                            return (
+                                                <g key={`sd${z}`}>
+                                                    <polyline
+                                                        clipPath={`url(#${idBukaan})`}
+                                                        points={garisKe(titik)}
+                                                        fill="none"
+                                                        stroke={warnaGarisSd(z)}
+                                                        strokeWidth={
+                                                            z === 0 ? 2 : 1.5
+                                                        }
+                                                    />
+                                                </g>
+                                            );
+                                        })}
 
-                                {dalamPanel.map((t, urutan) => {
-                                    const dipilih = terpilih === t;
-                                    const isTerbaru =
-                                        seri.length > 0 &&
-                                        t === seri[seri.length - 1];
-                                    const sesudah =
-                                        dalamPanel[urutan + 1]?.umur === t.umur;
-                                    const sebelum =
-                                        dalamPanel[urutan - 1]?.umur === t.umur;
-
-                                    return (
-                                        <g
-                                            key={`${t.umur}|${t.tanggal}|${urutan}`}
-                                        >
-                                            {/* Cincin ganda hijau untuk titik pengukuran terbaru balita */}
-                                            {isTerbaru && (
-                                                <circle
-                                                    clipPath={`url(#${idBukaan})`}
-                                                    cx={x(t.posisiUmur)}
-                                                    cy={y(t.nilai)}
-                                                    r={13}
-                                                    fill="none"
-                                                    stroke="#10B981"
-                                                    strokeWidth={2.5}
-                                                    strokeDasharray="4 2"
-                                                />
-                                            )}
-                                            {t.z !== null && (
+                                        {garisUtama.map((v) => (
+                                            <g key={`l${v}`}>
                                                 <text
-                                                    x={
-                                                        x(t.posisiUmur) +
-                                                        (sesudah
-                                                            ? -12
-                                                            : sebelum
-                                                              ? 12
-                                                              : 0)
-                                                    }
-                                                    y={Math.max(
-                                                        ATAS + 16,
-                                                        y(t.nilai) -
-                                                            (isTerbaru
-                                                                ? 16
-                                                                : 12),
-                                                    )}
-                                                    textAnchor={
-                                                        sesudah
-                                                            ? 'end'
-                                                            : sebelum ||
-                                                                t.umur ===
-                                                                    awalTampil
-                                                              ? 'start'
-                                                              : t.umur ===
-                                                                  panel +
-                                                                      PANEL_BULAN
-                                                                ? 'end'
-                                                                : 'middle'
-                                                    }
-                                                    fontSize={
-                                                        isTerbaru ? 14 : 13.5
-                                                    }
-                                                    fontWeight={
-                                                        isTerbaru ? 800 : 700
-                                                    }
-                                                    fill={
-                                                        isTerbaru
-                                                            ? '#047857'
-                                                            : TINTA
-                                                    }
-                                                    stroke="#FFFFFF"
-                                                    strokeWidth={4.5}
-                                                    strokeLinejoin="round"
-                                                    paintOrder="stroke"
+                                                    x={KIRI - 8}
+                                                    y={y(v) + 4}
+                                                    textAnchor="end"
+                                                    fontSize={12.5}
+                                                    fontWeight={600}
+                                                    fill={TEKS_SEKUNDER}
                                                 >
-                                                    {zScore(t.z)} SD
+                                                    {angka(
+                                                        v,
+                                                        v % 1 === 0 ? 0 : 1,
+                                                    )}
                                                 </text>
-                                            )}
-                                            <circle
-                                                clipPath={`url(#${idBukaan})`}
-                                                cx={x(t.posisiUmur)}
-                                                cy={y(t.nilai)}
-                                                r={
-                                                    dipilih
-                                                        ? 8.5
-                                                        : isTerbaru
-                                                          ? 7.5
-                                                          : 6
-                                                }
-                                                fill={
-                                                    dipilih
-                                                        ? TINTA
-                                                        : isTerbaru
-                                                          ? '#10B981'
-                                                          : '#FFFFFF'
-                                                }
-                                                stroke={
-                                                    dipilih
-                                                        ? '#FFFFFF'
-                                                        : isTerbaru
-                                                          ? '#FFFFFF'
-                                                          : TINTA
-                                                }
-                                                strokeWidth={3}
-                                            />
-                                            {/* Sasaran sentuh yang lebih lebar dari
-                                            titiknya; isi detailnya muncul saat
-                                            disorot, diketuk, atau difokus. */}
-                                            <circle
-                                                cx={x(t.posisiUmur)}
-                                                cy={y(t.nilai)}
-                                                r={15}
-                                                fill="transparent"
-                                                className="cursor-pointer"
-                                                tabIndex={0}
-                                                role="button"
-                                                aria-label={`${tanggalRingkas(t.tanggal)}, umur ${t.umur} bulan, ${satuan(t.nilai, spek.unit)}${t.z === null ? '' : `, ${zScore(t.z)} SD`}`}
-                                                aria-pressed={
-                                                    pin === t.periodeId
-                                                }
-                                                onClick={() =>
-                                                    ketuk(t.periodeId)
-                                                }
-                                                onKeyDown={(e) =>
-                                                    tekanTombol(e, t.periodeId)
-                                                }
-                                                onMouseEnter={() =>
-                                                    setSorot(t.periodeId)
-                                                }
-                                                onMouseLeave={() =>
-                                                    setSorot(null)
-                                                }
-                                                onFocus={() =>
-                                                    setSorot(t.periodeId)
-                                                }
-                                                onBlur={() => setSorot(null)}
-                                            />
-                                        </g>
-                                    );
-                                })}
-
-                                {titikAktif !== undefined && kartu !== null && (
-                                    <g pointerEvents="none">
-                                        <line
-                                            x1={kartu.cx}
-                                            x2={kartu.cx}
-                                            y1={kartu.cy}
-                                            y2={ATAS + plotTinggi}
-                                            stroke={TINTA}
-                                            strokeWidth={1.4}
-                                            strokeDasharray="5 4"
-                                        />
-                                        <line
-                                            x1={KIRI}
-                                            x2={kartu.cx}
-                                            y1={kartu.cy}
-                                            y2={kartu.cy}
-                                            stroke={TINTA}
-                                            strokeWidth={1.4}
-                                            strokeDasharray="5 4"
-                                        />
-                                        <rect
-                                            x={kartu.cx - 17}
-                                            y={ATAS + plotTinggi + 4}
-                                            width={34}
-                                            height={21}
-                                            rx={4}
-                                            fill={TINTA}
-                                        />
+                                            </g>
+                                        ))}
+                                        {bulan.map((u) => (
+                                            <text
+                                                key={`t${u}`}
+                                                x={x(u)}
+                                                y={ATAS + plotTinggi + 19}
+                                                textAnchor="middle"
+                                                fontSize={13}
+                                                fontWeight={600}
+                                                fill={TEKS_SEKUNDER}
+                                            >
+                                                {u}
+                                            </text>
+                                        ))}
                                         <text
-                                            x={kartu.cx}
-                                            y={ATAS + plotTinggi + 19}
+                                            x={KIRI + plotLebar / 2}
+                                            y={tinggiGrafik - 6}
                                             textAnchor="middle"
-                                            fontSize={12.5}
-                                            fontWeight={700}
-                                            fill="#FFFFFF"
-                                        >
-                                            {titikAktif.umur}
-                                        </text>
-                                        <rect
-                                            x={KIRI - 48}
-                                            y={kartu.cy - 10.5}
-                                            width={46}
-                                            height={21}
-                                            rx={4}
-                                            fill={TINTA}
-                                        />
-                                        <text
-                                            x={KIRI - 25}
-                                            y={kartu.cy + 4.5}
-                                            textAnchor="middle"
-                                            fontSize={12.5}
-                                            fontWeight={700}
-                                            fill="#FFFFFF"
-                                        >
-                                            {angka(titikAktif.nilai, 1)}
-                                        </text>
-                                        <rect
-                                            x={kartu.kiri}
-                                            y={kartu.atas}
-                                            width={kartu.lebar}
-                                            height={kartu.tinggiKartu}
-                                            rx={8}
-                                            fill="#FFFFFF"
-                                            stroke={TINTA}
-                                            strokeWidth={1.5}
-                                        />
-                                        <text
-                                            x={kartu.kiri + 12}
-                                            y={kartu.atas + 21}
-                                            fontSize={12}
-                                            fontWeight={600}
-                                            fill={TEKS_SEKUNDER}
-                                        >
-                                            {tanggalRingkas(titikAktif.tanggal)}{' '}
-                                            · umur {titikAktif.umur} bulan
-                                        </text>
-                                        <text
-                                            x={kartu.kiri + 12}
-                                            y={kartu.atas + 44}
-                                            fontSize={14}
-                                            fontWeight={800}
-                                            fill={TINTA}
-                                        >
-                                            {namaTampil(spek)}{' '}
-                                            {satuan(
-                                                titikAktif.nilai,
-                                                spek.unit,
-                                            )}
-                                        </text>
-                                        <text
-                                            x={kartu.kiri + 12}
-                                            y={kartu.atas + 66}
                                             fontSize={13}
                                             fontWeight={700}
-                                            fill="currentColor"
-                                            className={
-                                                WARNA_NADA[
-                                                    nadaKategori(
-                                                        titikAktif.kategori,
-                                                    )
-                                                ]
-                                            }
+                                            fill={TINTA}
                                         >
-                                            {titikAktif.z === null
-                                                ? KOSONG
-                                                : `${zScore(titikAktif.z)} SD · ${kategoriTeks(spek, titikAktif)}`}
+                                            Umur, bulan
                                         </text>
-                                    </g>
-                                )}
-                            </svg>
-                            </div>
-                        </GrafikDenganAcuan>
+                                        <text
+                                            x={-(ATAS + plotTinggi / 2)}
+                                            y={14}
+                                            transform="rotate(-90)"
+                                            textAnchor="middle"
+                                            fontSize={13}
+                                            fontWeight={700}
+                                            fill={TINTA}
+                                        >
+                                            {sumbuTampil}
+                                        </text>
+
+                                        {segmen.map((bagian) => (
+                                            <g key={`s${bagian[0].umur}`}>
+                                                {/* Halo putih supaya garis tetap terbaca di
+                                        atas pita berwarna. */}
+                                                <polyline
+                                                    clipPath={`url(#${idBukaan})`}
+                                                    points={garisKe(
+                                                        bagian.map((t) => [
+                                                            x(t.posisiUmur),
+                                                            y(t.nilai),
+                                                        ]),
+                                                    )}
+                                                    fill="none"
+                                                    stroke="#FFFFFF"
+                                                    strokeWidth={8}
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                />
+                                                <polyline
+                                                    clipPath={`url(#${idBukaan})`}
+                                                    points={garisKe(
+                                                        bagian.map((t) => [
+                                                            x(t.posisiUmur),
+                                                            y(t.nilai),
+                                                        ]),
+                                                    )}
+                                                    fill="none"
+                                                    stroke={TINTA}
+                                                    strokeWidth={3.2}
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                />
+                                            </g>
+                                        ))}
+
+                                        {dalamPanel.map((t, urutan) => {
+                                            const dipilih = terpilih === t;
+                                            const isTerbaru =
+                                                seri.length > 0 &&
+                                                t === seri[seri.length - 1];
+                                            const sesudah =
+                                                dalamPanel[urutan + 1]?.umur ===
+                                                t.umur;
+                                            const sebelum =
+                                                dalamPanel[urutan - 1]?.umur ===
+                                                t.umur;
+
+                                            return (
+                                                <g
+                                                    key={`${t.umur}|${t.tanggal}|${urutan}`}
+                                                >
+                                                    {/* Cincin ganda hijau untuk titik pengukuran terbaru balita */}
+                                                    {isTerbaru && (
+                                                        <circle
+                                                            clipPath={`url(#${idBukaan})`}
+                                                            cx={x(t.posisiUmur)}
+                                                            cy={y(t.nilai)}
+                                                            r={13}
+                                                            fill="none"
+                                                            stroke="#10B981"
+                                                            strokeWidth={2.5}
+                                                            strokeDasharray="4 2"
+                                                        />
+                                                    )}
+                                                    {t.z !== null && (
+                                                        <text
+                                                            x={
+                                                                x(
+                                                                    t.posisiUmur,
+                                                                ) +
+                                                                (sesudah
+                                                                    ? -12
+                                                                    : sebelum
+                                                                      ? 12
+                                                                      : 0)
+                                                            }
+                                                            y={Math.max(
+                                                                ATAS + 16,
+                                                                y(t.nilai) -
+                                                                    (isTerbaru
+                                                                        ? 16
+                                                                        : 12),
+                                                            )}
+                                                            textAnchor={
+                                                                sesudah
+                                                                    ? 'end'
+                                                                    : sebelum ||
+                                                                        t.umur ===
+                                                                            awalTampil
+                                                                      ? 'start'
+                                                                      : t.umur ===
+                                                                          panel +
+                                                                              PANEL_BULAN
+                                                                        ? 'end'
+                                                                        : 'middle'
+                                                            }
+                                                            fontSize={
+                                                                isTerbaru
+                                                                    ? 14
+                                                                    : 13.5
+                                                            }
+                                                            fontWeight={
+                                                                isTerbaru
+                                                                    ? 800
+                                                                    : 700
+                                                            }
+                                                            fill={
+                                                                isTerbaru
+                                                                    ? '#047857'
+                                                                    : TINTA
+                                                            }
+                                                            stroke="#FFFFFF"
+                                                            strokeWidth={4.5}
+                                                            strokeLinejoin="round"
+                                                            paintOrder="stroke"
+                                                        >
+                                                            {zScore(t.z)} SD
+                                                        </text>
+                                                    )}
+                                                    <circle
+                                                        clipPath={`url(#${idBukaan})`}
+                                                        cx={x(t.posisiUmur)}
+                                                        cy={y(t.nilai)}
+                                                        r={
+                                                            dipilih
+                                                                ? 8.5
+                                                                : isTerbaru
+                                                                  ? 7.5
+                                                                  : 6
+                                                        }
+                                                        fill={
+                                                            dipilih
+                                                                ? TINTA
+                                                                : isTerbaru
+                                                                  ? '#10B981'
+                                                                  : '#FFFFFF'
+                                                        }
+                                                        stroke={
+                                                            dipilih
+                                                                ? '#FFFFFF'
+                                                                : isTerbaru
+                                                                  ? '#FFFFFF'
+                                                                  : TINTA
+                                                        }
+                                                        strokeWidth={3}
+                                                    />
+                                                    {/* Sasaran sentuh yang lebih lebar dari
+                                            titiknya; isi detailnya muncul saat
+                                            disorot, diketuk, atau difokus. */}
+                                                    <circle
+                                                        cx={x(t.posisiUmur)}
+                                                        cy={y(t.nilai)}
+                                                        r={15}
+                                                        fill="transparent"
+                                                        className="cursor-pointer"
+                                                        tabIndex={0}
+                                                        role="button"
+                                                        aria-label={`${tanggalRingkas(t.tanggal)}, umur ${t.umur} bulan, ${satuan(t.nilai, spek.unit)}${t.z === null ? '' : `, ${zScore(t.z)} SD`}`}
+                                                        aria-pressed={
+                                                            pin === t.periodeId
+                                                        }
+                                                        onClick={() =>
+                                                            ketuk(t.periodeId)
+                                                        }
+                                                        onKeyDown={(e) =>
+                                                            tekanTombol(
+                                                                e,
+                                                                t.periodeId,
+                                                            )
+                                                        }
+                                                        onMouseEnter={() =>
+                                                            setSorot(
+                                                                t.periodeId,
+                                                            )
+                                                        }
+                                                        onMouseLeave={() =>
+                                                            setSorot(null)
+                                                        }
+                                                        onFocus={() =>
+                                                            setSorot(
+                                                                t.periodeId,
+                                                            )
+                                                        }
+                                                        onBlur={() =>
+                                                            setSorot(null)
+                                                        }
+                                                    />
+                                                </g>
+                                            );
+                                        })}
+
+                                        {titikAktif !== undefined &&
+                                            kartu !== null && (
+                                                <g pointerEvents="none">
+                                                    <line
+                                                        x1={kartu.cx}
+                                                        x2={kartu.cx}
+                                                        y1={kartu.cy}
+                                                        y2={ATAS + plotTinggi}
+                                                        stroke={TINTA}
+                                                        strokeWidth={1.4}
+                                                        strokeDasharray="5 4"
+                                                    />
+                                                    <line
+                                                        x1={KIRI}
+                                                        x2={kartu.cx}
+                                                        y1={kartu.cy}
+                                                        y2={kartu.cy}
+                                                        stroke={TINTA}
+                                                        strokeWidth={1.4}
+                                                        strokeDasharray="5 4"
+                                                    />
+                                                    <rect
+                                                        x={kartu.cx - 17}
+                                                        y={
+                                                            ATAS +
+                                                            plotTinggi +
+                                                            4
+                                                        }
+                                                        width={34}
+                                                        height={21}
+                                                        rx={4}
+                                                        fill={TINTA}
+                                                    />
+                                                    <text
+                                                        x={kartu.cx}
+                                                        y={
+                                                            ATAS +
+                                                            plotTinggi +
+                                                            19
+                                                        }
+                                                        textAnchor="middle"
+                                                        fontSize={12.5}
+                                                        fontWeight={700}
+                                                        fill="#FFFFFF"
+                                                    >
+                                                        {titikAktif.umur}
+                                                    </text>
+                                                    <rect
+                                                        x={KIRI - 48}
+                                                        y={kartu.cy - 10.5}
+                                                        width={46}
+                                                        height={21}
+                                                        rx={4}
+                                                        fill={TINTA}
+                                                    />
+                                                    <text
+                                                        x={KIRI - 25}
+                                                        y={kartu.cy + 4.5}
+                                                        textAnchor="middle"
+                                                        fontSize={12.5}
+                                                        fontWeight={700}
+                                                        fill="#FFFFFF"
+                                                    >
+                                                        {angka(
+                                                            titikAktif.nilai,
+                                                            1,
+                                                        )}
+                                                    </text>
+                                                    <rect
+                                                        x={kartu.kiri}
+                                                        y={kartu.atas}
+                                                        width={kartu.lebar}
+                                                        height={
+                                                            kartu.tinggiKartu
+                                                        }
+                                                        rx={8}
+                                                        fill="#FFFFFF"
+                                                        stroke={TINTA}
+                                                        strokeWidth={1.5}
+                                                    />
+                                                    <text
+                                                        x={kartu.kiri + 12}
+                                                        y={kartu.atas + 21}
+                                                        fontSize={12}
+                                                        fontWeight={600}
+                                                        fill={TEKS_SEKUNDER}
+                                                    >
+                                                        {tanggalRingkas(
+                                                            titikAktif.tanggal,
+                                                        )}{' '}
+                                                        · umur {titikAktif.umur}{' '}
+                                                        bulan
+                                                    </text>
+                                                    <text
+                                                        x={kartu.kiri + 12}
+                                                        y={kartu.atas + 44}
+                                                        fontSize={14}
+                                                        fontWeight={800}
+                                                        fill={TINTA}
+                                                    >
+                                                        {namaTampil(spek)}{' '}
+                                                        {satuan(
+                                                            titikAktif.nilai,
+                                                            spek.unit,
+                                                        )}
+                                                    </text>
+                                                    <text
+                                                        x={kartu.kiri + 12}
+                                                        y={kartu.atas + 66}
+                                                        fontSize={13}
+                                                        fontWeight={700}
+                                                        fill="currentColor"
+                                                        className={
+                                                            WARNA_NADA[
+                                                                nadaKategori(
+                                                                    titikAktif.kategori,
+                                                                )
+                                                            ]
+                                                        }
+                                                    >
+                                                        {titikAktif.z === null
+                                                            ? KOSONG
+                                                            : `${zScore(titikAktif.z)} SD · ${kategoriTeks(spek, titikAktif)}`}
+                                                    </text>
+                                                </g>
+                                            )}
+                                    </svg>
+                                </div>
+                            </GrafikDenganAcuan>
                         </div>
 
                         {seri.length > 0 && dalamPanel.length === 0 && (

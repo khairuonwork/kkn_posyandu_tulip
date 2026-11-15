@@ -54,7 +54,10 @@ test('dua periode pada umur yang sama tetap punya identitas dan label masing-mas
             titik.map((t: { periodeId: string }) => t.periodeId),
             ['2026-07', '2026-08'],
         );
-        assert.ok(titik[0].posisiUmur > 29 && titik[0].posisiUmur < titik[1].posisiUmur);
+        assert.ok(
+            titik[0].posisiUmur > 29 &&
+                titik[0].posisiUmur < titik[1].posisiUmur,
+        );
         assert.ok(titik[1].posisiUmur < 30 && titik[1].posisiUmur > 29.9);
         assert.equal(posisiUmurGrafik('2024-02-09', '2026-08-09', 30), 30);
         assert.equal(posisiUmurGrafik(null, '2026-08-08', 29), 29);
@@ -89,7 +92,9 @@ test('dua periode pada umur yang sama tetap punya identitas dan label masing-mas
             /<text[^>]*text-anchor="start"[^>]*>\+1,41 SD<\/text>/,
         );
         assert.equal((html.match(/role="button"/g) ?? []).length, 2);
-        const posisi = [...html.matchAll(/<circle[^>]*cx="([\d.]+)"[^>]*role="button"/g)].map((m) => Number(m[1]));
+        const posisi = [
+            ...html.matchAll(/<circle[^>]*cx="([\d.]+)"[^>]*role="button"/g),
+        ].map((m) => Number(m[1]));
         assert.equal(posisi.length, 2);
         assert.ok(posisi[0] < posisi[1]);
 

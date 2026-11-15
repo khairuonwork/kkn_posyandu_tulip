@@ -200,6 +200,7 @@ export default function GrafikStatis({
             )}
             {[-3, -2, -1, 0, 1, 2, 3].map((z) => {
                 const akhir = sd(z).at(-1);
+
                 return akhir ? (
                     <text
                         key={`label${z}`}
@@ -294,7 +295,9 @@ export default function GrafikStatis({
                                 }
                                 y={Math.max(
                                     atas + teks + 2,
-                                    y(t.nilai) - 11 - (i % tingkatLabel) * teks * 1.3,
+                                    y(t.nilai) -
+                                        11 -
+                                        (i % tingkatLabel) * teks * 1.3,
                                 )}
                                 textAnchor={tepiKiri ? 'start' : 'middle'}
                                 fontSize={teks}

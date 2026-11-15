@@ -117,7 +117,12 @@ export default function CakupanPenimbangan({
                                                                 : `${Math.max(1, (nilai / puncak) * 100)}%`,
                                                     }}
                                                 >
-                                                    {nilai !== null && <span aria-hidden="true" className={`beranda-batang absolute inset-0 rounded-t-md ${seri.warna}`} />}
+                                                    {nilai !== null && (
+                                                        <span
+                                                            aria-hidden="true"
+                                                            className={`beranda-batang absolute inset-0 rounded-t-md ${seri.warna}`}
+                                                        />
+                                                    )}
                                                     <span
                                                         className={`absolute bottom-full left-1/2 mb-1 -translate-x-1/2 text-xs font-bold whitespace-nowrap tabular-nums ${seri.teks}`}
                                                     >
@@ -174,154 +179,175 @@ export function FormKehadiranHariH({
     const [galat, setGalat] = useState('');
     const [sibuk, setSibuk] = useState(false);
     const kelompok = [...new Set(isi.map((r) => r.periodeDbId))];
-    const berubah = isi.some((r, i) => r.jumlah !== (rows[i].sumber === 'manual' && rows[i].hadirHariH !== null ? String(rows[i].hadirHariH) : '') || r.tanggal !== (rows[i].tanggalHariH ?? '')); 
+    const berubah = isi.some(
+        (r, i) =>
+            r.jumlah !==
+                (rows[i].sumber === 'manual' && rows[i].hadirHariH !== null
+                    ? String(rows[i].hadirHariH)
+                    : '') || r.tanggal !== (rows[i].tanggalHariH ?? ''),
+    );
 
     return (
-        <Dialog judul="Kehadiran hari H" keterangan="Catat jumlah balita yang hadir pada hari buka Posyandu." lebar="w-[720px]"
-            berubah={berubah} menyimpan={sibuk} onTutup={onTutup}>
-        <form
-            className="flex min-h-0 flex-1 flex-col"
-            onSubmit={async (e) => {
-                e.preventDefault();
-                setGalat('');
-                setSibuk(true);
-
-                try {
-                    const items = isi
-                        .filter(
-                            (r, i) =>
-                                r.jumlah !==
-                                    (rows[i].sumber === 'manual' &&
-                                    rows[i].hadirHariH !== null
-                                        ? String(rows[i].hadirHariH)
-                                        : '') ||
-                                (r.jumlah !== '' &&
-                                    r.tanggal !== rows[i].tanggalHariH),
-                        )
-                        .map((r) => ({
-                            periodeDbId: r.periodeDbId,
-                            wilayahRtId: r.wilayahRtId,
-                            tanggalHariH: r.tanggal,
-                            hadirHariH:
-                                r.jumlah === '' ? null : Number(r.jumlah),
-                        }));
-                    await onSimpan(items);
-                    onTutup();
-                } catch (error) {
-                    setGalat(
-                        error instanceof Error
-                            ? error.message
-                            : 'Kehadiran belum tersimpan.',
-                    );
-                } finally {
-                    setSibuk(false);
-                }
-            }}
+        <Dialog
+            judul="Kehadiran hari H"
+            keterangan="Catat jumlah balita yang hadir pada hari buka Posyandu."
+            lebar="w-[720px]"
+            berubah={berubah}
+            menyimpan={sibuk}
+            onTutup={onTutup}
         >
-            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5 sm:px-7">
-            <p className="text-sm text-muted-foreground">
-                Isi jumlah yang datang secara fisik pada hari H, tanpa sweeping.
-                Isi 0 bila tidak ada yang hadir; kosongkan untuk memakai daftar
-                hadir otomatis jika tersedia.
-            </p>
-            {kelompok.map((id) => {
-                const group = isi.filter((r) => r.periodeDbId === id);
+            <form
+                className="flex min-h-0 flex-1 flex-col"
+                onSubmit={async (e) => {
+                    e.preventDefault();
+                    setGalat('');
+                    setSibuk(true);
 
-                return (
-                    <fieldset key={id} disabled={sibuk} className="space-y-3">
-                        <legend className="font-bold">
-                            {group[0].posyandu}
-                        </legend>
-                        <label className="flex flex-wrap items-center gap-3 text-sm font-semibold">
-                            Tanggal hari H
-                            <input
-                                type="date"
-                                className="isian"
-                                value={group[0].tanggal}
-                                onChange={(e) =>
-                                    setIsi((old) =>
-                                        old.map((r) =>
-                                            r.periodeDbId === id
-                                                ? {
-                                                      ...r,
-                                                      tanggal: e.target.value,
-                                                  }
-                                                : r,
-                                        ),
-                                    )
-                                }
-                            />
-                        </label>
-                        <div className="grid gap-3 sm:grid-cols-2">
-                            {group.map((row) => (
-                                <label
-                                    key={row.wilayahRtId}
-                                    className="text-sm font-semibold"
-                                >
-                                    RT {row.rt} · {row.sasaran} sasaran
+                    try {
+                        const items = isi
+                            .filter(
+                                (r, i) =>
+                                    r.jumlah !==
+                                        (rows[i].sumber === 'manual' &&
+                                        rows[i].hadirHariH !== null
+                                            ? String(rows[i].hadirHariH)
+                                            : '') ||
+                                    (r.jumlah !== '' &&
+                                        r.tanggal !== rows[i].tanggalHariH),
+                            )
+                            .map((r) => ({
+                                periodeDbId: r.periodeDbId,
+                                wilayahRtId: r.wilayahRtId,
+                                tanggalHariH: r.tanggal,
+                                hadirHariH:
+                                    r.jumlah === '' ? null : Number(r.jumlah),
+                            }));
+                        await onSimpan(items);
+                        onTutup();
+                    } catch (error) {
+                        setGalat(
+                            error instanceof Error
+                                ? error.message
+                                : 'Kehadiran belum tersimpan.',
+                        );
+                    } finally {
+                        setSibuk(false);
+                    }
+                }}
+            >
+                <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5 sm:px-7">
+                    <p className="text-sm text-muted-foreground">
+                        Isi jumlah yang datang secara fisik pada hari H, tanpa
+                        sweeping. Isi 0 bila tidak ada yang hadir; kosongkan
+                        untuk memakai daftar hadir otomatis jika tersedia.
+                    </p>
+                    {kelompok.map((id) => {
+                        const group = isi.filter((r) => r.periodeDbId === id);
+
+                        return (
+                            <fieldset
+                                key={id}
+                                disabled={sibuk}
+                                className="space-y-3"
+                            >
+                                <legend className="font-bold">
+                                    {group[0].posyandu}
+                                </legend>
+                                <label className="flex flex-wrap items-center gap-3 text-sm font-semibold">
+                                    Tanggal hari H
                                     <input
-                                        type="number"
-                                        min={0}
-                                        max={100000}
-                                        step={1}
-                                        inputMode="numeric"
-                                        className="isian mt-1 w-full"
-                                        placeholder="Belum tercatat"
-                                        value={row.jumlah}
+                                        type="date"
+                                        className="isian"
+                                        value={group[0].tanggal}
                                         onChange={(e) =>
                                             setIsi((old) =>
                                                 old.map((r) =>
-                                                    r.periodeDbId === id &&
-                                                    r.wilayahRtId ===
-                                                        row.wilayahRtId
+                                                    r.periodeDbId === id
                                                         ? {
                                                               ...r,
-                                                              jumlah: e.target
-                                                                  .value,
+                                                              tanggal:
+                                                                  e.target
+                                                                      .value,
                                                           }
                                                         : r,
                                                 ),
                                             )
                                         }
                                     />
-                                    {row.sumber === 'antrean' && (
-                                        <span className="mt-1 block text-xs text-muted-foreground">
-                                            Daftar hadir: {row.hadirHariH} anak
-                                        </span>
-                                    )}
                                 </label>
-                            ))}
-                        </div>
-                    </fieldset>
-                );
-            })}
-            {galat && (
-                <DialogGagal
-                    animasiPesan
-                    judul="Kehadiran belum tersimpan"
-                    pesan={galat}
-                    onTutup={() => setGalat('')}
-                />
-            )}
-            </div>
-            <KakiDialog>
-                <button
-                    type="submit"
-                    className="tombol-utama"
-                    disabled={sibuk || !rows.length}
-                >
-                    {sibuk ? 'Menyimpan…' : 'Simpan kehadiran hari H'}
-                </button>
-                <button
-                    type="button"
-                    className="tombol-kedua"
-                    disabled={sibuk}
-                    data-tutup-dialog="batal"
-                >
-                    Batal
-                </button>
-            </KakiDialog>
-        </form>
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                    {group.map((row) => (
+                                        <label
+                                            key={row.wilayahRtId}
+                                            className="text-sm font-semibold"
+                                        >
+                                            RT {row.rt} · {row.sasaran} sasaran
+                                            <input
+                                                type="number"
+                                                min={0}
+                                                max={100000}
+                                                step={1}
+                                                inputMode="numeric"
+                                                className="isian mt-1 w-full"
+                                                placeholder="Belum tercatat"
+                                                value={row.jumlah}
+                                                onChange={(e) =>
+                                                    setIsi((old) =>
+                                                        old.map((r) =>
+                                                            r.periodeDbId ===
+                                                                id &&
+                                                            r.wilayahRtId ===
+                                                                row.wilayahRtId
+                                                                ? {
+                                                                      ...r,
+                                                                      jumlah: e
+                                                                          .target
+                                                                          .value,
+                                                                  }
+                                                                : r,
+                                                        ),
+                                                    )
+                                                }
+                                            />
+                                            {row.sumber === 'antrean' && (
+                                                <span className="mt-1 block text-xs text-muted-foreground">
+                                                    Daftar hadir:{' '}
+                                                    {row.hadirHariH} anak
+                                                </span>
+                                            )}
+                                        </label>
+                                    ))}
+                                </div>
+                            </fieldset>
+                        );
+                    })}
+                    {galat && (
+                        <DialogGagal
+                            animasiPesan
+                            judul="Kehadiran belum tersimpan"
+                            pesan={galat}
+                            onTutup={() => setGalat('')}
+                        />
+                    )}
+                </div>
+                <KakiDialog>
+                    <button
+                        type="submit"
+                        className="tombol-utama"
+                        disabled={sibuk || !rows.length}
+                    >
+                        {sibuk ? 'Menyimpan…' : 'Simpan kehadiran hari H'}
+                    </button>
+                    <button
+                        type="button"
+                        className="tombol-kedua"
+                        disabled={sibuk}
+                        data-tutup-dialog="batal"
+                    >
+                        Batal
+                    </button>
+                </KakiDialog>
+            </form>
         </Dialog>
     );
 }

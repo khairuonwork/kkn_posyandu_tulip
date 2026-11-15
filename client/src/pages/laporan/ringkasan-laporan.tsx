@@ -18,7 +18,9 @@ export default function RingkasanLaporan({
     jumlahSatuT: number;
 }) {
     return (
-        <div className={`grid gap-4 ${tab === 'zscore' ? 'sm:grid-cols-2' : 'sm:grid-cols-3'}`}>
+        <div
+            className={`grid gap-4 ${tab === 'zscore' ? 'sm:grid-cols-2' : 'sm:grid-cols-3'}`}
+        >
             {tab === 'zscore' ? (
                 <>
                     <article className="flex flex-col justify-between rounded-2xl border border-border bg-card p-5 shadow-sm">

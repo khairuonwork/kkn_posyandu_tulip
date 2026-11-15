@@ -168,10 +168,12 @@ describe('susunPesan', () => {
                         `*${kesimpulan === 'diperiksa' ? `Sebaiknya ${singkat} diperiksa ke puskesmas.` : `Pertumbuhan ${singkat} ${kesimpulan === 'sesuai' ? 'baik' : 'perlu diperhatikan'}.`}*`,
                     ),
                 );
-                if (kesimpulan === 'diperiksa')
+
+                if (kesimpulan === 'diperiksa') {
                     assert.ok(
                         pesan.includes(`Mohon bawa ${singkat} ke puskesmas`),
                     );
+                }
             }
         }
     });

@@ -410,17 +410,23 @@ export default function PemeriksaanKms({
     const tombolBantuan = useRef<HTMLButtonElement>(null);
     const [items, setItems] = useState<AntreanKms[]>(() => {
         if (!demo) {
-return [];
-}
+            return [];
+        }
 
         try {
             const saved = localStorage.getItem('simulasi-kms-items');
 
-            return saved ? JSON.parse(saved) as AntreanKms[] : CONTOH_ANTREAN_KMS.map((item) => ({
-                ...item, sudahDiukur: true,
-            }));
+            return saved
+                ? (JSON.parse(saved) as AntreanKms[])
+                : CONTOH_ANTREAN_KMS.map((item) => ({
+                      ...item,
+                      sudahDiukur: true,
+                  }));
         } catch {
-            return CONTOH_ANTREAN_KMS.map((item) => ({ ...item, sudahDiukur: true }));
+            return CONTOH_ANTREAN_KMS.map((item) => ({
+                ...item,
+                sudahDiukur: true,
+            }));
         }
     });
     const [status, setStatus] = useState<'memuat' | 'siap' | 'galat'>(
@@ -439,8 +445,8 @@ return [];
 
     useEffect(() => {
         if (demo) {
-localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
-}
+            localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
+        }
     }, [demo, items]);
 
     const muatUlang = useCallback(() => {
@@ -509,15 +515,25 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
         (item) => item.status !== 'done' && item.status !== 'cancelled',
     );
     const aktif = terbuka.filter((item) => item.mejaKms != null);
-    const menunggu = terbuka.filter((item) => item.mejaKms == null).sort((a, b) =>
-        (b.prioritasKms?.skor ?? 0) - (a.prioritasKms?.skor ?? 0) ||
-        (a.urutan ?? a.nomor) - (b.urutan ?? b.nomor),
-    );
+    const menunggu = terbuka
+        .filter((item) => item.mejaKms == null)
+        .sort(
+            (a, b) =>
+                (b.prioritasKms?.skor ?? 0) - (a.prioritasKms?.skor ?? 0) ||
+                (a.urutan ?? a.nomor) - (b.urutan ?? b.nomor),
+        );
     const mejaSibuk = aktif.some((item) => item.mejaKms === mejaKms);
     const selesai = items.filter((item) => item.status === 'done');
     const kataCari = pencarian.trim().toLocaleLowerCase('id-ID');
     const hasilAntrean = kataCari
-        ? menunggu.filter((item) => item.nama.toLocaleLowerCase('id-ID').includes(kataCari) || `a${String(item.nomor).padStart(2, '0')}`.includes(kataCari) || String(item.nomor).includes(kataCari))
+        ? menunggu.filter(
+              (item) =>
+                  item.nama.toLocaleLowerCase('id-ID').includes(kataCari) ||
+                  `a${String(item.nomor).padStart(2, '0')}`.includes(
+                      kataCari,
+                  ) ||
+                  String(item.nomor).includes(kataCari),
+          )
         : menunggu;
 
     const konfirmasi = async (item: AntreanKms) => {
@@ -534,10 +550,19 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
         if (demo) {
             setItems((lama) =>
                 lama.map((it) =>
-                    it.id === item.id ? { ...it, status: 'done' as const, catatanKms: catatanKms[item.id]?.trim() || it.catatanKms } : it,
+                    it.id === item.id
+                        ? {
+                              ...it,
+                              status: 'done' as const,
+                              catatanKms:
+                                  catatanKms[item.id]?.trim() || it.catatanKms,
+                          }
+                        : it,
                 ),
             );
-            setPesan(`A${String(item.nomor).padStart(2, '0')} selesai diperiksa.`);
+            setPesan(
+                `A${String(item.nomor).padStart(2, '0')} selesai diperiksa.`,
+            );
             setSedangKonfirmasi(null);
             konfirmasiAktif.current = false;
 
@@ -545,7 +570,11 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
         }
 
         try {
-            await konfirmasiSelesaiKms(item.id, onSesiBerakhir, catatanKms[item.id]);
+            await konfirmasiSelesaiKms(
+                item.id,
+                onSesiBerakhir,
+                catatanKms[item.id],
+            );
             setItems((lama) =>
                 lama.map((it) =>
                     it.id === item.id ? { ...it, status: 'done' } : it,
@@ -579,11 +608,22 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
         try {
             if (demo) {
                 if (aksi === 'panggil' || aksi === 'ulang') {
-                    const terakhir = localStorage.getItem('simulasi-kms-panggilan');
-                    const id = terakhir ? Number((JSON.parse(terakhir) as { id: string }).id) + 1 : 1;
-                    localStorage.setItem('simulasi-kms-panggilan', JSON.stringify({
-                        id: String(id), nomor: item.nomor, meja: mejaKms, nama: item.nama,
-                    }));
+                    const terakhir = localStorage.getItem(
+                        'simulasi-kms-panggilan',
+                    );
+                    const id = terakhir
+                        ? Number((JSON.parse(terakhir) as { id: string }).id) +
+                          1
+                        : 1;
+                    localStorage.setItem(
+                        'simulasi-kms-panggilan',
+                        JSON.stringify({
+                            id: String(id),
+                            nomor: item.nomor,
+                            meja: mejaKms,
+                            nama: item.nama,
+                        }),
+                    );
                 }
             } else {
                 await ubahPanggilanKms(item.id, aksi, mejaKms, onSesiBerakhir);
@@ -602,9 +642,15 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
             );
             const hasil = {
                 panggil: `A${String(item.nomor).padStart(2, '0')} dipanggil ke Meja KMS ${mejaKms}.`,
-                ulang: demo ? `A${String(item.nomor).padStart(2, '0')} dipanggil ulang ke Meja KMS ${mejaKms}.` : 'Panggilan ulang dikirim.',
-                tiba: demo ? `A${String(item.nomor).padStart(2, '0')} sudah tiba di Meja KMS ${mejaKms}.` : 'Kehadiran di meja dicatat.',
-                kembalikan: demo ? `A${String(item.nomor).padStart(2, '0')} kembali ke antrean.` : 'Peserta kembali ke antrean.',
+                ulang: demo
+                    ? `A${String(item.nomor).padStart(2, '0')} dipanggil ulang ke Meja KMS ${mejaKms}.`
+                    : 'Panggilan ulang dikirim.',
+                tiba: demo
+                    ? `A${String(item.nomor).padStart(2, '0')} sudah tiba di Meja KMS ${mejaKms}.`
+                    : 'Kehadiran di meja dicatat.',
+                kembalikan: demo
+                    ? `A${String(item.nomor).padStart(2, '0')} kembali ke antrean.`
+                    : 'Peserta kembali ke antrean.',
             };
             setPesan(hasil[aksi]);
         } catch (error) {
@@ -628,39 +674,70 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
             penuh="lg"
             aksi={
                 <>
-                        <Link href="/kms/ruang-tunggu" className="tombol-kedua"
-                            target={demo ? '_blank' : undefined} rel={demo ? 'noopener' : undefined}>
-                            Buka layar ruang tunggu
-                        </Link>
+                    <Link
+                        href="/kms/ruang-tunggu"
+                        className="tombol-kedua"
+                        target={demo ? '_blank' : undefined}
+                        rel={demo ? 'noopener' : undefined}
+                    >
+                        Buka layar ruang tunggu
+                    </Link>
                     {demo && (
-                        <button type="button" className="tombol-kedua" onClick={() => {
-                            const checkedInAt = new Date().toISOString();
-                            setItems((lama) => {
-                                const nomorAwal = Math.max(0, ...lama.map((item) => item.nomor));
-                                const tambahan: AntreanKms[] = Array.from({ length: 20 }, (_, index) => ({
-                                    id: `simulasi-massal-${nomorAwal + index + 1}`,
-                                    anakId: 0,
-                                    nomor: nomorAwal + index + 1,
-                                    nama: `Peserta simulasi ${nomorAwal + index + 1}`,
-                                    namaOrtu: null,
-                                    rt: null,
-                                    status: 'waiting',
-                                    checkedInAt,
-                                    sudahDiukur: index % 2 === 0,
-                                }));
+                        <button
+                            type="button"
+                            className="tombol-kedua"
+                            onClick={() => {
+                                const checkedInAt = new Date().toISOString();
+                                setItems((lama) => {
+                                    const nomorAwal = Math.max(
+                                        0,
+                                        ...lama.map((item) => item.nomor),
+                                    );
+                                    const tambahan: AntreanKms[] = Array.from(
+                                        { length: 20 },
+                                        (_, index) => ({
+                                            id: `simulasi-massal-${nomorAwal + index + 1}`,
+                                            anakId: 0,
+                                            nomor: nomorAwal + index + 1,
+                                            nama: `Peserta simulasi ${nomorAwal + index + 1}`,
+                                            namaOrtu: null,
+                                            rt: null,
+                                            status: 'waiting',
+                                            checkedInAt,
+                                            sudahDiukur: index % 2 === 0,
+                                        }),
+                                    );
 
-                                return [...lama, ...tambahan];
-                            });
-                            setPesan('20 peserta simulasi ditambahkan.');
-                        }}>Tambah 20 peserta uji</button>
+                                    return [...lama, ...tambahan];
+                                });
+                                setPesan('20 peserta simulasi ditambahkan.');
+                            }}
+                        >
+                            Tambah 20 peserta uji
+                        </button>
                     )}
                     {demo && (
-                        <button type="button" className="tombol-kedua" onClick={() => {
-                            localStorage.removeItem('simulasi-kms-items');
-                            localStorage.removeItem('simulasi-kms-panggilan');
-                            setItems(CONTOH_ANTREAN_KMS.map((item) => ({ ...item, sudahDiukur: true })));
-                            setPesan('Data simulasi dikembalikan ke kondisi awal.');
-                        }}>Reset simulasi</button>
+                        <button
+                            type="button"
+                            className="tombol-kedua"
+                            onClick={() => {
+                                localStorage.removeItem('simulasi-kms-items');
+                                localStorage.removeItem(
+                                    'simulasi-kms-panggilan',
+                                );
+                                setItems(
+                                    CONTOH_ANTREAN_KMS.map((item) => ({
+                                        ...item,
+                                        sudahDiukur: true,
+                                    })),
+                                );
+                                setPesan(
+                                    'Data simulasi dikembalikan ke kondisi awal.',
+                                );
+                            }}
+                        >
+                            Reset simulasi
+                        </button>
                     )}
                     <button
                         type="button"
@@ -697,42 +774,92 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
             >
                 <div className="detail-utama kms-demo-layout">
                     {/* Ringkasan antrean hari ini */}
-                    {(
-                        <section aria-label="Ringkasan antrean hari ini" className="kms-demo-ringkasan kartu grid grid-cols-2 divide-x divide-border py-4 sm:grid-cols-3">
+                    {
+                        <section
+                            aria-label="Ringkasan antrean hari ini"
+                            className="kms-demo-ringkasan kartu grid grid-cols-2 divide-x divide-border py-4 sm:grid-cols-3"
+                        >
                             <div className="col-span-2 flex min-w-0 flex-wrap items-center justify-between gap-2 px-5 pb-4 sm:col-span-1 sm:block sm:px-7 sm:pb-0">
                                 <div>
-                                    <h2 className="text-sm font-semibold text-muted-foreground">Meja saya</h2>
-                                    <p className="mt-1 text-xl font-bold">{mejaKms === null ? 'Belum ditetapkan' : `Meja KMS ${mejaKms}`}</p>
+                                    <h2 className="text-sm font-semibold text-muted-foreground">
+                                        Meja saya
+                                    </h2>
+                                    <p className="mt-1 text-xl font-bold">
+                                        {mejaKms === null
+                                            ? 'Belum ditetapkan'
+                                            : `Meja KMS ${mejaKms}`}
+                                    </p>
                                 </div>
-                                {demo && <label className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-                                    Meja simulasi
-                                    <select className="isian" value={mejaKms ?? 1}
-                                        onChange={(event) => setMejaKms(Number(event.target.value))}>
-                                        {[1, 2, 3, 4, 5].map((nomor) => (
-                                            <option key={nomor} value={nomor}>Meja {nomor}</option>
-                                        ))}
-                                    </select>
-                                </label>}
+                                {demo && (
+                                    <label className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                                        Meja simulasi
+                                        <select
+                                            className="isian"
+                                            value={mejaKms ?? 1}
+                                            onChange={(event) =>
+                                                setMejaKms(
+                                                    Number(event.target.value),
+                                                )
+                                            }
+                                        >
+                                            {[1, 2, 3, 4, 5].map((nomor) => (
+                                                <option
+                                                    key={nomor}
+                                                    value={nomor}
+                                                >
+                                                    Meja {nomor}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                )}
                             </div>
                             {[
-                                { label: 'Menunggu', nilai: menunggu.length, keterangan: 'Belum dipanggil', ikon: Clock },
-                                { label: 'Selesai', nilai: selesai.length, keterangan: 'Sudah dikonfirmasi', ikon: CircleCheck },
-                            ].map(({ label, nilai, keterangan, ikon: Ikon }) => (
-                                <div key={label} className="flex min-w-0 items-start gap-3 px-5 sm:px-7">
-                                    <span aria-hidden="true" className="mt-0.5 hidden size-8 shrink-0 items-center justify-center rounded-lg bg-accent text-primary sm:flex">
-                                        <Ikon className="size-4.5" strokeWidth={2} />
-                                    </span>
-                                    <div className="min-w-0">
-                                        <h2 className="text-sm leading-snug font-semibold text-muted-foreground">{label}</h2>
-                                        <p className="mt-3 flex flex-col gap-2">
-                                            <span className="text-4xl leading-none font-bold tracking-tight tabular-nums">{nilai}</span>
-                                            <span className="text-sm text-muted-foreground">{keterangan}</span>
-                                        </p>
+                                {
+                                    label: 'Menunggu',
+                                    nilai: menunggu.length,
+                                    keterangan: 'Belum dipanggil',
+                                    ikon: Clock,
+                                },
+                                {
+                                    label: 'Selesai',
+                                    nilai: selesai.length,
+                                    keterangan: 'Sudah dikonfirmasi',
+                                    ikon: CircleCheck,
+                                },
+                            ].map(
+                                ({ label, nilai, keterangan, ikon: Ikon }) => (
+                                    <div
+                                        key={label}
+                                        className="flex min-w-0 items-start gap-3 px-5 sm:px-7"
+                                    >
+                                        <span
+                                            aria-hidden="true"
+                                            className="mt-0.5 hidden size-8 shrink-0 items-center justify-center rounded-lg bg-accent text-primary sm:flex"
+                                        >
+                                            <Ikon
+                                                className="size-4.5"
+                                                strokeWidth={2}
+                                            />
+                                        </span>
+                                        <div className="min-w-0">
+                                            <h2 className="text-sm leading-snug font-semibold text-muted-foreground">
+                                                {label}
+                                            </h2>
+                                            <p className="mt-3 flex flex-col gap-2">
+                                                <span className="text-4xl leading-none font-bold tracking-tight tabular-nums">
+                                                    {nilai}
+                                                </span>
+                                                <span className="text-sm text-muted-foreground">
+                                                    {keterangan}
+                                                </span>
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                ),
+                            )}
                         </section>
-                    )}
+                    }
 
                     {/* Notifikasi Status Aksi */}
                     {pesan && (
@@ -742,7 +869,15 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
                         >
                             <CircleCheck className="size-5 shrink-0" />
                             <span className="flex-1">{pesan}</span>
-                            {demo && <button type="button" className="min-h-11 min-w-11 rounded-lg px-2 underline underline-offset-2" onClick={() => setPesan(null)}>Tutup</button>}
+                            {demo && (
+                                <button
+                                    type="button"
+                                    className="min-h-11 min-w-11 rounded-lg px-2 underline underline-offset-2"
+                                    onClick={() => setPesan(null)}
+                                >
+                                    Tutup
+                                </button>
+                            )}
                         </div>
                     )}
                     {galat && status === 'siap' && (
@@ -774,154 +909,227 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
                             </p>
                             {!mejaSibuk && (
                                 <div className="kms-demo-meja-kosong rounded-xl border border-border bg-card px-5 py-5">
-                                    <h3 className="font-bold">Belum ada peserta di meja ini</h3>
-                                    <p className="mt-1 text-sm text-muted-foreground">Peserta yang dipanggil akan tampil di sini.</p>
+                                    <h3 className="font-bold">
+                                        Belum ada peserta di meja ini
+                                    </h3>
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        Peserta yang dipanggil akan tampil di
+                                        sini.
+                                    </p>
                                 </div>
                             )}
-                            {aktif.filter((item) => item.mejaKms === mejaKms).map((item) => (
-                                <article
-                                    key={demo ? `${item.id}-${item.tibaKms}` : item.id}
-                                    className={demo
-                                        ? 'kms-demo-perubahan grid min-w-0 gap-3 rounded-xl border-2 border-primary bg-card p-4 sm:p-5'
-                                        : 'grid min-w-0 gap-3 rounded-xl border border-border bg-card p-4'}
-                                >
-                                    <div>
-                                        <h3 className="font-bold break-words">
-                                            A
-                                            {String(item.nomor).padStart(
-                                                2,
-                                                '0',
-                                            )}{' '}
-                                            · {item.nama}
-                                        </h3>
-                                        <p className="text-sm text-muted-foreground">
-                                            Meja KMS {item.mejaKms} ·{' '}
-                                            {item.tibaKms
-                                                ? 'Sudah tiba'
-                                                : 'Sudah dipanggil'}
-                                            {!item.sudahDiukur &&
-                                                ' · Belum diukur'}
-                                            {demo && item.sudahDiukur && ' · Sudah diukur'}
-                                        </p>
-                                        {item.kmsPetugasNama && <p className="text-sm text-muted-foreground">Petugas: {item.kmsPetugasNama}</p>}
-                                    </div>
-                                    <CatatanTahap item={item} />
-                                    {item.anakId > 0 && (
-                                        <RiwayatCatatan
-                                            key={item.anakId}
-                                            anakId={item.anakId}
-                                            onSesiBerakhir={onSesiBerakhir}
-                                            demo={demo}
-                                        />
-                                    )}
-                                    {item.mejaKms === mejaKms && item.tibaKms && <label className="grid gap-1 text-sm font-semibold">
-                                        Catatan KMS
-                                        <textarea className="isian min-h-20 w-full" maxLength={500} value={catatanKms[item.id] ?? ''} onChange={(event) => setCatatanKms((lama) => ({ ...lama, [item.id]: event.target.value }))} />
-                                    </label>}
-                                    {item.mejaKms === mejaKms && (
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            {item.anakId > 0 && <Link
-                                                href={`/balita/${item.anakId}?asal=kms`}
-                                                className="tombol-kedua min-h-11"
-                                            >
-                                                <ChartLine className="size-[16px] shrink-0" aria-hidden="true" />
-                                                Lihat analisis dan kurva
-                                            </Link>}
-                                            {!item.tibaKms && (
-                                                <>
+                            {aktif
+                                .filter((item) => item.mejaKms === mejaKms)
+                                .map((item) => (
+                                    <article
+                                        key={
+                                            demo
+                                                ? `${item.id}-${item.tibaKms}`
+                                                : item.id
+                                        }
+                                        className={
+                                            demo
+                                                ? 'kms-demo-perubahan grid min-w-0 gap-3 rounded-xl border-2 border-primary bg-card p-4 sm:p-5'
+                                                : 'grid min-w-0 gap-3 rounded-xl border border-border bg-card p-4'
+                                        }
+                                    >
+                                        <div>
+                                            <h3 className="font-bold break-words">
+                                                A
+                                                {String(item.nomor).padStart(
+                                                    2,
+                                                    '0',
+                                                )}{' '}
+                                                · {item.nama}
+                                            </h3>
+                                            <p className="text-sm text-muted-foreground">
+                                                Meja KMS {item.mejaKms} ·{' '}
+                                                {item.tibaKms
+                                                    ? 'Sudah tiba'
+                                                    : 'Sudah dipanggil'}
+                                                {!item.sudahDiukur &&
+                                                    ' · Belum diukur'}
+                                                {demo &&
+                                                    item.sudahDiukur &&
+                                                    ' · Sudah diukur'}
+                                            </p>
+                                            {item.kmsPetugasNama && (
+                                                <p className="text-sm text-muted-foreground">
+                                                    Petugas:{' '}
+                                                    {item.kmsPetugasNama}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <CatatanTahap item={item} />
+                                        {item.anakId > 0 && (
+                                            <RiwayatCatatan
+                                                key={item.anakId}
+                                                anakId={item.anakId}
+                                                onSesiBerakhir={onSesiBerakhir}
+                                                demo={demo}
+                                            />
+                                        )}
+                                        {item.mejaKms === mejaKms &&
+                                            item.tibaKms && (
+                                                <label className="grid gap-1 text-sm font-semibold">
+                                                    Catatan KMS
+                                                    <textarea
+                                                        className="isian min-h-20 w-full"
+                                                        maxLength={500}
+                                                        value={
+                                                            catatanKms[
+                                                                item.id
+                                                            ] ?? ''
+                                                        }
+                                                        onChange={(event) =>
+                                                            setCatatanKms(
+                                                                (lama) => ({
+                                                                    ...lama,
+                                                                    [item.id]:
+                                                                        event
+                                                                            .target
+                                                                            .value,
+                                                                }),
+                                                            )
+                                                        }
+                                                    />
+                                                </label>
+                                            )}
+                                        {item.mejaKms === mejaKms && (
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                {item.anakId > 0 && (
+                                                    <Link
+                                                        href={`/balita/${item.anakId}?asal=kms`}
+                                                        className="tombol-kedua min-h-11"
+                                                    >
+                                                        <ChartLine
+                                                            className="size-[16px] shrink-0"
+                                                            aria-hidden="true"
+                                                        />
+                                                        Lihat analisis dan kurva
+                                                    </Link>
+                                                )}
+                                                {!item.tibaKms && (
+                                                    <>
+                                                        <button
+                                                            type="button"
+                                                            className="tombol-kedua min-h-11"
+                                                            disabled={
+                                                                sedangKonfirmasi !==
+                                                                null
+                                                            }
+                                                            onClick={() =>
+                                                                void panggilan(
+                                                                    item,
+                                                                    'ulang',
+                                                                )
+                                                            }
+                                                        >
+                                                            <Megaphone
+                                                                className="size-[16px] shrink-0"
+                                                                aria-hidden="true"
+                                                            />
+                                                            Panggil ulang
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="tombol-utama min-h-11"
+                                                            disabled={
+                                                                sedangKonfirmasi !==
+                                                                null
+                                                            }
+                                                            onClick={() =>
+                                                                void panggilan(
+                                                                    item,
+                                                                    'tiba',
+                                                                )
+                                                            }
+                                                        >
+                                                            <UserCheck
+                                                                className="size-[16px] shrink-0"
+                                                                aria-hidden="true"
+                                                            />
+                                                            Tandai tiba
+                                                        </button>
+                                                    </>
+                                                )}
+                                                {item.tibaKms && (
+                                                    <button
+                                                        type="button"
+                                                        className="tombol-utama min-h-11 disabled:cursor-not-allowed disabled:opacity-50"
+                                                        disabled={
+                                                            !item.sudahDiukur ||
+                                                            sedangKonfirmasi !==
+                                                                null
+                                                        }
+                                                        onClick={() =>
+                                                            void konfirmasi(
+                                                                item,
+                                                            )
+                                                        }
+                                                    >
+                                                        Konfirmasi selesai
+                                                    </button>
+                                                )}
+                                                {item.tibaKms &&
+                                                    !item.sudahDiukur && (
+                                                        <p className="text-sm text-muted-foreground">
+                                                            Konfirmasi tersedia
+                                                            setelah data
+                                                            pengukuran lengkap.
+                                                        </p>
+                                                    )}
+                                                {demo && !item.sudahDiukur && (
                                                     <button
                                                         type="button"
                                                         className="tombol-kedua min-h-11"
-                                                        disabled={
-                                                            sedangKonfirmasi !==
-                                                            null
-                                                        }
-                                                        onClick={() =>
-                                                            void panggilan(
-                                                                item,
-                                                                'ulang',
-                                                            )
-                                                        }
+                                                        onClick={() => {
+                                                            setItems((lama) =>
+                                                                lama.map(
+                                                                    (
+                                                                        peserta,
+                                                                    ) =>
+                                                                        peserta.id ===
+                                                                        item.id
+                                                                            ? {
+                                                                                  ...peserta,
+                                                                                  sudahDiukur: true,
+                                                                              }
+                                                                            : peserta,
+                                                                ),
+                                                            );
+                                                            setPesan(
+                                                                'Pengukuran simulasi dicatat.',
+                                                            );
+                                                        }}
                                                     >
-                                                        <Megaphone className="size-[16px] shrink-0" aria-hidden="true" />
-                                                        Panggil ulang
+                                                        Simulasikan pengukuran
                                                     </button>
-                                                    <button
-                                                        type="button"
-                                                        className="tombol-utama min-h-11"
-                                                        disabled={
-                                                            sedangKonfirmasi !==
-                                                            null
-                                                        }
-                                                        onClick={() =>
-                                                            void panggilan(
-                                                                item,
-                                                                'tiba',
-                                                            )
-                                                        }
-                                                    >
-                                                        <UserCheck className="size-[16px] shrink-0" aria-hidden="true" />
-                                                        Tandai tiba
-                                                    </button>
-                                                </>
-                                            )}
-                                            {item.tibaKms && (
-                                                <button
-                                                    type="button"
-                                                    className="tombol-utama min-h-11 disabled:cursor-not-allowed disabled:opacity-50"
-                                                    disabled={
-                                                        !item.sudahDiukur ||
-                                                        sedangKonfirmasi !==
-                                                            null
-                                                    }
-                                                    onClick={() =>
-                                                        void konfirmasi(item)
-                                                    }
-                                                >
-                                                    Konfirmasi selesai
-                                                </button>
-                                            )}
-                                            {item.tibaKms && !item.sudahDiukur && (
-                                                <p className="text-sm text-muted-foreground">
-                                                    Konfirmasi tersedia setelah data pengukuran lengkap.
-                                                </p>
-                                            )}
-                                            {demo && !item.sudahDiukur && (
+                                                )}
                                                 <button
                                                     type="button"
                                                     className="tombol-kedua min-h-11"
-                                                    onClick={() => {
-                                                        setItems((lama) => lama.map((peserta) =>
-                                                            peserta.id === item.id
-                                                                ? { ...peserta, sudahDiukur: true }
-                                                                : peserta,
-                                                        ));
-                                                        setPesan('Pengukuran simulasi dicatat.');
-                                                    }}
+                                                    disabled={
+                                                        sedangKonfirmasi !==
+                                                        null
+                                                    }
+                                                    onClick={() =>
+                                                        void panggilan(
+                                                            item,
+                                                            'kembalikan',
+                                                        )
+                                                    }
                                                 >
-                                                    Simulasikan pengukuran
+                                                    <Undo2
+                                                        className="size-[16px] shrink-0"
+                                                        aria-hidden="true"
+                                                    />
+                                                    Kembalikan ke antrean
                                                 </button>
-                                            )}
-                                            <button
-                                                type="button"
-                                                className="tombol-kedua min-h-11"
-                                                disabled={
-                                                    sedangKonfirmasi !== null
-                                                }
-                                                onClick={() =>
-                                                    void panggilan(
-                                                        item,
-                                                        'kembalikan',
-                                                    )
-                                                }
-                                            >
-                                                <Undo2 className="size-[16px] shrink-0" aria-hidden="true" />
-                                                Kembalikan ke antrean
-                                            </button>
-                                        </div>
-                                    )}
-                                </article>
-                            ))}
+                                            </div>
+                                        )}
+                                    </article>
+                                ))}
                         </section>
                     )}
 
@@ -941,22 +1149,63 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
                             </div>
                         </div>
 
-                        {(
-                            <label className="flex flex-col gap-1.5 text-sm font-semibold" htmlFor="cari-antrean-kms">
+                        {
+                            <label
+                                className="flex flex-col gap-1.5 text-sm font-semibold"
+                                htmlFor="cari-antrean-kms"
+                            >
                                 Cari peserta
-                                <input id="cari-antrean-kms" className="isian w-full" type="search"
-                                    placeholder="Nama atau nomor antrean" value={pencarian}
-                                    onChange={(event) => setPencarian(event.target.value)} />
+                                <input
+                                    id="cari-antrean-kms"
+                                    className="isian w-full"
+                                    type="search"
+                                    placeholder="Nama atau nomor antrean"
+                                    value={pencarian}
+                                    onChange={(event) =>
+                                        setPencarian(event.target.value)
+                                    }
+                                />
                             </label>
+                        }
+                        {mejaSibuk && (
+                            <p className="text-sm text-muted-foreground">
+                                Selesaikan atau kembalikan peserta di meja Anda
+                                untuk memanggil peserta lain.
+                            </p>
                         )}
-                        {mejaSibuk && <p className="text-sm text-muted-foreground">Selesaikan atau kembalikan peserta di meja Anda untuk memanggil peserta lain.</p>}
-                        {status === 'siap' && menunggu.length > 0 && <div className="flex flex-wrap items-center gap-3">
-                            <button type="button" className="tombol-kedua min-h-11" disabled={mejaKms === null || mejaSibuk || sedangKonfirmasi !== null} onClick={() => void panggilan(menunggu[0], 'panggil')}>Panggil peserta berikutnya</button>
-                            <p className="text-sm text-muted-foreground">Urutan mengikuti prioritas 1T/2T dan status gizi.</p>
-                        </div>}
-                        {status === 'siap' && menunggu.length > 0 && hasilAntrean.length === 0 && (
-                            <p role="status" className="rounded-xl border border-border bg-card p-4 text-sm">Tidak ada peserta yang cocok dengan pencarian.</p>
+                        {status === 'siap' && menunggu.length > 0 && (
+                            <div className="flex flex-wrap items-center gap-3">
+                                <button
+                                    type="button"
+                                    className="tombol-kedua min-h-11"
+                                    disabled={
+                                        mejaKms === null ||
+                                        mejaSibuk ||
+                                        sedangKonfirmasi !== null
+                                    }
+                                    onClick={() =>
+                                        void panggilan(menunggu[0], 'panggil')
+                                    }
+                                >
+                                    Panggil peserta berikutnya
+                                </button>
+                                <p className="text-sm text-muted-foreground">
+                                    Urutan mengikuti prioritas 1T/2T dan status
+                                    gizi.
+                                </p>
+                            </div>
                         )}
+                        {status === 'siap' &&
+                            menunggu.length > 0 &&
+                            hasilAntrean.length === 0 && (
+                                <p
+                                    role="status"
+                                    className="rounded-xl border border-border bg-card p-4 text-sm"
+                                >
+                                    Tidak ada peserta yang cocok dengan
+                                    pencarian.
+                                </p>
+                            )}
 
                         {status === 'memuat' && (
                             <StateHalaman
@@ -982,9 +1231,18 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
                         )}
 
                         {status === 'siap' && menunggu.length === 0 && (
-                            <div className={demo ? 'rounded-xl border border-border bg-card px-5 py-6' : 'state-halaman'} role="status">
+                            <div
+                                className={
+                                    demo
+                                        ? 'rounded-xl border border-border bg-card px-5 py-6'
+                                        : 'state-halaman'
+                                }
+                                role="status"
+                            >
                                 <h3 className="text-lg font-bold">
-                                    {demo ? 'Belum ada peserta yang menunggu' : 'Belum ada balita dalam antrean'}
+                                    {demo
+                                        ? 'Belum ada peserta yang menunggu'
+                                        : 'Belum ada balita dalam antrean'}
                                 </h3>
                                 <p className="mt-2 max-w-prose text-sm text-muted-foreground">
                                     {demo
@@ -995,9 +1253,12 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
                         )}
 
                         {status === 'siap' && hasilAntrean.length > 0 && (
-                            <div className="kms-demo-daftar grid gap-3.5"
-                                tabIndex={0} role="region"
-                                aria-label="Daftar antrean pemeriksaan, dapat digulir">
+                            <div
+                                className="kms-demo-daftar grid gap-3.5"
+                                tabIndex={0}
+                                role="region"
+                                aria-label="Daftar antrean pemeriksaan, dapat digulir"
+                            >
                                 {hasilAntrean.map((item) => (
                                     <article
                                         key={item.id}
@@ -1016,7 +1277,14 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
                                                     <h3 className="text-base font-black break-words text-foreground">
                                                         {item.nama}
                                                     </h3>
-                                                    {!!item.prioritasKms?.alasan.length && <span className="rounded-full bg-tone-amber-bg px-2 py-1 text-xs font-bold text-tone-amber">{item.prioritasKms.alasan.join(', ')}</span>}
+                                                    {!!item.prioritasKms?.alasan
+                                                        .length && (
+                                                        <span className="rounded-full bg-tone-amber-bg px-2 py-1 text-xs font-bold text-tone-amber">
+                                                            {item.prioritasKms.alasan.join(
+                                                                ', ',
+                                                            )}
+                                                        </span>
+                                                    )}
                                                     <span className="inline-flex items-center gap-1 rounded-full border border-tone-amber/20 bg-tone-amber-bg px-2.5 py-0.5 text-xs font-bold text-tone-amber">
                                                         <Clock className="size-3" />
                                                         {item.sudahDiukur
@@ -1064,39 +1332,39 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
                                         )}
 
                                         <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border pt-3">
-                                            {item.anakId > 0 && <Link
-                                                href={`/balita/${item.anakId}?asal=kms`}
-                                                className="tombol-kedua inline-flex min-h-11 items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold sm:text-sm"
-                                            >
-                                                <ExternalLink
-                                                    className="size-4 text-primary"
-                                                    aria-hidden="true"
-                                                />
-                                                <span>
-                                                    Lihat analisis & kurva
-                                                </span>
-                                            </Link>}
-                                                <button
-                                                    type="button"
-                                                    className="tombol-utama min-h-11 disabled:cursor-not-allowed disabled:opacity-50 max-lg:min-h-[44px] pointer-coarse:min-h-[44px]"
-                                                    disabled={
-                                                        mejaKms == null ||
-                                                        mejaSibuk ||
-                                                        sedangKonfirmasi !==
-                                                            null
-                                                    }
-                                                    onClick={() =>
-                                                        void panggilan(
-                                                            item,
-                                                            'panggil',
-                                                        )
-                                                    }
+                                            {item.anakId > 0 && (
+                                                <Link
+                                                    href={`/balita/${item.anakId}?asal=kms`}
+                                                    className="tombol-kedua inline-flex min-h-11 items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold sm:text-sm"
                                                 >
-                                                    {sedangKonfirmasi ===
-                                                    item.id
-                                                        ? 'Menyimpan…'
-                                                        : 'Panggil'}
-                                                </button>
+                                                    <ExternalLink
+                                                        className="size-4 text-primary"
+                                                        aria-hidden="true"
+                                                    />
+                                                    <span>
+                                                        Lihat analisis & kurva
+                                                    </span>
+                                                </Link>
+                                            )}
+                                            <button
+                                                type="button"
+                                                className="tombol-utama min-h-11 disabled:cursor-not-allowed disabled:opacity-50 max-lg:min-h-[44px] pointer-coarse:min-h-[44px]"
+                                                disabled={
+                                                    mejaKms == null ||
+                                                    mejaSibuk ||
+                                                    sedangKonfirmasi !== null
+                                                }
+                                                onClick={() =>
+                                                    void panggilan(
+                                                        item,
+                                                        'panggil',
+                                                    )
+                                                }
+                                            >
+                                                {sedangKonfirmasi === item.id
+                                                    ? 'Menyimpan…'
+                                                    : 'Panggil'}
+                                            </button>
                                         </div>
                                     </article>
                                 ))}
@@ -1104,44 +1372,108 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
                         )}
                     </section>
 
-                    {(
-                        <section aria-labelledby="judul-meja-lain" className="kms-demo-lain flex min-w-0 flex-col gap-2">
+                    {
+                        <section
+                            aria-labelledby="judul-meja-lain"
+                            className="kms-demo-lain flex min-w-0 flex-col gap-2"
+                        >
                             <div className="kms-demo-panel-judul">
-                                <h2 id="judul-meja-lain" className="text-lg font-bold">
+                                <h2
+                                    id="judul-meja-lain"
+                                    className="text-lg font-bold"
+                                >
                                     Sedang ditangani meja lain
                                 </h2>
                             </div>
-                            <ul className="kms-demo-pratinjau divide-y divide-border rounded-xl border border-border bg-card" tabIndex={0} aria-label="Daftar peserta di meja lain">
-                                {!aktif.some((item) => item.mejaKms !== mejaKms) && <li className="p-4 text-sm text-muted-foreground">Tidak ada peserta di meja lain.</li>}
-                                {aktif.filter((item) => item.mejaKms !== mejaKms).map((item) => (
-                                    <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
-                                        <span className="font-semibold">
-                                            A{String(item.nomor).padStart(2, '0')} · {item.nama}
-                                        </span>
-                                        <span className="text-sm text-muted-foreground">
-                                            Meja {item.mejaKms} · {item.tibaKms ? 'Sudah tiba' : 'Sudah dipanggil'}
-                                        </span>
+                            <ul
+                                className="kms-demo-pratinjau divide-y divide-border rounded-xl border border-border bg-card"
+                                tabIndex={0}
+                                aria-label="Daftar peserta di meja lain"
+                            >
+                                {!aktif.some(
+                                    (item) => item.mejaKms !== mejaKms,
+                                ) && (
+                                    <li className="p-4 text-sm text-muted-foreground">
+                                        Tidak ada peserta di meja lain.
                                     </li>
-                                ))}
+                                )}
+                                {aktif
+                                    .filter((item) => item.mejaKms !== mejaKms)
+                                    .map((item) => (
+                                        <li
+                                            key={item.id}
+                                            className="flex flex-wrap items-center justify-between gap-2 px-4 py-3"
+                                        >
+                                            <span className="font-semibold">
+                                                A
+                                                {String(item.nomor).padStart(
+                                                    2,
+                                                    '0',
+                                                )}{' '}
+                                                · {item.nama}
+                                            </span>
+                                            <span className="text-sm text-muted-foreground">
+                                                Meja {item.mejaKms} ·{' '}
+                                                {item.tibaKms
+                                                    ? 'Sudah tiba'
+                                                    : 'Sudah dipanggil'}
+                                            </span>
+                                        </li>
+                                    ))}
                             </ul>
                         </section>
-                    )}
+                    }
 
                     {status === 'siap' && (
-                        <section aria-labelledby="judul-selesai-demo" className="kms-demo-selesai flex min-w-0 flex-col gap-2">
+                        <section
+                            aria-labelledby="judul-selesai-demo"
+                            className="kms-demo-selesai flex min-w-0 flex-col gap-2"
+                        >
                             <div className="kms-demo-panel-judul flex flex-wrap items-center justify-between gap-2">
-                                <h2 id="judul-selesai-demo" className="text-lg font-bold">Pemeriksaan selesai ({selesai.length})</h2>
-                                <Link href="/kms/selesai" className="inline-flex min-h-11 items-center font-bold text-primary underline underline-offset-2">Lihat semua</Link>
+                                <h2
+                                    id="judul-selesai-demo"
+                                    className="text-lg font-bold"
+                                >
+                                    Pemeriksaan selesai ({selesai.length})
+                                </h2>
+                                <Link
+                                    href="/kms/selesai"
+                                    className="inline-flex min-h-11 items-center font-bold text-primary underline underline-offset-2"
+                                >
+                                    Lihat semua
+                                </Link>
                             </div>
-                            <ul className="kms-demo-pratinjau divide-y divide-border rounded-xl border border-border bg-card" tabIndex={0} aria-label="Pratinjau peserta selesai">
-                                {selesai.length === 0 && <li className="p-4 text-sm text-muted-foreground">Belum ada pemeriksaan selesai.</li>}
+                            <ul
+                                className="kms-demo-pratinjau divide-y divide-border rounded-xl border border-border bg-card"
+                                tabIndex={0}
+                                aria-label="Pratinjau peserta selesai"
+                            >
+                                {selesai.length === 0 && (
+                                    <li className="p-4 text-sm text-muted-foreground">
+                                        Belum ada pemeriksaan selesai.
+                                    </li>
+                                )}
                                 {selesai.slice(0, 3).map((item) => (
-                                    <li key={item.id} className="px-4 py-3 text-sm">
-                                        <span className="font-bold">A{String(item.nomor).padStart(2, '0')} · {item.nama}</span>
+                                    <li
+                                        key={item.id}
+                                        className="px-4 py-3 text-sm"
+                                    >
+                                        <span className="font-bold">
+                                            A
+                                            {String(item.nomor).padStart(
+                                                2,
+                                                '0',
+                                            )}{' '}
+                                            · {item.nama}
+                                        </span>
                                     </li>
                                 ))}
                             </ul>
-                            {selesai.length > 3 && <p className="text-sm text-muted-foreground">Menampilkan 3 dari {selesai.length} peserta.</p>}
+                            {selesai.length > 3 && (
+                                <p className="text-sm text-muted-foreground">
+                                    Menampilkan 3 dari {selesai.length} peserta.
+                                </p>
+                            )}
                         </section>
                     )}
                 </div>
@@ -1155,38 +1487,51 @@ localStorage.setItem('simulasi-kms-items', JSON.stringify(items));
                     }}
                 >
                     <section aria-labelledby="judul-panduan-kms">
-                        <h3 id="judul-panduan-kms" className="text-base font-bold">
+                        <h3
+                            id="judul-panduan-kms"
+                            className="text-base font-bold"
+                        >
                             Panduan petugas KMS
                         </h3>
                         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                            Meja 4 bertugas menjelaskan arah garis pertumbuhan anak pada
-                            grafik KMS buku KIA, memberikan konseling pemenuhan gizi
-                            seimbang serta PMT lokal, dan mencatat rujukan jika balita
-                            terindikasi tidak naik bobot badannya (1T / 2T+).
+                            Meja 4 bertugas menjelaskan arah garis pertumbuhan
+                            anak pada grafik KMS buku KIA, memberikan konseling
+                            pemenuhan gizi seimbang serta PMT lokal, dan
+                            mencatat rujukan jika balita terindikasi tidak naik
+                            bobot badannya (1T / 2T+).
                         </p>
                         <ol className="mt-4 divide-y divide-border border-y border-border">
                             <li className="py-3">
-                                <h4 className="text-sm font-bold">1. Baca grafik dan status gizi</h4>
+                                <h4 className="text-sm font-bold">
+                                    1. Baca grafik dan status gizi
+                                </h4>
                                 <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                                    Buka profil balita untuk meninjau arah garis kurva KMS
-                                    (N: Naik / T: Tidak Naik) serta indeks Z-score BB/U,
-                                    TB/U, dan BB/TB terkini.
+                                    Buka profil balita untuk meninjau arah garis
+                                    kurva KMS (N: Naik / T: Tidak Naik) serta
+                                    indeks Z-score BB/U, TB/U, dan BB/TB
+                                    terkini.
                                 </p>
                             </li>
                             <li className="py-3">
-                                <h4 className="text-sm font-bold">2. Konseling dan edukasi orang tua</h4>
+                                <h4 className="text-sm font-bold">
+                                    2. Konseling dan edukasi orang tua
+                                </h4>
                                 <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                                    Jelaskan tren berat badan secara ramah, anjurkan variasi
-                                    protein hewani / ASI eksklusif, serta diskusikan langkah
+                                    Jelaskan tren berat badan secara ramah,
+                                    anjurkan variasi protein hewani / ASI
+                                    eksklusif, serta diskusikan langkah
                                     pemulihan jika 1T atau 2T+.
                                 </p>
                             </li>
                             <li className="py-3">
-                                <h4 className="text-sm font-bold">3. Konfirmasi selesai antrean</h4>
+                                <h4 className="text-sm font-bold">
+                                    3. Konfirmasi selesai antrean
+                                </h4>
                                 <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                                    Setelah penjelasan dan buku KIA terisi tuntas, tekan tombol{' '}
-                                    <strong>Konfirmasi Selesai</strong> agar slot antrean
-                                    berpindah ke anak berikutnya.
+                                    Setelah penjelasan dan buku KIA terisi
+                                    tuntas, tekan tombol{' '}
+                                    <strong>Konfirmasi Selesai</strong> agar
+                                    slot antrean berpindah ke anak berikutnya.
                                 </p>
                             </li>
                         </ol>

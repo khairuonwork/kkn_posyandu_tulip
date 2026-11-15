@@ -78,9 +78,13 @@ export default function BantuanDetail({
                 </button>
             </header>
             <div className="bantuan-detail-isi p-4">
-                {bagian === 'kms' && tautanSop !== null && <div className="mb-4">{tautanSop}</div>}
+                {bagian === 'kms' && tautanSop !== null && (
+                    <div className="mb-4">{tautanSop}</div>
+                )}
                 {children}
-                {bagian !== 'kms' && tautanSop !== null && <div className="mt-4">{tautanSop}</div>}
+                {bagian !== 'kms' && tautanSop !== null && (
+                    <div className="mt-4">{tautanSop}</div>
+                )}
                 {bagian === 'kartu' && (
                     <>
                         <p>
