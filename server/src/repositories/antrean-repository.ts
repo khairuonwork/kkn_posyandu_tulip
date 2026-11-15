@@ -97,6 +97,14 @@ async function nomorKosong(db: PoolClient, periodeId: number, tanggal: string): 
     return Number(rows[0]?.nomor ?? 1);
 }
 
+/**
+ * Nomor kosong terkecil untuk pengukuran yang membuat/mengaktifkan antrean.
+ * Pemanggil wajib memegang kunci hari (pg_advisory_xact_lock(periode, YYYYMMDD)).
+ */
+export function nomorAntreanKosong(db: PoolClient, periodeId: number, tanggal: string): Promise<number> {
+    return nomorKosong(db, periodeId, tanggal);
+}
+
 /** Kunci yang sama dipakai check-in, check-in ulang, dan reset harian. */
 async function kunciHari(db: PoolClient, periodeId: number, tanggal: string) {
     const tanggalKunci = Number(tanggal.slice(0, 10).replaceAll("-", ""));

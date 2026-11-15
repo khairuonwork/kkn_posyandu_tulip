@@ -9,6 +9,7 @@ import type { Pool, PoolClient } from "pg";
 
 import type { PenggunaAktif } from "../auth/peran.ts";
 import { rtYangBolehDilihat } from "../auth/peran.ts";
+import { nomorAntreanKosong } from "./antrean-repository.ts";
 
 export type AnakRingkas = {
     id: number;
@@ -640,6 +641,13 @@ export async function upsertPengukuran(
         }
     }
 
+    if (data.statusKehadiran === "hadir") {
+        // Pendaftaran dan pengukuran memakai pengunci nomor antrean yang sama.
+        await db.query("SELECT pg_advisory_xact_lock($1::integer, $2::integer)", [
+            periode.rows[0].id, Number(data.tanggalUkur.replaceAll("-", "")),
+        ]);
+    }
+
     const sasaranSebelum = await db.query<{
         status: string;
         catatan: string | null;
@@ -763,7 +771,21 @@ export async function upsertPengukuran(
                 `SELECT id, status FROM antrean_layanan WHERE periode_id=$1 AND tanggal=$2::date AND sasaran_id=$3`,
                 [periode.rows[0].id, data.tanggalUkur, sid],
             );
-            if (antreanAda.rows[0]) {
+            if (antreanAda.rows[0]?.status === "cancelled") {
+                // Nomor antrean yang dibatalkan sudah dapat dipakai anak lain;
+                // aktifkan kembali dengan nomor kosong terkecil agar tidak bentrok.
+                const nomor = await nomorAntreanKosong(db, Number(periode.rows[0].id), data.tanggalUkur);
+                await db.query(
+                    `UPDATE antrean_layanan
+                        SET status='kms_review', nomor=$3,
+                            urutan=(SELECT coalesce(max(urutan),0)+1 FROM antrean_layanan
+                                     WHERE periode_id=$4 AND tanggal=$5::date),
+                            called_at=now(), completed_at=NULL,
+                            updated_by=$2, updated_at=now()
+                      WHERE id=$1`,
+                    [antreanAda.rows[0].id, pengguna.id, nomor, periode.rows[0].id, data.tanggalUkur],
+                );
+            } else if (antreanAda.rows[0]) {
                 if (antreanAda.rows[0].status !== "done") {
                     await db.query(
                         `UPDATE antrean_layanan
@@ -775,11 +797,13 @@ export async function upsertPengukuran(
                     );
                 }
             } else {
-                const urut = await db.query<{ nomor: number; urutan: number }>(
-                    `SELECT coalesce(max(nomor),0)::int AS nomor, coalesce(max(urutan),0)::int AS urutan
+                const urut = await db.query<{ urutan: number }>(
+                    `SELECT coalesce(max(urutan),0)::int AS urutan
                        FROM antrean_layanan WHERE periode_id=$1 AND tanggal=$2::date`,
                     [periode.rows[0].id, data.tanggalUkur],
                 );
+                // Sama dengan check-in: nomor kosong terkecil, bukan nomor terbesar + 1.
+                const nomor = await nomorAntreanKosong(db, Number(periode.rows[0].id), data.tanggalUkur);
                 await db.query(
                     `INSERT INTO antrean_layanan
                         (id, periode_id, sasaran_id, tanggal, nomor, urutan, status, called_at, created_by, updated_by)
@@ -790,7 +814,7 @@ export async function upsertPengukuran(
                         periode.rows[0].id,
                         sid,
                         data.tanggalUkur,
-                        urut.rows[0].nomor + 1,
+                        nomor,
                         urut.rows[0].urutan + 1,
                         pengguna.id,
                     ],
