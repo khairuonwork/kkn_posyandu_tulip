@@ -136,6 +136,7 @@ Hak akses ditentukan oleh dua hal: peran dan cluster Posyandu/RW pada akun. Kade
 | Lihat rekap | ✅ | ✅ | ✅ | ❌ |
 | Ubah data profil anak | ✅* | ✅ | ✅ | ❌ |
 | Tambah data anak | ✅ | ✅ | ✅ | ❌ |
+| Catat antrean layanan dan hasil pengukuran | ✅ | ✅ | ✅ | ✅ |
 | Ubah nilai pengukuran | ❌ | ✅ | ✅ | ❌ |
 | Gabungkan profil / selesaikan konflik impor | ❌ | ✅ | ✅ | ❌ |
 | Unduh *export* rekap | ❌ | ✅ | ✅ | ❌ |
@@ -178,8 +179,8 @@ Endpoint operasional mencakup:
 | GET | `/api/v1/anak/:id/pendampingan-kia` | panduan Buku KIA 2024 sesuai usia dan riwayat diskusi | kader, bidan, admin, KMS (`lihat-anak`) |
 | POST | `/api/v1/anak/:id/pendampingan-kia` | simpan atau perbarui catatan diskusi tumbuh kembang | kader, bidan, admin, KMS (`catat-survei-kia`) |
 | GET | `/api/v1/antrean?periodeId=&tanggal=` | antrean layanan pada tanggal itu | kader, bidan, admin, KMS (`lihat-anak`) |
-| POST | `/api/v1/antrean` | check-in sasaran ke antrean | kader, bidan, admin (`catat-pengukuran-lapangan`) |
-| PATCH | `/api/v1/antrean/:id` | panggil, mulai ukur, atau kirim ke tahap KMS | kader, bidan, admin (`catat-pengukuran-lapangan`) |
+| POST | `/api/v1/antrean` | check-in sasaran ke antrean | kader, bidan, admin, KMS (`catat-pengukuran-lapangan`) |
+| PATCH | `/api/v1/antrean/:id` | panggil, mulai ukur, atau kirim ke tahap KMS | kader, bidan, admin, KMS (`catat-pengukuran-lapangan`) |
 | POST | `/api/v1/antrean/:id/konfirmasi-kms` | tandai antrean dan sasaran selesai setelah penjelasan | KMS (`konfirmasi-kms`) |
 
 Status layanan bergerak `waiting → called → serving → kms_review → done`. Hasil pengukuran mengisi tahap ketiga, tetapi tidak melepas satu dari empat slot dan tidak menutup sasaran. Akun Petugas KMS membuka `#/kms`, membaca analisis dari profil anak, lalu mengonfirmasi setelah menjelaskan kepada orang tua. Endpoint konfirmasi memperbarui antrean dan sasaran dalam transaksi yang sama. Penutupan sesi bulanan oleh admin tetap tindakan terpisah.
