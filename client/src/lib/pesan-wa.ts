@@ -6,8 +6,8 @@
  * komponen dialog, bukan di sini.
  *
  * Isi pesan memang masuk ke URL dan sampai ke WhatsApp — itu cara `wa.me`
- * bekerja (docs/prd/feedback/F03-kirim-whatsapp.md bagian 6). Karena itu tidak
- * ada NIK, alamat, atau nama lengkap di dalamnya.
+ * bekerja (docs/prd/feedback/F03-kirim-whatsapp.md bagian 6). Karena itu
+ * tidak ada NIK atau alamat di dalamnya, dan nama dibatasi dua kata.
  */
 
 import type { Pengukuran } from '../types/posyandu';
@@ -29,6 +29,9 @@ export const namaDepan = (nama: string) => {
         : depan;
 };
 
+const namaSingkat = (nama: string, jumlahKata: number) =>
+    nama.trim().split(/\s+/).slice(0, jumlahKata).map(namaDepan).join(' ');
+
 /**
  * Kesimpulan untuk orang tua awam: kalimat pendek yang menyebut nama balita,
  * bukan istilah KMS. Tidak ada "sehat/tidak sehat" — aplikasi menilai
@@ -39,8 +42,9 @@ export const namaDepan = (nama: string) => {
 export function kalimatKesimpulan(
     kesimpulan: Kesimpulan,
     nama: string,
+    jumlahKata = 1,
 ): { judul: string; anjuran: string } {
-    const n = namaDepan(nama);
+    const n = namaSingkat(nama, jumlahKata);
 
     switch (kesimpulan) {
         case 'sesuai':
@@ -187,8 +191,8 @@ function susunBagianKia(d: DiskusiKiaWa): string[] {
  */
 export function susunPesan(b: Bahan): string {
     const { terbaru: t } = b;
-    const nama = namaDepan(b.nama);
-    const kalimat = kalimatKesimpulan(b.kesimpulan, b.nama);
+    const nama = namaSingkat(b.nama, 2);
+    const kalimat = kalimatKesimpulan(b.kesimpulan, b.nama, 2);
     const berdiri = b.umurBulan !== null && b.umurBulan >= 24;
     const selisih =
         t.bbKg !== null && b.duaBulanLalu?.bbKg != null

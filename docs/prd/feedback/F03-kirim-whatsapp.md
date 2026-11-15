@@ -7,7 +7,7 @@
 | **PR** | `feat/f03-kirim-wa` |
 | **Bergantung pada** | [F01](F01-kontak-whatsapp-ortu.md) nomornya, [F02](F02-edukasi-rujukan-kms.md) kalimat edukasinya |
 | **Terhambat** | — |
-| **Perubahan berarti terakhir** | 21 September 2026 |
+| **Perubahan berarti terakhir** | 15 November 2026 |
 
 ## 1. Latar
 
@@ -148,3 +148,10 @@ Cara menyiapkan dan menjalankannya ada di [panduan Kirim ke WhatsApp](../../pand
 - **PDF:** tombol "Unduh hasil lengkap (PDF)" membuka jendela cetak peramban dengan dokumen A4 dua halaman; orang tua memilih Simpan sebagai PDF. Bukan berkas yang dibuat server.
 - **Batas jaringan:** selama portal hanya berjalan di jaringan lokal (QA LAN), tautan hanya terbuka dari ponsel yang satu Wi-Fi dengan komputer server. Tautan memakai alamat yang sedang dibuka petugas, jadi petugas harus membuka portal lewat alamat IP komputer, bukan `localhost`.
 - **Demo:** tanpa server, baris tautan dihilangkan dari pesan.
+
+## 9. Pembaruan nama dalam pesan, 15 November 2026
+
+- Pesan WhatsApp memakai maksimal dua kata pertama nama balita pada sapaan, judul kesimpulan, dan anjuran yang menyebut nama. Contoh: “Nayla Putri Ramadhani” menjadi “Nayla Putri”; nama satu kata tetap satu kata. Spasi berlebih dirapikan dan kata yang seluruhnya berhuruf kapital diformat agar mudah dibaca.
+- Nama lengkap pada data balita tidak berubah. Halaman Lembar Hasil dan tampilan lain tetap memakai aturan nama sebelumnya.
+- Aturan ini berlaku untuk aplikasi dan demo. Pengujian mencakup nama satu, dua, dan tiga kata serta ketiga jenis kesimpulan.
+- Teks anjuran tetap menggunakan isi yang sama dengan kartu di layar, tetapi nama dalam pesan dapat terdiri dari dua kata, sementara kartu tetap menggunakan nama depan.

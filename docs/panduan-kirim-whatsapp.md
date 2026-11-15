@@ -4,7 +4,7 @@
 |---|---|
 | **Jenis** | Panduan |
 | **Status** | hidup |
-| **Perubahan berarti terakhir** | 14 November 2026 |
+| **Perubahan berarti terakhir** | 15 November 2026 |
 
 Panduan ini menjelaskan **cara menyiapkan** tombol **Kirim ke WhatsApp** di Detail Balita dan tautan **Lembar Hasil** yang dikirim bersamanya. Isinya langkah demi langkah, untuk orang yang menyiapkan atau menjalankan portal.
 
@@ -18,6 +18,8 @@ Alasan rancangannya ada di [F03 — Kirim hasil ke WhatsApp](prd/feedback/F03-ki
 4. Orang tua membuka tautan di ponselnya. Halaman itu berisi hasil, grafik, dan tombol untuk menyimpan PDF.
 
 Tautan **berlaku 20 hari**. Sesudah itu orang tua melihat pesan "Tautan ini sudah tidak berlaku".
+
+Pesan WhatsApp menggunakan maksimal dua kata pertama nama balita pada sapaan, kesimpulan, dan anjuran. Misalnya, “Nayla Putri Ramadhani” menjadi “Nayla Putri”; nama satu kata tetap ditampilkan satu kata. Nama lengkap pada data balita tidak berubah. Aturan ini berlaku di aplikasi dan demo.
 
 Pada Kurva KMS, orang tua dapat memilih rentang umur, memperbesar grafik, dan mengetuk titik untuk melihat rincian pengukuran. Pada ponsel, grafik dapat digeser mendatar. Grafik memakai umur dalam bulan karena tanggal lahir tidak dikirim ke halaman publik.
 
@@ -104,7 +106,8 @@ Selama portal hanya berjalan di jaringan lokal, **tautan hanya terbuka dari pons
 1. Masuk ke portal sebagai petugas.
 2. Buka balita yang **punya pengukuran pada periode yang dipilih**. Balita yang belum ditimbang pada periode itu tidak mendapat tombol kirim.
 3. Tekan **Kirim ke WhatsApp**.
-4. Pastikan tiga hal ini:
+4. Pastikan hal berikut:
+   - sapaan dan kesimpulan memakai maksimal dua kata pertama nama balita;
    - jendela pratinjau memuat tautan yang berawalan alamat dari `VITE_ALAMAT_PUBLIK`;
    - selama pengujian, jendela itu menampilkan "Mode uji" dan nomor uji;
    - pesan masuk ke nomor uji setelah menekan Kirim di WhatsApp.
