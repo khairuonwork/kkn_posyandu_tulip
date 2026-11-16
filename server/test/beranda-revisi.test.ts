@@ -13,7 +13,13 @@ test('filter RT menyaring KPI N/T, tiga distribusi, perhatian, dan semua bulan t
             bbTb:{z:0,kategori:'Gizi baik'},bbU:{z:0,kategori:'Berat badan normal'},tbU:{z:0,kategori:'Normal'}},
     ];
     const pool={query:async(sql:string,params:unknown[])=>{
+        if(sql.includes('FROM standar_lms')) return {rows:[{indeks:'BB_U',jk:'L',kunci:0,l:1,m:3,s:0.1}]};
         assert(params.includes(false),'otorisasi tidak boleh hilang');
+        if(sql.includes('FROM riwayat_2t_arsip')) return {rows:[]};
+        if(sql.includes('AS "ntobRaw"')) return {rows:[
+            ...source.map(p=>({...p, jk:'L',nik:null,namaOrtu:null,umurHari:600,bbKg:10,tinggiCm:null,lilaCm:null,likaCm:null,ntobRaw:null,jenisUkur:null,penilaian:{}})),
+            {anakId:1,periodeId:'2026-08',nama:'UJI 1',tglLahir:'2025-01-01',rt:'01',tanggalUkur:'2026-08-12',statusKehadiran:'hadir',jk:'L',nik:null,namaOrtu:null,umurHari:570,bbKg:10,tinggiCm:null,lilaCm:null,likaCm:null,ntobRaw:null,jenisUkur:null,penilaian:{}},
+        ]};
         if(sql.includes('LEFT JOIN cakupan_hari_h'))return{rows:[]};
         if(sql.includes('SELECT DISTINCT rt'))return{rows:[{rt:'01'},{rt:'02'},{rt:'03'}]};
         if(sql.includes('AS "adaPengukuran"'))return{rows:[{id:'2026-09',tanggalKegiatan:'2026-09-12',adaPengukuran:true}]};

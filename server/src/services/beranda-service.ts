@@ -6,6 +6,8 @@ import * as repo from "../repositories/beranda-repository.ts";
 import type { BarisUkurBeranda } from "../repositories/beranda-repository.ts";
 import { boleh } from '../auth/peran.ts';
 import { jumlahHariH } from './cakupan-hari-h.ts';
+import { laporan } from './laporan-service.ts';
+import { kodeNtb } from './laporan-tampilan.ts';
 
 const BULAN = [
     "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -63,14 +65,16 @@ export async function beranda(pool: Pool, pengguna: PenggunaAktif, periodeId: st
 
     const awal = geserBulan(periodeId, -5);
     const enamBulan = Array.from({ length: 6 }, (_, i) => geserBulan(awal, i));
-    const [semua, sasaran, wilayahRt, hariH] = await Promise.all([
+    const [semua, sasaran, wilayahRt, hariH, hasilLaporan] = await Promise.all([
         repo.riwayatBeranda(pool, pengguna, awal, periodeId),
         repo.jumlahSasaran(pool, pengguna, awal, periodeId, rt),
         repo.daftarRt(pool, pengguna),
         repo.dataHariH(pool,pengguna,awal,periodeId),
+        laporan(pool, pengguna, periodeId),
     ]);
     const menurutBulan = (id: string) => semua.filter((p) => p.periodeId === id && (rt === null || p.rt === rt));
     const bulanIni = hadir(menurutBulan(periodeId));
+    const statusBerat = hasilLaporan.bulanan.filter((p) => rt === null || p.rt === rt).map(kodeNtb);
     const kategori = (nama: string) => bulanIni.filter((p) => p.bbTb?.kategori === nama).length;
     const terukur = bulanIni.reduce<string | null>(
         (maks, p) => maks === null || p.tanggalUkur > maks ? p.tanggalUkur : maks,
@@ -120,8 +124,8 @@ export async function beranda(pool: Pool, pengguna: PenggunaAktif, periodeId: st
             // jumlah anak dengan rekam periode itu, tanpa angka demo.
             sasaran: sasaran[periodeId] ?? menurutBulan(periodeId).length,
             ditimbang: bulanIni.length,
-            naik: bulanIni.filter((p) => p.ntob?.trim().toUpperCase() === "N").length,
-            tidakNaik: bulanIni.filter((p) => p.ntob?.trim().toUpperCase() === "T").length,
+            naik: statusBerat.filter((kode) => kode === "N").length,
+            tidakNaik: statusBerat.filter((kode) => kode === "T").length,
             tanggalUkur: terukur,
         },
         sasaranHistoris: sasaran[periodeId] === undefined,
