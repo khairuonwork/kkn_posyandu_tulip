@@ -8,7 +8,7 @@
  * di seluruh aplikasi, dan itu disengaja.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { IsianHariH, KehadiranHariH } from '@/components/cakupan-penimbangan';
 import { unduhLaporanDemo } from '@/lib/laporan-demo';
 import type { Rute } from '@/app-shell';
@@ -230,6 +230,37 @@ export function Layar({
 }: LayarProps) {
     const [rtBeranda, setRtBeranda] = useState('');
     const [kehadiranDemo, setKehadiranDemo] = useState<Record<string, IsianHariH[]>>({});
+    const [waDemo, setWaDemo] = useState<Record<string, number[]>>({});
+    const [waLive, setWaLive] = useState<{ periode: string; ids: number[] } | null>(null);
+    const halamanWa = rute.nama === 'balita' || rute.nama === 'detail';
+    useEffect(() => {
+        if (!modeDataLive || !halamanWa || !/^\d{4}-(0[1-9]|1[0-2])$/.test(periodeId)) return;
+        const controller = new AbortController();
+        setWaLive(null);
+        fetch(`/api/v1/konfirmasi-whatsapp?periode=${encodeURIComponent(periodeId)}`, { credentials: 'same-origin', signal: controller.signal })
+            .then(async (res) => {
+                if (res.status === 401) { onSesiBerakhir(); throw new Error('Sesi berakhir'); }
+                if (!res.ok) throw new Error('Status tidak tersedia');
+                return res.json() as Promise<{ anakIds: number[] }>;
+            })
+            .then(({ anakIds }) => setWaLive({ periode: periodeId, ids: anakIds }))
+            .catch(() => { if (!controller.signal.aborted) setWaLive(null); });
+        return () => controller.abort();
+    }, [modeDataLive, halamanWa, periodeId, rute.nama, onSesiBerakhir]);
+    const waIds = modeDataLive ? (waLive?.periode === periodeId ? waLive.ids : null) : (waDemo[periodeId] ?? []);
+    const konfirmasiWa = async (anakId: number, terkirim: boolean) => {
+        if (modeDataLive) {
+            const res = await fetch(`/api/v1/anak/${anakId}/konfirmasi-whatsapp`, {
+                method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ periode: periodeId, terkirim }),
+            });
+            if (res.status === 401) onSesiBerakhir();
+            if (!res.ok) throw new Error('Status belum tersimpan');
+            setWaLive((prev) => prev?.periode === periodeId ? { ...prev, ids: terkirim ? [...prev.ids.filter((id) => id !== anakId), anakId] : prev.ids.filter((id) => id !== anakId) } : prev);
+        } else {
+            setWaDemo((prev) => ({ ...prev, [periodeId]: terkirim ? [...(prev[periodeId] ?? []).filter((id) => id !== anakId), anakId] : (prev[periodeId] ?? []).filter((id) => id !== anakId) }));
+        }
+    };
     const periode = modeDataLive
         ? (periodeServer?.find((p) => p.id === periodeId) ?? null)
         : cariPeriode(periodeId);
@@ -379,7 +410,8 @@ export function Layar({
                 anakServer === undefined
                     ? tambahan.map((t, i) => keBaris(t, i, periode))
                     : [],
-            );
+            )
+            .map((b) => ({ ...b, waTerkirim: waIds === null ? null : waIds.includes(b.anakId) }));
 
         return (
             <DaftarAnak
@@ -477,6 +509,8 @@ export function Layar({
                 lembaga={LEMBAGA}
                 onSimpan={(patch) => onSimpanAnak(rute.id, patch)}
                 sumberLive={modeDataLive}
+                waTerkirim={waIds === null ? null : waIds.includes(anak.id)}
+                onKonfirmasiWa={(terkirim) => konfirmasiWa(anak.id, terkirim)}
                 kembaliKe={
                     peran === 'kms' || (peran === 'admin' && rute.dariKms)
                         ? { href: '/kms', label: 'Pemeriksaan KMS' }

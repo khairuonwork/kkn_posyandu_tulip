@@ -4,7 +4,7 @@
 |---|---|
 | **Jenis** | Panduan |
 | **Status** | hidup |
-| **Perubahan berarti terakhir** | 15 November 2026 |
+| **Perubahan berarti terakhir** | 16 November 2026 |
 
 Panduan ini menjelaskan **cara menyiapkan** tombol **Kirim ke WhatsApp** di Detail Balita dan tautan **Lembar Hasil** yang dikirim bersamanya. Isinya langkah demi langkah, untuk orang yang menyiapkan atau menjalankan portal.
 
@@ -17,9 +17,11 @@ Alasan rancangannya ada di [F03 — Kirim hasil ke WhatsApp](prd/feedback/F03-ki
 3. Petugas menekan **Buka WhatsApp**, lalu menekan Kirim di dalam WhatsApp.
 4. Orang tua membuka tautan di ponselnya. Halaman itu berisi hasil, grafik, dan tombol untuk menyimpan PDF.
 
+Setelah mengirim, petugas dapat kembali ke Detail Balita dan memilih **Tandai sudah dikirim**. Status tersebut juga terlihat di Data Balita untuk bulan yang dipilih dan dapat dibatalkan jika keliru. Status ini berdasarkan konfirmasi kader; portal tidak mengetahui apakah pesan benar-benar terkirim, diterima, atau dibaca. Mode nomor uji tidak mencatat konfirmasi kepada orang tua. Di demo penanda hanya simulasi selama sesi.
+
 Tautan **berlaku 20 hari**. Sesudah itu orang tua melihat pesan "Tautan ini sudah tidak berlaku".
 
-Pesan WhatsApp menggunakan maksimal dua kata pertama nama balita pada sapaan, kesimpulan, dan anjuran. Misalnya, “Nayla Putri Ramadhani” menjadi “Nayla Putri”; nama satu kata tetap ditampilkan satu kata. Nama lengkap pada data balita tidak berubah. Aturan ini berlaku di aplikasi dan demo.
+Pesan WhatsApp menggunakan nama lengkap balita pada sapaan, kesimpulan, dan anjuran yang menyebut nama. Nama pada data balita tidak berubah. Aturan ini berlaku di aplikasi dan demo.
 
 Pada Kurva KMS, orang tua dapat memilih rentang umur, memperbesar grafik, dan mengetuk titik untuk melihat rincian pengukuran. Pada ponsel, grafik dapat digeser mendatar. Grafik memakai umur dalam bulan karena tanggal lahir tidak dikirim ke halaman publik.
 
@@ -107,7 +109,7 @@ Selama portal hanya berjalan di jaringan lokal, **tautan hanya terbuka dari pons
 2. Buka balita yang **punya pengukuran pada periode yang dipilih**. Balita yang belum ditimbang pada periode itu tidak mendapat tombol kirim.
 3. Tekan **Kirim ke WhatsApp**.
 4. Pastikan hal berikut:
-   - sapaan dan kesimpulan memakai maksimal dua kata pertama nama balita;
+   - sapaan dan kesimpulan memakai nama lengkap balita;
    - jendela pratinjau memuat tautan yang berawalan alamat dari `VITE_ALAMAT_PUBLIK`;
    - selama pengujian, jendela itu menampilkan "Mode uji" dan nomor uji;
    - pesan masuk ke nomor uji setelah menekan Kirim di WhatsApp.
@@ -138,4 +140,4 @@ Selama portal hanya berjalan di jaringan lokal, **tautan hanya terbuka dari pons
 - **Isi halaman dibaca langsung dari basis data** saat tautan dibuka, bukan salinan saat dikirim. Jika data dikoreksi setelah dikirim, orang tua melihat angka yang sudah dikoreksi.
 - **Tombol PDF membuka jendela cetak peramban.** Orang tua memilih **Simpan sebagai PDF**. Berkas PDF tidak dibuat oleh server. Nama berkasnya otomatis, misalnya `Laporan Pertumbuhan Aditama - Agustus 2025 - Posyandu Tulip.pdf`.
 - **Hanya nama depan** yang dikirim ke halaman publik. Tidak ada NIK, alamat, nama orang tua, maupun tanggal lahir.
-- Tidak ada catatan "sudah dikirim". Portal tidak bisa mengetahui apakah petugas benar-benar menekan Kirim di WhatsApp.
+- Status pengiriman adalah konfirmasi manual kader, bukan bukti dari WhatsApp.

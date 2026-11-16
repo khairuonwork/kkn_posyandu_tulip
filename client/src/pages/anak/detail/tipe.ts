@@ -77,5 +77,7 @@ export type DetailAnakProps = {
     lembaga: string;
     onSimpan?: (patch: PatchAnak) => void;
     sumberLive?: boolean;
+    waTerkirim?: boolean | null;
+    onKonfirmasiWa?: (terkirim: boolean) => Promise<void>;
     kembaliKe?: { href: string; label: string };
 };

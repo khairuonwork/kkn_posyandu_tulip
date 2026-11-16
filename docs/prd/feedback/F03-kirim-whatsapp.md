@@ -7,7 +7,7 @@
 | **PR** | `feat/f03-kirim-wa` |
 | **Bergantung pada** | [F01](F01-kontak-whatsapp-ortu.md) nomornya, [F02](F02-edukasi-rujukan-kms.md) kalimat edukasinya |
 | **Terhambat** | — |
-| **Perubahan berarti terakhir** | 15 November 2026 |
+| **Perubahan berarti terakhir** | 16 November 2026 |
 
 ## 1. Latar
 
@@ -155,3 +155,11 @@ Cara menyiapkan dan menjalankannya ada di [panduan Kirim ke WhatsApp](../../pand
 - Nama lengkap pada data balita tidak berubah. Halaman Lembar Hasil dan tampilan lain tetap memakai aturan nama sebelumnya.
 - Aturan ini berlaku untuk aplikasi dan demo. Pengujian mencakup nama satu, dua, dan tiga kata serta ketiga jenis kesimpulan.
 - Teks anjuran tetap menggunakan isi yang sama dengan kartu di layar, tetapi nama dalam pesan dapat terdiri dari dua kata, sementara kartu tetap menggunakan nama depan.
+
+## 10. Nama lengkap dalam pesan, 16 November 2026
+
+Aturan dua kata pada bagian 9 diganti: sapaan, kesimpulan, dan anjuran WhatsApp menggunakan nama lengkap balita. Spasi berlebih dirapikan dan kata yang seluruhnya berhuruf kapital diformat agar mudah dibaca. Nama di data balita, Lembar Hasil, dan tampilan lain tidak berubah. Aturan pesan berlaku untuk aplikasi dan demo.
+
+## 11. Konfirmasi pengiriman manual
+
+Kader dapat menandai atau membatalkan konfirmasi pengiriman di Detail Balita. Status per anak dan periode juga terlihat di Data Balita, tersimpan di server, dan tidak berubah hanya karena WhatsApp dibuka. Status merupakan pernyataan kader, bukan bukti pengiriman atau penerimaan dari WhatsApp. Saat nomor uji aktif, konfirmasi orang tua dinonaktifkan; pada demo penanda hanya simulasi sesi.

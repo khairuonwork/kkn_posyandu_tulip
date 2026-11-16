@@ -3,8 +3,8 @@
  *
  * Pesan tentang gizi seorang anak tidak dikirim diam-diam: petugas membaca dan
  * dapat mengubah isinya di sini, lalu menekan Kirim sekali lagi di dalam
- * WhatsApp. Portal tidak pernah tahu apakah pesan itu benar-benar terkirim,
- * sehingga tidak ada catatan "sudah dikirim" (docs/prd/feedback/F03).
+ * WhatsApp. Portal tidak mengetahui apakah pesan benar-benar terkirim;
+ * status hanya berubah melalui konfirmasi manual kader di Detail Balita.
  *
  * Tautan Lembar Hasil dibuat saat dialog dibuka dan langsung masuk ke pesan.
  * Bila tidak bisa dibuat (demo, atau server belum siap), pesan tetap dapat

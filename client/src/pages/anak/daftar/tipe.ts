@@ -4,6 +4,8 @@ import type { Indeks, JenisKelamin, Peran, Periode } from '@/types/posyandu';
 
 export type BarisAnak = {
     anakId: number;
+    /** null berarti status belum dapat dimuat. */
+    waTerkirim?: boolean | null;
     aktifPeriode?: boolean;
     nama: string | null;
     nik: string | null;

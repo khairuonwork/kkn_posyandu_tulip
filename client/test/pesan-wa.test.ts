@@ -1,6 +1,6 @@
 /**
  * Pesan hasil penimbangan untuk orang tua: nomor baku, tautan wa.me, dan isi
- * pesan. Baris tanpa nilai harus hilang, dan tidak ada data identitas di teks.
+ * pesan. Baris tanpa nilai harus hilang, dan NIK tidak disertakan.
  */
 
 import assert from 'node:assert/strict';
@@ -100,8 +100,14 @@ describe('susunPesan', () => {
             });
             assert.equal(kesimpulan, 'dipantau');
             const pesan = susunPesan(bahan({ terbaru, kesimpulan }));
-            assert.match(pesan, /Pertumbuhan Nayla Putri perlu diperhatikan/);
-            assert.doesNotMatch(pesan, /Pertumbuhan Nayla Putri baik/);
+            assert.match(
+                pesan,
+                /Pertumbuhan Nayla Putri Ramadhani perlu diperhatikan/,
+            );
+            assert.doesNotMatch(
+                pesan,
+                /Pertumbuhan Nayla Putri Ramadhani baik/,
+            );
         }
     });
 
@@ -140,19 +146,19 @@ describe('susunPesan', () => {
         );
     });
 
-    test('memakai dua kata pertama, tanpa NIK, dan menutup dengan lembaga', () => {
+    test('memakai nama lengkap, tanpa NIK, dan menutup dengan lembaga', () => {
         const pesan = susunPesan(bahan());
 
-        assert.match(pesan, /^Yth\. Ibu\/Bapak dari Nayla Putri,\n/);
-        assert.doesNotMatch(pesan, /Ramadhani|NIK/);
+        assert.match(pesan, /^Yth\. Ibu\/Bapak dari Nayla Putri Ramadhani,\n/);
+        assert.doesNotMatch(pesan, /NIK/);
         assert.match(pesan, /Posyandu Tulip RW 18$/);
     });
 
-    test('nama satu atau dua kata dan spasi berlebih ditangani di semua kesimpulan', () => {
+    test('nama lengkap dan spasi berlebih ditangani di semua kesimpulan', () => {
         for (const [nama, singkat] of [
             ['  rafa  ', 'rafa'],
             ['  ADITAMA   ABQARY  ', 'Aditama Abqary'],
-            ['  NAYLA   PUTRI RAMADHANI  ', 'Nayla Putri'],
+            ['  NAYLA   PUTRI RAMADHANI  ', 'Nayla Putri Ramadhani'],
         ]) {
             for (const kesimpulan of [
                 'sesuai',
@@ -203,18 +209,21 @@ describe('susunPesan', () => {
         assert.match(pesan, /• Panjang badan 88,7 cm: normal/);
     });
 
-    test('tiga kesimpulan menyebut dua kata dan tidak memakai kata sehat', () => {
+    test('tiga kesimpulan menyebut nama lengkap dan tidak memakai kata sehat', () => {
         const judul = (kesimpulan: 'sesuai' | 'dipantau' | 'diperiksa') =>
             susunPesan(bahan({ kesimpulan })).match(/\n\*(.+)\*\n/)?.[1];
 
-        assert.equal(judul('sesuai'), 'Pertumbuhan Nayla Putri baik.');
+        assert.equal(
+            judul('sesuai'),
+            'Pertumbuhan Nayla Putri Ramadhani baik.',
+        );
         assert.equal(
             judul('dipantau'),
-            'Pertumbuhan Nayla Putri perlu diperhatikan.',
+            'Pertumbuhan Nayla Putri Ramadhani perlu diperhatikan.',
         );
         assert.equal(
             judul('diperiksa'),
-            'Sebaiknya Nayla Putri diperiksa ke puskesmas.',
+            'Sebaiknya Nayla Putri Ramadhani diperiksa ke puskesmas.',
         );
 
         for (const k of ['sesuai', 'dipantau', 'diperiksa'] as const) {
@@ -224,7 +233,11 @@ describe('susunPesan', () => {
 
     test('anjuran di pesan sama dengan anjuran di layar', () => {
         for (const k of ['sesuai', 'dipantau', 'diperiksa'] as const) {
-            const { anjuran } = kalimatKesimpulan(k, 'Nayla Putri', 2);
+            const { anjuran } = kalimatKesimpulan(
+                k,
+                'Nayla Putri Ramadhani',
+                true,
+            );
 
             assert.ok(susunPesan(bahan({ kesimpulan: k })).includes(anjuran));
         }

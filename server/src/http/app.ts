@@ -15,6 +15,7 @@ import { ruteAuth } from "./auth-controller.ts";
 import { ruteAntrean } from "./antrean-controller.ts";
 import { ruteBeranda } from "./beranda-controller.ts";
 import { ruteAnak } from "./anak-controller.ts";
+import { ruteKonfirmasiWa } from './konfirmasi-wa-controller.ts';
 import { ruteLembar } from "./lembar-controller.ts";
 import { ruteLaporan } from "./laporan-controller.ts";
 import { ruteSurveiKia } from './survei-kia-controller.ts';
@@ -147,6 +148,7 @@ export function buatApp(
     app.use('/api/v1', rutePerangkat(pool));
 
     app.use("/api/v1", ruteAnak(pool));
+    app.use('/api/v1', ruteKonfirmasiWa(pool));
     app.use("/api/v1", ruteCluster(pool));
     app.use('/api/v1', ruteSurveiKia(pool));
     app.use("/api/v1", ruteAntrean(pool));
