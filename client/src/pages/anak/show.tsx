@@ -332,13 +332,17 @@ export default function DetailAnak({
                                 tabIndex={aktif ? 0 : -1}
                                 onClick={() => {
                                     if (tab.nilai === tabAktif) {
-return;
-}
+                                        return;
+                                    }
 
                                     const indeksAktif = TAB_DETAIL.findIndex(
                                         (item) => item.nilai === tabAktif,
                                     );
-                                    setArahTab(indeksTab > indeksAktif ? 'maju' : 'mundur');
+                                    setArahTab(
+                                        indeksTab > indeksAktif
+                                            ? 'maju'
+                                            : 'mundur',
+                                    );
                                     setTabAktif(tab.nilai);
                                 }}
                                 onKeyDown={(event) => {
@@ -350,7 +354,9 @@ return;
                                             berikut = (indeksTab + 1) % jumlah;
                                             break;
                                         case 'ArrowLeft':
-                                            berikut = (indeksTab + jumlah - 1) % jumlah;
+                                            berikut =
+                                                (indeksTab + jumlah - 1) %
+                                                jumlah;
                                             break;
                                         case 'Home':
                                             berikut = 0;
@@ -363,8 +369,8 @@ return;
                                     }
 
                                     event.preventDefault();
-                                    const tujuan = event.currentTarget.parentElement
-                                        ?.querySelector<HTMLButtonElement>(
+                                    const tujuan =
+                                        event.currentTarget.parentElement?.querySelector<HTMLButtonElement>(
                                             `#tab-${TAB_DETAIL[berikut].nilai}`,
                                         );
                                     tujuan?.focus();
@@ -413,25 +419,25 @@ return;
                     }}
                 />
 
-            <TabKurva
-                anak={anak}
-                nama={nama}
-                umur={umur}
-                periode={periode}
-                terbaru={terbaru}
-                pengukuran={pengukuran}
-                standarLms={standarLms}
-                umurDisorot={umurDisorot}
-                riwayatKurva={riwayatKurva}
-                titikPerluVerifikasi={titikPerluVerifikasi}
-                tanggalUkurTerakhir={hasilTerakhir?.tanggalUkur}
-                onLihatRiwayat={() => {
-                    setArahTab('maju');
-                    setTabAktif('riwayat');
-                    document.getElementById('tab-riwayat')?.focus();
-                }}
-                tersembunyi={tabAktif !== 'kurva'}
-            />
+                <TabKurva
+                    anak={anak}
+                    nama={nama}
+                    umur={umur}
+                    periode={periode}
+                    terbaru={terbaru}
+                    pengukuran={pengukuran}
+                    standarLms={standarLms}
+                    umurDisorot={umurDisorot}
+                    riwayatKurva={riwayatKurva}
+                    titikPerluVerifikasi={titikPerluVerifikasi}
+                    tanggalUkurTerakhir={hasilTerakhir?.tanggalUkur}
+                    onLihatRiwayat={() => {
+                        setArahTab('maju');
+                        setTabAktif('riwayat');
+                        document.getElementById('tab-riwayat')?.focus();
+                    }}
+                    tersembunyi={tabAktif !== 'kurva'}
+                />
 
                 <TabGrafik
                     anak={anak}
@@ -488,7 +494,8 @@ return;
                     buatTautan={
                         sumberLive
                             ? () => buatTautanLembar(anak.id, periode.id)
-                            : async () => `${window.location.href.split('#')[0]}#/hasil-demo/${anak.id}/${periode.id}`
+                            : async () =>
+                                  `${window.location.href.split('#')[0]}#/hasil-demo/${anak.id}/${periode.id}`
                     }
                     onTutup={() => setDialog(null)}
                 />

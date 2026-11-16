@@ -116,7 +116,7 @@ export function Kpi({
                 ? 'bg-tone-blue-bg text-tone-blue'
                 : nada === 'naik'
                   ? 'bg-[#e3f3df] text-[#286526]'
-              : 'bg-accent text-primary';
+                  : 'bg-accent text-primary';
 
     return (
         <section className="flex min-w-0 items-start gap-3 px-5 sm:px-7">
@@ -146,11 +146,33 @@ export function Kpi({
 }
 
 /** Judul kartu dengan keterangan redup di kanannya. */
-export function KepalaKartu({ judul, sub, hijau = false }: { judul: string; sub: ReactNode; hijau?: boolean }) {
+export function KepalaKartu({
+    judul,
+    sub,
+    hijau = false,
+}: {
+    judul: string;
+    sub: ReactNode;
+    hijau?: boolean;
+}) {
     return (
-        <div className={hijau ? '-mx-5 -mt-5 flex flex-col gap-1.5 rounded-t-[19px] bg-primary px-5 py-4 text-white sm:-mx-6 sm:-mt-6 sm:px-6' : 'flex flex-col gap-1.5'}>
+        <div
+            className={
+                hijau
+                    ? '-mx-5 -mt-5 flex flex-col gap-1.5 rounded-t-[19px] bg-primary px-5 py-4 text-white sm:-mx-6 sm:-mt-6 sm:px-6'
+                    : 'flex flex-col gap-1.5'
+            }
+        >
             <h2 className="text-lg font-extrabold">{judul}</h2>
-            <span className={hijau ? 'text-sm text-white' : 'text-sm text-muted-foreground'}>{sub}</span>
+            <span
+                className={
+                    hijau
+                        ? 'text-sm text-white'
+                        : 'text-sm text-muted-foreground'
+                }
+            >
+                {sub}
+            </span>
         </div>
     );
 }
@@ -317,7 +339,10 @@ export function BarisTren({
                                             : `${(n / puncak) * 100}%`,
                                 }}
                             >
-                                <span aria-hidden="true" className={`absolute inset-0 rounded-t-[3px] ${n > 0 ? 'beranda-batang' : ''} ${terakhir ? warna.batang : 'bg-input'}`} />
+                                <span
+                                    aria-hidden="true"
+                                    className={`absolute inset-0 rounded-t-[3px] ${n > 0 ? 'beranda-batang' : ''} ${terakhir ? warna.batang : 'bg-input'}`}
+                                />
                                 <span
                                     className={`absolute bottom-full left-1/2 mb-px -translate-x-1/2 leading-tight tabular-nums ${
                                         terakhir

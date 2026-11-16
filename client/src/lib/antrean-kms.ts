@@ -26,7 +26,12 @@ export type AntreanKms = {
 };
 
 export type AksiPanggilan = 'panggil' | 'ulang' | 'tiba' | 'kembalikan';
-export type PanggilanKms = { id: string; nomor: number; meja: number; nama?: string | null };
+export type PanggilanKms = {
+    id: string;
+    nomor: number;
+    meja: number;
+    nama?: string | null;
+};
 
 async function mintaKms<T>(
     path: string,
@@ -103,14 +108,20 @@ export function ubahPanggilanKms(
     );
 }
 
-export function konfirmasiSelesaiKms(id: string, onSesiBerakhir: () => void, catatanKms?: string) {
+export function konfirmasiSelesaiKms(
+    id: string,
+    onSesiBerakhir: () => void,
+    catatanKms?: string,
+) {
     return mintaKms(
         `antrean/${encodeURIComponent(id)}/konfirmasi-kms`,
         onSesiBerakhir,
         {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify(catatanKms?.trim() ? { catatanKms: catatanKms.trim() } : {}),
+            body: JSON.stringify(
+                catatanKms?.trim() ? { catatanKms: catatanKms.trim() } : {},
+            ),
         },
     );
 }

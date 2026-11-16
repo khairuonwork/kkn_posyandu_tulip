@@ -56,7 +56,9 @@ export function bacaRute(alamat: string): Rute {
     const kartu = /^\/kartu-sasaran\/(\d+)$/.exec(bersih);
 
     if (detail !== null) {
-        const dariKms = new URLSearchParams(alamat.split('?')[1]).get('asal') === 'kms';
+        const dariKms =
+            new URLSearchParams(alamat.split('?')[1]).get('asal') === 'kms';
+
         return { nama: 'detail', id: Number(detail[1]), dariKms };
     }
 
@@ -119,7 +121,11 @@ export function boleh(rute: Rute, peran: Peran, superAdmin = false): boolean {
         );
     }
 
-    if (rute.nama === 'kms' || rute.nama === 'kms-selesai' || rute.nama === 'ruang-tunggu-kms') {
+    if (
+        rute.nama === 'kms' ||
+        rute.nama === 'kms-selesai' ||
+        rute.nama === 'ruang-tunggu-kms'
+    ) {
         return peran === 'admin' && superAdmin;
     }
 
@@ -171,7 +177,12 @@ const NAV: ButirNav[] = [
         ikon: BadgeCheck,
         peran: ['kms', 'admin'],
     },
-    { href: '/bantuan', label: 'Bantuan', ikon: CircleHelp, peran: [...SEMUA, 'kms'] },
+    {
+        href: '/bantuan',
+        label: 'Bantuan',
+        ikon: CircleHelp,
+        peran: [...SEMUA, 'kms'],
+    },
 ];
 
 type CangkangProps = {
@@ -207,9 +218,12 @@ export function Cangkang({
     kakiSidebar,
 }: CangkangProps) {
     const alamat = useAlamat();
-    const antreanHariIni = ['kms', 'kms-selesai'].includes(bacaRute(alamat).nama);
+    const antreanHariIni = ['kms', 'kms-selesai'].includes(
+        bacaRute(alamat).nama,
+    );
     const tampilPeriode =
-        !antreanHariIni && !(peran === 'kms' && bacaRute(alamat).nama === 'bantuan');
+        !antreanHariIni &&
+        !(peran === 'kms' && bacaRute(alamat).nama === 'bantuan');
     const laci = useRef<HTMLDialogElement>(null);
     const tanggalKegiatan =
         periode.find((p) => p.id === periodeId)?.tanggalKegiatan ?? null;
@@ -249,40 +263,60 @@ export function Cangkang({
                             superAdmin),
                 )
                 .map((butir) => {
-                    const aktif = butir.href === '/beranda'
-                        ? bacaRute(alamat).nama === 'beranda' && alamat !== '/kms/selesai'
-                        : alamat.startsWith(butir.href) && !(butir.href === '/kms' && alamat === '/kms/selesai');
-                    const Ikon = demo && butir.href === '/kms' ? ClipboardList : butir.ikon;
+                    const aktif =
+                        butir.href === '/beranda'
+                            ? bacaRute(alamat).nama === 'beranda' &&
+                              alamat !== '/kms/selesai'
+                            : alamat.startsWith(butir.href) &&
+                              !(
+                                  butir.href === '/kms' &&
+                                  alamat === '/kms/selesai'
+                              );
+                    const Ikon =
+                        demo && butir.href === '/kms'
+                            ? ClipboardList
+                            : butir.ikon;
 
                     return (
                         <div key={butir.href}>
-                        <Link
-                            href={butir.href}
-                            aria-current={aktif ? 'page' : undefined}
-                            // Memilih menu berarti selesai dengan laci, termasuk
-                            // saat menu yang dipilih adalah layar yang sedang
-                            // terbuka. Di sidebar, `close()` tidak berbuat apa-apa.
-                            onClick={() => laci.current?.close()}
-                            className={`flex min-h-14 items-center gap-3.5 rounded-lg px-3.5 text-base pendek:pointer-fine:min-h-10 ${
-                                aktif
-                                    ? 'bg-primary font-bold text-primary-foreground'
-                                    : 'font-medium text-foreground'
-                            }`}
-                        >
-                            <Ikon
-                                className="size-5 shrink-0"
-                                strokeWidth={2.5}
-                            />
-                            {butir.label}
-                        </Link>
-                        {butir.href === '/kms' && (
-                            <Link href="/kms/selesai" aria-current={alamat === '/kms/selesai' ? 'page' : undefined}
+                            <Link
+                                href={butir.href}
+                                aria-current={aktif ? 'page' : undefined}
+                                // Memilih menu berarti selesai dengan laci, termasuk
+                                // saat menu yang dipilih adalah layar yang sedang
+                                // terbuka. Di sidebar, `close()` tidak berbuat apa-apa.
                                 onClick={() => laci.current?.close()}
-                                className={`mt-0.5 flex min-h-14 items-center gap-3.5 rounded-lg px-3.5 text-base pendek:pointer-fine:min-h-10 ${alamat === '/kms/selesai' ? 'bg-primary font-bold text-primary-foreground' : 'font-medium text-foreground'}`}>
-                                <CircleCheck className="size-5 shrink-0" strokeWidth={2.5} aria-hidden="true" />
-                                Pemeriksaan selesai
+                                className={`flex min-h-14 items-center gap-3.5 rounded-lg px-3.5 text-base pendek:pointer-fine:min-h-10 ${
+                                    aktif
+                                        ? 'bg-primary font-bold text-primary-foreground'
+                                        : 'font-medium text-foreground'
+                                }`}
+                            >
+                                <Ikon
+                                    className="size-5 shrink-0"
+                                    strokeWidth={2.5}
+                                />
+                                {butir.label}
                             </Link>
-                        )}
+                            {butir.href === '/kms' && (
+                                <Link
+                                    href="/kms/selesai"
+                                    aria-current={
+                                        alamat === '/kms/selesai'
+                                            ? 'page'
+                                            : undefined
+                                    }
+                                    onClick={() => laci.current?.close()}
+                                    className={`mt-0.5 flex min-h-14 items-center gap-3.5 rounded-lg px-3.5 text-base pendek:pointer-fine:min-h-10 ${alamat === '/kms/selesai' ? 'bg-primary font-bold text-primary-foreground' : 'font-medium text-foreground'}`}
+                                >
+                                    <CircleCheck
+                                        className="size-5 shrink-0"
+                                        strokeWidth={2.5}
+                                        aria-hidden="true"
+                                    />
+                                    Pemeriksaan selesai
+                                </Link>
+                            )}
                         </div>
                     );
                 })}
@@ -317,21 +351,23 @@ export function Cangkang({
                     <Merek />
                 </div>
 
-                {tampilPeriode && <div className="ml-auto flex items-center gap-3">
-                    <label
-                        htmlFor="periode-atas"
-                        className="text-sm font-semibold text-muted-foreground max-sm:sr-only"
-                    >
-                        Periode
-                    </label>
-                    <FilterPeriode
-                        id="periode-atas"
-                        periode={periode}
-                        nilai={periodeId}
-                        onGanti={onPindahPeriode}
-                        className="w-50"
-                    />
-                </div>}
+                {tampilPeriode && (
+                    <div className="ml-auto flex items-center gap-3">
+                        <label
+                            htmlFor="periode-atas"
+                            className="text-sm font-semibold text-muted-foreground max-sm:sr-only"
+                        >
+                            Periode
+                        </label>
+                        <FilterPeriode
+                            id="periode-atas"
+                            periode={periode}
+                            nilai={periodeId}
+                            onGanti={onPindahPeriode}
+                            className="w-50"
+                        />
+                    </div>
+                )}
             </div>
 
             {/* <dialog> asli: fokus terkurung di dalam laci, Esc menutupnya,
@@ -368,7 +404,13 @@ export function Cangkang({
                     <div className="mt-5.5">{menu}</div>
 
                     <div className="mt-auto space-y-2.5 pt-4">
-                        {demo ? <p className="text-sm text-muted-foreground">Status perangkat · simulasi demo</p> : <StatusTablet />}
+                        {demo ? (
+                            <p className="text-sm text-muted-foreground">
+                                Status perangkat · simulasi demo
+                            </p>
+                        ) : (
+                            <StatusTablet />
+                        )}
                         {kakiSidebar !== undefined && kakiSidebar}
                     </div>
                 </div>
@@ -389,31 +431,39 @@ export function Cangkang({
 
                 {/* Periode adalah lingkup seluruh aplikasi, bukan milik satu
                     layar — tempatnya bersama navigasi. */}
-                {tampilPeriode && <div className="px-2 pt-4.5 pendek:pointer-fine:pt-3">
-                    <label
-                        htmlFor="periode-sisi"
-                        className="block text-sm font-semibold text-muted-foreground"
-                    >
-                        Periode
-                    </label>
-                    <FilterPeriode
-                        id="periode-sisi"
-                        periode={periode}
-                        nilai={periodeId}
-                        onGanti={onPindahPeriode}
-                        className="mt-1.5"
-                    />
-                    {tanggalKegiatan !== null && (
-                        <p className="mt-1.5 text-sm text-muted-foreground">
-                            Data terakhir {tanggalPanjang(tanggalKegiatan)}
-                        </p>
-                    )}
-                </div>}
+                {tampilPeriode && (
+                    <div className="px-2 pt-4.5 pendek:pointer-fine:pt-3">
+                        <label
+                            htmlFor="periode-sisi"
+                            className="block text-sm font-semibold text-muted-foreground"
+                        >
+                            Periode
+                        </label>
+                        <FilterPeriode
+                            id="periode-sisi"
+                            periode={periode}
+                            nilai={periodeId}
+                            onGanti={onPindahPeriode}
+                            className="mt-1.5"
+                        />
+                        {tanggalKegiatan !== null && (
+                            <p className="mt-1.5 text-sm text-muted-foreground">
+                                Data terakhir {tanggalPanjang(tanggalKegiatan)}
+                            </p>
+                        )}
+                    </div>
+                )}
 
                 <div className="mt-5.5 pendek:pointer-fine:mt-3">{menu}</div>
 
                 <div className="mt-auto space-y-2.5 pt-4 pendek:pointer-fine:pt-2.5">
-                    {demo ? <p className="text-sm text-muted-foreground">Status perangkat · simulasi demo</p> : <StatusTablet />}
+                    {demo ? (
+                        <p className="text-sm text-muted-foreground">
+                            Status perangkat · simulasi demo
+                        </p>
+                    ) : (
+                        <StatusTablet />
+                    )}
                     {kakiSidebar !== undefined && kakiSidebar}
                 </div>
             </aside>
@@ -424,9 +474,9 @@ export function Cangkang({
                 agar tidak tertutup bilah navigasi bawah ponsel. */}
             <main className="flex min-w-0 flex-1 flex-col pb-20 lg:min-h-0 lg:overflow-y-auto lg:pb-0">
                 <DemoSop.Provider value={demo}>
-                <PeranSop.Provider value={peran}>
-                    {children}
-                </PeranSop.Provider>
+                    <PeranSop.Provider value={peran}>
+                        {children}
+                    </PeranSop.Provider>
                 </DemoSop.Provider>
             </main>
 
@@ -444,10 +494,15 @@ export function Cangkang({
                 )
                     .slice(0, 5)
                     .map((butir) => {
-                        const aktif = butir.href === '/beranda'
-                            ? bacaRute(alamat).nama === 'beranda' && alamat !== '/kms/selesai'
-                            : alamat.startsWith(butir.href);
-                        const Ikon = demo && butir.href === '/kms' ? ClipboardList : butir.ikon;
+                        const aktif =
+                            butir.href === '/beranda'
+                                ? bacaRute(alamat).nama === 'beranda' &&
+                                  alamat !== '/kms/selesai'
+                                : alamat.startsWith(butir.href);
+                        const Ikon =
+                            demo && butir.href === '/kms'
+                                ? ClipboardList
+                                : butir.ikon;
 
                         return (
                             <Link

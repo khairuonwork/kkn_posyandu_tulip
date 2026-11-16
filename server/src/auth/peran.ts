@@ -79,9 +79,19 @@ export const SEMUA_AKSI: readonly Aksi[] = Object.keys(MINIMUM) as Aksi[];
 export function boleh(peran: Peran, aksi: Aksi, superAdmin = false): boolean {
     if (aksi === "konfirmasi-kms") return peran === "kms" || (peran === "admin" && superAdmin);
     // Role KMS bersifat terfokus: dapat membaca analisa anak dan hanya KMS
-    // yang berhak menutup tahap pemeriksaan. Ia tidak mewarisi hak input kader.
+    // yang berhak menutup tahap pemeriksaan. Petugas KMS di lapangan juga
+    // memegang tablet antrean, jadi ia boleh mencatat antrean dan hasil ukur;
+    // tanpa itu pengukuran dari akunnya tertahan di perangkat (HTTP 403).
+    // Hak ubah profil, pendaftaran anak baru, dan rekap tetap milik kader ke atas.
     if (peran === "kms") {
-        return ["lihat-dashboard", "lihat-anak", "lihat-kms", "konfirmasi-kms", "catat-survei-kia"].includes(aksi);
+        return [
+            "lihat-dashboard",
+            "lihat-anak",
+            "lihat-kms",
+            "konfirmasi-kms",
+            "catat-survei-kia",
+            "catat-pengukuran-lapangan",
+        ].includes(aksi);
     }
     return TINGKAT[peran] >= TINGKAT[MINIMUM[aksi]];
 }

@@ -31,13 +31,13 @@ import Login from '@/pages/auth/login';
 import Bantuan from '@/pages/bantuan';
 import LembarHasil from '@/pages/hasil/lembar';
 import RuangTungguKms from '@/pages/kms/ruang-tunggu';
+import KmsSelesai from '@/pages/kms/selesai';
 import type { TabPeriode } from '@/pages/laporan/index';
 import type {
     Ambang,
     StandarisasiAntropometri,
 } from '@/pages/pengaturan/index';
 import type { Pengguna, Peran } from '@/types/posyandu';
-import KmsSelesai from '@/pages/kms/selesai';
 import PelatihanDemo from './PelatihanDemo';
 import type { SesiDemo } from './PelatihanDemo';
 
@@ -67,14 +67,22 @@ const KETERANGAN_PERAN: Record<PeranDemo, string> = {
     superadmin: 'Mengelola simulasi pelatihan dan pemeriksaan KMS',
 };
 
-const URUTAN_PERAN: PeranDemo[] = ['kader', 'bidan', 'admin', 'kms', 'superadmin'];
+const URUTAN_PERAN: PeranDemo[] = [
+    'kader',
+    'bidan',
+    'admin',
+    'kms',
+    'superadmin',
+];
 
 /** Perpindahan seketika terasa seperti tautan, bukan seperti masuk aplikasi. */
 const JEDA_MASUK_MS = 400;
 
 export default function DemoApp() {
     const [peran, setPeran] = useState<PeranDemo | null>(() =>
-        window.location.hash.split('?')[0] === '#/kms/ruang-tunggu' ? 'kms' : null,
+        window.location.hash.split('?')[0] === '#/kms/ruang-tunggu'
+            ? 'kms'
+            : null,
     );
     // Bawaan Bidan: peran dengan kemampuan terbanyak, sehingga demo dimulai
     // dari tampilan paling lengkap.
@@ -85,10 +93,30 @@ export default function DemoApp() {
     if (hasil) {
         const detail = detailAnak(Number(hasil[1]));
 
-        return <LembarHasil token="demo" contoh={detail && detail.anak.jk !== null && data.periode.some((p) => p.id === hasil[2]) ? {
-            anak: { namaDepan: (detail.anak.nama ?? 'Balita').split(' ')[0], jk: detail.anak.jk },
-            periodeId: hasil[2], kedaluwarsa: '2099-12-31', pengukuran: detail.pengukuran.filter((p) => p.periodeId <= hasil[2]),
-        } : null} />;
+        return (
+            <LembarHasil
+                token="demo"
+                contoh={
+                    detail &&
+                    detail.anak.jk !== null &&
+                    data.periode.some((p) => p.id === hasil[2])
+                        ? {
+                              anak: {
+                                  namaDepan: (
+                                      detail.anak.nama ?? 'Balita'
+                                  ).split(' ')[0],
+                                  jk: detail.anak.jk,
+                              },
+                              periodeId: hasil[2],
+                              kedaluwarsa: '2099-12-31',
+                              pengukuran: detail.pengukuran.filter(
+                                  (p) => p.periodeId <= hasil[2],
+                              ),
+                          }
+                        : null
+                }
+            />
+        );
     }
 
     if (peran === null) {
@@ -110,8 +138,15 @@ export default function DemoApp() {
                     );
                     setPeran(peranDipilih);
                     const hash = window.location.hash;
-                    const tujuan = (peranDipilih === 'kms' || peranDipilih === 'superadmin') && (hash === '#/kms/ruang-tunggu' || hash === '#/kms/selesai')
-                        ? hash.slice(1) : peranDipilih === 'kms' ? '/kms' : '/beranda';
+                    const tujuan =
+                        (peranDipilih === 'kms' ||
+                            peranDipilih === 'superadmin') &&
+                        (hash === '#/kms/ruang-tunggu' ||
+                            hash === '#/kms/selesai')
+                            ? hash.slice(1)
+                            : peranDipilih === 'kms'
+                              ? '/kms'
+                              : '/beranda';
                     navigate(tujuan);
 
                     return null;
@@ -193,65 +228,89 @@ function PortalDemo({
                 />
             }
         >
-            {sesiPelatihan && <p role="status" className="border-b border-border bg-tone-amber-bg px-5 py-3">Sesi pelatihan demo aktif · hasil latihan hanya tersedia di halaman Sesi Pelatihan.</p>}
-            {rute.nama === 'bantuan' ? <Bantuan demoPeran={peranAplikasi} onSesiBerakhir={() => undefined} /> : alamat === '/kms/selesai' && (peran === 'kms' || superAdmin) ? <KmsSelesai demo onSesiBerakhir={() => undefined} /> : rute.nama === 'pelatihan' && superAdmin ? <PelatihanDemo sesi={sesiPelatihan} onSesi={setSesiPelatihan} /> : <Layar
-                rute={rute}
-                peran={peranAplikasi}
-                onSesiBerakhir={() => undefined}
-                periodeId={periodeId}
-                onPindahPeriode={setPeriodeId}
-                tabLaporan={tabLaporan}
-                onGantiTabLaporan={setTabLaporan}
-                koreksi={koreksi}
-                tambahan={tambahan}
-                /* Antrean hanya berlaku untuk periode terbaru. Tanpa syarat
+            {sesiPelatihan && (
+                <p
+                    role="status"
+                    className="border-b border-border bg-tone-amber-bg px-5 py-3"
+                >
+                    Sesi pelatihan demo aktif · hasil latihan hanya tersedia di
+                    halaman Sesi Pelatihan.
+                </p>
+            )}
+            {rute.nama === 'bantuan' ? (
+                <Bantuan
+                    demoPeran={peranAplikasi}
+                    onSesiBerakhir={() => undefined}
+                />
+            ) : alamat === '/kms/selesai' && (peran === 'kms' || superAdmin) ? (
+                <KmsSelesai demo onSesiBerakhir={() => undefined} />
+            ) : rute.nama === 'pelatihan' && superAdmin ? (
+                <PelatihanDemo sesi={sesiPelatihan} onSesi={setSesiPelatihan} />
+            ) : (
+                <Layar
+                    rute={rute}
+                    peran={peranAplikasi}
+                    onSesiBerakhir={() => undefined}
+                    periodeId={periodeId}
+                    onPindahPeriode={setPeriodeId}
+                    tabLaporan={tabLaporan}
+                    onGantiTabLaporan={setTabLaporan}
+                    koreksi={koreksi}
+                    tambahan={tambahan}
+                    /* Antrean hanya berlaku untuk periode terbaru. Tanpa syarat
                    ini, membuka Mei 2026 tetap berbunyi "3 hasil belum
                    terkirim, tersimpan sejak 13 Juni" — mengaku menahan data
                    untuk bulan yang arsipnya sudah ditutup. */
-                antrean={periodeId === periodeTerbaru ? antrean : undefined}
-                onCobaKirim={() => setAntrean(undefined)}
-                onSimpanAnak={(anakId, patch) =>
-                    setKoreksi((k) => ({
-                        ...k,
-                        // Dialog Ubah data dan editor baris mengisi kolom
-                        // yang berbeda; keduanya ditumpuk, bukan saling ganti.
-                        [anakId]: { ...k[anakId], ...patch },
-                    }))
-                }
-                onTambahAnak={(baru) => setTambahan((t) => [...t, baru])}
-                ambang={ambang}
-                onSimpanAmbang={setAmbang}
-                standarisasi={standarisasi}
-                onSimpanStandarisasi={setStandarisasi}
-                pengguna={{
-                    status: 'siap',
-                    pengguna,
-                    wilayahRt: daftarRt().map((rt) => ({ posyanduId: 1, rt })),
-                    posyandu: [{ id: 1, nama: 'Posyandu Tulip', rw: '18' }],
-                }}
-                /* Demo tidak punya server: aturan akun cukup diperiksa dialog,
+                    antrean={periodeId === periodeTerbaru ? antrean : undefined}
+                    onCobaKirim={() => setAntrean(undefined)}
+                    onSimpanAnak={(anakId, patch) =>
+                        setKoreksi((k) => ({
+                            ...k,
+                            // Dialog Ubah data dan editor baris mengisi kolom
+                            // yang berbeda; keduanya ditumpuk, bukan saling ganti.
+                            [anakId]: { ...k[anakId], ...patch },
+                        }))
+                    }
+                    onTambahAnak={(baru) => setTambahan((t) => [...t, baru])}
+                    ambang={ambang}
+                    onSimpanAmbang={setAmbang}
+                    standarisasi={standarisasi}
+                    onSimpanStandarisasi={setStandarisasi}
+                    pengguna={{
+                        status: 'siap',
+                        pengguna,
+                        wilayahRt: daftarRt().map((rt) => ({
+                            posyanduId: 1,
+                            rt,
+                        })),
+                        posyandu: [{ id: 1, nama: 'Posyandu Tulip', rw: '18' }],
+                    }}
+                    /* Demo tidak punya server: aturan akun cukup diperiksa dialog,
                    dan kata sandinya tidak disimpan ke mana pun. */
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars -- sengaja dibuang
-                onSimpanPengguna={async (id, { kataSandi, ...isi }) => {
-                    setPengguna((d) =>
-                        id === null
-                            ? [
-                                  ...d,
-                                  {
-                                      ...isi,
-                                      id:
-                                          Math.max(0, ...d.map((p) => p.id)) +
-                                          1,
-                                  },
-                              ]
-                            : d.map((p) =>
-                                  p.id === id ? { ...p, ...isi } : p,
-                              ),
-                    );
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- sengaja dibuang
+                    onSimpanPengguna={async (id, { kataSandi, ...isi }) => {
+                        setPengguna((d) =>
+                            id === null
+                                ? [
+                                      ...d,
+                                      {
+                                          ...isi,
+                                          id:
+                                              Math.max(
+                                                  0,
+                                                  ...d.map((p) => p.id),
+                                              ) + 1,
+                                      },
+                                  ]
+                                : d.map((p) =>
+                                      p.id === id ? { ...p, ...isi } : p,
+                                  ),
+                        );
 
-                    return null;
-                }}
-            />}
+                        return null;
+                    }}
+                />
+            )}
         </Cangkang>
     );
 }
@@ -338,7 +397,9 @@ function PemilihPeran({
                         <select
                             aria-label="Ganti peran demo"
                             value={peran}
-                            onChange={(e) => onGanti(e.target.value as PeranDemo)}
+                            onChange={(e) =>
+                                onGanti(e.target.value as PeranDemo)
+                            }
                             className="h-6.5 cursor-pointer appearance-none bg-transparent pr-5 text-sm text-[#2f6b4d]"
                         >
                             {URUTAN_PERAN.map((p) => (

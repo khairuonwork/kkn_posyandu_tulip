@@ -62,7 +62,11 @@ export function bagianPanggilan(nomor: number, meja: number) {
     ];
 }
 
-export function teksPanggilan(nomor: number, meja: number, nama?: string | null) {
+export function teksPanggilan(
+    nomor: number,
+    meja: number,
+    nama?: string | null,
+) {
     const namaBalita = nama?.trim();
 
     return `Nomor antrean ${terbilang(nomor)}, ${namaBalita ? `${namaBalita}, ` : ''}silakan menuju Meja KMS ${terbilang(meja)}.`;
@@ -86,7 +90,10 @@ export function idSuara(suara: SpeechSynthesisVoice) {
     return JSON.stringify([suara.voiceURI, suara.lang, suara.name]);
 }
 
-export function pilihSuara(daftar: SpeechSynthesisVoice[], tersimpan: string | null) {
+export function pilihSuara(
+    daftar: SpeechSynthesisVoice[],
+    tersimpan: string | null,
+) {
     const tersedia = suaraIndonesia(daftar);
     const pilihan = tersedia.find((suara) => idSuara(suara) === tersimpan);
 

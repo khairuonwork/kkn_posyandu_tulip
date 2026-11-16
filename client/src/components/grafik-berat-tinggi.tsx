@@ -40,7 +40,10 @@ export default function GrafikBeratTinggi({
         }
 
         const animasi = bukaan.current.animate(
-            [{ width: '0px' }, { width: `${bukaan.current.width.baseVal.value}px` }],
+            [
+                { width: '0px' },
+                { width: `${bukaan.current.width.baseVal.value}px` },
+            ],
             { duration: 700, easing: 'ease-out' },
         );
 
@@ -101,10 +104,12 @@ export default function GrafikBeratTinggi({
     const lebarGrafik = 78 + plotLebar;
     const x = (v: number) => 62 + ((v - bawahX) / (atasX - bawahX)) * plotLebar;
     const tinggiDiperbesar = Math.max(320, (max - min) * 28);
-    const plotTinggi = 320 + (tinggiDiperbesar - 320) * Math.min(1, (zoom - 1) * 2);
+    const plotTinggi =
+        320 + (tinggiDiperbesar - 320) * Math.min(1, (zoom - 1) * 2);
     const bawahGrafik = 20 + plotTinggi;
     const tinggiGrafik = bawahGrafik + 60;
-    const y = (v: number) => bawahGrafik - ((v - min) / (max - min || 1)) * plotTinggi;
+    const y = (v: number) =>
+        bawahGrafik - ((v - min) / (max - min || 1)) * plotTinggi;
     const sumbuX = Array.from(
         { length: Math.floor((atasX - bawahX) / 5) + 1 },
         (_, i) => bawahX + i * 5,
@@ -118,7 +123,10 @@ export default function GrafikBeratTinggi({
             ? {
                   x: x(detail.tinggiCm!),
                   y: y(detail.bbKg!),
-                  kiri: Math.max(66, Math.min(x(detail.tinggiCm!) - 150, 62 + plotLebar - 304)),
+                  kiri: Math.max(
+                      66,
+                      Math.min(x(detail.tinggiCm!) - 150, 62 + plotLebar - 304),
+                  ),
                   atas:
                       y(detail.bbKg!) - 114 >= 24
                           ? y(detail.bbKg!) - 114
@@ -180,277 +188,299 @@ export default function GrafikBeratTinggi({
                 <p role="status">Acuan BB/{jenis} belum tersedia.</p>
             ) : (
                 <>
-                {kontrolZoom}
-                <GrafikDenganAcuan
-                    label="Grafik berat menurut panjang atau tinggi, dapat digeser mendatar"
-                    tinggi={tinggiGrafik}
-                    revisi={`${jenis}:${zoom}`}
-                    garis={[-3, -2, -1, 0, 1, 2, 3].map((z) => ({
-                        z,
-                        titik: acuan.map((b) => [x(b.kunci), y(nilaiPadaZ(b, z))]),
-                    }))}
-                >
-                    <div className="min-w-[740px]" style={{ aspectRatio: `898 / ${tinggiGrafik}` }}>
-                    <svg
-                        viewBox={`0 0 ${lebarGrafik} ${tinggiGrafik}`}
-                        preserveAspectRatio="none"
-                        className="h-full bg-white"
-                        style={{ width: `${(lebarGrafik / 898) * 100}%` }}
-                        role="img"
-                        aria-label={`Grafik BB/${jenis}, berat badan menurut ${jenis === 'PB' ? 'panjang' : 'tinggi'} badan, WHO 2006`}
+                    {kontrolZoom}
+                    <GrafikDenganAcuan
+                        label="Grafik berat menurut panjang atau tinggi, dapat digeser mendatar"
+                        tinggi={tinggiGrafik}
+                        revisi={`${jenis}:${zoom}`}
+                        garis={[-3, -2, -1, 0, 1, 2, 3].map((z) => ({
+                            z,
+                            titik: acuan.map((b) => [
+                                x(b.kunci),
+                                y(nilaiPadaZ(b, z)),
+                            ]),
+                        }))}
                     >
-                        <defs>
-                            <clipPath id={clipId}>
-                                <rect ref={bukaan} x={62} y={20} width={plotLebar} height={plotTinggi} />
-                            </clipPath>
-                        </defs>
-                        {sumbuX.map((v) => (
-                            <g key={`x${v}`}>
-                                <line
-                                    x1={x(v)}
-                                    x2={x(v)}
-                                    y1={20}
-                                    y2={bawahGrafik}
-                                    stroke="#D1D6D2"
-                                />
-                                <text
-                                    x={x(v)}
-                                    y={bawahGrafik + 20}
-                                    textAnchor="middle"
-                                    fontSize={12}
-                                    fill="#16211C"
-                                >
-                                    {v}
-                                </text>
-                            </g>
-                        ))}
-                        {sumbuY.map((v) => (
-                            <g key={`y${v}`}>
-                                <line
-                                    x1={62}
-                                    x2={62 + plotLebar}
-                                    y1={y(v)}
-                                    y2={y(v)}
-                                    stroke="#D1D6D2"
-                                />
-                                <text
-                                    x={52}
-                                    y={y(v) + 4}
-                                    textAnchor="end"
-                                    fontSize={12}
-                                    fill="#16211C"
-                                >
-                                    {angka(v, v % 1 === 0 ? 0 : 1)}
-                                </text>
-                            </g>
-                        ))}
-                        {[-3, -2, -1, 0, 1, 2, 3].map((z) => (
-                            <g key={z}>
-                                <polyline
-                                    clipPath={`url(#${clipId})`}
-                                    points={acuan
-                                        .map(
-                                            (b) =>
-                                                `${x(b.kunci)},${y(nilaiPadaZ(b, z))}`,
-                                        )
-                                        .join(' ')}
-                                    fill="none"
-                                    stroke={warnaGarisSd(z)}
-                                    strokeWidth={z === 0 ? 2 : 1.5}
-                                />
-                            </g>
-                        ))}
-                        {segmen.map((list, i) => (
-                            <polyline
-                                clipPath={`url(#${clipId})`}
-                                key={i}
-                                points={list
-                                    .map(
-                                        (p) =>
-                                            `${x(p.tinggiCm!)},${y(p.bbKg!)}`,
-                                    )
-                                    .join(' ')}
-                                fill="none"
-                                stroke="#16211C"
-                                strokeWidth={2.5}
-                                strokeDasharray="5 3"
-                            />
-                        ))}
-                        {titik.map((p) => {
-                            const id = `${p.periodeId}:${p.tanggalUkur}`;
-
-                            return (
-                                <g key={id}>
-                                    <circle
-                                        clipPath={`url(#${clipId})`}
-                                        cx={x(p.tinggiCm!)}
-                                        cy={y(p.bbKg!)}
-                                        r={detail === p ? 6 : 5}
-                                        fill={
-                                            detail === p ? '#16211C' : 'white'
-                                        }
-                                        stroke="#16211C"
-                                        strokeWidth={2}
-                                    />
-                                    <circle
-                                        clipPath={`url(#${clipId})`}
-                                        cx={x(p.tinggiCm!)}
-                                        cy={y(p.bbKg!)}
-                                        r={14}
-                                        fill="transparent"
-                                        tabIndex={0}
-                                        role="button"
-                                        aria-pressed={pilih === id}
-                                        aria-label={`${tanggalRingkas(p.tanggalUkur)}, ${satuan(p.tinggiCm, 'cm')}, ${satuan(p.bbKg, 'kg')}`}
-                                        onClick={() =>
-                                            setPilih((lama) =>
-                                                lama === id ? null : id,
-                                            )
-                                        }
-                                        onMouseEnter={() => setSorot(id)}
-                                        onMouseLeave={() => setSorot(null)}
-                                        onFocus={() => setSorot(id)}
-                                        onBlur={() => setSorot(null)}
-                                        onKeyDown={(e) => {
-                                            if (
-                                                e.key === 'Enter' ||
-                                                e.key === ' '
-                                            ) {
-                                                e.preventDefault();
-                                                setPilih(id);
-                                            }
-
-                                            if (e.key === 'Escape') {
-                                                setPilih(null);
-                                                setSorot(null);
-                                            }
-                                        }}
-                                    />
-                                </g>
-                            );
-                        })}
-                        <text
-                            x={62 + plotLebar / 2}
-                            y={tinggiGrafik - 10}
-                            textAnchor="middle"
-                            fontSize={14}
-                            fill="#16211C"
+                        <div
+                            className="min-w-[740px]"
+                            style={{ aspectRatio: `898 / ${tinggiGrafik}` }}
                         >
-                            {jenis === 'PB' ? 'Panjang' : 'Tinggi'} badan, cm
-                        </text>
-                        <text
-                            transform={`translate(18 ${20 + plotTinggi / 2}) rotate(-90)`}
-                            textAnchor="middle"
-                            fontSize={14}
-                            fill="#16211C"
-                        >
-                            Berat badan, kg
-                        </text>
-                        {detail && kartu && (
-                            <g
-                                pointerEvents="none"
-                                role="tooltip"
-                                aria-label="Detail pengukuran berat dan tinggi"
+                            <svg
+                                viewBox={`0 0 ${lebarGrafik} ${tinggiGrafik}`}
+                                preserveAspectRatio="none"
+                                className="h-full bg-white"
+                                style={{
+                                    width: `${(lebarGrafik / 898) * 100}%`,
+                                }}
+                                role="img"
+                                aria-label={`Grafik BB/${jenis}, berat badan menurut ${jenis === 'PB' ? 'panjang' : 'tinggi'} badan, WHO 2006`}
                             >
-                                <line
-                                    x1={kartu.x}
-                                    x2={kartu.x}
-                                    y1={kartu.y}
-                                    y2={bawahGrafik}
-                                    stroke="#16211C"
-                                    strokeDasharray="5 4"
-                                />
-                                <line
-                                    x1={62}
-                                    x2={kartu.x}
-                                    y1={kartu.y}
-                                    y2={kartu.y}
-                                    stroke="#16211C"
-                                    strokeDasharray="5 4"
-                                />
-                                <rect
-                                    x={kartu.x - 22}
-                                    y={bawahGrafik + 4}
-                                    width={44}
-                                    height={21}
-                                    rx={4}
-                                    fill="#16211C"
-                                />
+                                <defs>
+                                    <clipPath id={clipId}>
+                                        <rect
+                                            ref={bukaan}
+                                            x={62}
+                                            y={20}
+                                            width={plotLebar}
+                                            height={plotTinggi}
+                                        />
+                                    </clipPath>
+                                </defs>
+                                {sumbuX.map((v) => (
+                                    <g key={`x${v}`}>
+                                        <line
+                                            x1={x(v)}
+                                            x2={x(v)}
+                                            y1={20}
+                                            y2={bawahGrafik}
+                                            stroke="#D1D6D2"
+                                        />
+                                        <text
+                                            x={x(v)}
+                                            y={bawahGrafik + 20}
+                                            textAnchor="middle"
+                                            fontSize={12}
+                                            fill="#16211C"
+                                        >
+                                            {v}
+                                        </text>
+                                    </g>
+                                ))}
+                                {sumbuY.map((v) => (
+                                    <g key={`y${v}`}>
+                                        <line
+                                            x1={62}
+                                            x2={62 + plotLebar}
+                                            y1={y(v)}
+                                            y2={y(v)}
+                                            stroke="#D1D6D2"
+                                        />
+                                        <text
+                                            x={52}
+                                            y={y(v) + 4}
+                                            textAnchor="end"
+                                            fontSize={12}
+                                            fill="#16211C"
+                                        >
+                                            {angka(v, v % 1 === 0 ? 0 : 1)}
+                                        </text>
+                                    </g>
+                                ))}
+                                {[-3, -2, -1, 0, 1, 2, 3].map((z) => (
+                                    <g key={z}>
+                                        <polyline
+                                            clipPath={`url(#${clipId})`}
+                                            points={acuan
+                                                .map(
+                                                    (b) =>
+                                                        `${x(b.kunci)},${y(nilaiPadaZ(b, z))}`,
+                                                )
+                                                .join(' ')}
+                                            fill="none"
+                                            stroke={warnaGarisSd(z)}
+                                            strokeWidth={z === 0 ? 2 : 1.5}
+                                        />
+                                    </g>
+                                ))}
+                                {segmen.map((list, i) => (
+                                    <polyline
+                                        clipPath={`url(#${clipId})`}
+                                        key={i}
+                                        points={list
+                                            .map(
+                                                (p) =>
+                                                    `${x(p.tinggiCm!)},${y(p.bbKg!)}`,
+                                            )
+                                            .join(' ')}
+                                        fill="none"
+                                        stroke="#16211C"
+                                        strokeWidth={2.5}
+                                        strokeDasharray="5 3"
+                                    />
+                                ))}
+                                {titik.map((p) => {
+                                    const id = `${p.periodeId}:${p.tanggalUkur}`;
+
+                                    return (
+                                        <g key={id}>
+                                            <circle
+                                                clipPath={`url(#${clipId})`}
+                                                cx={x(p.tinggiCm!)}
+                                                cy={y(p.bbKg!)}
+                                                r={detail === p ? 6 : 5}
+                                                fill={
+                                                    detail === p
+                                                        ? '#16211C'
+                                                        : 'white'
+                                                }
+                                                stroke="#16211C"
+                                                strokeWidth={2}
+                                            />
+                                            <circle
+                                                clipPath={`url(#${clipId})`}
+                                                cx={x(p.tinggiCm!)}
+                                                cy={y(p.bbKg!)}
+                                                r={14}
+                                                fill="transparent"
+                                                tabIndex={0}
+                                                role="button"
+                                                aria-pressed={pilih === id}
+                                                aria-label={`${tanggalRingkas(p.tanggalUkur)}, ${satuan(p.tinggiCm, 'cm')}, ${satuan(p.bbKg, 'kg')}`}
+                                                onClick={() =>
+                                                    setPilih((lama) =>
+                                                        lama === id ? null : id,
+                                                    )
+                                                }
+                                                onMouseEnter={() =>
+                                                    setSorot(id)
+                                                }
+                                                onMouseLeave={() =>
+                                                    setSorot(null)
+                                                }
+                                                onFocus={() => setSorot(id)}
+                                                onBlur={() => setSorot(null)}
+                                                onKeyDown={(e) => {
+                                                    if (
+                                                        e.key === 'Enter' ||
+                                                        e.key === ' '
+                                                    ) {
+                                                        e.preventDefault();
+                                                        setPilih(id);
+                                                    }
+
+                                                    if (e.key === 'Escape') {
+                                                        setPilih(null);
+                                                        setSorot(null);
+                                                    }
+                                                }}
+                                            />
+                                        </g>
+                                    );
+                                })}
                                 <text
-                                    x={kartu.x}
-                                    y={bawahGrafik + 19}
+                                    x={62 + plotLebar / 2}
+                                    y={tinggiGrafik - 10}
                                     textAnchor="middle"
-                                    fontSize={12}
-                                    fontWeight={700}
-                                    fill="white"
-                                >
-                                    {angka(detail.tinggiCm!, 1)}
-                                </text>
-                                <rect
-                                    x={12}
-                                    y={kartu.y - 10}
-                                    width={46}
-                                    height={21}
-                                    rx={4}
-                                    fill="#16211C"
-                                />
-                                <text
-                                    x={35}
-                                    y={kartu.y + 5}
-                                    textAnchor="middle"
-                                    fontSize={12}
-                                    fontWeight={700}
-                                    fill="white"
-                                >
-                                    {angka(detail.bbKg!, 1)}
-                                </text>
-                                <rect
-                                    x={kartu.kiri}
-                                    y={kartu.atas}
-                                    width={300}
-                                    height={98}
-                                    rx={8}
-                                    fill="white"
-                                    stroke="#16211C"
-                                    strokeWidth={1.5}
-                                />
-                                <text
-                                    x={kartu.kiri + 12}
-                                    y={kartu.atas + 22}
-                                    fontSize={12}
-                                    fontWeight={600}
-                                    fill="#4A5750"
-                                >
-                                    {tanggalRingkas(detail.tanggalUkur)} · umur{' '}
-                                    {detail.umurBulan} bulan
-                                </text>
-                                <text
-                                    x={kartu.kiri + 12}
-                                    y={kartu.atas + 48}
                                     fontSize={14}
-                                    fontWeight={800}
                                     fill="#16211C"
                                 >
-                                    BB {satuan(detail.bbKg, 'kg')} · {jenis}{' '}
-                                    {satuan(detail.tinggiCm, 'cm')}
+                                    {jenis === 'PB' ? 'Panjang' : 'Tinggi'}{' '}
+                                    badan, cm
                                 </text>
                                 <text
-                                    x={kartu.kiri + 12}
-                                    y={kartu.atas + 76}
-                                    fontSize={13}
-                                    fontWeight={700}
-                                    fill="currentColor"
-                                    className={warnaStatus}
+                                    transform={`translate(18 ${20 + plotTinggi / 2}) rotate(-90)`}
+                                    textAnchor="middle"
+                                    fontSize={14}
+                                    fill="#16211C"
                                 >
-                                    {detail.penilaian.BB_TB
-                                        ? `${zScore(detail.penilaian.BB_TB.z)} SD · ${labelKategoriGizi(detail.penilaian.BB_TB.kategori ?? 'Belum dinilai')}`
-                                        : 'Belum dinilai'}
+                                    Berat badan, kg
                                 </text>
-                            </g>
-                        )}
-                    </svg>
-                    </div>
-                </GrafikDenganAcuan>
+                                {detail && kartu && (
+                                    <g
+                                        pointerEvents="none"
+                                        role="tooltip"
+                                        aria-label="Detail pengukuran berat dan tinggi"
+                                    >
+                                        <line
+                                            x1={kartu.x}
+                                            x2={kartu.x}
+                                            y1={kartu.y}
+                                            y2={bawahGrafik}
+                                            stroke="#16211C"
+                                            strokeDasharray="5 4"
+                                        />
+                                        <line
+                                            x1={62}
+                                            x2={kartu.x}
+                                            y1={kartu.y}
+                                            y2={kartu.y}
+                                            stroke="#16211C"
+                                            strokeDasharray="5 4"
+                                        />
+                                        <rect
+                                            x={kartu.x - 22}
+                                            y={bawahGrafik + 4}
+                                            width={44}
+                                            height={21}
+                                            rx={4}
+                                            fill="#16211C"
+                                        />
+                                        <text
+                                            x={kartu.x}
+                                            y={bawahGrafik + 19}
+                                            textAnchor="middle"
+                                            fontSize={12}
+                                            fontWeight={700}
+                                            fill="white"
+                                        >
+                                            {angka(detail.tinggiCm!, 1)}
+                                        </text>
+                                        <rect
+                                            x={12}
+                                            y={kartu.y - 10}
+                                            width={46}
+                                            height={21}
+                                            rx={4}
+                                            fill="#16211C"
+                                        />
+                                        <text
+                                            x={35}
+                                            y={kartu.y + 5}
+                                            textAnchor="middle"
+                                            fontSize={12}
+                                            fontWeight={700}
+                                            fill="white"
+                                        >
+                                            {angka(detail.bbKg!, 1)}
+                                        </text>
+                                        <rect
+                                            x={kartu.kiri}
+                                            y={kartu.atas}
+                                            width={300}
+                                            height={98}
+                                            rx={8}
+                                            fill="white"
+                                            stroke="#16211C"
+                                            strokeWidth={1.5}
+                                        />
+                                        <text
+                                            x={kartu.kiri + 12}
+                                            y={kartu.atas + 22}
+                                            fontSize={12}
+                                            fontWeight={600}
+                                            fill="#4A5750"
+                                        >
+                                            {tanggalRingkas(detail.tanggalUkur)}{' '}
+                                            · umur {detail.umurBulan} bulan
+                                        </text>
+                                        <text
+                                            x={kartu.kiri + 12}
+                                            y={kartu.atas + 48}
+                                            fontSize={14}
+                                            fontWeight={800}
+                                            fill="#16211C"
+                                        >
+                                            BB {satuan(detail.bbKg, 'kg')} ·{' '}
+                                            {jenis}{' '}
+                                            {satuan(detail.tinggiCm, 'cm')}
+                                        </text>
+                                        <text
+                                            x={kartu.kiri + 12}
+                                            y={kartu.atas + 76}
+                                            fontSize={13}
+                                            fontWeight={700}
+                                            fill="currentColor"
+                                            className={warnaStatus}
+                                        >
+                                            {detail.penilaian.BB_TB
+                                                ? `${zScore(detail.penilaian.BB_TB.z)} SD · ${labelKategoriGizi(detail.penilaian.BB_TB.kategori ?? 'Belum dinilai')}`
+                                                : 'Belum dinilai'}
+                                        </text>
+                                    </g>
+                                )}
+                            </svg>
+                        </div>
+                    </GrafikDenganAcuan>
                 </>
             )}
             <p className="mt-3 text-sm text-muted-foreground">

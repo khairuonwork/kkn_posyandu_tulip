@@ -7,10 +7,15 @@ export const DemoSop = createContext(false);
 
 export function TautanSop({ id, judul }: { id: string; judul: string }) {
     const demo = useContext(DemoSop);
+
     return (
         <a
             className="tombol-kedua"
-            href={demo ? `./sop/${encodeURIComponent(id)}.pdf` : `/api/sop/${encodeURIComponent(id)}`}
+            href={
+                demo
+                    ? `./sop/${encodeURIComponent(id)}.pdf`
+                    : `/api/sop/${encodeURIComponent(id)}`
+            }
             target="_blank"
             rel="noopener"
             aria-label={`Buka ${judul} (PDF, tab baru)`}
@@ -23,9 +28,18 @@ export function TautanSop({ id, judul }: { id: string; judul: string }) {
 
 export function useSopHalaman(jenis?: 'admin' | 'kms') {
     const peran = useContext(PeranSop);
-    if (jenis === undefined || (peran !== 'admin' && !(jenis === 'kms' && peran === 'kms'))) {
+
+    if (
+        jenis === undefined ||
+        (peran !== 'admin' && !(jenis === 'kms' && peran === 'kms'))
+    ) {
         return null;
     }
 
-    return <TautanSop id={jenis} judul={jenis === 'kms' ? 'SOP KMS' : 'SOP Admin Posyandu'} />;
+    return (
+        <TautanSop
+            id={jenis}
+            judul={jenis === 'kms' ? 'SOP KMS' : 'SOP Admin Posyandu'}
+        />
+    );
 }

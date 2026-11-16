@@ -173,7 +173,9 @@ export function BagianPengguna({
                                 {NAMA_PERAN[p.peran]}
                                 {p.peran === 'kms' && (
                                     <span className="block text-sm text-muted-foreground">
-                                        {p.mejaKms == null ? 'Meja belum ditetapkan' : `Meja KMS ${p.mejaKms}`}
+                                        {p.mejaKms == null
+                                            ? 'Meja belum ditetapkan'
+                                            : `Meja KMS ${p.mejaKms}`}
                                     </span>
                                 )}
                             </TableCell>

@@ -49,12 +49,18 @@ export function TabKurva({
                         jenis="kosong"
                         ikonKosong={ChartLine}
                         judul="Kurva KMS belum tersedia"
-                        pesan={tanggalUkurTerakhir
-                            ? `Belum ada data berat badan yang bisa ditampilkan pada kurva. Pengukuran terakhir: ${tanggalPanjang(tanggalUkurTerakhir)}.`
-                            : 'Belum ada data berat badan yang bisa ditampilkan pada kurva.'}
+                        pesan={
+                            tanggalUkurTerakhir
+                                ? `Belum ada data berat badan yang bisa ditampilkan pada kurva. Pengukuran terakhir: ${tanggalPanjang(tanggalUkurTerakhir)}.`
+                                : 'Belum ada data berat badan yang bisa ditampilkan pada kurva.'
+                        }
                     >
                         {pengukuran.length > 0 && (
-                            <button type="button" className="tombol-kedua" onClick={onLihatRiwayat}>
+                            <button
+                                type="button"
+                                className="tombol-kedua"
+                                onClick={onLihatRiwayat}
+                            >
                                 Lihat riwayat ukur
                             </button>
                         )}

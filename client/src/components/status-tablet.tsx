@@ -27,6 +27,15 @@ interface Perangkat {
     status: Status;
     modeKoneksi: string;
     antreanTertunda: number;
+    /** Data yang masih tertahan di tablet beserta alasan penolakan terakhir. */
+    rincianTertunda?: {
+        jenis: 'pengukuran' | 'anak';
+        id: string;
+        idAnak: number | null;
+        tanggal: string | null;
+        status: number | null;
+        galat: string | null;
+    }[];
     akunAktif: boolean;
 }
 interface Respons {
@@ -446,6 +455,38 @@ export default function StatusTablet() {
                                                                 pada laporan
                                                                 terakhir
                                                             </p>
+                                                        )}
+                                                        {(
+                                                            p.rincianTertunda ??
+                                                            []
+                                                        ).length > 0 && (
+                                                            <ul className="mt-1 space-y-0.5 text-amber-950">
+                                                                {(
+                                                                    p.rincianTertunda ??
+                                                                    []
+                                                                ).map((r) => (
+                                                                    <li
+                                                                        key={`${r.jenis}:${r.id}`}
+                                                                    >
+                                                                        {r.jenis ===
+                                                                        'anak'
+                                                                            ? 'Pendaftaran'
+                                                                            : 'Pengukuran'}
+                                                                        {r.idAnak
+                                                                            ? ` anak #${r.idAnak}`
+                                                                            : ''}
+                                                                        {r.tanggal
+                                                                            ? ` · ${r.tanggal}`
+                                                                            : ''}
+                                                                        {r.status
+                                                                            ? ` · HTTP ${r.status}`
+                                                                            : ''}
+                                                                        {r.galat
+                                                                            ? ` · ${r.galat}`
+                                                                            : ''}
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
                                                         )}
                                                         <details className="mt-2">
                                                             <summary className="flex min-h-[44px] cursor-pointer items-center font-semibold text-primary">

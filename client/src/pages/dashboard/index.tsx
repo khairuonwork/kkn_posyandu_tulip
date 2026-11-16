@@ -154,7 +154,9 @@ export default function Dashboard({
     }, [periode.id, rtPilihan, memuat]);
     const tutupForm = () => {
         setFormHariH(false);
-        requestAnimationFrame(() => tombolHariH.current?.focus({ preventScroll: true }));
+        requestAnimationFrame(() =>
+            tombolHariH.current?.focus({ preventScroll: true }),
+        );
     };
     const pilihTab = (id: 'ringkasan' | 'statistik') => {
         if (id !== tabAktif) {
@@ -527,7 +529,9 @@ export default function Dashboard({
                                                 className="tombol-kedua shrink-0 font-bold"
                                                 ref={tombolHariH}
                                                 aria-haspopup="dialog"
-                                                onClick={() => setFormHariH(true)}
+                                                onClick={() =>
+                                                    setFormHariH(true)
+                                                }
                                             >
                                                 Isi kehadiran hari H
                                             </button>
@@ -536,20 +540,20 @@ export default function Dashboard({
                                 {formHariH &&
                                     bolehUbahHariH &&
                                     onSimpanHariH && (
-                                            <FormKehadiranHariH
-                                                key={`${periode.id}:${rtPilihan}`}
-                                                rows={kehadiranHariH.filter(
-                                                    (r) =>
-                                                        rtPilihan === '' ||
-                                                        r.rt === rtPilihan,
-                                                )}
-                                                onSimpan={async (items) => {
-                                                    setPesanHariH(false);
-                                                    await onSimpanHariH(items);
-                                                    setPesanHariH(true);
-                                                }}
-                                                onTutup={tutupForm}
-                                            />
+                                        <FormKehadiranHariH
+                                            key={`${periode.id}:${rtPilihan}`}
+                                            rows={kehadiranHariH.filter(
+                                                (r) =>
+                                                    rtPilihan === '' ||
+                                                    r.rt === rtPilihan,
+                                            )}
+                                            onSimpan={async (items) => {
+                                                setPesanHariH(false);
+                                                await onSimpanHariH(items);
+                                                setPesanHariH(true);
+                                            }}
+                                            onTutup={tutupForm}
+                                        />
                                     )}
                                 {pesanHariH && (
                                     <p
