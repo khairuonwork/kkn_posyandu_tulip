@@ -4,6 +4,7 @@ export type {
     AnakPerluPerhatian,
     AntreanKirim,
     CakupanPeriode,
+    PerbandinganStatusGizi,
     RingkasanBeranda,
     SebaranStatusGizi,
     TitikTren,

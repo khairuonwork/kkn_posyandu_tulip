@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { Pool } from 'pg';
-import { beranda } from '../src/services/beranda-service.ts';
+import { beranda, sebaranLaporan } from '../src/services/beranda-service.ts';
+import type { BarisBertanda } from '../src/services/laporan-perhitungan.ts';
 import type { BarisUkurBeranda } from '../src/repositories/beranda-repository.ts';
 
 const pengguna={id:1,peran:'admin' as const,rt:null,aktif:true,superAdmin:false,posyanduIds:[1]};
@@ -29,10 +30,23 @@ test('filter RT menyaring KPI N/T, tiga distribusi, perhatian, dan semua bulan t
     const hasil=(await beranda(pool,pengguna,'2026-09','01'))!;
     assert.deepEqual(hasil.ringkasan,{sasaran:1,ditimbang:1,naik:0,tidakNaik:1,tanggalUkur:'2026-09-12'});
     assert.equal(hasil.statusGizi.giziBaik,1);
-    assert.equal(hasil.statusBbU.find(p=>p.label==='BB Kurang')!.jumlah,1);
-    assert.equal(hasil.statusTbU.find(p=>p.label==='Pendek')!.jumlah,1);
+    assert.equal(hasil.statusBbU.find(p=>p.label==='BB Normal')!.permenkes,1);
+    assert.equal(hasil.statusTbU.find(p=>p.label==='Belum dinilai')!.permenkes,1);
     assert.equal(hasil.trenGizi.at(-1)!.bbKurang,1);
     assert.equal(hasil.trenGizi.at(-1)!.pendek,1);
     assert.equal(hasil.perluPerhatian.length,1);
     assert.deepEqual(hasil.wilayahRt,['01','02','03']);
+});
+
+test('perbandingan standar menghitung kategori berbeda dan hasil yang belum dinilai', () => {
+    const rows = [
+        { penilaian: { 'PERMENKES-2-2020': { TB_U: {kategori:'Pendek'}, BB_U:{kategori:'Berat badan kurang'} }, 'WHO-2006': { TB_U: {kategori:'Normal'} } } },
+        { penilaian: { 'PERMENKES-2-2020': { TB_U: {kategori:'Sangat pendek'} }, 'WHO-2006': { TB_U: {kategori:'Sangat pendek'}, BB_U:{kategori:'Berat badan normal'} } } },
+        { penilaian: {} },
+    ] as unknown as BarisBertanda[];
+    const tinggi = sebaranLaporan(rows, 'TB_U');
+    assert.deepEqual(tinggi.find(p => p.label === 'Pendek'), {label:'Pendek',permenkes:1,who:0});
+    assert.deepEqual(tinggi.find(p => p.label === 'Sangat pendek'), {label:'Sangat pendek',permenkes:1,who:1});
+    assert.deepEqual(tinggi.find(p => p.label === 'Belum dinilai'), {label:'Belum dinilai',permenkes:1,who:1});
+    assert.deepEqual(sebaranLaporan(rows, 'BB_U').find(p => p.label === 'Belum dinilai'), {label:'Belum dinilai',permenkes:2,who:2});
 });

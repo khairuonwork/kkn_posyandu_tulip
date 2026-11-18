@@ -25,7 +25,6 @@ function nilaiZ(row: BarisRiwayat2T, standard: string, index: string): number | 
 function labelKategori(index: string, kategori: unknown): string | null {
     if (typeof kategori !== "string") return null;
     const label: Record<string, string> = {
-        "Sangat pendek": "Pendek",
         "Berat badan normal": "BB Normal", "Berat badan kurang": "BB Kurang",
         "Berat badan sangat kurang": "BB Sangat Kurang", "Risiko berat badan lebih": "BB Lebih",
         "Gizi baik": index === "BB_TB" ? "B-Gizi Baik" : "Gizi Baik",

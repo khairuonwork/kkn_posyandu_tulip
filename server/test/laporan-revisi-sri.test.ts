@@ -34,6 +34,18 @@ async function ekspor(row: BarisBertanda) {
     return reopened;
 }
 
+test('ekspor membedakan sangat pendek dari pendek pada kedua standar dan lembar', async () => {
+    const row = anak();
+    row.penilaian['PERMENKES-2-2020'].TB_U = {z:-3.06, kategori:'Pendek'};
+    row.penilaian['WHO-2006'].TB_U = {z:-3.02, kategori:'Pendek'};
+    const book = await ekspor(row);
+    for (const [sheet, cols] of [['Rekap Z Score', ['P7','R7']], ['Historis 2T+', ['R7','T7']]] as const) {
+        for (const col of cols) assert.equal(book.getWorksheet(sheet)!.getCell(col).value, 'Sangat pendek');
+    }
+    row.penilaian['WHO-2006'].TB_U = {z:-3, kategori:'Sangat pendek'};
+    assert.equal((await ekspor(row)).getWorksheet('Rekap Z Score')!.getCell('R7').value, 'Pendek');
+});
+
 test('N/T/B mempertahankan B yang ditandai sumber; pembanding hilang bukan otomatis baru', async () => {
     assert.equal(kodeNtb({nt:null,ntobRaw:' B '}), 'B');
     assert.equal(kodeNtb({nt:null,ntobRaw:'T'}), 'T');
@@ -155,7 +167,7 @@ test('umur kedua sheet hanya tahun dan bulan untuk format rapat maupun berspasi'
     const before = JSON.stringify(row.penilaian);
     const book = await ekspor(row);
     assert.equal(JSON.stringify(row.penilaian),before);
-    const labels = ['BB Kurang','Pendek','B-Gizi Baik','Obesitas','Gemuk','Makrosefali'];
+    const labels = ['BB Kurang','Sangat pendek','B-Gizi Baik','Obesitas','Gemuk','Makrosefali'];
     for (const [name,offset] of [['Rekap Z Score',0],['Historis 2T+',2]] as const) {
         for(let i=0;i<6;i++) for(let j=0;j<2;j++) {
             assert.equal(book.getWorksheet(name)!.getCell(7,12+offset+i*4+j*2).value,labels[i]);

@@ -39,6 +39,21 @@ function hadir(baris: BarisUkurBeranda[]): BarisUkurBeranda[] {
     return baris.filter((p) => p.statusKehadiran === "hadir");
 }
 
+export function sebaranLaporan(rows: Awaited<ReturnType<typeof laporan>>['bulanan'], indeks: 'BB_U' | 'TB_U') {
+    const daftar = indeks === 'BB_U'
+        ? [['BB Sangat Kurang', 'Berat badan sangat kurang'], ['BB Kurang', 'Berat badan kurang'],
+            ['BB Normal', 'Berat badan normal'], ['BB Lebih', 'Risiko berat badan lebih']]
+        : [['Sangat pendek', 'Sangat pendek'], ['Pendek', 'Pendek'], ['Normal', 'Normal'], ['Tinggi', 'Tinggi']];
+    const hitung = (standar: string, kategori: string) => rows.filter(row =>
+        row.penilaian[standar]?.[indeks]?.kategori === kategori).length;
+    const hasil = daftar.map(([label, kategori]) => ({
+        label, permenkes: hitung('PERMENKES-2-2020', kategori), who: hitung('WHO-2006', kategori),
+    }));
+    return [...hasil, { label: 'Belum dinilai',
+        permenkes: rows.length - hasil.reduce((sum, row) => sum + row.permenkes, 0),
+        who: rows.length - hasil.reduce((sum, row) => sum + row.who, 0) }];
+}
+
 export async function periode(pool: Pool, pengguna: PenggunaAktif, latihan = false) {
     const daftar = await repo.daftarPeriode(pool, pengguna);
     const terisi = daftar.findLast((p) => p.adaPengukuran);
@@ -74,7 +89,8 @@ export async function beranda(pool: Pool, pengguna: PenggunaAktif, periodeId: st
     ]);
     const menurutBulan = (id: string) => semua.filter((p) => p.periodeId === id && (rt === null || p.rt === rt));
     const bulanIni = hadir(menurutBulan(periodeId));
-    const statusBerat = hasilLaporan.bulanan.filter((p) => rt === null || p.rt === rt).map(kodeNtb);
+    const laporanRt = hasilLaporan.bulanan.filter((p) => rt === null || p.rt === rt);
+    const statusBerat = laporanRt.map(kodeNtb);
     const kategori = (nama: string) => bulanIni.filter((p) => p.bbTb?.kategori === nama).length;
     const terukur = bulanIni.reduce<string | null>(
         (maks, p) => maks === null || p.tanggalUkur > maks ? p.tanggalUkur : maks,
@@ -107,18 +123,12 @@ export async function beranda(pool: Pool, pengguna: PenggunaAktif, periodeId: st
     }).sort((a, b) => a.prioritas - b.prioritas || b.berat - a.berat)
       .map(({ prioritas: _prioritas, berat: _berat, ...p }) => p);
 
-    const sebaran = (indeks: 'bbU' | 'tbU', daftar: [string, string[]][]) => daftar.map(([label, kategori]) => ({
-        label, jumlah: bulanIni.filter(p => kategori.includes(p[indeks]?.kategori ?? '')).length,
-    }));
     return {
         wilayahRt,
         kehadiranHariH: hariH.filter(r => r.periodeId === periodeId),
         bolehUbahHariH: boleh(pengguna.peran,'ubah-pengukuran'),
-        statusBbU: sebaran('bbU', [
-            ['BB Sangat Kurang', ['Berat badan sangat kurang']], ['BB Kurang', ['Berat badan kurang']],
-            ['BB Normal', ['Berat badan normal']], ['BB Lebih', ['Risiko berat badan lebih']],
-        ]),
-        statusTbU: sebaran('tbU', [['Pendek', ['Pendek', 'Sangat pendek']], ['Normal', ['Normal']], ['Tinggi', ['Tinggi']]]),
+        statusBbU: sebaranLaporan(laporanRt, 'BB_U'),
+        statusTbU: sebaranLaporan(laporanRt, 'TB_U'),
         ringkasan: {
             // Sasaran unggahan mengikat bila tersedia; arsip lama memakai
             // jumlah anak dengan rekam periode itu, tanpa angka demo.

@@ -275,7 +275,14 @@ export function TabelAnak({
                                 </span>
                                 <Pemicu baris={baris} />
                                 <Risiko baris={baris} />
-                                <span className="mt-1 block text-sm text-muted-foreground">WhatsApp: {baris.waTerkirim == null ? 'Status belum tersedia' : baris.waTerkirim ? 'Sudah dikirim — dikonfirmasi kader' : 'Belum dikonfirmasi'}</span>
+                                <span className="mt-1 block text-sm text-muted-foreground">
+                                    WhatsApp:{' '}
+                                    {baris.waTerkirim == null
+                                        ? 'Status belum tersedia'
+                                        : baris.waTerkirim
+                                          ? 'Sudah dikirim — dikonfirmasi kader'
+                                          : 'Belum dikonfirmasi'}
+                                </span>
                             </span>
                             <ChevronRight
                                 className="size-5 shrink-0 text-muted-foreground"
@@ -337,7 +344,14 @@ export function TabelAnak({
                                             NIK belum lengkap
                                         </span>
                                     )}
-                                    <span className="block pb-1 text-sm text-muted-foreground">WhatsApp: {baris.waTerkirim == null ? 'Status belum tersedia' : baris.waTerkirim ? 'Sudah dikirim — dikonfirmasi kader' : 'Belum dikonfirmasi'}</span>
+                                    <span className="block pb-1 text-sm text-muted-foreground">
+                                        WhatsApp:{' '}
+                                        {baris.waTerkirim == null
+                                            ? 'Status belum tersedia'
+                                            : baris.waTerkirim
+                                              ? 'Sudah dikirim — dikonfirmasi kader'
+                                              : 'Belum dikonfirmasi'}
+                                    </span>
                                 </TableCell>
                                 <TableCell className="whitespace-nowrap">
                                     {umurRingkas(baris.umurBulan)}

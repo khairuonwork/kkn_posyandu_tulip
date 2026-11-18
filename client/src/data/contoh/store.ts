@@ -973,7 +973,8 @@ export function sebaranIndeks(
                   ['BB Lebih', ['Risiko berat badan lebih']],
               ] as const)
             : ([
-                  ['Pendek', ['Pendek', 'Sangat pendek']],
+                  ['Sangat pendek', ['Sangat pendek']],
+                  ['Pendek', ['Pendek']],
                   ['Normal', ['Normal']],
                   ['Tinggi', ['Tinggi']],
               ] as const);
@@ -981,15 +982,26 @@ export function sebaranIndeks(
         (p) => p.statusKehadiran === 'hadir',
     );
 
-    return kategori.map(([label, labels]) => ({
+    const hasil = kategori.map(([label, labels]) => ({
         label,
-        jumlah: rows.filter(
-            (p) =>
-                (labels as readonly string[]).includes(
-                    p.penilaian[indeks]?.kategori ?? '',
-                ) && p.penilaian[indeks]?.tidakWajar !== true,
+        permenkes: rows.filter((p) =>
+            (labels as readonly string[]).includes(
+                p.penilaian[indeks]?.kategori ?? '',
+            ),
         ).length,
+        who: null,
     }));
+
+    return [
+        ...hasil,
+        {
+            label: 'Belum dinilai',
+            permenkes:
+                rows.length -
+                hasil.reduce((sum, row) => sum + row.permenkes, 0),
+            who: null,
+        },
+    ];
 }
 
 /** Menghasilkan dataset sasaran bulanan demo untuk pratinjau tanpa API live. */

@@ -236,11 +236,19 @@ export async function daftar(
                         SELECT 1 FROM sasaran pindah JOIN periode pp ON pp.id=pindah.periode_id
                          WHERE pindah.anak_id=a.id AND pindah.status='pindah'
                            AND make_date(pp.tahun,pp.bulan,1) < ($8 || '-01')::date
+                           AND NOT EXISTS (SELECT 1 FROM pengukuran kembali JOIN periode pk ON pk.id=kembali.periode_id
+                               WHERE kembali.anak_id=a.id AND kembali.status_kehadiran='hadir'
+                                 AND make_date(pk.tahun,pk.bulan,1) > make_date(pp.tahun,pp.bulan,1)
+                                 AND make_date(pk.tahun,pk.bulan,1) <= ($8 || '-01')::date)
                     )
                     AND NOT EXISTS (
                         SELECT 1 FROM pengukuran pindah JOIN periode pp ON pp.id=pindah.periode_id
                          WHERE pindah.anak_id=a.id AND pindah.status_kehadiran='pindah'
                            AND make_date(pp.tahun,pp.bulan,1) < ($8 || '-01')::date
+                           AND NOT EXISTS (SELECT 1 FROM pengukuran kembali JOIN periode pk ON pk.id=kembali.periode_id
+                               WHERE kembali.anak_id=a.id AND kembali.status_kehadiran='hadir'
+                                 AND make_date(pk.tahun,pk.bulan,1) > make_date(pp.tahun,pp.bulan,1)
+                                 AND make_date(pk.tahun,pk.bulan,1) <= ($8 || '-01')::date)
                     )
                 END AS "aktifPeriode" ${dasar}
              ORDER BY a.nama_baku, a.id

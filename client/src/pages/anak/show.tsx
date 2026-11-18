@@ -283,20 +283,68 @@ export default function DetailAnak({
                 </>
             }
         >
-            <div className="mb-5 rounded-lg border border-border-strong px-4 py-3" aria-live="polite">
-                <p className="font-semibold">WhatsApp · {periode.label}: {waTerkirim === null ? 'Status belum tersedia' : waTerkirim ? 'Sudah dikirim — dikonfirmasi kader' : 'Belum dikonfirmasi'}</p>
-                <p className="text-sm text-muted-foreground">Status ini dicatat oleh kader setelah mengirim pesan di WhatsApp.</p>
-                {waTerkirim === null && <p className="text-sm text-muted-foreground">Jika status tidak muncul, muat ulang halaman untuk mencoba lagi.</p>}
-                {peran !== 'kms' && NOMOR_UJI !== null && sumberLive && <p className="text-sm text-muted-foreground">Mode nomor uji aktif; konfirmasi pengiriman ke orang tua dinonaktifkan.</p>}
-                {peran !== 'kms' && onKonfirmasiWa && waTerkirim !== null && terbaru !== null && !(NOMOR_UJI !== null && sumberLive) && (
-                    <button type="button" className="tombol-kedua mt-2" disabled={menyimpanWa} onClick={async () => {
-                        setMenyimpanWa(true); setGalatWa('');
-                        try { await onKonfirmasiWa(!waTerkirim); }
-                        catch { setGalatWa('Status belum tersimpan. Coba lagi.'); }
-                        finally { setMenyimpanWa(false); }
-                    }}>{waTerkirim ? 'Batalkan konfirmasi' : 'Tandai sudah dikirim'}</button>
+            <div
+                className="mb-5 rounded-lg border border-border-strong px-4 py-3"
+                aria-live="polite"
+            >
+                <p className="font-semibold">
+                    WhatsApp · {periode.label}:{' '}
+                    {waTerkirim === null
+                        ? 'Status belum tersedia'
+                        : waTerkirim
+                          ? 'Sudah dikirim — dikonfirmasi kader'
+                          : 'Belum dikonfirmasi'}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                    Status ini dicatat oleh kader setelah mengirim pesan di
+                    WhatsApp.
+                </p>
+                {waTerkirim === null && (
+                    <p className="text-sm text-muted-foreground">
+                        Jika status tidak muncul, muat ulang halaman untuk
+                        mencoba lagi.
+                    </p>
                 )}
-                {galatWa && <p role="alert" className="text-sm text-tone-amber">{galatWa}</p>}
+                {peran !== 'kms' && NOMOR_UJI !== null && sumberLive && (
+                    <p className="text-sm text-muted-foreground">
+                        Mode nomor uji aktif; konfirmasi pengiriman ke orang tua
+                        dinonaktifkan.
+                    </p>
+                )}
+                {peran !== 'kms' &&
+                    onKonfirmasiWa &&
+                    waTerkirim !== null &&
+                    terbaru !== null &&
+                    !(NOMOR_UJI !== null && sumberLive) && (
+                        <button
+                            type="button"
+                            className="tombol-kedua mt-2"
+                            disabled={menyimpanWa}
+                            onClick={async () => {
+                                setMenyimpanWa(true);
+                                setGalatWa('');
+
+                                try {
+                                    await onKonfirmasiWa(!waTerkirim);
+                                } catch {
+                                    setGalatWa(
+                                        'Status belum tersimpan. Coba lagi.',
+                                    );
+                                } finally {
+                                    setMenyimpanWa(false);
+                                }
+                            }}
+                        >
+                            {waTerkirim
+                                ? 'Batalkan konfirmasi'
+                                : 'Tandai sudah dikirim'}
+                        </button>
+                    )}
+                {galatWa && (
+                    <p role="alert" className="text-sm text-tone-amber">
+                        {galatWa}
+                    </p>
+                )}
             </div>
             {peran !== 'kms' && alasanTanpaWa !== null && (
                 <p

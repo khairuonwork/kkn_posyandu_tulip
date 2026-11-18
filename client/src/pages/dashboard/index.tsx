@@ -18,6 +18,7 @@ import CakupanPenimbangan, {
 import EmptyState from '@/components/empty-state';
 import Halaman from '@/components/halaman';
 import StateHalaman from '@/components/state-halaman';
+import { IKON, KELAS, nadaKategori } from '@/components/status-gizi-badge';
 import { pecahan, persenSaja, tanggalTanpaTahun } from '@/lib/format';
 import type { Periode } from '@/types/posyandu';
 import {
@@ -37,6 +38,7 @@ import type {
     AntreanKirim,
     CakupanPeriode,
     RingkasanBeranda,
+    PerbandinganStatusGizi,
     SebaranStatusGizi,
     TitikTren,
 } from './tipe';
@@ -45,6 +47,7 @@ export type {
     AntreanKirim,
     CakupanPeriode,
     RingkasanBeranda,
+    PerbandinganStatusGizi,
     SebaranStatusGizi,
     TitikTren,
 } from './tipe';
@@ -55,8 +58,8 @@ type Props = {
     rtPilihan?: string;
     wilayahRt?: string[];
     onPilihRt?: (rt: string) => void;
-    statusBbU?: { label: string; jumlah: number }[];
-    statusTbU?: { label: string; jumlah: number }[];
+    statusBbU?: PerbandinganStatusGizi[];
+    statusTbU?: PerbandinganStatusGizi[];
     periode: Periode;
     ringkasan: RingkasanBeranda;
     statusGizi: SebaranStatusGizi;
@@ -422,15 +425,6 @@ export default function Dashboard({
                                             rows: statusTbU,
                                         },
                                     ].map(({ judul, sub, rows }) => {
-                                        const belumDinilai = Math.max(
-                                            0,
-                                            ringkasan.ditimbang -
-                                                rows.reduce(
-                                                    (sum, r) => sum + r.jumlah,
-                                                    0,
-                                                ),
-                                        );
-
                                         return (
                                             <section
                                                 key={judul}
@@ -441,19 +435,91 @@ export default function Dashboard({
                                                     sub={sub}
                                                     hijau
                                                 />
-                                                <ul className="mt-4 divide-y divide-rule">
-                                                    {rows.map((row) => (
-                                                        <PetakGizi
-                                                            key={row.label}
-                                                            label={row.label}
-                                                            nilai={row.jumlah}
-                                                        />
-                                                    ))}
-                                                    <PetakGizi
-                                                        label="Belum dinilai"
-                                                        nilai={belumDinilai}
-                                                    />
-                                                </ul>
+                                                <table className="mt-4 w-full table-fixed text-sm">
+                                                    <thead>
+                                                        <tr className="border-b border-rule text-muted-foreground">
+                                                            <th
+                                                                scope="col"
+                                                                className="w-1/2 py-2 text-left"
+                                                            >
+                                                                Kategori
+                                                            </th>
+                                                            <th
+                                                                scope="col"
+                                                                className="py-2 text-center"
+                                                            >
+                                                                Permenkes
+                                                                <br />
+                                                                2/2020
+                                                            </th>
+                                                            <th
+                                                                scope="col"
+                                                                className="py-2 text-center"
+                                                            >
+                                                                WHO
+                                                                <br />
+                                                                2006
+                                                            </th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-rule">
+                                                        {rows.map((row) => {
+                                                            const nada =
+                                                                nadaKategori(
+                                                                    row.label,
+                                                                );
+                                                            const Ikon =
+                                                                IKON[nada];
+
+                                                            return (
+                                                                <tr
+                                                                    key={
+                                                                        row.label
+                                                                    }
+                                                                >
+                                                                    <th
+                                                                        scope="row"
+                                                                        className="py-3 text-left font-medium"
+                                                                    >
+                                                                        <span className="flex items-center gap-2">
+                                                                            <span
+                                                                                className={`flex size-7 shrink-0 items-center justify-center rounded-md ${row.permenkes === 0 && (row.who === 0 || row.who === null) && nada !== 'hijau' ? 'bg-surface text-muted-foreground' : KELAS[nada]}`}
+                                                                            >
+                                                                                <Ikon
+                                                                                    className="size-4"
+                                                                                    strokeWidth={
+                                                                                        2
+                                                                                    }
+                                                                                    aria-hidden="true"
+                                                                                />
+                                                                            </span>
+                                                                            <span>
+                                                                                {
+                                                                                    row.label
+                                                                                }
+                                                                            </span>
+                                                                        </span>
+                                                                    </th>
+                                                                    <td className="py-3 text-center font-bold tabular-nums">
+                                                                        {
+                                                                            row.permenkes
+                                                                        }
+                                                                    </td>
+                                                                    <td className="py-3 text-center font-bold tabular-nums">
+                                                                        {row.who ??
+                                                                            '—'}
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                                {!sumberLive && (
+                                                    <p className="mt-3 text-xs text-muted-foreground">
+                                                        Data contoh WHO tidak
+                                                        tersedia.
+                                                    </p>
+                                                )}
                                             </section>
                                         );
                                     })}

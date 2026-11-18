@@ -6,6 +6,12 @@ export type RingkasanBeranda = {
     tanggalUkur: string | null;
 };
 
+export type PerbandinganStatusGizi = {
+    label: string;
+    permenkes: number;
+    who: number | null;
+};
+
 export type SebaranStatusGizi = {
     giziBaik: number;
     giziKurang: number;

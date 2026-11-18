@@ -219,10 +219,16 @@ export default function TabelLaporan({
                                             </td>
                                             <td className="px-4 py-3.5 pr-5 font-semibold">
                                                 <StatusGiziBadge
-                                                    kategori={kesimpulanZScore(
-                                                        assessment?.kategori,
-                                                        assessment?.z,
-                                                    )}
+                                                    kategori={
+                                                        assessment?.kategori ===
+                                                        'Sangat pendek'
+                                                            ? 'Sangat pendek'
+                                                            : kesimpulanZScore(
+                                                                  assessment?.kategori,
+                                                                  assessment?.z,
+                                                              )
+                                                    }
+                                                    formatAsli
                                                     rapat
                                                 />
                                             </td>

@@ -8,6 +8,7 @@ import type {
     AnakPerluPerhatian,
     CakupanPeriode,
     RingkasanBeranda,
+    PerbandinganStatusGizi,
     SebaranStatusGizi,
     TitikTren,
 } from '@/pages/dashboard';
@@ -18,8 +19,8 @@ export type DataBeranda = {
     bolehUbahHariH?: boolean;
     ringkasan: RingkasanBeranda;
     wilayahRt?: string[];
-    statusBbU?: { label: string; jumlah: number }[];
-    statusTbU?: { label: string; jumlah: number }[];
+    statusBbU?: PerbandinganStatusGizi[];
+    statusTbU?: PerbandinganStatusGizi[];
     sasaranHistoris: boolean;
     statusGizi: SebaranStatusGizi;
     cakupanEnamBulan: CakupanPeriode[];
