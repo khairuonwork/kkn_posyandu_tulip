@@ -417,6 +417,7 @@ export function DaftarPerhatian({ anak }: { anak: AnakPerluPerhatian[] }) {
                                         </span>
                                         <StatusGiziBadge
                                             kategori={a.kategori}
+                                            solid
                                         />
                                     </span>
                                     {/* Baris alasan wajib ada: angka tanpa

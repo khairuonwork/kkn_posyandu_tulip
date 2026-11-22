@@ -14,7 +14,7 @@ import type { Pool } from "pg";
 import { ruteAuth } from "./auth-controller.ts";
 import { ruteAntrean } from "./antrean-controller.ts";
 import { lupakanCacheBeranda, ruteBeranda } from "./beranda-controller.ts";
-import { ruteAnak } from "./anak-controller.ts";
+import { lupakanCacheSinkronisasi, ruteAnak } from "./anak-controller.ts";
 import { ruteKonfirmasiWa } from './konfirmasi-wa-controller.ts';
 import { ruteLembar } from "./lembar-controller.ts";
 import { ruteLaporan } from "./laporan-controller.ts";
@@ -124,6 +124,7 @@ export function buatApp(
         res.once("finish", () => {
             if (req.method !== "GET" && res.statusCode < 400 && !/heartbeat|masuk|keluar/.test(req.path)) {
                 lupakanCacheBeranda();
+                lupakanCacheSinkronisasi();
             }
             if (/\/masuk/.test(req.path)) return;
             if (req.method === "GET" && res.statusCode < 400 && !/antrean|sinkronisasi|sasaran/.test(req.path)) return;

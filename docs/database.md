@@ -8,6 +8,8 @@
 
 Bentuk tabel, relasi antar tabel, dan aturan integritas SIMPATIK Posyandu. Migrasi berada di `server/db/migrations/`; `030_panggilan_kms.sql` menambahkan penugasan meja dan catatan panggilan KMS, sedangkan 031–034 menambahkan data layanan dan penyesuaian pelatihan.
 
+Setiap tabel di skema `public` menyalakan RLS tanpa policy, dan peran Data API Supabase (`anon`, `authenticated`) tidak punya hak apa pun di sana (`040_tutup_akses_data_api.sql`). Hanya server, sebagai pemilik tabel, yang membaca dan menulis. Tabel baru wajib ikut `ALTER TABLE … ENABLE ROW LEVEL SECURITY` di migrasinya.
+
 Kenapa bentuknya begini dan bukan yang lain, ada di [ADR-0001](adr/0001-primary-key-strategy.md) (kunci utama) dan [ADR-0006](adr/0006-pindah-ke-express-react-postgres.md) (pindah ke PostgreSQL). Aturan data yang mengikat seluruh sistem — DR-01 sampai DR-11 yang berkali-kali dirujuk di bawah — ada di [PRD utama](prd/prd-utama.md).
 
 ---

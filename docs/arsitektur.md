@@ -45,6 +45,8 @@ Dua dependensi runtime di seluruh server: `express` dan `pg`. Di client tujuh: `
 
 **Otorisasi ditegakkan server, bukan antarmuka.** Menyembunyikan menu hanya membuat antarmuka jujur; yang mengikat adalah `wajibBoleh()`.
 
+**Data hanya lewat API SIMPATIK.** Web dan APK tidak memakai Supabase secara langsung (Data API `/rest/v1`, `supabase-js`, Supabase Auth). Server tersambung sebagai pemilik tabel; peran `anon` dan `authenticated` tidak punya hak di skema `public`, dan setiap tabel menyalakan RLS tanpa policy (migrasi `040`). Fitur yang kelak ingin memakai Supabase langsung harus menambahkan `GRANT` dan policy secara sengaja, per tabel.
+
 **Tidak ada abstraksi tanpa pemakai kedua.** Tidak ada antarmuka repository dengan satu implementasi, tidak ada lapisan service untuk controller yang hanya memanggil satu query.
 
 **Tanpa dependensi yang dapat digantikan beberapa baris.** Pengurai cookie dan pelari migrasi ditulis sendiri karena masing-masing muat dalam belasan baris. Pembatas percobaan masuk (`server/src/http/batas-masuk.ts`) juga ditulis sendiri: hitungan per akun, per perangkat dikenal, dan per IP, dengan salinan di tabel `percobaan_masuk` agar bertahan saat restart. Pustaka rate limit umum tidak menyediakan aturan perangkat dikenal itu.

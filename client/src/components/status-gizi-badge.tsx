@@ -78,6 +78,24 @@ export const KELAS: Record<Nada, string> = {
     netral: 'bg-surface-alt text-muted-foreground',
 };
 
+/** Latar solid untuk daftar yang tugasnya menarik perhatian (Perlu perhatian). */
+const KELAS_SOLID: Record<Nada, string> = {
+    merah: 'bg-tone-red text-white',
+    oranye: 'bg-tone-amber text-white',
+    hijau: 'bg-tone-green text-white',
+    biru: 'bg-tone-blue text-white',
+    netral: 'bg-surface-alt text-muted-foreground',
+};
+
+/** Warna teks dan ikon saat status tampil tanpa lencana. */
+const KELAS_TEKS: Record<Nada, string> = {
+    merah: 'text-tone-red',
+    oranye: 'text-tone-amber',
+    hijau: 'text-tone-green',
+    biru: 'text-tone-blue',
+    netral: 'text-muted-foreground',
+};
+
 export function nadaKategori(kategori: string | null): Nada {
     if (kategori === null) {
         return 'netral';
@@ -106,6 +124,13 @@ type Props = {
     rapat?: boolean;
     /** Gunakan format teks asli alih-alih kesimpulan Normal/Gemuk/Kurang. */
     formatAsli?: boolean;
+    /** Latar solid, teks putih: untuk daftar peringatan yang pendek. */
+    solid?: boolean;
+    /**
+     * Ikon dan teks berwarna tanpa lencana, untuk kolom tabel. Kategori hijau
+     * tetap berteks biasa supaya yang perlu tindakan lebih menonjol.
+     */
+    teks?: boolean;
 };
 
 export default function StatusGiziBadge({
@@ -113,6 +138,8 @@ export default function StatusGiziBadge({
     tenang = false,
     rapat = false,
     formatAsli = false,
+    solid = false,
+    teks = false,
 }: Props) {
     // Tampilkan informasi kesimpulan langsung (Normal, Gemuk, Kurang)
     const teksTampil = formatAsli
@@ -120,6 +147,25 @@ export default function StatusGiziBadge({
         : kesimpulanZScore(kategori);
     const nada = nadaKategori(teksTampil);
     const Ikon = IKON[nada];
+
+    if (teks) {
+        return (
+            <span
+                className={`inline-flex items-center gap-1.5 text-sm whitespace-nowrap ${
+                    nada === 'hijau'
+                        ? 'text-foreground'
+                        : `font-bold ${KELAS_TEKS[nada]}`
+                }`}
+            >
+                <Ikon
+                    className={`size-4 shrink-0 ${KELAS_TEKS[nada]}`}
+                    strokeWidth={2.5}
+                    aria-hidden="true"
+                />
+                {teksTampil ?? 'Belum dinilai'}
+            </span>
+        );
+    }
 
     if (tenang && nada === 'hijau') {
         return (
@@ -141,7 +187,7 @@ export default function StatusGiziBadge({
                hijau solid. */
             className={`inline-flex items-center gap-1.5 rounded-md text-sm font-bold whitespace-nowrap ${
                 rapat ? 'px-2 py-0.5' : 'px-3 py-1'
-            } ${KELAS[nada]}`}
+            } ${solid ? KELAS_SOLID[nada] : KELAS[nada]}`}
         >
             <Ikon
                 className="size-4 shrink-0"

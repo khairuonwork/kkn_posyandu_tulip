@@ -29,6 +29,8 @@ export async function dataLaporan(
     pool: Pool,
     pengguna: PenggunaAktif,
     sampai: string,
+    /** YYYY-MM paling awal yang dibaca; null = seluruh riwayat. */
+    sejak: string | null = null,
 ): Promise<BarisLaporan[]> {
     const { rows } = await pool.query<BarisLaporan>(
         `SELECT a.id AS "anakId", a.nama, a.nik,
@@ -63,9 +65,10 @@ export async function dataLaporan(
            LEFT JOIN sasaran sas ON sas.periode_id = p.periode_id AND sas.anak_id = p.anak_id
           WHERE a.deleted_at IS NULL
             AND make_date(pe.tahun, pe.bulan, 1) <= ($1 || '-01')::date
+            AND ($4::text IS NULL OR make_date(pe.tahun, pe.bulan, 1) >= ($4 || '-01')::date)
             AND ($2::boolean OR wr.posyandu_id=ANY($3::bigint[]))
           ORDER BY a.nama_baku, p.tanggal_ukur, p.id`,
-        [sampai, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
+        [sampai, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? [], sejak],
     );
     return rows;
 }

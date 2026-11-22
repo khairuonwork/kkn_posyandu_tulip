@@ -10,6 +10,8 @@ import { Router } from "express";
 import type { Response } from "express";
 import type { Pool } from "pg";
 import { daftarRt } from "../repositories/beranda-repository.ts";
+import type { PenggunaAktif } from "../auth/peran.ts";
+import { konteksPelatihan } from "./pelatihan-context.ts";
 
 import { tolakKaderWeb, wajibBoleh, wajibLihatDataWeb } from "./middleware.ts";
 import {
@@ -22,6 +24,21 @@ import {
     sinkronisasi,
     ubahProfil,
 } from "../services/anak-service.ts";
+
+/**
+ * APK menarik paket sinkronisasi penuh setiap 15 detik per tablet. Paket yang
+ * sama dipakai bersama per cakupan selama UMUR_CACHE_SINKRONISASI_MS supaya
+ * tidak setiap tarikan dibaca ulang dari Supabase. Setiap tulis yang berhasil
+ * menaikkan `generasiTulis` sehingga tarikan berikutnya membaca data baru.
+ */
+// ponytail: cache per proses. Tulis lewat server lain ke DB yang sama baru terlihat
+// setelah UMUR_CACHE_SINKRONISASI_MS; pakai LISTEN/NOTIFY bila itu jadi masalah.
+const UMUR_CACHE_SINKRONISASI_MS = 60_000;
+let generasiTulis = 0;
+
+export function lupakanCacheSinkronisasi(): void {
+    generasiTulis++;
+}
 
 function idDari(teks: string | string[] | undefined): number | null {
     if (typeof teks !== "string") {
@@ -114,12 +131,36 @@ export function ruteAnak(pool: Pool): Router {
         },
     );
 
+    // Per router, jadi aplikasi (dan uji) dengan pool berbeda tidak berbagi isi.
+    const cacheSinkronisasi = new Map<string, { sampai: number; generasi: number; hasil: ReturnType<typeof sinkronisasi> }>();
+    const sinkronisasiBersama = (pengguna: PenggunaAktif) => {
+        const kunci = JSON.stringify([pengguna.superAdmin ?? false,
+            [...(pengguna.posyanduIds ?? [])].sort((a, b) => a - b)]);
+        const sekarang = Date.now();
+        const ada = cacheSinkronisasi.get(kunci);
+
+        if (ada && ada.sampai > sekarang && ada.generasi === generasiTulis) {
+            return ada.hasil;
+        }
+
+        const hasil = sinkronisasi(pool, pengguna);
+        cacheSinkronisasi.set(kunci, { sampai: sekarang + UMUR_CACHE_SINKRONISASI_MS, generasi: generasiTulis, hasil });
+        hasil.catch(() => {
+            if (cacheSinkronisasi.get(kunci)?.hasil === hasil) cacheSinkronisasi.delete(kunci);
+        });
+
+        return hasil;
+    };
+
     rute.get(
         "/sinkronisasi",
         wajibBoleh("lihat-anak"),
         async (req, res, next) => {
             try {
-                res.json(await sinkronisasi(pool, req.pengguna!));
+                // Ruang pelatihan memakai data latihannya sendiri: tidak ikut cache.
+                res.json(konteksPelatihan.getStore()?.id
+                    ? await sinkronisasi(pool, req.pengguna!)
+                    : await sinkronisasiBersama(req.pengguna!));
             } catch (galat) {
                 next(galat);
             }

@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
-import ilustrasiPosyandu from '@/assets/login-posyandu-illustration-v1.png';
+import ilustrasiPosyandu from '@/assets/login-posyandu-illustration-v1.webp';
 import { Head } from '@/lib/nav';
 import './login.css';
 

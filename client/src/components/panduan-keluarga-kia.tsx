@@ -9,7 +9,7 @@ import {
     Utensils,
     TriangleAlert,
 } from 'lucide-react';
-import keluarga from '@/assets/edukasi-keluarga-kia-v1.png';
+import keluarga from '@/assets/edukasi-keluarga-kia-v1.webp';
 import { tanggalPanjang } from '@/lib/format';
 import type { EdukasiLembarKia } from '@/lib/lembar';
 import './panduan-keluarga-kia.css';

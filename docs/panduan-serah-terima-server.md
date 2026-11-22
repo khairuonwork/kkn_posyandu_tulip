@@ -75,6 +75,7 @@ Port bawaan API `4321` di loopback (`127.0.0.1`); untuk LAN, skrip QA mengikat h
 - Rahasia disimpan pada secret manager atau `server/.env` lokal yang diabaikan Git. Bila secret pernah dibagikan di chat atau repo, rotasi dari dashboard penyedia.
 - Android dan browser hanya menerima URL API publik serta token/sesi sesuai mekanisme autentikasi; tidak menerima `DATABASE_URL`, password PostgreSQL, service-role/secret key.
 - Gunakan akun DB berhak minimum yang dibutuhkan aplikasi. Pisahkan kredensial migrasi bila penyedia dan rancangan deployment mendukungnya.
+- Aplikasi tidak memakai Data API Supabase. Biarkan Data API dan pendaftaran pengguna Supabase Auth mati, dan jangan memberi `GRANT` ke `anon`/`authenticated` di skema `public` (lihat migrasi `040`).
 - Jangan mencatat kata sandi, token, cookie, isi pengukuran, atau query berisi data pribadi. Endpoint login saat ini hanya mencatat metadata aman yang dipilih. Log `[Galat Tulis]` hanya memuat metode, path, status, ID pengguna, IP, dan nama field isian, tanpa nilainya.
 - Pembatas percobaan masuk membaca IP dari `req.ip`. Bila API berada di balik reverse proxy, atur `TRUST_PROXY` sesuai proxy tersebut; tanpa itu semua pengguna terlihat berasal dari satu IP.
 - Periksa izin di server (`wajibMasuk`, `wajibBoleh`); menyembunyikan tombol di UI bukan kontrol akses.

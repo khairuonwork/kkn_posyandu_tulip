@@ -1,8 +1,8 @@
 import { AlertTriangle, ArrowRight, RotateCcw, SearchX } from 'lucide-react';
 import EmptyState from '@/components/empty-state';
-import JenisKelaminBadge from '@/components/jenis-kelamin-badge';
+import JenisKelaminTeks from '@/components/jenis-kelamin';
 import StatusGiziBadge from '@/components/status-gizi-badge';
-import { angka, tanggalRingkas, zScore } from '@/lib/format';
+import { angka, KOSONG, tanggalRingkas, zScore } from '@/lib/format';
 import { kesimpulanZScore } from '@/lib/kategori';
 import type { BarisLaporanLive } from '@/lib/laporan';
 import { Link } from '@/lib/nav';
@@ -165,18 +165,31 @@ export default function TabelLaporan({
                                     }`}
                                 >
                                     <td className="px-4 py-3.5 pl-5 whitespace-nowrap">
-                                        <div className="flex items-center gap-2">
-                                            <Link
-                                                href={`/balita/${row.anakId}`}
-                                                className="font-extrabold text-foreground underline-offset-4 hover:text-primary hover:underline"
-                                            >
-                                                {row.nama}
-                                            </Link>
-                                            <JenisKelaminBadge jk={row.jk} />
-                                        </div>
-                                        <p className="mt-0.5 font-mono text-xs text-muted-foreground">
-                                            {row.nik ?? 'NIK belum tercatat'} ·
-                                            Ibu: {row.namaOrtu ?? '—'}
+                                        <Link
+                                            href={`/balita/${row.anakId}`}
+                                            className="font-extrabold text-foreground underline-offset-4 hover:text-primary hover:underline"
+                                        >
+                                            {row.nama}
+                                        </Link>
+                                        {/* Kelompok dipisah jarak dan hierarki label/nilai, bukan tanda baca. */}
+                                        <p className="mt-0.5 flex items-center gap-3 text-xs text-muted-foreground">
+                                            <JenisKelaminTeks jk={row.jk} />
+                                            {row.nik === null ? (
+                                                <span>NIK belum tercatat</span>
+                                            ) : (
+                                                <span>
+                                                    NIK{' '}
+                                                    <span className="font-mono font-semibold text-foreground">
+                                                        {row.nik}
+                                                    </span>
+                                                </span>
+                                            )}
+                                            <span>
+                                                Ibu{' '}
+                                                <span className="font-semibold text-foreground">
+                                                    {row.namaOrtu ?? KOSONG}
+                                                </span>
+                                            </span>
                                         </p>
                                     </td>
                                     <td className="px-4 py-3.5 tabular-nums">

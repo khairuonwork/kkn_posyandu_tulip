@@ -73,13 +73,22 @@ export default function KmsSelesai({
                         }
                     });
 
+            // Tab yang tidak dilihat tidak memuat ulang.
+            const segarkan = () => {
+                if (!document.hidden) {
+                    ambil();
+                }
+            };
+
             ambil();
 
-            const timer = window.setInterval(ambil, 3000);
+            const timer = window.setInterval(segarkan, 3000);
+            document.addEventListener('visibilitychange', segarkan);
 
             return () => {
                 controller.abort();
                 window.clearInterval(timer);
+                document.removeEventListener('visibilitychange', segarkan);
             };
         }
 

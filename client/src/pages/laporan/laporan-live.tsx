@@ -173,14 +173,105 @@ export default function LaporanDataLive({
         return list;
     }, [tab, data?.bulanan, daftarT, rtDipilih, cari, kategoriT]);
 
-    if (laporan.status !== 'siap') {
+    // Kepala halaman sama saat memuat dan sesudahnya, supaya isi tidak bergeser
+    // turun ketika data tiba (CLS).
+    const siap = laporan.status === 'siap';
+    const judul =
+        tab === 'zscore'
+            ? 'Laporan & Rekapitulasi Gizi Posyandu'
+            : 'Laporan Pemantauan Balita Tidak Naik (1T & 2T+)';
+    const subjudul =
+        tab === 'zscore'
+            ? 'Rekapitulasi lengkap status gizi balita berdasarkan 6 indeks antropometri standar Permenkes No. 2/2020 dan pemantauan balita tidak naik (1T & 2T+).'
+            : 'Deteksi dini balita tidak naik berat badan (1T) dan kritis tidak naik berturut-turut (2T+) untuk intervensi PMT Pemulihan serta rujukan Puskesmas.';
+    const aksi = (
+        <div className="flex flex-wrap items-center gap-2">
+            <span className="w-full text-xs font-medium text-muted-foreground">
+                Data diperbarui otomatis setiap{' '}
+                {INTERVAL_SEGAR_MS / 1000} detik
+                {laporan.diperbarui &&
+                    ` · terakhir ${laporan.diperbarui.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`}
+                . Berkas unduhan berisi data saat tombol unduh ditekan.
+            </span>
+            <button
+                type="button"
+                className="tombol-kedua"
+                ref={tombolBantuan}
+                disabled={!siap}
+                aria-expanded={bantuanTerbuka}
+                aria-controls="bantuan-detail"
+                onClick={() => setBantuanTerbuka((v) => !v)}
+            >
+                <CircleHelp className="size-4" aria-hidden="true" />
+                Bantuan
+            </button>
+            <button
+                type="button"
+                className="tombol-kedua text-xs font-bold"
+                onClick={laporan.muatUlang}
+            >
+                <RefreshCw className="size-3.5" aria-hidden="true" />{' '}
+                Perbarui Data
+            </button>
+            {bolehUnduh && (
+                <button
+                    type="button"
+                    className="tombol-kedua laporan-unduh text-xs font-bold"
+                    disabled={!siap || mengunduh !== null}
+                    aria-busy={mengunduh === 'zscore'}
+                    onClick={() => void unduh('zscore')}
+                >
+                    <Download className="size-3.5" aria-hidden="true" />{' '}
+                    <span className="laporan-unduh-label">
+                        <span aria-hidden={mengunduh === 'zscore'}>
+                            Excel Z-score &amp; 2T
+                        </span>
+                        {mengunduh === 'zscore' && (
+                            <span
+                                className="laporan-unduh-proses"
+                                role="status"
+                            >
+                                Menyiapkan…
+                            </span>
+                        )}
+                    </span>
+                </button>
+            )}
+            {bolehUnduh && (
+                <button
+                    type="button"
+                    className="tombol-utama laporan-unduh text-xs font-extrabold shadow-sm"
+                    disabled={!siap || mengunduh !== null}
+                    aria-busy={mengunduh === 'f1'}
+                    onClick={() => void unduh('f1')}
+                >
+                    <Download className="size-3.5" aria-hidden="true" />{' '}
+                    <span className="laporan-unduh-label">
+                        <span aria-hidden={mengunduh === 'f1'}>
+                            Unduh F1 Excel
+                        </span>
+                        {mengunduh === 'f1' && (
+                            <span
+                                className="laporan-unduh-proses"
+                                role="status"
+                            >
+                                Menyiapkan F1…
+                            </span>
+                        )}
+                    </span>
+                </button>
+            )}
+        </div>
+    );
+
+    if (!siap) {
         return (
             <Halaman
                 ikon={FileText}
-                judul="Laporan"
-                sop="admin"
-                subjudul={periode.label}
+                judul={judul}
+                subjudul={subjudul}
                 penuh="lg"
+                aksi={aksi}
             >
                 {laporan.status === 'galat' && (
                     <Link
@@ -223,97 +314,7 @@ export default function LaporanDataLive({
     }
 
     return (
-        <Halaman
-            ikon={FileText}
-            judul={
-                tab === 'zscore'
-                    ? 'Laporan & Rekapitulasi Gizi Posyandu'
-                    : 'Laporan Pemantauan Balita Tidak Naik (1T & 2T+)'
-            }
-            subjudul={
-                tab === 'zscore'
-                    ? 'Rekapitulasi lengkap status gizi balita berdasarkan 6 indeks antropometri standar Permenkes No. 2/2020 dan pemantauan balita tidak naik (1T & 2T+).'
-                    : 'Deteksi dini balita tidak naik berat badan (1T) dan kritis tidak naik berturut-turut (2T+) untuk intervensi PMT Pemulihan serta rujukan Puskesmas.'
-            }
-            aksi={
-                <div className="flex flex-wrap items-center gap-2">
-                    <span className="w-full text-xs font-medium text-muted-foreground">
-                        Data diperbarui otomatis setiap{' '}
-                        {INTERVAL_SEGAR_MS / 1000} detik
-                        {laporan.diperbarui &&
-                            ` · terakhir ${laporan.diperbarui.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`}
-                        . Berkas unduhan berisi data saat tombol unduh ditekan.
-                    </span>
-                    <button
-                        type="button"
-                        className="tombol-kedua"
-                        ref={tombolBantuan}
-                        aria-expanded={bantuanTerbuka}
-                        aria-controls="bantuan-detail"
-                        onClick={() => setBantuanTerbuka((v) => !v)}
-                    >
-                        <CircleHelp className="size-4" aria-hidden="true" />
-                        Bantuan
-                    </button>
-                    <button
-                        type="button"
-                        className="tombol-kedua text-xs font-bold"
-                        onClick={laporan.muatUlang}
-                    >
-                        <RefreshCw className="size-3.5" aria-hidden="true" />{' '}
-                        Perbarui Data
-                    </button>
-                    {bolehUnduh && (
-                        <button
-                            type="button"
-                            className="tombol-kedua laporan-unduh text-xs font-bold"
-                            disabled={mengunduh !== null}
-                            aria-busy={mengunduh === 'zscore'}
-                            onClick={() => void unduh('zscore')}
-                        >
-                            <Download className="size-3.5" aria-hidden="true" />{' '}
-                            <span className="laporan-unduh-label">
-                                <span aria-hidden={mengunduh === 'zscore'}>
-                                    Excel Z-score &amp; 2T
-                                </span>
-                                {mengunduh === 'zscore' && (
-                                    <span
-                                        className="laporan-unduh-proses"
-                                        role="status"
-                                    >
-                                        Menyiapkan…
-                                    </span>
-                                )}
-                            </span>
-                        </button>
-                    )}
-                    {bolehUnduh && (
-                        <button
-                            type="button"
-                            className="tombol-utama laporan-unduh text-xs font-extrabold shadow-sm"
-                            disabled={mengunduh !== null}
-                            aria-busy={mengunduh === 'f1'}
-                            onClick={() => void unduh('f1')}
-                        >
-                            <Download className="size-3.5" aria-hidden="true" />{' '}
-                            <span className="laporan-unduh-label">
-                                <span aria-hidden={mengunduh === 'f1'}>
-                                    Unduh F1 Excel
-                                </span>
-                                {mengunduh === 'f1' && (
-                                    <span
-                                        className="laporan-unduh-proses"
-                                        role="status"
-                                    >
-                                        Menyiapkan F1…
-                                    </span>
-                                )}
-                            </span>
-                        </button>
-                    )}
-                </div>
-            }
-        >
+        <Halaman ikon={FileText} judul={judul} subjudul={subjudul} aksi={aksi}>
             {demo && (
                 <p role="status" className="mb-4">
                     Data dan unduhan adalah simulasi demo.

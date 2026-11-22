@@ -1,5 +1,4 @@
 import { ChevronRight, Pencil, RefreshCw, Upload } from 'lucide-react';
-import JenisKelaminBadge from '@/components/jenis-kelamin-badge';
 import StateHalaman from '@/components/state-halaman';
 import StatusGiziBadge from '@/components/status-gizi-badge';
 import {
@@ -21,7 +20,7 @@ import {
 import { Link } from '@/lib/nav';
 import type { susunTabel } from '@/lib/z-score';
 import type { Periode } from '@/types/posyandu';
-import { Catatan, Pemicu, Risiko } from './baris-penanda';
+import { Catatan, InfoBaris, Pemicu, Risiko } from './baris-penanda';
 import { EditorBaris } from './editor-baris';
 import { LABEL_URUT, labelRt } from './tipe';
 import type { BarisAnak, KolomUrut, PatchAnak } from './tipe';
@@ -230,9 +229,8 @@ export function TabelAnak({
                             className="flex min-h-16 items-center gap-3 px-4.5 py-3 hover:bg-surface-subtle"
                         >
                             <span className="min-w-0 flex-1">
-                                <span className="flex flex-wrap items-center gap-2 text-base font-bold text-primary">
-                                    <span>{namaTampil(baris.nama)}</span>
-                                    <JenisKelaminBadge jk={baris.jk} />
+                                <span className="block text-base font-bold text-primary">
+                                    {namaTampil(baris.nama)}
                                 </span>
                                 <span className="mt-0.5 block text-sm text-muted-foreground">
                                     {umurRingkas(baris.umurBulan)}
@@ -244,7 +242,7 @@ export function TabelAnak({
                                 <span className="mt-2 flex flex-wrap items-center gap-2">
                                     <StatusGiziBadge
                                         kategori={baris.kategoriGizi}
-                                        tenang
+                                        teks
                                     />
                                     {tabAktif === 'hari-ini' ? (
                                         <span className="text-sm font-semibold text-foreground">
@@ -275,13 +273,8 @@ export function TabelAnak({
                                 </span>
                                 <Pemicu baris={baris} />
                                 <Risiko baris={baris} />
-                                <span className="mt-1 block text-sm text-muted-foreground">
-                                    WhatsApp:{' '}
-                                    {baris.waTerkirim == null
-                                        ? 'Status belum tersedia'
-                                        : baris.waTerkirim
-                                          ? 'Sudah dikirim — dikonfirmasi kader'
-                                          : 'Belum dikonfirmasi'}
+                                <span className="mt-1 block">
+                                    <InfoBaris baris={baris} />
                                 </span>
                             </span>
                             <ChevronRight
@@ -333,7 +326,6 @@ export function TabelAnak({
                                         className="inline-flex min-h-13 items-center gap-2 font-bold text-primary"
                                     >
                                         <span>{namaTampil(baris.nama)}</span>
-                                        <JenisKelaminBadge jk={baris.jk} />
                                         <ChevronRight
                                             className="size-4.5 shrink-0"
                                             strokeWidth={2.5}
@@ -345,14 +337,7 @@ export function TabelAnak({
                                             NIK belum lengkap
                                         </span>
                                     )}
-                                    <span className="block pb-1 text-sm text-muted-foreground">
-                                        WhatsApp:{' '}
-                                        {baris.waTerkirim == null
-                                            ? 'Status belum tersedia'
-                                            : baris.waTerkirim
-                                              ? 'Sudah dikirim — dikonfirmasi kader'
-                                              : 'Belum dikonfirmasi'}
-                                    </span>
+                                    <InfoBaris baris={baris} />
                                 </TableCell>
                                 <TableCell className="whitespace-nowrap">
                                     {umurRingkas(baris.umurBulan)}
@@ -385,10 +370,10 @@ export function TabelAnak({
                                 <TableCell>
                                     <StatusGiziBadge
                                         kategori={baris.kategoriGizi}
-                                        tenang
+                                        teks
                                     />
-                                    <Pemicu baris={baris} />
-                                    <Risiko baris={baris} />
+                                    <Pemicu baris={baris} menjorok />
+                                    <Risiko baris={baris} menjorok />
                                 </TableCell>
                                 <TableCell className="min-w-44">
                                     <Catatan baris={baris} />

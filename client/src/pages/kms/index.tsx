@@ -501,13 +501,21 @@ export default function PemeriksaanKms({
                     memuat = false;
                 });
         };
+        // Tab yang tidak dilihat tidak memuat ulang; antrean segar lagi saat kembali.
+        const segarkan = () => {
+            if (!document.hidden) {
+                ambil();
+            }
+        };
         ambil();
-        const timer = window.setInterval(ambil, 3_000);
+        const timer = window.setInterval(segarkan, 3_000);
+        document.addEventListener('visibilitychange', segarkan);
 
         return () => {
             hidup = false;
             controller.abort();
             window.clearInterval(timer);
+            document.removeEventListener('visibilitychange', segarkan);
         };
     }, [versi, onSesiBerakhir, demo]);
 
