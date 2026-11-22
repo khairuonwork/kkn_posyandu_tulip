@@ -53,7 +53,7 @@ describe('layanan F1', () => {
                     nt: 'N',
                     duaT: false,
                     penilaian: {
-                        'PERMENKES-2-2020': {
+                        'WHO-2006': {
                             BB_U: { kategori: 'Berat badan normal' },
                         },
                     },

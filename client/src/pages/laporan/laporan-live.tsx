@@ -10,6 +10,7 @@ import { useMemo, useRef, useState } from 'react';
 import DialogGagal from '@/components/dialog-gagal';
 import Halaman from '@/components/halaman';
 import StateHalaman from '@/components/state-halaman';
+import { INTERVAL_SEGAR_MS } from '@/lib/laporan';
 import type { useLaporanServer } from '@/lib/laporan';
 import { Link } from '@/lib/nav';
 import type { Periode } from '@/types/posyandu';
@@ -236,6 +237,13 @@ export default function LaporanDataLive({
             }
             aksi={
                 <div className="flex flex-wrap items-center gap-2">
+                    <span className="w-full text-xs font-medium text-muted-foreground">
+                        Data diperbarui otomatis setiap{' '}
+                        {INTERVAL_SEGAR_MS / 1000} detik
+                        {laporan.diperbarui &&
+                            ` · terakhir ${laporan.diperbarui.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`}
+                        . Berkas unduhan berisi data saat tombol unduh ditekan.
+                    </span>
                     <button
                         type="button"
                         className="tombol-kedua"

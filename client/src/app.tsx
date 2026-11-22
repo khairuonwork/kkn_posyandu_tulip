@@ -76,6 +76,7 @@ function AplikasiPetugas() {
             nama={sesi.pengguna.nama}
             peran={sesi.pengguna.peran}
             superAdmin={sesi.pengguna.superAdmin}
+            lihatData={sesi.pengguna.bolehLihatData === true}
             posyanduNama={sesi.pengguna.posyanduNama}
             rw={sesi.pengguna.rw}
             // Alamat baru diganti setelah server menjawab. Menggantinya lebih
@@ -140,6 +141,7 @@ function Portal({
     nama,
     peran,
     superAdmin,
+    lihatData,
     posyanduNama,
     rw,
     onKeluar,
@@ -148,6 +150,7 @@ function Portal({
     nama: string;
     peran: Peran;
     superAdmin: boolean;
+    lihatData: boolean;
     posyanduNama: string | null;
     rw: string | null;
     onKeluar: () => void;
@@ -200,12 +203,18 @@ function Portal({
     // Akun KMS mulai dari antrean pemeriksaan; peran lain dari Beranda. Ini
     // kenyamanan; penolakan yang mengikat ada di server.
     useEffect(() => {
-        if (!boleh(rute, peran, superAdmin)) {
-            navigate(peran === 'kms' ? '/kms' : '/beranda');
+        if (!boleh(rute, peran, superAdmin, lihatData)) {
+            navigate(
+                peran === 'kms'
+                    ? '/kms'
+                    : boleh({ nama: 'beranda' }, peran, superAdmin, lihatData)
+                      ? '/beranda'
+                      : '/bantuan',
+            );
         }
-    }, [peran, rute, superAdmin]);
+    }, [peran, rute, superAdmin, lihatData]);
 
-    if (!boleh(rute, peran, superAdmin)) {
+    if (!boleh(rute, peran, superAdmin, lihatData)) {
         return <Memeriksa />;
     }
 
@@ -216,6 +225,7 @@ function Portal({
     return (
         <Cangkang
             superAdmin={superAdmin}
+            lihatData={lihatData}
             peran={peran}
             cakupanPosyandu={
                 superAdmin

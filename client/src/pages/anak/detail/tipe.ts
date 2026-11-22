@@ -25,15 +25,6 @@ export const ARTI_KEHADIRAN: Record<string, string> = {
     tidak_dapat_diukur: 'Tidak dapat diukur',
 };
 
-/** Nada mana yang harus memimpin bila satu anak punya tiga vonis sekaligus. */
-export const URUT_NADA: Record<string, number> = {
-    merah: 0,
-    oranye: 1,
-    biru: 2,
-    hijau: 3,
-    netral: 4,
-};
-
 export const WARNA_NADA: Record<string, string> = {
     merah: 'text-tone-red',
     oranye: 'text-tone-amber',

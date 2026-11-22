@@ -10,12 +10,17 @@
 import { dapatkanPool, tutupPool } from "../db/pool.ts";
 import { muatKonfigurasi } from "../config.ts";
 import { buatApp } from "./app.ts";
+import { muatBatas } from "./batas-masuk.ts";
 import { mulaiLayananDiscovery } from "./discovery.ts";
 
 const konfigurasi = muatKonfigurasi();
 const { porta, alamat } = konfigurasi;
+const pool = dapatkanPool();
 
-const server = buatApp(dapatkanPool(), konfigurasi).listen(porta, alamat, () => {
+// Hitungan percobaan masuk dari sebelum restart tetap berlaku.
+void muatBatas(pool);
+
+const server = buatApp(pool, konfigurasi).listen(porta, alamat, () => {
     console.log(`Server siap di http://${alamat}:${porta}`);
     // Server publik hanya melayani HTTPS melalui proxy. Jangan menyiarkan
     // alamat jaringan VM atau membuka UDP discovery pada host produksi.

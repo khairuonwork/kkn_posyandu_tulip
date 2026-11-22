@@ -34,8 +34,10 @@ import {
     rentangBulan,
 } from './komponen/ringkasan-dan-tren';
 import type {
+    AnakDiLuarHitungan,
     AnakPerluPerhatian,
     AntreanKirim,
+    HasilPerluDicek,
     CakupanPeriode,
     RingkasanBeranda,
     PerbandinganStatusGizi,
@@ -43,8 +45,10 @@ import type {
     TitikTren,
 } from './tipe';
 export type {
+    AnakDiLuarHitungan,
     AnakPerluPerhatian,
     AntreanKirim,
+    HasilPerluDicek,
     CakupanPeriode,
     RingkasanBeranda,
     PerbandinganStatusGizi,
@@ -79,6 +83,8 @@ type Props = {
     memuat?: boolean;
     sumberLive?: boolean;
     sasaranHistoris?: boolean;
+    diLuarHitungan?: AnakDiLuarHitungan[];
+    perluDicek?: HasilPerluDicek[];
 };
 
 export default function Dashboard({
@@ -103,6 +109,8 @@ export default function Dashboard({
     memuat = false,
     sumberLive = false,
     sasaranHistoris = false,
+    diLuarHitungan = [],
+    perluDicek = [],
 }: Props) {
     const [formHariH, setFormHariH] = useState(false);
     const tombolHariH = useRef<HTMLButtonElement>(null);
@@ -313,6 +321,48 @@ export default function Dashboard({
                     dari anak yang punya rekam pada bulan ini; cakupan belum
                     dapat dianggap cakupan sasaran resmi.
                 </p>
+            )}
+            {!memuat && diLuarHitungan.length > 0 && (
+                <details className="mb-6 rounded-lg bg-tone-amber-bg px-4 py-3 text-sm leading-relaxed text-tone-amber">
+                    <summary className="cursor-pointer">
+                        <strong>
+                            {diLuarHitungan.length} balita ditimbang tetapi
+                            tidak ikut dihitung.
+                        </strong>{' '}
+                        Angka di Beranda mengikuti aturan F1: ada di daftar
+                        sasaran, berat terisi, umur di bawah 5 tahun. Lihat
+                        daftar
+                    </summary>
+                    <ul className="mt-2 list-disc pl-5">
+                        {diLuarHitungan.map((a) => (
+                            <li key={a.anakId}>
+                                {a.nama ?? `Balita #${a.anakId}`}
+                                {a.rt ? ` (RT ${a.rt})` : ''}: {a.alasan}
+                            </li>
+                        ))}
+                    </ul>
+                </details>
+            )}
+            {!memuat && perluDicek.length > 0 && (
+                <details className="mb-6 rounded-lg bg-tone-amber-bg px-4 py-3 text-sm leading-relaxed text-tone-amber">
+                    <summary className="cursor-pointer">
+                        <strong>
+                            {perluDicek.length} hasil ukur perlu dicek.
+                        </strong>{' '}
+                        Nilainya jauh di luar batas wajar, tetapi tetap
+                        dihitung. Ukur ulang atau betulkan bila salah ketik.
+                        Lihat daftar
+                    </summary>
+                    <ul className="mt-2 list-disc pl-5">
+                        {perluDicek.map((a) => (
+                            <li key={a.anakId}>
+                                {a.nama ?? `Balita #${a.anakId}`}
+                                {a.rt ? ` (RT ${a.rt})` : ''}:{' '}
+                                {a.indeks.join(', ')}
+                            </li>
+                        ))}
+                    </ul>
+                </details>
             )}
             {memuat && <StateHalaman jenis="memuat" judul="Memuat beranda…" />}
 
@@ -636,13 +686,13 @@ export default function Dashboard({
                                     pertanyaan pembina: membaik atau memburuk. */}
                             <section className="kartu flex min-w-0 flex-col p-5 sm:p-6">
                                 <KepalaKartu
-                                    judul="Tren status gizi (jumlah balita)"
+                                    judul="Tren status gizi (jumlah balita, standar WHO)"
                                     sub={`${rentang} · Angka makin turun berarti makin membaik`}
                                 />
 
                                 <div className="mt-4 flex flex-col gap-4">
                                     <BarisTren
-                                        label="BB Kurang dan BB Sangat Kurang"
+                                        label="BB kurang dan BB sangat kurang"
                                         nilai={trenGizi.map(
                                             (t) => t.bbKurang ?? 0,
                                         )}
@@ -651,14 +701,14 @@ export default function Dashboard({
                                         warna={WARNA_TREN.amber}
                                     />
                                     <BarisTren
-                                        label="Pendek"
+                                        label="Pendek dan sangat pendek"
                                         nilai={trenGizi.map((t) => t.pendek)}
                                         bulan={bulanTren}
                                         puncak={puncakTren}
                                         warna={WARNA_TREN.amber}
                                     />
                                     <BarisTren
-                                        label="Gizi kurang"
+                                        label="Gizi kurang dan gizi buruk"
                                         nilai={trenGizi.map(
                                             (t) => t.giziKurang,
                                         )}

@@ -9,6 +9,8 @@
  */
 
 import {
+    ArrowBigUpDash,
+    Clock,
     Eye,
     EyeOff,
     Info,
@@ -16,15 +18,25 @@ import {
     ShieldCheck,
     TriangleAlert,
 } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import ilustrasiPosyandu from '@/assets/login-posyandu-illustration-v1.png';
 import { Head } from '@/lib/nav';
 import './login.css';
 
+/** Server menahan percobaan sementara; tombol Masuk menghitung mundur. */
+export type JedaMasuk = {
+    galat: string;
+    tungguDetik: number;
+    jaringan: boolean;
+};
+
 type Props = {
-    /** Mengembalikan pesan galat, atau null bila berhasil. */
-    onMasuk: (username: string, kataSandi: string) => Promise<string | null>;
+    /** Mengembalikan pesan galat, jeda dari pembatas masuk, atau null bila berhasil. */
+    onMasuk: (
+        username: string,
+        kataSandi: string,
+    ) => Promise<string | JedaMasuk | null>;
     /** Kartu pemilih peran — hanya demo yang mengisinya. */
     pemilihPeran?: ReactNode;
     /** Keterangan di bawah tombol, mis. penanda mode demo. */
@@ -51,6 +63,31 @@ export default function Login({
     const sedangMengirim = useRef(false);
     const namaRef = useRef<HTMLInputElement>(null);
     const sandiRef = useRef<HTMLInputElement>(null);
+    // Hanya isian sandi yang peka huruf besar: server mencocokkan nama
+    // pengguna tanpa membedakan huruf besar dan kecil.
+    const [capsLock, setCapsLock] = useState(false);
+    const [jeda, setJeda] = useState<{
+        jaringan: boolean;
+        sisa: number;
+    } | null>(null);
+    const jedaBerakhir = useRef(0);
+    const menunggu = jeda !== null;
+
+    useEffect(() => {
+        if (!menunggu) {
+            return;
+        }
+
+        // Sisa dihitung dari jam, bukan dari jumlah detak: peramban
+        // memperlambat setInterval di tab latar belakang.
+        const detak = setInterval(() => {
+            const sisa = Math.ceil((jedaBerakhir.current - Date.now()) / 1000);
+
+            setJeda((j) => (j === null || sisa <= 0 ? null : { ...j, sisa }));
+        }, 1000);
+
+        return () => clearInterval(detak);
+    }, [menunggu]);
 
     const kosong = username.trim() === '' || sandi === '';
     const galatKosong = galat === PESAN_KOSONG;
@@ -60,7 +97,7 @@ export default function Login({
     const kirim = (peristiwa: FormEvent) => {
         peristiwa.preventDefault();
 
-        if (sedangMengirim.current) {
+        if (sedangMengirim.current || menunggu) {
             return;
         }
 
@@ -76,13 +113,27 @@ export default function Login({
         setGalat(null);
 
         onMasuk(username, sandi)
-            .then((pesan) => {
+            .then((hasil) => {
                 // Saat berhasil, komponen ini dilepas oleh pemanggilnya —
                 // jadi hanya kegagalan yang perlu mengembalikan keadaan.
-                if (pesan !== null) {
-                    sedangMengirim.current = false;
-                    setGalat(pesan);
-                    setMemuat(false);
+                if (hasil === null) {
+                    return;
+                }
+
+                sedangMengirim.current = false;
+                setMemuat(false);
+
+                if (typeof hasil === 'string') {
+                    setGalat(hasil);
+                } else if (hasil.tungguDetik > 0) {
+                    jedaBerakhir.current =
+                        Date.now() + hasil.tungguDetik * 1000;
+                    setJeda({
+                        jaringan: hasil.jaringan,
+                        sisa: hasil.tungguDetik,
+                    });
+                } else {
+                    setGalat(hasil.galat);
                 }
             })
             .catch(() => {
@@ -116,10 +167,33 @@ export default function Login({
                             className="login-form"
                             aria-busy={memuat}
                         >
-                            {(galat !== null || (sesiBerakhir && !memuat)) && (
+                            {(galat !== null ||
+                                jeda !== null ||
+                                (sesiBerakhir && !memuat)) && (
                                 <div className="login-notices">
+                                    {jeda !== null && (
+                                        <div
+                                            role="alert"
+                                            className="pesan-masuk flex w-full items-start gap-2.5 rounded-lg border border-tone-blue bg-tone-blue-bg p-4 text-tone-blue"
+                                        >
+                                            <Clock
+                                                className="mt-0.5 size-5 shrink-0"
+                                                strokeWidth={2.5}
+                                                aria-hidden="true"
+                                            />
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-base font-semibold">
+                                                    Tunggu sebentar
+                                                </p>
+                                                <p className="mt-0.5 text-sm leading-relaxed font-medium text-foreground">
+                                                    {`Terlalu banyak percobaan ${jeda.jaringan ? 'dari jaringan ini' : 'untuk akun ini'}. Jika lupa kata sandi, hubungi Bidan atau Admin Posyandu.`}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
                                     {sesiBerakhir &&
                                         galat === null &&
+                                        jeda === null &&
                                         !memuat && (
                                             <div
                                                 role="status"
@@ -154,7 +228,23 @@ export default function Login({
                                                             : 'Gagal Masuk ke Aplikasi'}
                                                     </p>
                                                     <p className="mt-0.5 text-sm leading-relaxed font-medium text-foreground">
-                                                        {galat}
+                                                        {/* Sisa percobaan ditebalkan agar terbaca sekilas. */}
+                                                        {galat
+                                                            .split(
+                                                                /(Sisa \d+ kali percobaan lagi\.)/,
+                                                            )
+                                                            .map((bagian, i) =>
+                                                                i % 2 === 1 ? (
+                                                                    <strong
+                                                                        key={i}
+                                                                        className="font-bold"
+                                                                    >
+                                                                        {bagian}
+                                                                    </strong>
+                                                                ) : (
+                                                                    bagian
+                                                                ),
+                                                            )}
                                                     </p>
                                                 </div>
                                             </div>
@@ -242,13 +332,32 @@ export default function Login({
                                                 merahSandi || undefined
                                             }
                                             aria-describedby={
-                                                merahSandi
-                                                    ? 'galat-sandi'
-                                                    : undefined
+                                                [
+                                                    merahSandi && 'galat-sandi',
+                                                    capsLock &&
+                                                        'capslock-sandi',
+                                                ]
+                                                    .filter(Boolean)
+                                                    .join(' ') || undefined
                                             }
                                             onChange={(e) =>
                                                 setSandi(e.target.value)
                                             }
+                                            onKeyDown={(e) =>
+                                                setCapsLock(
+                                                    e.getModifierState(
+                                                        'CapsLock',
+                                                    ),
+                                                )
+                                            }
+                                            onKeyUp={(e) =>
+                                                setCapsLock(
+                                                    e.getModifierState(
+                                                        'CapsLock',
+                                                    ),
+                                                )
+                                            }
+                                            onBlur={() => setCapsLock(false)}
                                             className={`isian w-full bg-card pr-18 text-base placeholder:text-base placeholder:text-muted-foreground/75 disabled:opacity-60 ${
                                                 merahSandi
                                                     ? 'border-tone-red ring-2 ring-tone-red/10 focus:ring-tone-red'
@@ -284,7 +393,7 @@ export default function Login({
                                             )}
                                         </button>
                                     </div>
-                                    <div className="login-field-feedback">
+                                    <div className="login-field-feedback space-y-1">
                                         {merahSandi && (
                                             <p
                                                 id="galat-sandi"
@@ -297,6 +406,19 @@ export default function Login({
                                                 <span>
                                                     Kata sandi belum diisi
                                                 </span>
+                                            </p>
+                                        )}
+                                        {capsLock && (
+                                            <p
+                                                id="capslock-sandi"
+                                                role="status"
+                                                className="flex items-center gap-1.5 text-xs font-bold text-tone-amber"
+                                            >
+                                                <ArrowBigUpDash
+                                                    className="size-3.5 shrink-0"
+                                                    aria-hidden="true"
+                                                />
+                                                <span>Capslock Hidup</span>
                                             </p>
                                         )}
                                     </div>
@@ -314,27 +436,37 @@ export default function Login({
 
                             <button
                                 type="submit"
-                                disabled={memuat}
-                                className="tombol-utama login-submit disabled:bg-border disabled:text-muted-foreground disabled:shadow-none"
+                                disabled={memuat || menunggu}
+                                className={`tombol-utama login-submit disabled:bg-border disabled:shadow-none ${
+                                    // Hitung mundur harus terbaca, tidak
+                                    // seperti label tombol nonaktif biasa.
+                                    menunggu
+                                        ? 'disabled:text-foreground'
+                                        : 'disabled:text-muted-foreground'
+                                }`}
                             >
-                                <span className="relative inline-grid place-items-center">
-                                    <span
-                                        className={`col-start-1 row-start-1 transition-opacity duration-200 motion-reduce:transition-none ${memuat ? 'opacity-0' : 'opacity-100'}`}
-                                        aria-hidden={memuat}
-                                    >
-                                        Masuk
+                                {jeda !== null ? (
+                                    `Coba lagi dalam ${Math.floor(jeda.sisa / 60)}:${String(jeda.sisa % 60).padStart(2, '0')}`
+                                ) : (
+                                    <span className="relative inline-grid place-items-center">
+                                        <span
+                                            className={`col-start-1 row-start-1 transition-opacity duration-200 motion-reduce:transition-none ${memuat ? 'opacity-0' : 'opacity-100'}`}
+                                            aria-hidden={memuat}
+                                        >
+                                            Masuk
+                                        </span>
+                                        <span
+                                            className={`col-start-1 row-start-1 inline-flex items-center gap-2 transition-opacity duration-200 motion-reduce:transition-none ${memuat ? 'opacity-100' : 'invisible opacity-0'}`}
+                                            aria-hidden={!memuat}
+                                        >
+                                            <Loader2
+                                                className="size-5 motion-safe:animate-spin"
+                                                aria-hidden="true"
+                                            />
+                                            Masuk…
+                                        </span>
                                     </span>
-                                    <span
-                                        className={`col-start-1 row-start-1 inline-flex items-center gap-2 transition-opacity duration-200 motion-reduce:transition-none ${memuat ? 'opacity-100' : 'invisible opacity-0'}`}
-                                        aria-hidden={!memuat}
-                                    >
-                                        <Loader2
-                                            className="size-5 motion-safe:animate-spin"
-                                            aria-hidden="true"
-                                        />
-                                        Masuk…
-                                    </span>
-                                </span>
+                                )}
                             </button>
 
                             <p className="login-help">

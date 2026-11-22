@@ -31,6 +31,8 @@ type AnakApi = {
     risikoLahir: string | null;
     indeksPemicu: BarisAnak['indeksPemicu'];
     kategoriPemicu: string | null;
+    catatanPendaftaran?: string | null;
+    catatanKms?: string | null;
 };
 
 export type DataAnakServer = {
@@ -119,6 +121,8 @@ function keBaris(a: AnakApi): BarisAnak {
         kategoriPemicu: a.kategoriPemicu,
         bbKg: a.bbKg,
         tinggiCm: a.tinggiCm,
+        catatanPendaftaran: a.catatanPendaftaran ?? null,
+        catatanKms: a.catatanKms ?? null,
     };
 }
 

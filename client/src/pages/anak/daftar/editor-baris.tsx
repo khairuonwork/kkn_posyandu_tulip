@@ -77,6 +77,13 @@ export function IsianUkur({
     );
 }
 
+/** Batas wajar z per indeks, sama dengan server (`antropometri/indeks.ts`). */
+const BATAS_WAJAR: Partial<Record<Indeks, [number, number]>> = {
+    BB_U: [-6, 5],
+    TB_U: [-6, 6],
+    BB_TB: [-5, 5],
+};
+
 /**
  * Editor satu baris.
  */
@@ -141,6 +148,46 @@ export function EditorBaris({
             };
         });
     }, [tabelLms, jk, umur, bbAngka, tinggiAngka]);
+
+    // Angka mustahil tidak ditolak (kadang memang benar), tetapi diperingatkan dulu.
+    const tidakWajar = (kartuZ ?? []).filter((k) => {
+        const batas = BATAS_WAJAR[k.indeks];
+
+        return (
+            k.z !== null &&
+            batas !== undefined &&
+            (k.z < batas[0] || k.z > batas[1])
+        );
+    });
+    const [peringatan, setPeringatan] = useState(false);
+    const simpan = () => {
+        try {
+            onSimpan({
+                nama: nama.trim(),
+                nik: nik.trim(),
+                namaOrtu: namaOrtu.trim(),
+                rt,
+                bbKg: bbAngka,
+                tinggiCm: tinggiAngka,
+            });
+        } catch {
+            setGalat(true);
+        }
+    };
+    const periksaLagi = () => {
+        setPeringatan(false);
+        // BB/U saja menyangkut berat; indeks lain melibatkan panjang/tinggi.
+        const isian = document.getElementById(
+            tidakWajar.every((k) => k.indeks === 'BB_U')
+                ? 'ukur-kg'
+                : 'ukur-cm',
+        );
+
+        if (isian instanceof HTMLInputElement) {
+            isian.focus();
+            isian.select();
+        }
+    };
 
     return (
         <div
@@ -270,22 +317,55 @@ export function EditorBaris({
                     </div>
                 )}
 
+                {peringatan && tidakWajar.length > 0 && (
+                    <div
+                        role="alert"
+                        className="rounded-xl border border-tone-amber bg-tone-amber-bg px-5 py-4"
+                    >
+                        <p className="text-base font-bold text-tone-amber">
+                            Angka ini jauh di luar batas wajar
+                        </p>
+                        <p className="mt-0.5 text-base text-pretty">
+                            {tidakWajar
+                                .map((k) => `${k.label} ${zScore(k.z)} SD`)
+                                .join(', ')}
+                            . Periksa lagi angkanya. Bila memang benar, tetap
+                            bisa disimpan dan akan ditandai "Perlu dicek" di
+                            laporan.
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-3">
+                            <button
+                                type="button"
+                                onClick={periksaLagi}
+                                className="tombol-kedua"
+                            >
+                                Periksa lagi
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setPeringatan(false);
+                                    simpan();
+                                }}
+                                className="tombol-utama"
+                            >
+                                Tetap simpan
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 <div className="flex flex-wrap items-center gap-3 border-t border-border pt-6">
                     <button
                         type="button"
                         onClick={() => {
-                            try {
-                                onSimpan({
-                                    nama: nama.trim(),
-                                    nik: nik.trim(),
-                                    namaOrtu: namaOrtu.trim(),
-                                    rt,
-                                    bbKg: bbAngka,
-                                    tinggiCm: tinggiAngka,
-                                });
-                            } catch {
-                                setGalat(true);
+                            if (tidakWajar.length > 0) {
+                                setPeringatan(true);
+
+                                return;
                             }
+
+                            simpan();
                         }}
                         className="tombol-utama"
                     >

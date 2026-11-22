@@ -15,6 +15,7 @@ import type { Pool } from 'pg';
 
 import { ringkasanToken } from '../auth/sesi.ts';
 import { daftarAkun, GalatAkun, tambahAkun, ubahAkun } from '../services/pengguna-service.ts';
+import { hapusJedaAkun } from './batas-masuk.ts';
 import { bacaCookie, NAMA_COOKIE_SESI } from './cookie.ts';
 import { wajibBoleh } from './middleware.ts';
 
@@ -64,15 +65,21 @@ export function rutePengguna(pool: Pool): Router {
         const token = bacaCookie(req.headers.cookie, NAMA_COOKIE_SESI);
 
         try {
-            res.json({
-                pengguna: await ubahAkun(
-                    pool,
-                    pelaku(req),
-                    id,
-                    req.body,
-                    token === null || token === '' ? null : ringkasanToken(token),
-                ),
-            });
+            const pengguna = await ubahAkun(
+                pool,
+                pelaku(req),
+                id,
+                req.body,
+                token === null || token === '' ? null : ringkasanToken(token),
+            );
+
+            // Petugas yang lupa sandi langsung bisa masuk dengan sandi baru
+            // dari admin, tanpa menunggu jeda dari percobaan sebelumnya.
+            if (typeof req.body?.kataSandi === 'string' && req.body.kataSandi !== '') {
+                hapusJedaAkun(pengguna.username);
+            }
+
+            res.json({ pengguna });
         } catch (galat) {
             jawabGalat(galat, res);
         }

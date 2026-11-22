@@ -304,7 +304,8 @@ describe('audit PostgreSQL', { skip: adaDb ? false : 'DATABASE_URL tidak diatur'
         url.searchParams.set('options', `-c search_path=${skema}`);
         const cwd = fileURLToPath(new URL('..', import.meta.url));
         const username = 'onboarding';
-        const sandi = 'sandi-uji-onboarding';
+        // Sandi tidak boleh memuat nama pengguna (lihat auth/sandi-umum.ts).
+        const sandi = 'sandi-uji-pertama';
         const env = {
             ...process.env,
             DATABASE_URL: url.href,

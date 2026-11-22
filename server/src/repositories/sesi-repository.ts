@@ -20,6 +20,7 @@ type BarisSesi = {
     aktif: boolean;
     posyanduIds: number[];
     superAdmin: boolean;
+    bolehLihatData: boolean;
 };
 
 export async function simpan(
@@ -40,7 +41,7 @@ export async function simpan(
 /** Null bila sesi tidak ada, sudah kedaluwarsa, atau akunnya dinonaktifkan. */
 export async function cariAktif(pool: Pool, ringkasan: string): Promise<PenggunaAktif | null> {
     const { rows } = await pool.query<BarisSesi>(
-        `SELECT p.id, p.peran, p.aktif, w.rt, p.super_admin AS "superAdmin",
+        `SELECT p.id, p.peran, p.aktif, w.rt, p.super_admin AS "superAdmin", p.boleh_lihat_data AS "bolehLihatData",
                 coalesce(array_agg(up.posyandu_id::int) FILTER (WHERE up.posyandu_id IS NOT NULL), '{}') AS "posyanduIds"
          FROM sesi s
          JOIN pengguna p ON p.id = s.pengguna_id
@@ -62,7 +63,7 @@ export async function cariAktif(pool: Pool, ringkasan: string): Promise<Pengguna
 
     const b = rows[0];
 
-    return { id: b.id, peran: b.peran, rt: b.rt, aktif: b.aktif, posyanduIds: b.posyanduIds, superAdmin: b.superAdmin };
+    return { id: b.id, peran: b.peran, rt: b.rt, aktif: b.aktif, posyanduIds: b.posyanduIds, superAdmin: b.superAdmin, bolehLihatData: b.bolehLihatData };
 }
 
 export async function hapus(pool: Pool, ringkasan: string): Promise<void> {

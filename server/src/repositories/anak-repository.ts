@@ -10,6 +10,8 @@ import type { Pool, PoolClient } from "pg";
 import type { PenggunaAktif } from "../auth/peran.ts";
 import { rtYangBolehDilihat } from "../auth/peran.ts";
 import { nomorAntreanKosong } from "./antrean-repository.ts";
+import { umurBulanPada } from "../antropometri/penilaian-gizi.ts";
+import { ntRiwayat } from "../services/laporan-pertumbuhan-bulanan.ts";
 
 export type AnakRingkas = {
     id: number;
@@ -32,6 +34,9 @@ export type AnakRingkas = {
     risikoLahir: string | null;
     indeksPemicu: string | null;
     kategoriPemicu: string | null;
+    /** Hanya pada daftar: catatan pengukuran bulan yang dipilih. */
+    catatanPendaftaran?: string | null;
+    catatanKms?: string | null;
 };
 
 export type AnakDetail = Omit<
@@ -211,6 +216,15 @@ export async function daftar(
                       pg.dihitung_pada DESC, pg.id DESC
              LIMIT 1
         ) gizi_pemicu ON true
+        LEFT JOIN LATERAL (
+            -- Hanya rekam bulan yang dipilih: catatan bulan lalu tidak dibawa.
+            SELECT nullif(trim(cp.catatan_khusus), '') AS pendaftaran,
+                   nullif(trim(cp.catatan_kms), '') AS kms
+              FROM pengukuran cp
+             WHERE cp.anak_id = a.id AND cp.periode_id = periode_pilih.id
+             ORDER BY cp.tanggal_ukur DESC, cp.id DESC
+             LIMIT 1
+        ) catatan_periode ON true
         WHERE a.deleted_at IS NULL
           AND ($1::text IS NULL OR w.rt = $1)
           AND ($2 = '' OR a.nama_baku LIKE $3 OR a.nik LIKE $2)
@@ -222,6 +236,8 @@ export async function daftar(
         pool.query<AnakRingkas>(
             `SELECT ${KOLOM_RINGKAS},
                 to_char(coalesce(periode_pilih.tanggal, (($8 || '-01')::date + interval '1 month - 1 day')::date, CURRENT_DATE), 'YYYY-MM-DD') AS "tanggalAcuan",
+                catatan_periode.pendaftaran AS "catatanPendaftaran",
+                catatan_periode.kms AS "catatanKms",
                 CASE WHEN $8::text IS NULL THEN a.status='aktif' ELSE
                     a.tgl_lahir <= periode_pilih.tanggal
                     AND a.tgl_lahir + interval '60 months' > periode_pilih.tanggal
@@ -442,7 +458,8 @@ export async function daftarPengukuran(
 ): Promise<PengukuranRingkas[] | null> {
     // Cek sumber daya lebih dulu dengan penyaring yang sama. Nilai null sengaja
     // menyatukan "tidak ada" dan "bukan RT Anda" menjadi 404.
-    if ((await ambil(pool, pengguna, anakId)) === null) {
+    const anak = await ambil(pool, pengguna, anakId);
+    if (anak === null) {
         return null;
     }
 
@@ -472,7 +489,7 @@ export async function daftarPengukuran(
         [anakId],
     );
 
-    return rows;
+    return ntRiwayat(anakId, (tanggal) => umurBulanPada(anak.tglLahir, tanggal), rows);
 }
 
 /** Garis WHO BB/U untuk pita KMS; parameter berasal dari database live. */

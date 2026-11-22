@@ -25,7 +25,7 @@ import pg from 'pg';
 import { randomUUID } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import '../src/db/pool.ts';
-import { kosongkanBatas, MAKS_GAGAL } from '../src/http/batas-masuk.ts';
+import { BEBAS_GAGAL, kosongkanBatas } from '../src/http/batas-masuk.ts';
 import { buatApp } from '../src/http/app.ts';
 
 const adaDb = process.env.DATABASE_URL !== undefined && process.env.DATABASE_URL !== '';
@@ -272,10 +272,18 @@ describe(
         });
 
         test('percobaan berulang ditahan dengan 429 dan Retry-After', async () => {
-            for (let ke = 0; ke < MAKS_GAGAL; ke++) {
+            for (let ke = 1; ke <= BEBAS_GAGAL; ke++) {
                 const res = await kirimMasuk(USERNAME_BIDAN, 'salah-terus');
 
-                assert.equal(res.status, 401, `percobaan ke-${ke + 1} seharusnya 401`);
+                assert.equal(res.status, 401, `percobaan ke-${ke} seharusnya 401`);
+
+                // Sisa percobaan baru disebut pada tiga percobaan terakhir.
+                const { galat } = (await res.json()) as { galat: string };
+                assert.equal(
+                    galat.includes('Sisa'),
+                    ke >= BEBAS_GAGAL - 3 && ke < BEBAS_GAGAL,
+                    `percobaan ke-${ke}: ${galat}`,
+                );
             }
 
             const ditahan = await kirimMasuk(USERNAME_BIDAN, 'salah-terus');
@@ -286,6 +294,31 @@ describe(
             // Kredensial yang benar pun ikut ditahan — kalau tidak, penahanan
             // hanya menunda penebak, bukan menghentikannya.
             assert.equal((await kirimMasuk(USERNAME_BIDAN, SANDI)).status, 429);
+        });
+
+        test('perangkat yang pernah berhasil masuk tetap bisa masuk saat akunnya ditebak', async () => {
+            const berhasil = await kirimMasuk(USERNAME_BIDAN, SANDI);
+            assert.equal(berhasil.status, 200);
+
+            const perangkat = berhasil.headers
+                .getSetCookie()
+                .find((c) => c.startsWith('perangkat='));
+            assert.ok(perangkat, 'cookie perangkat tidak dipasang');
+            assert.match(perangkat, /HttpOnly/i);
+            assert.match(perangkat, /SameSite=Strict/i);
+            assert.match(perangkat, /Path=\/api\/masuk/);
+
+            for (let ke = 0; ke < BEBAS_GAGAL; ke++) {
+                await kirimMasuk(USERNAME_BIDAN, 'tebakan-penyerang');
+            }
+            assert.equal((await kirimMasuk(USERNAME_BIDAN, SANDI)).status, 429);
+
+            const dariPerangkat = await fetch(`${akar}/api/masuk`, {
+                method: 'POST',
+                headers: { 'content-type': 'application/json', cookie: perangkat.split(';')[0] },
+                body: JSON.stringify({ username: USERNAME_BIDAN, kataSandi: SANDI }),
+            });
+            assert.equal(dariPerangkat.status, 200);
         });
 
         test('permintaan mutasi non-JSON ditolak 415', async () => {

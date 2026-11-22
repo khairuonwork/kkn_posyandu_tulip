@@ -5,6 +5,8 @@ import type {
     IsianHariH,
 } from '@/components/cakupan-penimbangan';
 import type {
+    AnakDiLuarHitungan,
+    HasilPerluDicek,
     AnakPerluPerhatian,
     CakupanPeriode,
     RingkasanBeranda,
@@ -22,6 +24,8 @@ export type DataBeranda = {
     statusBbU?: PerbandinganStatusGizi[];
     statusTbU?: PerbandinganStatusGizi[];
     sasaranHistoris: boolean;
+    diLuarHitungan?: AnakDiLuarHitungan[];
+    perluDicek?: HasilPerluDicek[];
     statusGizi: SebaranStatusGizi;
     cakupanEnamBulan: CakupanPeriode[];
     trenGizi: TitikTren[];
@@ -166,16 +170,22 @@ export function useBerandaServer(
                     }
                 });
         };
+        // Tab yang tidak dilihat tidak memuat ulang; data segar lagi saat kembali.
+        const segarkan = () => {
+            if (!document.hidden) {
+                ambil();
+            }
+        };
         ambil();
-        const timer = window.setInterval(ambil, 30_000);
-        window.addEventListener('focus', ambil);
-        document.addEventListener('visibilitychange', ambil);
+        const timer = window.setInterval(segarkan, 30_000);
+        window.addEventListener('focus', segarkan);
+        document.addEventListener('visibilitychange', segarkan);
 
         return () => {
             controller.abort();
             window.clearInterval(timer);
-            window.removeEventListener('focus', ambil);
-            document.removeEventListener('visibilitychange', ambil);
+            window.removeEventListener('focus', segarkan);
+            document.removeEventListener('visibilitychange', segarkan);
         };
     }, [aktif, periodeId, daftar.periode, onSesiBerakhir, versi, rtPilihan]);
 

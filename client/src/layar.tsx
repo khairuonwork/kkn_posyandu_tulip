@@ -401,7 +401,9 @@ export function Layar({
             <Dashboard
                 kehadiranHariH={modeDataLive ? live?.kehadiranHariH : hariDemo}
                 bolehUbahHariH={
-                    modeDataLive ? live?.bolehUbahHariH : peran !== 'kader'
+                    modeDataLive
+                        ? live?.bolehUbahHariH
+                        : peran !== 'kader' && peran !== 'kms'
                 }
                 onSimpanHariH={
                     modeDataLive
@@ -516,6 +518,8 @@ export function Layar({
                 memuat={modeDataLive && berandaServer?.status !== 'siap'}
                 sumberLive={modeDataLive}
                 sasaranHistoris={live?.sasaranHistoris ?? false}
+                diLuarHitungan={live?.diLuarHitungan ?? []}
+                perluDicek={live?.perluDicek ?? []}
             />
         );
     }
@@ -698,6 +702,7 @@ export function Layar({
                               })(),
                               status: 'siap',
                               pesanGalat: null,
+                              diperbarui: null,
                               muatUlang: () => undefined,
                               unduh: (format = 'zscore') =>
                                   unduhLaporanDemo(

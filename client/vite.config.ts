@@ -30,6 +30,10 @@ export default defineConfig({
             '/api': {
                 target: process.env.API ?? 'http://127.0.0.1:4321',
                 changeOrigin: false,
+                // Vite menambahkan alamat tablet yang sebenarnya ke
+                // X-Forwarded-For. Tanpa ini server memercayai isian header dari
+                // klien, dan pembatas masuk per IP bisa dielakkan.
+                xfwd: true,
             },
         },
     },

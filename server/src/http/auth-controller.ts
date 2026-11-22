@@ -5,29 +5,56 @@
  * `services/auth-service.ts`, aturannya di `auth/`.
  */
 
+import { randomBytes } from 'node:crypto';
+
 import { Router } from 'express';
-import type { Request } from 'express';
+import type { Request, RequestHandler } from 'express';
 import type { Pool } from 'pg';
 
 import * as penggunaRepo from '../repositories/pengguna-repository.ts';
 import { GalatMasuk, keluar, masuk } from '../services/auth-service.ts';
-import { catatBerhasil, catatGagal, sisaTahanan } from './batas-masuk.ts';
-import { bacaCookie, hapusCookieSesi, NAMA_COOKIE_SESI, pasangCookieSesi } from './cookie.ts';
+import { batalkanPercobaan, infoGagal, mulaiPercobaan, percobaanBerhasil } from './batas-masuk.ts';
+import {
+    bacaCookie,
+    hapusCookieSesi,
+    NAMA_COOKIE_PERANGKAT,
+    NAMA_COOKIE_SESI,
+    pasangCookiePerangkat,
+    pasangCookieSesi,
+} from './cookie.ts';
 import { tokenPermintaan, wajibMasuk } from './middleware.ts';
+
+/** Petugas tidak dikagetkan angka sejak salah ketik pertama. */
+const SISA_DIPERINGATKAN = 3;
 
 function alamat(ip: string | undefined): string {
     return ip ?? 'tidak-diketahui';
 }
 
-function idPerangkat(req: Request): string {
-    const id = req.get('x-simpatik-device-id')?.trim() ?? '';
-    return /^[A-Za-z0-9_-]{8,96}$/.test(id) ? id : 'legacy';
+/** Web memakai cookie `perangkat`; APK mengirim ID pemasangannya lewat header. */
+function idPerangkat(req: Request): string | null {
+    const id =
+        bacaCookie(req.headers.cookie, NAMA_COOKIE_PERANGKAT) ??
+        req.get('x-simpatik-device-id')?.trim() ??
+        '';
+
+    return /^[A-Za-z0-9_-]{8,96}$/.test(id) ? id : null;
 }
 
-export function ruteAuth(pool: Pool): Router {
-    const rute = Router();
+function lamaTunggu(detik: number): string {
+    return detik < 60 ? `${detik} detik` : `${Math.ceil(detik / 60)} menit`;
+}
 
-    rute.post('/masuk', (req, res, next) => {
+function pesanTahan(detik: number, jaringan: boolean): string {
+    return `Terlalu banyak percobaan ${jaringan ? 'masuk dari jaringan ini' : 'untuk akun ini'}. Silakan coba lagi dalam ${lamaTunggu(detik)}.`;
+}
+
+/**
+ * Masuk Portal (`web`, cookie) dan tablet (token Bearer) memakai pembatas yang
+ * sama. Pesan `galat` sudah lengkap untuk ditampilkan apa adanya oleh APK.
+ */
+function ruteMasuk(pool: Pool, web: boolean): RequestHandler {
+    return (req, res, next) => {
         // Dirapikan di sini: papan ketik tablet kerap menambah spasi di ujung.
         const username = typeof req.body?.username === 'string' ? req.body.username.trim() : '';
         const kataSandi = typeof req.body?.kataSandi === 'string' ? req.body.kataSandi : '';
@@ -38,83 +65,85 @@ export function ruteAuth(pool: Pool): Router {
             return;
         }
 
-        const ip = alamat(req.ip);
         const perangkat = idPerangkat(req);
-        const tahan = sisaTahanan(username, ip, perangkat);
+        const izin = mulaiPercobaan(username, alamat(req.ip), perangkat);
 
-        if (tahan > 0) {
-            res.set('Retry-After', String(tahan))
+        if (!izin.boleh) {
+            res.set('Retry-After', String(izin.tungguDetik))
                 .status(429)
-                .json({ galat: `Terlalu banyak percobaan. Silakan coba lagi dalam ${tahan} detik.` });
+                .json({
+                    galat: pesanTahan(izin.tungguDetik, izin.jaringan),
+                    tungguDetik: izin.tungguDetik,
+                    ...(izin.jaringan ? { jaringan: true } : {}),
+                });
 
             return;
         }
 
         masuk(pool, username, kataSandi)
             .then((hasil) => {
-                catatBerhasil(username, ip, perangkat);
+                const id = perangkat ?? (web ? randomBytes(18).toString('base64url') : null);
+
+                percobaanBerhasil(izin.tiket, id);
+
+                if (!web) {
+                    res.json({
+                        token: hasil.token,
+                        kedaluwarsa: hasil.kedaluwarsa.toISOString(),
+                        pengguna: hasil.pengguna,
+                    });
+
+                    return;
+                }
+
                 pasangCookieSesi(res, hasil.token);
+
+                if (id !== null) {
+                    pasangCookiePerangkat(res, id);
+                }
 
                 res.json({ pengguna: hasil.pengguna });
             })
             .catch((galat: unknown) => {
                 if (!(galat instanceof GalatMasuk)) {
+                    batalkanPercobaan(izin.tiket);
                     next(galat);
 
                     return;
                 }
 
-                // Akun nonaktif ikut dihitung sebagai kegagalan: tanpa itu,
+                // Akun nonaktif tetap dihitung sebagai kegagalan: tanpa itu,
                 // akun yang dinonaktifkan menjadi sasaran tebakan tanpa batas.
-                catatGagal(username, ip, perangkat);
-
                 res.locals.diagnostikLogin = galat.diagnostik;
-                res.status(401).json({ galat: galat.message });
+
+                if (galat.sebab !== 'kredensial') {
+                    res.status(401).json({ galat: galat.message });
+
+                    return;
+                }
+
+                const info = infoGagal(izin.tiket);
+                const tambahan =
+                    info.tungguDetik > 0
+                        ? ` ${pesanTahan(info.tungguDetik, false)}`
+                        : info.sisaPercobaan <= SISA_DIPERINGATKAN
+                          ? ` Sisa ${info.sisaPercobaan} kali percobaan lagi. Setelah itu Anda perlu menunggu sebentar.`
+                          : '';
+
+                res.status(401).json({ galat: galat.message + tambahan, ...info });
             });
-    });
+    };
+}
+
+export function ruteAuth(pool: Pool): Router {
+    const rute = Router();
+
+    rute.post('/masuk', ruteMasuk(pool, true));
 
     // Aplikasi tablet memakai token Bearer karena cookie httpOnly adalah
     // mekanisme sesi peramban. Token tetap tersimpan di tabel sesi yang sama,
     // sehingga penonaktifan akun mencabut akses Portal dan tablet seketika.
-    rute.post('/v1/masuk', (req, res, next) => {
-        const username = typeof req.body?.username === 'string' ? req.body.username.trim() : '';
-        const kataSandi = typeof req.body?.kataSandi === 'string' ? req.body.kataSandi : '';
-
-        if (username === '' || kataSandi === '') {
-            res.status(400).json({ galat: 'Nama pengguna dan kata sandi wajib diisi' });
-            return;
-        }
-
-        const ip = alamat(req.ip);
-        const perangkat = idPerangkat(req);
-        const tahan = sisaTahanan(username, ip, perangkat);
-        if (tahan > 0) {
-            res.set('Retry-After', String(tahan)).status(429).json({
-                galat: `Terlalu banyak percobaan. Silakan coba lagi dalam ${tahan} detik.`,
-            });
-            return;
-        }
-
-        masuk(pool, username, kataSandi)
-            .then((hasil) => {
-                catatBerhasil(username, ip, perangkat);
-                res.json({
-                    token: hasil.token,
-                    kedaluwarsa: hasil.kedaluwarsa.toISOString(),
-                    pengguna: hasil.pengguna,
-                });
-            })
-            .catch((galat: unknown) => {
-                if (!(galat instanceof GalatMasuk)) {
-                    next(galat);
-                    return;
-                }
-
-                catatGagal(username, ip, perangkat);
-                res.locals.diagnostikLogin = galat.diagnostik;
-                res.status(401).json({ galat: galat.message });
-            });
-    });
+    rute.post('/v1/masuk', ruteMasuk(pool, false));
 
     rute.post('/v1/keluar', wajibMasuk, async (req, res, next) => {
         const token = tokenPermintaan(req);

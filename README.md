@@ -51,6 +51,8 @@ npm --prefix server run seed
 
 Buat akun contoh pada database lokal dengan menetapkan `SANDI` minimal delapan karakter. Pilih perintah sesuai terminal.
 
+Akun nyata yang dibuat lewat **Pengaturan → Akun**, `pengguna:buat`, atau `pengguna:sandi` diperiksa lebih ketat: minimal delapan karakter, tidak termasuk daftar sandi umum, dan tidak memuat nama pengguna atau nama pemilik akun. `seed:contoh` hanya memeriksa panjang.
+
 ```bash
 SANDI='ganti-kata-sandi-ini' npm --prefix server run seed:contoh
 ```

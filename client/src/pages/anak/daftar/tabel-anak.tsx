@@ -21,7 +21,7 @@ import {
 import { Link } from '@/lib/nav';
 import type { susunTabel } from '@/lib/z-score';
 import type { Periode } from '@/types/posyandu';
-import { Pemicu, Risiko } from './baris-penanda';
+import { Catatan, Pemicu, Risiko } from './baris-penanda';
 import { EditorBaris } from './editor-baris';
 import { LABEL_URUT, labelRt } from './tipe';
 import type { BarisAnak, KolomUrut, PatchAnak } from './tipe';
@@ -310,6 +310,7 @@ export function TabelAnak({
                         </TableHead>
                         {kepalaUrut('tanggal')}
                         {kepalaUrut('status')}
+                        <TableHead scope="col">Catatan</TableHead>
                         {bolehUbah && (
                             <TableHead scope="col" className="text-right">
                                 Aksi
@@ -389,6 +390,9 @@ export function TabelAnak({
                                     <Pemicu baris={baris} />
                                     <Risiko baris={baris} />
                                 </TableCell>
+                                <TableCell className="min-w-44">
+                                    <Catatan baris={baris} />
+                                </TableCell>
                                 {bolehUbah && (
                                     <TableCell className="py-1 text-right">
                                         <button
@@ -432,7 +436,7 @@ export function TabelAnak({
                                     className="bg-accent"
                                 >
                                     <TableCell
-                                        colSpan={7}
+                                        colSpan={8}
                                         className="p-0 first:pl-0 last:pr-0"
                                     >
                                         <EditorBaris

@@ -8,9 +8,9 @@
 
 import type { Peran } from './peran.ts';
 import { SEMUA_PERAN } from './peran.ts';
+import { periksaSandi } from './sandi-umum.ts';
 
-/** Sama dengan batas di `db/buat-pengguna.ts` dan `db/ganti-sandi.ts`. */
-export const SANDI_MINIMAL = 8;
+export { SANDI_MINIMAL } from './sandi-umum.ts';
 
 /**
  * Sama dengan CHECK `pengguna_username_sah` di migrasi 006. Diperiksa di sini
@@ -31,6 +31,8 @@ export type IsianAkun = {
     posyanduId?: number | null;
     mejaKms?: number | null;
     aktif: boolean;
+    /** Hanya bermakna untuk kader dan KMS: boleh melihat Beranda dan Data Balita di web. */
+    bolehLihatData?: boolean;
 };
 
 export type HasilBacaAkun = { isian: IsianAkun; kataSandi: string | null } | { galat: string };
@@ -53,6 +55,7 @@ export function bacaIsianAkun(badan: unknown, lama?: IsianAkun): HasilBacaAkun {
     const username = (teks('username') ?? lama?.username ?? '').toLowerCase();
     const peran = typeof b.peran === 'string' ? b.peran : lama?.peran;
     const aktif = typeof b.aktif === 'boolean' ? b.aktif : (lama?.aktif ?? true);
+    const bolehLihatData = typeof b.bolehLihatData === 'boolean' ? b.bolehLihatData : (lama?.bolehLihatData ?? false);
     const rt = 'rt' in b ? (teks('rt') || null) : (lama?.rt ?? null);
     const posyanduId = typeof b.posyanduId === 'number' && Number.isSafeInteger(b.posyanduId)
         ? b.posyanduId
@@ -93,8 +96,10 @@ export function bacaIsianAkun(badan: unknown, lama?: IsianAkun): HasilBacaAkun {
         return { galat: 'Kata sandi awal wajib diisi.' };
     }
 
-    if (kataSandi !== null && kataSandi.length < SANDI_MINIMAL) {
-        return { galat: `Kata sandi minimal ${SANDI_MINIMAL} karakter.` };
+    const galatSandi = kataSandi === null ? null : periksaSandi(kataSandi, { username, nama });
+
+    if (galatSandi !== null) {
+        return { galat: galatSandi };
     }
 
     return {
@@ -107,6 +112,7 @@ export function bacaIsianAkun(badan: unknown, lama?: IsianAkun): HasilBacaAkun {
             posyanduId,
             ...(peran === 'kms' ? { mejaKms } : {}),
             aktif,
+            bolehLihatData: (peran === 'kader' || peran === 'kms') && bolehLihatData,
         },
         kataSandi,
     };

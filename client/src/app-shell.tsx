@@ -109,9 +109,16 @@ export function bacaRute(alamat: string): Rute {
  * pada `wajibBoleh()` — menyembunyikan menu hanya membuat antarmuka jujur
  * tentang apa yang bisa dilakukan, bukan mencegah siapa pun melakukannya.
  */
-export function boleh(rute: Rute, peran: Peran, superAdmin = false): boolean {
+export function boleh(
+    rute: Rute,
+    peran: Peran,
+    superAdmin = false,
+    lihatData = true,
+): boolean {
     if (peran === 'kms') {
         return (
+            (lihatData &&
+                (rute.nama === 'beranda' || rute.nama === 'balita')) ||
             rute.nama === 'kms' ||
             rute.nama === 'kms-selesai' ||
             rute.nama === 'bantuan' ||
@@ -137,6 +144,22 @@ export function boleh(rute: Rute, peran: Peran, superAdmin = false): boolean {
         return peran === 'admin';
     }
 
+    // Kader di web hanya melihat, dan hanya bila admin mencentang izinnya.
+    if (peran === 'kader') {
+        if (rute.nama === 'laporan') {
+            return false;
+        }
+
+        if (
+            rute.nama === 'beranda' ||
+            rute.nama === 'balita' ||
+            rute.nama === 'detail' ||
+            rute.nama === 'riwayat'
+        ) {
+            return lihatData;
+        }
+    }
+
     return true;
 }
 
@@ -150,8 +173,19 @@ type ButirNav = {
 const SEMUA: Peran[] = ['kader', 'bidan', 'admin'];
 
 const NAV: ButirNav[] = [
-    { href: '/beranda', label: 'Beranda', ikon: House, peran: SEMUA },
-    { href: '/balita', label: 'Data Balita', ikon: Baby, peran: SEMUA },
+    // KMS hanya bila admin mencentang izin lihat data; `boleh` yang menyaring.
+    {
+        href: '/beranda',
+        label: 'Beranda',
+        ikon: House,
+        peran: [...SEMUA, 'kms'],
+    },
+    {
+        href: '/balita',
+        label: 'Data Balita',
+        ikon: Baby,
+        peran: [...SEMUA, 'kms'],
+    },
     {
         href: '/kartu-sasaran',
         label: 'Kartu Balita',
@@ -193,6 +227,8 @@ type CangkangProps = {
     periodeId: string;
     periode?: Periode[];
     onPindahPeriode: (id: string) => void;
+    /** Kader: izin melihat Beranda dan Data Balita dari admin. */
+    lihatData?: boolean;
     /** Isi `main`. */
     children: ReactNode;
     /**
@@ -216,6 +252,7 @@ export function Cangkang({
     onPindahPeriode,
     children,
     kakiSidebar,
+    lihatData = true,
 }: CangkangProps) {
     const alamat = useAlamat();
     const antreanHariIni = ['kms', 'kms-selesai'].includes(
@@ -258,6 +295,12 @@ export function Cangkang({
                 .filter(
                     (butir) =>
                         butir.peran.includes(peran) &&
+                        boleh(
+                            bacaRute(butir.href),
+                            peran,
+                            superAdmin,
+                            lihatData,
+                        ) &&
                         (butir.href !== '/kms' ||
                             peran === 'kms' ||
                             superAdmin),
@@ -488,6 +531,12 @@ export function Cangkang({
                 {NAV.filter(
                     (butir) =>
                         butir.peran.includes(peran) &&
+                        boleh(
+                            bacaRute(butir.href),
+                            peran,
+                            superAdmin,
+                            lihatData,
+                        ) &&
                         (butir.href !== '/kms' ||
                             peran === 'kms' ||
                             superAdmin),

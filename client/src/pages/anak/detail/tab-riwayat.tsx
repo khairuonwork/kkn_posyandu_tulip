@@ -190,9 +190,11 @@ export function TabRiwayat({
             </div>
 
             <p className="mt-3 max-w-[80ch] text-sm text-muted-foreground">
-                Kolom Pertumbuhan menampilkan huruf N, T, O, dan B apa adanya
-                dari arsip. Aturan 1T/2T/3T belum diterapkan karena definisinya
-                masih dikonfirmasi.
+                N dan T dihitung dari selisih berat terhadap bulan sebelumnya
+                dan kenaikan berat minimal (KBM) sesuai umur, sama dengan rekap
+                Excel. Bila bulan sebelumnya tidak ditimbang, kolom menampilkan
+                huruf dari catatan sumber, misalnya O atau B. Aturan 1T/2T/3T
+                belum diterapkan karena definisinya masih dikonfirmasi.
             </p>
         </section>
     );

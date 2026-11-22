@@ -111,7 +111,18 @@ export type PenggunaAktif = {
     posyanduIds?: number[];
     /** Mirae memiliki akses portal lintas cluster. */
     superAdmin?: boolean;
+    /** Kader: dicentang admin agar boleh melihat data balita di web. */
+    bolehLihatData?: boolean;
 };
+
+/**
+ * Di web (cookie), kader hanya melihat Beranda dan Data Balita bila admin
+ * mencentang izinnya, dan tidak pernah mengubah data balita. Tablet (Bearer)
+ * tidak memakai aturan ini: kader di lapangan tetap butuh daftar sasaran.
+ */
+export function kaderWebBolehLihat(pengguna: PenggunaAktif): boolean {
+    return pengguna.peran !== "kader" || pengguna.bolehLihatData === true;
+}
 
 /**
  * Semua kader mendapat cakupan seluruh RT Posyandu. RT di profil akun hanya

@@ -231,6 +231,16 @@ export default function TabelLaporan({
                                                     formatAsli
                                                     rapat
                                                 />
+                                                {row.penilaian?.['WHO-2006']?.[
+                                                    indeks
+                                                ]?.tidakWajar && (
+                                                    <span
+                                                        className="ml-2 inline-block rounded-full bg-tone-amber-bg px-2 py-0.5 text-xs font-bold text-tone-amber"
+                                                        title="Nilai jauh di luar batas wajar. Ukur ulang atau betulkan bila salah ketik."
+                                                    >
+                                                        Perlu dicek
+                                                    </span>
+                                                )}
                                             </td>
                                         </>
                                     ) : (

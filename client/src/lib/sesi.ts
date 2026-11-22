@@ -21,6 +21,8 @@ export type PenggunaSesi = {
     posyanduNama: string | null;
     rw: string | null;
     superAdmin: boolean;
+    /** Kader: izin melihat Beranda dan Data Balita di web. */
+    bolehLihatData?: boolean;
 };
 
 export type StatusSesi = 'memeriksa' | 'masuk' | 'keluar';
@@ -81,7 +83,14 @@ export function useSesi() {
     }, []);
 
     const masuk = useCallback(
-        async (username: string, kataSandi: string): Promise<string | null> => {
+        async (
+            username: string,
+            kataSandi: string,
+        ): Promise<
+            | string
+            | { galat: string; tungguDetik: number; jaringan: boolean }
+            | null
+        > => {
             const res = await fetch('/api/masuk', {
                 method: 'POST',
                 credentials: 'same-origin',
@@ -92,11 +101,21 @@ export function useSesi() {
             if (!res.ok) {
                 const isi = (await res.json().catch(() => ({}))) as {
                     galat?: string;
+                    tungguDetik?: number;
+                    jaringan?: boolean;
                 };
+                const galat =
+                    isi.galat ?? 'Tidak dapat masuk. Silakan coba lagi nanti.';
 
-                return (
-                    isi.galat ?? 'Tidak dapat masuk. Silakan coba lagi nanti.'
-                );
+                // Jeda dari pembatas masuk: layar Masuk menghitung mundur.
+                return typeof isi.tungguDetik === 'number' &&
+                    isi.tungguDetik > 0
+                    ? {
+                          galat,
+                          tungguDetik: isi.tungguDetik,
+                          jaringan: isi.jaringan === true,
+                      }
+                    : galat;
             }
 
             // Jawaban masuk memuat identitas, tetapi bentuknya berbeda dari

@@ -13,6 +13,7 @@
 
 import { ATURAN_USERNAME, POLA_USERNAME } from '../src/auth/akun.ts';
 import { hashKataSandi } from '../src/auth/kata-sandi.ts';
+import { periksaSandi } from '../src/auth/sandi-umum.ts';
 import type { Peran } from '../src/auth/peran.ts';
 import { SEMUA_PERAN } from '../src/auth/peran.ts';
 import { dapatkanPool, tutupPool } from '../src/db/pool.ts';
@@ -45,8 +46,14 @@ async function jalankan(): Promise<void> {
 
     const peran = peranMentah as Peran;
 
-    if (sandi === undefined || sandi.length < 8) {
-        keluarDenganPesan('Setel SANDI di lingkungan, minimal 8 karakter.');
+    if (sandi === undefined) {
+        keluarDenganPesan('Setel SANDI di lingkungan.');
+    }
+
+    const galatSandi = periksaSandi(sandi, { username, nama });
+
+    if (galatSandi !== null) {
+        keluarDenganPesan(galatSandi);
     }
 
     // Aturan yang sama dengan CHECK di basis data, diperiksa lebih awal supaya

@@ -36,6 +36,8 @@ export type Pengguna = {
     mejaKms?: number | null;
     rw?: string | null;
     superAdmin?: boolean;
+    /** Kader: boleh melihat Beranda dan Data Balita di web (hanya lihat). */
+    bolehLihatData?: boolean;
 };
 
 /** Enam indeks antropometri, sama dengan App\Enums\Indeks. */

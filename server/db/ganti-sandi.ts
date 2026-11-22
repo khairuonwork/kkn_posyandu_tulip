@@ -17,6 +17,7 @@
  */
 
 import { hashKataSandi } from '../src/auth/kata-sandi.ts';
+import { periksaSandi } from '../src/auth/sandi-umum.ts';
 import { dapatkanPool, tutupPool } from '../src/db/pool.ts';
 import { dalamTransaksi } from '../src/db/transaksi.ts';
 
@@ -35,8 +36,14 @@ async function jalankan(): Promise<void> {
         );
     }
 
-    if (sandi === undefined || sandi.length < 8) {
-        keluarDenganPesan('Setel SANDI di lingkungan, minimal 8 karakter.');
+    if (sandi === undefined) {
+        keluarDenganPesan('Setel SANDI di lingkungan.');
+    }
+
+    const galatSandi = periksaSandi(sandi, { username });
+
+    if (galatSandi !== null) {
+        keluarDenganPesan(galatSandi);
     }
 
     const pool = dapatkanPool();

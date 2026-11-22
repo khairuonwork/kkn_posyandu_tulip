@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import type { Pool } from 'pg';
-import { wajibBoleh } from './middleware.ts';
+import { wajibBoleh, wajibLihatDataWeb } from './middleware.ts';
 import { GalatAnak } from '../services/anak-service.ts';
 import { GalatSurveiKia } from '../services/survei-kia-domain.ts';
 import { catatPendampinganKia,pendampinganKia } from '../services/survei-kia-service.ts';
@@ -8,7 +8,7 @@ import { catatPendampinganKia,pendampinganKia } from '../services/survei-kia-ser
 export function ruteSurveiKia(pool:Pool):Router {
     const rute=Router();
     for(const method of ['get','post'] as const) rute[method]('/anak/:id/pendampingan-kia',
-        wajibBoleh(method==='get'?'lihat-anak':'catat-survei-kia'),async(req,res,next)=>{
+        wajibBoleh(method==='get'?'lihat-anak':'catat-survei-kia'),wajibLihatDataWeb,async(req,res,next)=>{
             const id=Number(req.params.id);
             if(!Number.isSafeInteger(id)||id<=0) {res.status(404).json({galat:'Anak tidak ditemukan.'});return;}
             try {

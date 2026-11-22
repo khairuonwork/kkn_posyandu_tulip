@@ -47,7 +47,7 @@ Dua dependensi runtime di seluruh server: `express` dan `pg`. Di client tujuh: `
 
 **Tidak ada abstraksi tanpa pemakai kedua.** Tidak ada antarmuka repository dengan satu implementasi, tidak ada lapisan service untuk controller yang hanya memanggil satu query.
 
-**Tanpa dependensi yang dapat digantikan beberapa baris.** Pengurai cookie, pembatas percobaan masuk, dan pelari migrasi ditulis sendiri karena masing-masing muat dalam belasan baris.
+**Tanpa dependensi yang dapat digantikan beberapa baris.** Pengurai cookie dan pelari migrasi ditulis sendiri karena masing-masing muat dalam belasan baris. Pembatas percobaan masuk (`server/src/http/batas-masuk.ts`) juga ditulis sendiri: hitungan per akun, per perangkat dikenal, dan per IP, dengan salinan di tabel `percobaan_masuk` agar bertahan saat restart. Pustaka rate limit umum tidak menyediakan aturan perangkat dikenal itu.
 
 ## Alur permintaan
 

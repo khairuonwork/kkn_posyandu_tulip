@@ -133,6 +133,9 @@ export async function daftarPerangkat(pool: Pool, pengguna: PenggunaAktif) {
            FROM perangkat_posyandu d JOIN pengguna u ON u.id=d.pengguna_id
            LEFT JOIN posyandu p ON p.id=d.posyandu_id
           WHERE ($1::boolean OR d.posyandu_id=ANY($2::bigint[]))
+            -- Perangkat lama tidak dihapus, tetapi tidak dikirim ulang setiap
+            -- panggilan; yang masih menahan data tetap tampil.
+            AND (d.terakhir_aktif > now() - interval '7 days' OR d.antrean_tertunda > 0)
           ORDER BY p.rw NULLS LAST, d.terakhir_aktif DESC, d.device_id`, scope,
     );
     const { rows: posyandu } = await pool.query<{id: number; nama: string; rw: string | null}>(

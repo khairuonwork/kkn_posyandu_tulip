@@ -27,7 +27,10 @@ node scripts\buat-env-supabase.cjs
 Jangan commit atau mengirim `server/.env`. Pastikan `DATABASE_URL` menunjuk ke
 database yang memang akan digunakan. Jangan jalankan migrasi terhadap database
 live hanya untuk menyalakan server. Fitur antrean bersama tablet dan pemanggilan KMS
-membutuhkan migrasi sampai `034`. Tinjau file SQL dan pastikan cadangan database
+membutuhkan migrasi sampai `034`; pembatas percobaan masuk menyimpan hitungannya
+di tabel `percobaan_masuk` dari migrasi `039`. Tanpa tabel itu server tetap
+menyala, mencatat peringatan `[Batas Masuk]`, dan hitungan hilang setiap restart.
+Tinjau file SQL dan pastikan cadangan database
 tersedia terlebih dahulu; baru jalankan perintah berikut dari akar repo untuk
 database yang memang dituju:
 
@@ -73,6 +76,11 @@ Firewall meminta izin atau koneksi dari perangkat lain gagal:
 > Skrip ini membuka layanan dev ke perangkat satu jaringan dan bukan pengganti
 > hosting HTTPS untuk penggunaan publik.
 
+Proxy Vite meneruskan `/api` ke API dengan `xfwd: true`, sehingga API membaca
+alamat IP perangkat yang sebenarnya dari `X-Forwarded-For`. Tanpa itu, semua
+laptop terlihat sebagai `127.0.0.1` dan berbagi satu hitungan pembatas percobaan
+masuk. Jangan menaruh proxy lain di depan Vite tanpa menyesuaikan `TRUST_PROXY`.
+
 Untuk menghentikan proses yang dibuat skrip tersebut:
 
 ```powershell
@@ -91,7 +99,7 @@ batas koneksi. Konfigurasi Supabase lokal memakai transaction pooler pada port
 gunakan host dan kredensial proyek yang sama. PostgreSQL lokal di Docker tetap
 memakai port `5433` seperti `.env.example`.
 
-Pool aplikasi secara bawaan dibatasi 3 koneksi per proses, dengan batas tunggu
+Pool aplikasi secara bawaan dibatasi 10 koneksi per proses (`server/src/db/pool.ts`), dengan batas tunggu
 koneksi 10 detik. `DB_POOL_MAX` dapat mengubah batas ini setelah kapasitas seluruh
 proses diperhitungkan. Permintaan tambahan mengantre dan memakai ulang koneksi yang selesai.
 Server menutup pool ketika dihentikan secara normal. Mulai ulang layanan setelah

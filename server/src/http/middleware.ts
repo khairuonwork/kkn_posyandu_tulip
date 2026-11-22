@@ -14,7 +14,7 @@ import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import type { Pool } from 'pg';
 
 import type { Aksi } from '../auth/peran.ts';
-import { boleh } from '../auth/peran.ts';
+import { boleh, kaderWebBolehLihat } from '../auth/peran.ts';
 import { dariToken } from '../services/auth-service.ts';
 import { bacaCookie, NAMA_COOKIE_SESI } from './cookie.ts';
 
@@ -91,6 +91,36 @@ export function wajibBoleh(aksi: Aksi | readonly Aksi[]): RequestHandler {
         next();
     };
 }
+
+/** Portal web memakai cookie; aplikasi tablet memakai token Bearer. */
+function lewatPortal(req: Request): boolean {
+    return !req.headers.authorization?.startsWith('Bearer ');
+}
+
+/**
+ * Data balita di web: kader hanya dengan centang izin dari admin. Tablet tetap
+ * memakai `wajibBoleh` saja, karena kader di lapangan butuh daftar sasaran.
+ */
+export const wajibLihatDataWeb: RequestHandler = (req, res, next) => {
+    if (req.pengguna !== undefined && lewatPortal(req) && !kaderWebBolehLihat(req.pengguna)) {
+        res.status(403).json({ galat: 'Akun ini belum diberi izin melihat data balita.' });
+
+        return;
+    }
+
+    next();
+};
+
+/** Di web kader hanya melihat; Laporan dan perubahan data balita bukan untuknya. */
+export const tolakKaderWeb: RequestHandler = (req, res, next) => {
+    if (req.pengguna?.peran === 'kader' && lewatPortal(req)) {
+        res.status(403).json({ galat: 'Akun kader di web hanya dapat melihat data.' });
+
+        return;
+    }
+
+    next();
+};
 
 /**
  * Permintaan yang mengubah data wajib berbadan JSON.

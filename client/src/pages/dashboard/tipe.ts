@@ -44,6 +44,22 @@ export type TitikTren = {
     giziLebih: number;
 };
 
+/** Ditimbang tetapi tidak ikut hitungan resmi (aturan F1). */
+export type AnakDiLuarHitungan = {
+    anakId: number;
+    nama: string | null;
+    rt: string | null;
+    alasan: string;
+};
+
+/** Hasil ukur di luar batas wajar: tetap dihitung, perlu dicek ulang. */
+export type HasilPerluDicek = {
+    anakId: number;
+    nama: string | null;
+    rt: string | null;
+    indeks: string[];
+};
+
 export type AnakPerluPerhatian = {
     anakId: number;
     nama: string | null;

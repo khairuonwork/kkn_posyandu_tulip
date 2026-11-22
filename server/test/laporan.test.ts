@@ -254,3 +254,43 @@ test("berkas Excel mencakup petunjuk dan dua format laporan", async () => {
     assert.equal(sheet.pageSetup.printTitlesRow, "1:6");
     assert.equal(sheet.pageSetup.printArea, "A1:AH7");
 });
+
+test("jumlah TB/U per kategori sama antara penilaian tersimpan (Beranda, Data Balita) dan laporan", async () => {
+    const { hitungPenilaian } = await import("../src/antropometri/penilaian-gizi.ts");
+    const { tabelDariBerkas } = await import("../src/antropometri/sumber-standar.ts");
+    const { buatBarisLaporan } = await import("../src/services/laporan-perhitungan.ts");
+    const tabel = tabelDariBerkas();
+    // Dua baris terakhir: balita batas -2 SD yang dulu Normal di Beranda, Pendek di rekap.
+    const data = [
+        ["2021-09-28", "L", 8.74, 71.5], ["2020-10-20", "L", 10.3, 80.9], ["2021-06-16", "P", 8.1, 72.0],
+        ["2018-02-03", "L", 24.8, 110.6], ["2019-04-25", "L", 14.5, 92.2], ["2018-09-07", "L", 14.5, 96.0],
+    ] as const;
+    const rows = data.map(([tglLahir, jk, bbKg, tinggiCm], i) => ({
+        ...row("2022-11", "2022-11-14", bbKg), anakId: 100 + i, tglLahir, jk, tinggiCm, jenisUkur: null,
+        lilaCm: null, likaCm: null, penilaian: {},
+    }));
+    const hitung = (kategori: (string | null | undefined)[]) =>
+        kategori.reduce<Record<string, number>>((n, k) => ({ ...n, [k ?? "-"]: (n[k ?? "-"] ?? 0) + 1 }), {});
+    const tersimpan = hitung(rows.map((r) => hitungPenilaian(tabel, r).find((h) => h.indeks === "TB_U")?.kategori));
+    const diLaporan = hitung(buatBarisLaporan(rows as never, tabel).map((r) => r.penilaian["WHO-2006"].TB_U?.kategori as string | undefined));
+    assert.deepEqual(tersimpan, diLaporan);
+    assert.equal(diLaporan.Pendek, 5);
+});
+
+test("BB/U Permenkes membaca garis -2 dan -3 SD tabel resmi, bukan menebak dari jarak -1 SD", async () => {
+    const { tabelDariBerkas } = await import("../src/antropometri/sumber-standar.ts");
+    const { buatBarisLaporan } = await import("../src/services/laporan-perhitungan.ts");
+    // Perempuan tepat 24 bulan; tabel resmi: -3 SD 8,1 kg, -2 SD 9,0 kg, -1 SD 10,2 kg.
+    const anak = (bbKg: number, i: number) => ({
+        ...row("2026-11", "2026-11-14", bbKg), anakId: 300 + i, tglLahir: "2024-11-14", jk: "P" as const,
+        tinggiCm: null, lilaCm: null, likaCm: null, penilaian: {},
+    });
+    const hasil = buatBarisLaporan([9.0, 8.95, 8.1, 7.8].map(anak) as never, tabelDariBerkas());
+    const kategori = (s: string) => hasil.map((r) => r.penilaian[s].BB_U?.kategori);
+    assert.deepEqual(kategori("PERMENKES-2-2020"),
+        ["Berat badan normal", "Berat badan kurang", "Berat badan kurang", "Berat badan sangat kurang"]);
+    // Di luar garis yang dibulatkan, kedua standar sepakat. Tepat 9,0 kg berbeda:
+    // garis WHO tanpa pembulatan sedikit di atas 9,0, jadi WHO menyebutnya kurang.
+    assert.deepEqual(kategori("PERMENKES-2-2020").slice(1), kategori("WHO-2006").slice(1));
+    assert.equal(kategori("WHO-2006")[0], "Berat badan kurang");
+});

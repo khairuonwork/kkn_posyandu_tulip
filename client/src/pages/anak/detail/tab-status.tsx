@@ -168,10 +168,16 @@ export function TabStatus({
                     periode={periode.id}
                     sumberLive={sumberLive}
                     alasanTanpaWa={
-                        peran === 'kms' ? undefined : alasanTanpaDataWa
+                        peran === 'kms' || peran === 'kader'
+                            ? undefined
+                            : alasanTanpaDataWa
                     }
                     onInfoKiaChange={onInfoKiaChange}
-                    onKirimWa={peran === 'kms' ? undefined : onBukaWa}
+                    onKirimWa={
+                        peran === 'kms' || peran === 'kader'
+                            ? undefined
+                            : onBukaWa
+                    }
                 />
             )}
         </>

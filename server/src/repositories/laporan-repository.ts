@@ -19,6 +19,8 @@ export type BarisLaporan = {
     ntobRaw: string | null;
     statusKehadiran: string;
     jenisUkur: "PB" | "TB" | null;
+    /** Status baris sasaran bulan itu; null bila anak tidak ada di daftar sasaran. */
+    statusSasaran?: string | null;
     penilaian: Record<string, Record<string, Record<string, unknown>>>;
 };
 
@@ -39,7 +41,7 @@ export async function dataLaporan(
                 p.bb_kg::float8 AS "bbKg", p.tinggi_cm::float8 AS "tinggiCm",
                 p.lila_cm::float8 AS "lilaCm", p.lika_cm::float8 AS "likaCm",
                 p.ntob_raw AS "ntobRaw", p.status_kehadiran AS "statusKehadiran",
-                p.jenis_ukur AS "jenisUkur",
+                p.jenis_ukur AS "jenisUkur", sas.status AS "statusSasaran",
                 coalesce((
                     SELECT jsonb_object_agg(s.standar_versi, s.nilai)
                     FROM (
@@ -58,6 +60,7 @@ export async function dataLaporan(
            JOIN periode pe ON pe.id = p.periode_id
            LEFT JOIN orang_tua ot ON ot.id = a.orang_tua_id
            LEFT JOIN wilayah_rt wr ON wr.id = a.wilayah_rt_id
+           LEFT JOIN sasaran sas ON sas.periode_id = p.periode_id AND sas.anak_id = p.anak_id
           WHERE a.deleted_at IS NULL
             AND make_date(pe.tahun, pe.bulan, 1) <= ($1 || '-01')::date
             AND ($2::boolean OR wr.posyandu_id=ANY($3::bigint[]))

@@ -15,7 +15,7 @@
 import type { Indeks, JenisKelamin, JenisUkur } from './indeks.ts';
 import { jenisUkurSeharusnya, SEMUA_INDEKS, SIFAT } from './indeks.ts';
 import { kategoriDari } from './kategori.ts';
-import type { TabelStandar } from './tabel-standar.ts';
+import { interpolasiLms, type Lms, type TabelStandar } from './tabel-standar.ts';
 import { hitungZ } from './z-score.ts';
 
 /** Selisih sistematis antara panjang badan telentang dan tinggi badan berdiri. */
@@ -67,6 +67,50 @@ export function umurBulanPada(tglLahir: string, tanggal: string): number {
     return bulan;
 }
 
+/** Tanggal ulang bulan ke-n; 31 Januari + 1 bulan menjadi akhir Februari. */
+export function tambahBulan(tanggal: string, jumlahBulan: number): string {
+    const [tahun, bulan, hari] = pecahTanggal(tanggal);
+    const nomorBulan = bulan - 1 + jumlahBulan;
+    const tahunTujuan = tahun + Math.floor(nomorBulan / 12);
+    const bulanTujuan = ((nomorBulan % 12) + 12) % 12;
+    const hariTujuan = Math.min(hari, new Date(Date.UTC(tahunTujuan, bulanTujuan + 1, 0)).getUTCDate());
+    return `${tahunTujuan}-${String(bulanTujuan + 1).padStart(2, '0')}-${String(hariTujuan).padStart(2, '0')}`;
+}
+
+/**
+ * Umur pecahan: bulan penuh ditambah porsi hari menuju ulang bulan berikutnya.
+ *
+ * Dipakai hanya sebagai kunci tabel indeks berumur, supaya z-score mengikuti
+ * umur harian seperti WHO Anthro. Batas umur (PB/TB, LILA) tetap bulan penuh.
+ */
+export function umurDesimalBulan(tglLahir: string, tanggal: string): number {
+    const penuh = umurBulanPada(tglLahir, tanggal);
+    if (penuh < 0) return penuh;
+    const awal = Date.parse(`${tambahBulan(tglLahir, penuh)}T00:00:00Z`);
+    const berikut = Date.parse(`${tambahBulan(tglLahir, penuh + 1)}T00:00:00Z`);
+    const ukur = Date.parse(`${tanggal.slice(0, 10)}T00:00:00Z`);
+    return penuh + Math.max(0, Math.min(1, (ukur - awal) / (berikut - awal)));
+}
+
+/**
+ * Tabel yang menginterpolasi LMS di antara dua baris bulan untuk kunci umur
+ * pecahan. `TabelStandar.cari` sengaja tetap memotong ke bulan penuh demi
+ * kesetaraan dengan acuan PHP (ADR-0006).
+ */
+export function tabelInterpolasiUmur(tabel: TabelStandar): TabelStandar {
+    return {
+        cari(indeks: Indeks, jk: JenisKelamin, kunci: number): Lms | null {
+            if (!SIFAT[indeks].kunciAdalahUmur || Number.isInteger(kunci)) return tabel.cari(indeks, jk, kunci);
+            const bawah = Math.floor(kunci);
+            const a = tabel.cari(indeks, jk, bawah);
+            const b = tabel.cari(indeks, jk, bawah + 1);
+            // Bulan terakhir tabel (60) tidak punya pasangan atas: pakai barisnya apa adanya.
+            if (a === null || b === null) return a;
+            return interpolasiLms(a, b, kunci - bawah);
+        },
+    } as TabelStandar;
+}
+
 function pecahTanggal(iso: string): [number, number, number] {
     const cocok = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
 
@@ -112,14 +156,16 @@ export function hitungPenilaian(
 
     const bb = pengukuran.bbKg;
     const [tinggi, catatanUkur] = tinggiUntukTabel(pengukuran, umur);
+    const umurKunci = umurDesimalBulan(pengukuran.tglLahir, pengukuran.tanggalUkur);
+    const tabelHarian = tabelInterpolasiUmur(tabel);
 
     const masukan: Record<Indeks, [number | null, number | null]> = {
-        BB_U: [umur, bb],
-        TB_U: [umur, tinggi],
+        BB_U: [umurKunci, bb],
+        TB_U: [umurKunci, tinggi],
         BB_TB: [tinggi, bb],
-        IMT_U: [umur, imt(bb, tinggi)],
-        LILA_U: [umur, pengukuran.lilaCm],
-        LIKA_U: [umur, pengukuran.likaCm],
+        IMT_U: [umurKunci, imt(bb, tinggi)],
+        LILA_U: [umurKunci, pengukuran.lilaCm],
+        LIKA_U: [umurKunci, pengukuran.likaCm],
     };
 
     const hasil: HasilPenilaian[] = [];
@@ -131,7 +177,7 @@ export function hitungPenilaian(
             continue;
         }
 
-        const z = hitungZ(tabel, indeks, pengukuran.jk, kunci, nilai);
+        const z = hitungZ(tabelHarian, indeks, pengukuran.jk, kunci, nilai);
 
         if (z === null) {
             continue;

@@ -85,6 +85,14 @@ function simpanDetail(sheet: ExcelJS.Worksheet, layout: TataLetak, r: number, ro
         if (tanggal) sheet.getCell(r, layout.ukur + offset).note = `Nilai dari pengukuran ${tanggal}; berlaku hingga dua bulan berikutnya. Z-score mengikuti umur periode laporan.`;
     }
     if (row.catatanNt) sheet.getCell(r, layout.ukur + 4).note = row.catatanNt;
+    // Nilai tidak wajar tetap dihitung; catatan sel meminta dicek tanpa mengubah teks status (dipakai aturan warna).
+    INDEKS_LAPORAN.forEach((index, i) => {
+        if (!(row.penilaian["WHO-2006"]?.[index.id] as { tidakWajar?: boolean } | undefined)?.tidakWajar) return;
+        STANDAR_LAPORAN.forEach((_, s) => {
+            sheet.getCell(r, layout.ukur + 5 + (i * STANDAR_LAPORAN.length + s) * 2 + 1).note =
+                'Perlu dicek: nilai jauh di luar batas wajar. Ukur ulang atau betulkan bila salah ketik.';
+        });
+    });
     if (row.sumberUmur === 'arsip-bulanan') {
         sheet.getCell(r, layout.umur).note = 'Arsip hanya memuat umur bulan. Sisa hari tidak diasumsikan dari tanggal acara atau akhir bulan.';
     }

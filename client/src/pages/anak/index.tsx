@@ -6,7 +6,7 @@
  * tidak perlu meninggalkan daftarnya.
  */
 
-import { Baby, UserPlus } from 'lucide-react';
+import { Baby, Eye, UserPlus } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Halaman from '@/components/halaman';
 import Pilih from '@/components/pilih';
@@ -59,7 +59,8 @@ export default function DaftarAnak({
         naik: true,
     });
 
-    const bolehUbah = peran !== 'kader' && sumberData === 'contoh';
+    const hanyaLihat = peran === 'kader' || peran === 'kms';
+    const bolehUbah = !hanyaLihat && sumberData === 'contoh';
     const rtAktif = rtTerkunci ?? rt;
     useEffect(() => {
         if (filterAwal.current) {
@@ -186,23 +187,34 @@ export default function DaftarAnak({
                       }. Data contoh.`
             }
             aksi={
-                bolehUbah && (
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setMenambah((b) => !b);
-                            setDibuka(null);
-                        }}
-                        aria-expanded={menambah}
-                        className="tombol-utama"
-                    >
-                        <UserPlus
-                            className="size-5"
+                hanyaLihat ? (
+                    <span className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-card px-4 font-semibold text-muted-foreground">
+                        <Eye
+                            className="size-4.5"
                             strokeWidth={2.5}
                             aria-hidden="true"
                         />
-                        Tambah balita
-                    </button>
+                        Hanya lihat
+                    </span>
+                ) : (
+                    bolehUbah && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setMenambah((b) => !b);
+                                setDibuka(null);
+                            }}
+                            aria-expanded={menambah}
+                            className="tombol-utama"
+                        >
+                            <UserPlus
+                                className="size-5"
+                                strokeWidth={2.5}
+                                aria-hidden="true"
+                            />
+                            Tambah balita
+                        </button>
+                    )
                 )
             }
         >

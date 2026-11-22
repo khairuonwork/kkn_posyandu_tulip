@@ -240,3 +240,41 @@ describe('penilaian gizi', () => {
         assert.equal(per.get('BB_TB')?.kategori, per.get('IMT_U')?.kategori);
     });
 });
+
+describe('umur harian (acuan rekap Z-score November 2026, kolom WHO-LMS)', () => {
+    // Baris nyata dari rekap pembina; tanggal digeser -4 tahun (pola kabisat
+    // sama, umur harian identik) supaya tanggal lahir asli tidak tersimpan.
+    // [lahir, ukur, jk, bb, tb, z BB/U, z TB/U, z BB/TB]
+    const ACUAN: [string, string, 'L' | 'P', number, number, number, number, number][] = [
+        ['2021-09-28', '2022-11-14', 'L', 8.74, 71.5, -1.22, -2.461, -0.027],
+        ['2020-10-20', '2022-11-14', 'L', 10.3, 80.9, -1.557, -2.225, -0.367],
+        ['2019-04-25', '2022-11-14', 'L', 14.5, 92.2, -0.514, -2.014, 1.117],
+        ['2018-09-07', '2022-11-14', 'L', 14.5, 96.0, -1.114, -2.006, 0.317],
+        ['2022-02-06', '2022-11-14', 'P', 7.0, 65.1, -1.408, -2.223, -0.162],
+        ['2021-06-16', '2022-11-15', 'P', 8.1, 72.0, -1.773, -2.682, -0.628],
+        ['2018-02-03', '2022-11-14', 'L', 24.8, 110.6, 2.385, 0.458, 3.025],
+    ];
+
+    test('z-score sama dengan WHO-LMS rekap dalam 0,01', () => {
+        for (const [tglLahir, tanggalUkur, jk, bbKg, tinggiCm, bbU, tbU, bbTb] of ACUAN) {
+            const hasil = hitungPenilaian(tabel, {
+                tglLahir, tanggalUkur, jk, bbKg, tinggiCm, jenisUkur: null, lilaCm: null, likaCm: null,
+            });
+            const z = new Map(hasil.map((h) => [h.indeks, h.zScore]));
+
+            for (const [indeks, harap] of [['BB_U', bbU], ['TB_U', tbU], ['BB_TB', bbTb]] as const) {
+                const dapat = z.get(indeks) ?? Number.NaN;
+                assert.ok(Math.abs(dapat - harap) <= 0.01, `${tglLahir} ${indeks}: ${dapat} vs ${harap}`);
+            }
+        }
+    });
+
+    test('balita batas -2 SD terbaca Pendek, bukan Normal', () => {
+        const hasil = hitungPenilaian(tabel, {
+            tglLahir: '2018-09-07', tanggalUkur: '2022-11-14', jk: 'L',
+            bbKg: 14.5, tinggiCm: 96.0, jenisUkur: null, lilaCm: null, likaCm: null,
+        });
+
+        assert.equal(hasil.find((h) => h.indeks === 'TB_U')?.kategori, 'Pendek');
+    });
+});

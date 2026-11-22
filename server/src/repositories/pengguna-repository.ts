@@ -29,13 +29,14 @@ export type PenggunaPublik = {
     mejaKms: number | null;
     rw: string | null;
     superAdmin: boolean;
+    bolehLihatData: boolean;
 };
 
 export type PosyanduPublik = { id: number; nama: string; rw: string };
 
 const KOLOM_PUBLIK = `
     p.id, p.nama, p.username, p.peran, p.aktif, w.rt,
-    p.super_admin AS "superAdmin", posyandu.id AS "posyanduId",
+    p.super_admin AS "superAdmin", p.boleh_lihat_data AS "bolehLihatData", posyandu.id AS "posyanduId",
     posyandu.nama AS "posyanduNama", posyandu.rw, posyandu.meja_kms AS "mejaKms"
     FROM pengguna p
     LEFT JOIN wilayah_rt w ON w.id = p.wilayah_rt_id
@@ -170,10 +171,10 @@ export async function sisipkan(
     wilayahRtId: number | null,
 ): Promise<number> {
     const { rows } = await db.query<{ id: number }>(
-        `INSERT INTO pengguna (nama, username, kata_sandi_hash, peran, wilayah_rt_id, aktif)
-         VALUES ($1, $2, $3, $4, $5, $6)
+        `INSERT INTO pengguna (nama, username, kata_sandi_hash, peran, wilayah_rt_id, aktif, boleh_lihat_data)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
          RETURNING id`,
-        [isian.nama, isian.username, hash, isian.peran, wilayahRtId, isian.aktif],
+        [isian.nama, isian.username, hash, isian.peran, wilayahRtId, isian.aktif, isian.bolehLihatData ?? false],
     );
     await simpanKeanggotaan(db, rows[0].id, isian.posyanduId ?? null, isian.mejaKms);
 
@@ -191,9 +192,9 @@ export async function perbarui(
     await db.query(
         `UPDATE pengguna
             SET nama = $2, username = $3, peran = $4, wilayah_rt_id = $5, aktif = $6,
-                kata_sandi_hash = COALESCE($7, kata_sandi_hash)
+                kata_sandi_hash = COALESCE($7, kata_sandi_hash), boleh_lihat_data = $8
           WHERE id = $1`,
-        [id, isian.nama, isian.username, isian.peran, wilayahRtId, isian.aktif, hash],
+        [id, isian.nama, isian.username, isian.peran, wilayahRtId, isian.aktif, hash, isian.bolehLihatData ?? false],
     );
     await simpanKeanggotaan(db, id, isian.posyanduId ?? null, isian.mejaKms);
 }

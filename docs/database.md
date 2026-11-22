@@ -205,6 +205,8 @@ Keanggotaan akun ke cluster. Akun operasional memiliki satu baris untuk satu Pos
 
 `pengguna.super_admin` membedakan superadmin global dari Admin Posyandu. Hanya Mirae ditandai global melalui migrasi `021_super_admin_global.sql`; perubahan ini tidak mengubah kata sandi atau hash akun.
 
+`pengguna.boleh_lihat_data` (migrasi `038_boleh_lihat_data.sql`, bawaan `false`) dicentang admin agar kader boleh melihat Beranda, Data Balita, dan Detail Balita di web. Hanya bermakna untuk kader dan KMS; akses tablet (token Bearer) tidak terpengaruh.
+
 ### `orang_tua`
 
 | Kolom | Tipe | Aturan |
@@ -343,6 +345,19 @@ Metadata kendali sesi mode simulasi/pelatihan kader. Ditambahkan pada migrasi `0
 | `selesai_pada` | `timestamptz` `nullable` | Waktu sesi diakhiri (`NULL` bila sedang aktif). |
 
 *Aturan integritas:* indeks unik parsial `pelatihan_satu_aktif` memastikan **hanya ada satu sesi aktif** pada satu waktu di server.
+
+### `percobaan_masuk`
+
+Salinan hitungan pembatas percobaan masuk (`server/src/http/batas-masuk.ts`) agar tidak hilang saat server dinyalakan ulang. Ditambahkan pada migrasi `039_percobaan_masuk.sql`. Server membaca isinya sekali saat menyala, lalu menulis perubahan di latar belakang; hitungan yang sedang dipakai tetap ada di memori.
+
+| Kolom | Tipe | Aturan |
+|---|---|---|
+| `kunci` | `text` PK | `akun\|<username>`, `ip\|<alamat>`, atau `perangkat\|<username>\|<id perangkat>`. Username disimpan huruf kecil, terdaftar atau tidak. |
+| `gagal` | `integer` | Jumlah salah yang masih berlaku (≥ 0). |
+| `terakhir` | `timestamptz` | Waktu percobaan terakhir; dasar hitungan jeda. |
+| `kedaluwarsa` | `timestamptz` | Hitungan akun 24 jam, IP 15 menit, penanda perangkat 180 hari sejak masuk terakhir. |
+
+RLS menyala tanpa policy, dan hak `anon`/`authenticated` dicabut: hanya server (pemilik tabel) yang membaca dan menulis. Tabel ini memuat username yang pernah dicoba dan alamat IP, jadi termasuk data pribadi; baris kedaluwarsa dihapus setiap server menyala.
 
 ---
 

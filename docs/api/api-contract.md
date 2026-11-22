@@ -71,7 +71,7 @@ Nama pembungkus menyesuaikan resource, misalnya `anak`, `pengguna`, atau `penguk
 | `403` | Tidak memiliki izin atau melewati batas RT binaan |
 | `404` | Route atau data tidak ditemukan |
 | `415` | Request mutasi tidak memakai JSON |
-| `429` | Terlalu banyak percobaan login; sertakan header `Retry-After` |
+| `429` | Terlalu banyak percobaan login; header `Retry-After` berisi detik tunggu (lihat 3.1) |
 | `500` | Kesalahan internal tanpa detail sensitif |
 
 ---
@@ -84,9 +84,38 @@ Nama pembungkus menyesuaikan resource, misalnya `anak`, `pengguna`, atau `penguk
 | Pendaftaran publik | Tidak tersedia; akun dibuat admin |
 | Token tablet | Token acak 256-bit; database menyimpan digest SHA-256 |
 | Masa token | 12 jam |
-| Cookie web | `sesi`, HTTP-only, `SameSite=Lax` |
-| Pembatasan login | Maksimum 5 kegagalan per `(username, IP)`, lalu diblokir 15 menit |
+| Cookie web | `sesi`, HTTP-only, `SameSite=Lax`; ditambah `perangkat` (ID acak perangkat yang pernah berhasil masuk, 180 hari) |
+| ID perangkat tablet | Header `X-SIMpatik-Device-Id` (8–96 karakter `A-Z a-z 0-9 _ -`) |
+| Kata sandi | Minimal 8 karakter, tanpa aturan campuran huruf/angka; ditolak bila termasuk daftar sandi umum atau memuat nama pengguna/nama pemilik akun |
+| Pembatasan login | Lihat 3.1 |
 | CORS | Diperlukan di `/api/v1/*` jika tablet WebView memakai origin `null` |
+
+### 3.1 Pembatasan percobaan masuk
+
+Berlaku sama untuk `POST /api/masuk` dan `POST /api/v1/masuk` (`server/src/http/batas-masuk.ts`).
+
+- Hitungan dipegang per nama pengguna, terdaftar atau tidak. Mengganti IP atau ID perangkat tidak membuka hitungan baru.
+- 15 kali salah tanpa jeda. Sesudahnya tiap percobaan menunggu 30 detik, lalu 1, 2, 4, 8, dan paling lama 15 menit. Tidak ada kunci permanen. Percobaan selama jeda ditolak tanpa dihitung. Hitungan kedaluwarsa 24 jam setelah salah terakhir.
+- Perangkat yang pernah berhasil masuk dengan akun itu punya hitungan sendiri, sehingga tebakan dari luar tidak membuat petugas menunggu di perangkatnya.
+- Satu IP yang salah 30 kali dalam 15 menit dari perangkat belum dikenal, dengan nama pengguna apa pun, ditahan 15 menit.
+- Masuk berhasil menghapus hitungan akun itu. Admin yang mengganti sandi akun juga menghapus jedanya.
+- Hitungan disimpan di tabel `percobaan_masuk` (migrasi 039), jadi restart server tidak menghapusnya.
+
+Salah sandi menjawab `401` dengan sisa percobaan:
+
+```json
+{ "galat": "Nama pengguna atau kata sandi tidak cocok. … Sisa 2 kali percobaan lagi. …", "sisaPercobaan": 2, "tungguDetik": 0 }
+```
+
+Kalimat "Sisa N kali" baru ditambahkan bila sisa ≤ 3 (setelah salah ke-12). Bila jeda sudah dimulai, `tungguDetik` > 0 dan kalimatnya berganti menjadi anjuran menunggu.
+
+Selama jeda server menjawab `429` dengan header `Retry-After` (detik):
+
+```json
+{ "galat": "Terlalu banyak percobaan untuk akun ini. Silakan coba lagi dalam 30 detik.", "tungguDetik": 30 }
+```
+
+Penahanan per IP menambahkan `"jaringan": true` dan kalimat "dari jaringan ini". APK boleh menampilkan `galat` apa adanya.
 
 ---
 

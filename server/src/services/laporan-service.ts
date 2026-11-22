@@ -6,7 +6,8 @@ import { buatBarisLaporan } from "./laporan-perhitungan.ts";
 import { dataArsip2T } from '../repositories/riwayat-2t-repository.ts';
 import { gabungRiwayat2T, statusArsip2T, titikArsip } from './laporan-riwayat-2t.ts';
 
-export async function laporan(pool: Pool, pengguna: PenggunaAktif, periode: string) {
+/** Semua baris terhitung sampai periode ini; satu mesin untuk Laporan, Excel, F1, dan Beranda. */
+export async function barisLaporan(pool: Pool, pengguna: PenggunaAktif, periode: string) {
     if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(periode)) {
         throw new RangeError("Periode harus berformat YYYY-MM.");
     }
@@ -14,7 +15,11 @@ export async function laporan(pool: Pool, pengguna: PenggunaAktif, periode: stri
     const dasar = await repo.dataLaporan(pool, pengguna, periode);
     const arsip = await dataArsip2T(pool, periode, pengguna);
     const tabelWho = await muatTabelStandar(pool, "WHO-2006");
-    const semua = buatBarisLaporan(dasar, tabelWho, statusArsip2T(arsip), arsip.map(titikArsip));
+    return { semua: buatBarisLaporan(dasar, tabelWho, statusArsip2T(arsip), arsip.map(titikArsip)), arsip };
+}
+
+export async function laporan(pool: Pool, pengguna: PenggunaAktif, periode: string) {
+    const { semua, arsip } = await barisLaporan(pool, pengguna, periode);
     const bulanan = semua.filter((row) => row.periodeId === periode && row.statusKehadiran === "hadir");
     const riwayat = gabungRiwayat2T(semua, arsip, periode);
     riwayat.rows = riwayat.rows.map(row => ({ ...row, umurLengkap: row.umurLengkap.match(/^\d+Thn\d+Bln/)?.[0] ?? row.umurLengkap }));

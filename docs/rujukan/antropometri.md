@@ -76,9 +76,9 @@ Dihitung sistem, tidak pernah diinput.
 
 Umur **selalu** dihitung sistem dari `anak.tgl_lahir` dan `pengukuran.tanggal_ukur` (DR-03). Kolom `UMUR LENGKAP` dan `UMUR HARI` pada file sumber diabaikan.
 
-Kunci tabel adalah **umur bulan penuh** (*completed months*) menurut selisih kalender, bukan hasil bagi jumlah hari. Contoh: lahir 20 Januari 2026, diukur 13 Juni 2026 → 4 bulan penuh (bukan 4,8).
+**Umur bulan penuh** (*completed months*) menurut selisih kalender dipakai untuk batas umur: pilihan PB/TB (< 24 bulan), koreksi 0,7 cm, dan umur minimum LILA/U. Contoh: lahir 20 Januari 2026, diukur 13 Juni 2026 → 4 bulan penuh.
 
-Tabel WHO per bulan penuh **tidak diinterpolasi**. Anak berumur 4 bulan 24 hari memakai baris bulan 4.
+Sejak 20 November 2026, **kunci tabel** indeks berumur memakai umur pecahan: bulan penuh ditambah porsi hari menuju ulang bulan berikutnya. Parameter L, M, S diinterpolasi linear di antara baris dua bulan itu, mendekati perhitungan umur harian WHO Anthro. Contoh: 4 bulan 24 hari, dengan bulan berjalan 30 hari → kunci 4,8. Penilaian tersimpan, laporan, dan Beranda memakai fungsi yang sama (`umurDesimalBulan`, `tabelInterpolasiUmur` di `server/src/antropometri/penilaian-gizi.ts`). Hasilnya sama dengan kolom WHO-LMS rekap Z-score November 2026 dalam 0,01. `TabelStandar.cari` sendiri tetap memotong ke bulan penuh demi kesetaraan dengan acuan PHP.
 
 ### 3.2 Panjang atau tinggi badan
 

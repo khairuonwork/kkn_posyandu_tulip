@@ -90,8 +90,8 @@ async function utama(w:ExcelJS.Workbook,name:string,g:KelompokF1,periode:string,
     text(s,'A1',`(FI / FII / GIZI / ${periode.slice(0,4)})`);
     text(s,'E3',': '+g.kelurahan.toUpperCase());text(s,'E4',': '+namaPeriode(periode).replace(/ \d{4}$/,''));text(s,'E5',g.tanggal?': '+g.tanggal.split('-').reverse().map(Number).join('/'):': ');
     text(s,'E7',`: ${g.nama.toUpperCase()} / ${g.rw.padStart(3,'0')}`);
-    text(s,'A35','11. Jumlah balita Gizi Buruk (BB/U) — Permenkes 2/2020');
-    text(s,'A37','12. Jumlah balita Gizi Kurang (BB/U) — Permenkes 2/2020');
+    text(s,'A35','11. Jumlah balita Gizi Buruk (BB/U) — WHO 2006');
+    text(s,'A37','12. Jumlah balita Gizi Kurang (BB/U) — WHO 2006');
     s.getCell('A35').alignment={...s.getCell('A35').alignment,wrapText:true};
     s.getCell('A37').alignment={...s.getCell('A37').alignment,wrapText:true};
     // Staff fill these by hand; keep the form's ": … Orang" labels, no sample numbers.
@@ -179,7 +179,7 @@ async function utama(w:ExcelJS.Workbook,name:string,g:KelompokF1,periode:string,
         'Kelompok umur F1 mengikuti contoh: 0–59 bulan. Detail tetap mencakup semua sasaran.',
         'Kolom O tetap dihitung pada F1 utama. TOTAL ringkasan kanan mencakup semua yang ditimbang, termasuk O.',
         'K memakai KMS elektronik sasaran terdaftar. Penanda tidak hadir saat sesi tetap tersimpan pada detail.',
-        'Status BB/U memakai Permenkes 2/2020. Bandingkan dengan kolom Permenkes 2/2020 di Beranda.',
+        'Status BB/U memakai WHO 2006 (ADR-0002), sama dengan Beranda dan Data Balita.',
     ];
     notes.forEach((n,i)=>{if(n){text(s,'U'+(3+i),n);s.getCell('U'+(3+i)).font={name:'Arial',size:8,italic:i>2};}});
     return s;

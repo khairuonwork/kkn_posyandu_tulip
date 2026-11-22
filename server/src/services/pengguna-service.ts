@@ -9,9 +9,10 @@
 
 import type { Pool, PoolClient } from 'pg';
 
-import { bacaIsianAkun, SANDI_MINIMAL } from '../auth/akun.ts';
+import { bacaIsianAkun } from '../auth/akun.ts';
 import type { IsianAkun } from '../auth/akun.ts';
 import { hashKataSandi } from '../auth/kata-sandi.ts';
+import { periksaSandi } from '../auth/sandi-umum.ts';
 import type { PenggunaAktif } from '../auth/peran.ts';
 import { dalamTransaksi } from '../db/transaksi.ts';
 import * as penggunaRepo from '../repositories/pengguna-repository.ts';
@@ -134,8 +135,12 @@ export async function ubahAkun(
             ? (badan as { kataSandi: unknown }).kataSandi
             : undefined;
 
-    if (typeof sandi === 'string' && sandi !== '' && sandi.length < SANDI_MINIMAL) {
-        throw new GalatAkun(400, `Kata sandi minimal ${SANDI_MINIMAL} karakter.`);
+    // Nama pengguna dan nama orangnya baru terbaca di dalam transaksi; sandi
+    // yang memuatnya ditolak oleh bacaIsianAkun di sana.
+    const galatSandi = typeof sandi === 'string' && sandi !== '' ? periksaSandi(sandi) : null;
+
+    if (galatSandi !== null) {
+        throw new GalatAkun(400, galatSandi);
     }
 
     const hash = typeof sandi === 'string' && sandi !== '' ? await hashKataSandi(sandi) : null;

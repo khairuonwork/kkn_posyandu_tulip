@@ -34,9 +34,9 @@ test('F1 keeps official print bounds, merged headings, month/date and original c
     assert.equal(s.getCell('A67').value,null,'no appended notes inside official print area');
     assert.equal(s.getCell('O6').value,null,'sasaran summary stays outside the printed form');
     assert.equal(s.getCell('U3').value,'SASARAN SEPTEMBER = 1');
-    assert.match(String(s.getCell('A35').value),/Permenkes 2\/2020/);
-    assert.match(String(s.getCell('A37').value),/Permenkes 2\/2020/);
-    assert.match(String(s.getCell('U12').value),/kolom Permenkes 2\/2020 di Beranda/);
+    assert.match(String(s.getCell('A35').value),/WHO 2006/);
+    assert.match(String(s.getCell('A37').value),/WHO 2006/);
+    assert.match(String(s.getCell('U12').value),/WHO 2006 \(ADR-0002\)/);
     assert.equal(s.getCell('Q31').result,0,'BGM is hand-filled; its total is a plain sum, not "?"');
     assert.equal(s.getCell('G15').alignment?.horizontal,'center');
     assert.equal(s.getCell('G15').font?.name,'Arial');

@@ -66,20 +66,27 @@ test("konfirmasi dibatasi per anak, periode, wilayah dan peran", async () => {
     const address = server.address();
     assert.ok(address && typeof address !== "string");
     const base = `http://127.0.0.1:${address.port}`;
-    const post = (id: number, periode: string, terkirim: unknown) =>
+    // Kader mengirim dari tablet (Bearer); dari web hanya melihat.
+    const post = (id: number, periode: string, terkirim: unknown, tablet = true) =>
         fetch(`${base}/anak/${id}/konfirmasi-whatsapp`, {
             method: "POST",
-            headers: { "content-type": "application/json" },
+            headers: {
+                "content-type": "application/json",
+                ...(tablet ? { authorization: "Bearer x" } : {}),
+            },
             body: JSON.stringify({ periode, terkirim }),
         });
     const list = async (periode: string) =>
         (
             (await (
-                await fetch(`${base}/konfirmasi-whatsapp?periode=${periode}`)
+                await fetch(`${base}/konfirmasi-whatsapp?periode=${periode}`, {
+                    headers: { authorization: "Bearer x" },
+                })
             ).json()) as { anakIds: number[] }
         ).anakIds;
     try {
         assert.deepEqual(await list("2026-10"), []);
+        assert.equal((await post(1, "2026-10", true, false)).status, 403);
         assert.equal((await post(1, "2026-10", true)).status, 200);
         assert.deepEqual(await list("2026-10"), [1]);
         assert.deepEqual(await list("2026-11"), []);

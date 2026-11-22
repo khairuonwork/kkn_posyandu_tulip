@@ -14,7 +14,6 @@ import { useState } from 'react';
 import DialogKirimWa from '@/components/dialog-kirim-wa';
 import Halaman from '@/components/halaman';
 import IkonWhatsApp from '@/components/ikon-whatsapp';
-import { nadaKategori } from '@/components/status-gizi-badge';
 import {
     labelIndeks,
     namaTampil,
@@ -37,7 +36,7 @@ import { TabKurva } from './detail/tab-kurva';
 import { TabProfil } from './detail/tab-profil';
 import { TabRiwayat } from './detail/tab-riwayat';
 import { TabStatus } from './detail/tab-status';
-import { TAB_DETAIL, URUT_NADA } from './detail/tipe';
+import { TAB_DETAIL } from './detail/tipe';
 import type { AmbangDetail, DetailAnakProps, TabDetail } from './detail/tipe';
 
 export type { AmbangDetail };
@@ -71,12 +70,12 @@ export default function DetailAnak({
     const [infoKiaWa, setInfoKiaWa] = useState<DiskusiKiaWa | null>(null);
     const [menyimpanWa, setMenyimpanWa] = useState(false);
     const [galatWa, setGalatWa] = useState('');
+    // Kader hanya melihat di web; perubahan data lewat bidan atau admin.
     const bolehUbah =
-        peran !== 'kms' &&
-        onSimpan !== undefined &&
-        (peran !== 'kader' ||
-            (anak.rt !== null && wilayahRt.includes(anak.rt)));
+        peran !== 'kms' && peran !== 'kader' && onSimpan !== undefined;
     const bolehCetak = peran !== 'kader' && peran !== 'kms';
+    // Kader di web hanya melihat; pengiriman WhatsApp lewat tablet.
+    const bolehWa = peran !== 'kms' && peran !== 'kader';
     const terbaru = terbaruUntuk(pengukuran, periode);
     const nama = namaTampil(anak.nama);
     const inisial = nama
@@ -103,14 +102,11 @@ export default function DetailAnak({
                   (namaIndeks) => terbaru.penilaian[namaIndeks]?.tidakWajar,
               );
 
+    // Urutan tetap seperti Kartu Bantu: BB/U, PB/U atau TB/U, lalu BB/PB atau BB/TB.
     const indeks =
         terbaru === null
             ? []
             : [
-                  {
-                      label: labelIndeks('BB_TB', umur),
-                      nilai: penilaianLayak(terbaru.penilaian.BB_TB),
-                  },
                   {
                       label: 'BB/U',
                       nilai: penilaianLayak(terbaru.penilaian.BB_U),
@@ -119,15 +115,11 @@ export default function DetailAnak({
                       label: labelIndeks('TB_U', umur),
                       nilai: penilaianLayak(terbaru.penilaian.TB_U),
                   },
+                  {
+                      label: labelIndeks('BB_TB', umur),
+                      nilai: penilaianLayak(terbaru.penilaian.BB_TB),
+                  },
               ];
-
-    // Vonis terberat memimpin. Array.sort stabil, jadi saat semuanya sama
-    // beratnya urutan aslinya bertahan dan BB/TB tetap di depan.
-    const terurut = [...indeks].sort(
-        (a, b) =>
-            URUT_NADA[nadaKategori(a.nilai?.kategori ?? null)] -
-            URUT_NADA[nadaKategori(b.nilai?.kategori ?? null)],
-    );
 
     // Aturan yang sama dipakai pesan WhatsApp dan Lembar Hasil.
     const penilaianUtama = terbaru?.penilaian ?? {};
@@ -270,7 +262,7 @@ export default function DetailAnak({
                             Ubah data
                         </button>
                     )}
-                    {peran !== 'kms' && alasanTanpaWa === null && (
+                    {bolehWa && alasanTanpaWa === null && (
                         <button
                             type="button"
                             onClick={() => setDialog('wa')}
@@ -305,13 +297,13 @@ export default function DetailAnak({
                         mencoba lagi.
                     </p>
                 )}
-                {peran !== 'kms' && NOMOR_UJI !== null && sumberLive && (
+                {bolehWa && NOMOR_UJI !== null && sumberLive && (
                     <p className="text-sm text-muted-foreground">
                         Mode nomor uji aktif; konfirmasi pengiriman ke orang tua
                         dinonaktifkan.
                     </p>
                 )}
-                {peran !== 'kms' &&
+                {bolehWa &&
                     onKonfirmasiWa &&
                     waTerkirim !== null &&
                     terbaru !== null &&
@@ -346,7 +338,7 @@ export default function DetailAnak({
                     </p>
                 )}
             </div>
-            {peran !== 'kms' && alasanTanpaWa !== null && (
+            {bolehWa && alasanTanpaWa !== null && (
                 <p
                     role="status"
                     className="mb-5 flex items-start gap-2.5 text-sm text-muted-foreground"
@@ -448,7 +440,7 @@ export default function DetailAnak({
                     hasilTerakhir={hasilTerakhir}
                     periode={periode}
                     peran={peran}
-                    terurut={terurut}
+                    terurut={indeks}
                     indeks={indeks}
                     indeksTidakWajar={indeksTidakWajar}
                     perluRujukan={perluRujukan}

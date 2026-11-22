@@ -1,4 +1,4 @@
-import { Save } from 'lucide-react';
+import { Eye, EyeOff, Save } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import Dialog, { KakiDialog } from '@/components/dialog';
@@ -49,6 +49,9 @@ export function DialogPengguna({
     );
     const [rt, setRt] = useState(pengguna?.rt ?? rtUntukPosyandu[0]?.rt ?? '');
     const [aktif, setAktif] = useState(pengguna?.aktif ?? true);
+    const [bolehLihatData, setBolehLihatData] = useState(
+        pengguna?.bolehLihatData ?? false,
+    );
     const [kataSandi, setKataSandi] = useState('');
     const [dicoba, setDicoba] = useState(false);
     const [menyimpan, setMenyimpan] = useState(false);
@@ -61,6 +64,8 @@ export function DialogPengguna({
         }
     }, [berhasil]);
     const fokusIsian = useRef<HTMLElement | null>(null);
+    const sandiRef = useRef<HTMLInputElement>(null);
+    const [sandiTerbaca, setSandiTerbaca] = useState(false);
     const berubah =
         nama !== (pengguna?.nama ?? '') ||
         username !== (pengguna?.username ?? '') ||
@@ -68,6 +73,7 @@ export function DialogPengguna({
         posyanduId !== (pengguna?.posyanduId ?? posyandu[0]?.id ?? null) ||
         rt !== (pengguna?.rt ?? rtUntukPosyandu[0]?.rt ?? '') ||
         aktif !== (pengguna?.aktif ?? true) ||
+        bolehLihatData !== (pengguna?.bolehLihatData ?? false) ||
         mejaKms !== (pengguna?.mejaKms?.toString() ?? '') ||
         kataSandi !== '';
     const mejaTidakSah =
@@ -91,7 +97,14 @@ export function DialogPengguna({
             : kataSandi !== '' && kataSandi.length < SANDI_MINIMAL
               ? `Kata sandi minimal ${SANDI_MINIMAL} karakter.`
               : null;
-    const sandiSalah = dicoba && galatSandi !== null;
+    // ponytail: penolakan sandi dari server (sandi umum, memuat nama) dikenali
+    // dari awal pesannya. Ganti dengan penanda kolom dari server bila pesan
+    // sandi suatu saat tidak lagi diawali "Kata sandi".
+    const galatSandiServer = galatServer?.startsWith('Kata sandi')
+        ? galatServer
+        : null;
+    const sandiSalah =
+        (dicoba && galatSandi !== null) || galatSandiServer !== null;
 
     return (
         <Dialog
@@ -148,6 +161,9 @@ export function DialogPengguna({
                                 ? Number(mejaKms)
                                 : null,
                         aktif,
+                        bolehLihatData:
+                            (peran === 'kader' || peran === 'kms') &&
+                            bolehLihatData,
                         kataSandi,
                     })
                         .catch(
@@ -164,7 +180,10 @@ export function DialogPengguna({
 
                             if (galat) {
                                 requestAnimationFrame(() =>
-                                    fokusIsian.current?.focus(),
+                                    (galat.startsWith('Kata sandi')
+                                        ? sandiRef.current
+                                        : fokusIsian.current
+                                    )?.focus(),
                                 );
                             }
                         });
@@ -329,6 +348,37 @@ export function DialogPengguna({
                             terpilih. RT asal hanya penugasan.
                         </p>
                     )}
+                    {(peran === 'kader' || peran === 'kms') && (
+                        <fieldset className="flex flex-col gap-2 rounded-xl border border-border px-4 py-3.5 sm:col-span-2">
+                            <legend className="px-1 text-sm font-semibold text-muted-foreground">
+                                Akses data balita
+                            </legend>
+                            <label className="flex cursor-pointer items-start gap-3">
+                                <input
+                                    type="checkbox"
+                                    checked={bolehLihatData}
+                                    onChange={(e) =>
+                                        setBolehLihatData(e.target.checked)
+                                    }
+                                    aria-describedby="pengguna-lihat-ket"
+                                    className="mt-0.5 size-5 shrink-0 accent-primary"
+                                />
+                                <span className="flex flex-col gap-0.5">
+                                    <span className="text-base font-semibold">
+                                        Boleh melihat Beranda dan Data Balita
+                                    </span>
+                                    <span
+                                        id="pengguna-lihat-ket"
+                                        className="text-sm text-muted-foreground"
+                                    >
+                                        Termasuk Detail Balita. Hanya untuk
+                                        dilihat; akun ini tidak dapat mengubah,
+                                        menambah, atau menghapus data.
+                                    </span>
+                                </span>
+                            </label>
+                        </fieldset>
+                    )}
                     <KolomPengguna
                         id="pengguna-sandi"
                         label={
@@ -336,28 +386,62 @@ export function DialogPengguna({
                                 ? 'Kata sandi awal'
                                 : 'Kata sandi baru'
                         }
-                        galat={sandiSalah ? galatSandi : null}
+                        galat={
+                            galatSandiServer ?? (sandiSalah ? galatSandi : null)
+                        }
                     >
-                        <input
-                            id="pengguna-sandi"
-                            type="password"
-                            autoComplete="new-password"
-                            value={kataSandi}
-                            onChange={(e) => setKataSandi(e.target.value)}
-                            aria-invalid={sandiSalah}
-                            aria-describedby="pengguna-sandi-ket"
-                            className={`isian w-full ${sandiSalah ? 'border-tone-red' : ''}`}
-                        />
-                        {!(pengguna === null && sandiSalah) && (
-                            <p
-                                id="pengguna-sandi-ket"
-                                className="mt-1.5 text-sm text-muted-foreground"
+                        <div className="relative">
+                            <input
+                                ref={sandiRef}
+                                id="pengguna-sandi"
+                                type={sandiTerbaca ? 'text' : 'password'}
+                                autoComplete="new-password"
+                                value={kataSandi}
+                                onChange={(e) => {
+                                    setKataSandi(e.target.value);
+
+                                    if (galatSandiServer !== null) {
+                                        setGalatServer(null);
+                                    }
+                                }}
+                                aria-invalid={sandiSalah}
+                                aria-describedby={`pengguna-sandi-ket${sandiSalah ? ' pengguna-sandi-galat' : ''}`}
+                                className={`isian w-full pr-14 ${sandiSalah ? 'border-tone-red' : ''}`}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setSandiTerbaca(!sandiTerbaca)}
+                                aria-pressed={sandiTerbaca}
+                                aria-label={
+                                    sandiTerbaca
+                                        ? 'Sembunyikan kata sandi'
+                                        : 'Tampilkan kata sandi'
+                                }
+                                className="absolute top-1/2 right-0.5 grid size-[44px] -translate-y-1/2 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-primary"
                             >
-                                {pengguna === null
-                                    ? `Minimal ${SANDI_MINIMAL} karakter.`
-                                    : 'Kosongkan jika tidak diganti. Jika diganti, akun ini keluar dari semua perangkat.'}
-                            </p>
-                        )}
+                                {sandiTerbaca ? (
+                                    <EyeOff
+                                        className="size-[19px]"
+                                        strokeWidth={2.5}
+                                        aria-hidden="true"
+                                    />
+                                ) : (
+                                    <Eye
+                                        className="size-[19px]"
+                                        strokeWidth={2.5}
+                                        aria-hidden="true"
+                                    />
+                                )}
+                            </button>
+                        </div>
+                        <p
+                            id="pengguna-sandi-ket"
+                            className="mt-1.5 text-sm text-muted-foreground"
+                        >
+                            {pengguna === null
+                                ? `Minimal ${SANDI_MINIMAL} karakter, boleh memakai spasi. Gabungan 2–3 kata yang mudah diingat lebih aman, misalnya kopi manis pagi. Hindari nama posyandu, nama RW, dan nama pengguna.`
+                                : 'Kosongkan jika tidak diganti. Jika diganti, akun ini keluar dari semua perangkat.'}
+                        </p>
                     </KolomPengguna>
                     {pengguna !== null && (
                         <label className="flex min-h-13 cursor-pointer items-center gap-3 sm:col-span-2">
@@ -385,7 +469,7 @@ export function DialogPengguna({
                             Nama lengkap dan nama pengguna harus diisi.
                         </p>
                     )}
-                    {galatServer !== null && (
+                    {galatServer !== null && galatSandiServer === null && (
                         <p
                             role="alert"
                             className="text-sm font-semibold text-tone-red sm:col-span-2"
@@ -445,7 +529,10 @@ export function KolomPengguna({
             </label>
             <div className="mt-1.5">{children}</div>
             {galat !== null && (
-                <p className="mt-1.5 text-sm font-semibold text-tone-red">
+                <p
+                    id={`${id}-galat`}
+                    className="mt-1.5 text-sm font-semibold text-tone-red"
+                >
                     {galat}
                 </p>
             )}

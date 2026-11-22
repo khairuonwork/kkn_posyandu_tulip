@@ -2,16 +2,14 @@ import pmkTable from "../antropometri/data/permenkes-2-2020.json" with { type: "
 import { deskripsiSdLila } from './laporan-tampilan.ts';
 import { teruskanLingkar } from './laporan-lingkar.ts';
 import { kategoriDari } from "../antropometri/kategori.ts";
-import { SIFAT } from "../antropometri/indeks.ts";
-import type { Indeks } from "../antropometri/indeks.ts";
-import { interpolasiLms, type Lms, type TabelStandar } from "../antropometri/tabel-standar.ts";
-import { hitungZ } from "../antropometri/z-score.ts";
+import type { TabelStandar } from "../antropometri/tabel-standar.ts";
+import { hitungPenilaian, tambahBulan, umurDesimalBulan } from "../antropometri/penilaian-gizi.ts";
 import type { BarisLaporan } from "../repositories/laporan-repository.ts";
 import { hitungPertumbuhan, kunciTitik, type TitikPertumbuhan } from './laporan-pertumbuhan-bulanan.ts';
 
 const INDEKS = ["BB_U", "TB_U", "BB_TB", "IMT_U", "LILA_U", "LIKA_U"] as const;
 type TitikPmk = (number | null)[];
-type Penilaian = Record<string, { z: number; kategori: string | null }>;
+type Penilaian = Record<string, { z: number; kategori: string | null; tidakWajar?: boolean }>;
 const pmk = pmkTable as Record<string, Record<"L" | "P", TitikPmk[]>>;
 
 export type BarisBertanda = BarisLaporan & {
@@ -25,42 +23,10 @@ export type BarisBertanda = BarisLaporan & {
     jumlahTBerturut: number;
 };
 
-function tambahBulan(tanggal: string, jumlahBulan: number): string {
-    const [tahun, bulan, hari] = tanggal.split("-").map(Number);
-    const nomorBulan = bulan - 1 + jumlahBulan;
-    const tahunTujuan = tahun + Math.floor(nomorBulan / 12);
-    const bulanTujuan = ((nomorBulan % 12) + 12) % 12;
-    const hariTujuan = Math.min(hari, new Date(Date.UTC(tahunTujuan, bulanTujuan + 1, 0)).getUTCDate());
-    return `${tahunTujuan}-${String(bulanTujuan + 1).padStart(2, "0")}-${String(hariTujuan).padStart(2, "0")}`;
-}
-
 export function umurBulan(tglLahir: string, tanggalUkur: string): number {
     const [tl, bl, hl] = tglLahir.split("-").map(Number);
     const [tu, bu, hu] = tanggalUkur.split("-").map(Number);
     return (tu - tl) * 12 + bu - bl - (hu < hl ? 1 : 0);
-}
-
-/** Umur fraksional dari kalender; dipakai untuk interpolasi Z-score saja. */
-function umurDesimalBulan(tglLahir: string, tanggalUkur: string): number {
-    const penuh = umurBulan(tglLahir, tanggalUkur);
-    if (penuh < 0) return penuh;
-    const awal = Date.parse(`${tambahBulan(tglLahir, penuh)}T00:00:00Z`);
-    const berikut = Date.parse(`${tambahBulan(tglLahir, penuh + 1)}T00:00:00Z`);
-    const ukur = Date.parse(`${tanggalUkur}T00:00:00Z`);
-    return penuh + Math.max(0, Math.min(1, (ukur - awal) / (berikut - awal)));
-}
-
-function tabelWhoInterpolasiHari(tabel: TabelStandar): TabelStandar {
-    return {
-        cari(indeks: Indeks, jk: "L" | "P", kunci: number): Lms | null {
-            if (!SIFAT[indeks].kunciAdalahUmur || Number.isInteger(kunci)) return tabel.cari(indeks, jk, kunci);
-            const bawah = Math.floor(kunci);
-            const atas = Math.ceil(kunci);
-            const a = tabel.cari(indeks, jk, bawah);
-            const b = tabel.cari(indeks, jk, atas);
-            return a === null || b === null ? null : interpolasiLms(a, b, kunci - bawah);
-        },
-    } as TabelStandar;
 }
 
 function interpolasi(value: number, batas: number[], z: number[]): number | null {
@@ -114,23 +80,15 @@ function penilaianPmk(row: BarisLaporan): Penilaian {
     return hasil;
 }
 
+/** Satu mesin dengan penilaian tersimpan (Data Balita, Detail, Beranda). */
 function penilaianWho(row: BarisLaporan, tabel: TabelStandar): Penilaian {
     const umur = umurDesimalBulan(row.tglLahir, row.tanggalUkur);
     if (umur < 0 || umur > 60) return {};
-    const tinggi = row.tinggiCm == null ? null : row.tinggiCm +
-        (umur < 24 && row.jenisUkur === "TB" ? 0.7 : umur >= 24 && row.jenisUkur === "PB" ? -0.7 : 0);
-    const nilai: Partial<Record<Indeks, number | null>> = {
-        BB_U: row.bbKg, TB_U: tinggi, BB_TB: row.bbKg,
-        IMT_U: tinggi == null || row.bbKg == null ? null : row.bbKg / (tinggi / 100) ** 2,
-        LILA_U: umur < 6 ? null : row.lilaCm, LIKA_U: row.likaCm,
-    };
     const hasil: Penilaian = {};
-    for (const indeks of INDEKS) {
-        const kunci = SIFAT[indeks].kunciAdalahUmur ? umur : tinggi;
-        const value = nilai[indeks];
-        if (kunci == null || value == null || umur < SIFAT[indeks].umurMinimum) continue;
-        const z = hitungZ(tabel, indeks, row.jk, kunci, value);
-        if (z != null) hasil[indeks] = { z, kategori: indeks === 'LILA_U' ? deskripsiSdLila(z) : kategoriDari(indeks, z) };
+    for (const h of hitungPenilaian(tabel, row)) {
+        // Nilai tidak wajar tetap dihitung, tetapi ditandai supaya dicek ulang.
+        hasil[h.indeks] = { z: h.zScore, kategori: h.indeks === 'LILA_U' ? deskripsiSdLila(h.zScore) : h.kategori,
+            ...(h.tidakWajar ? { tidakWajar: true } : {}) };
     }
     return hasil;
 }
@@ -187,12 +145,11 @@ function tandai(rows: BarisLaporan[], statusArsip: ReadonlyMap<string, number>, 
 
 /** Domain report calculation only: no database calls and no workbook formatting. */
 export function buatBarisLaporan(rows: BarisLaporan[], tabelWho: TabelStandar, statusArsip: ReadonlyMap<string, number> = new Map(), pembandingArsip: TitikPertumbuhan[] = []): BarisBertanda[] {
-    const tabel = tabelWhoInterpolasiHari(tabelWho);
     const dinilai = teruskanLingkar(rows).map((row) => ({
         ...row,
         penilaian: {
             ...row.penilaian,
-            "WHO-2006": penilaianWho(row, tabel),
+            "WHO-2006": penilaianWho(row, tabelWho),
             "PERMENKES-2-2020": penilaianPmk(row),
         },
     }));

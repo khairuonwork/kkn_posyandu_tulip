@@ -20,6 +20,7 @@ import {
     KOSONG,
     labelIndeks,
     satuan,
+    tanggalPanjang,
     tanggalRingkas,
     zScore,
 } from '@/lib/format';
@@ -342,7 +343,11 @@ export default function GrafikPertumbuhan({
         }
 
         animasi.current?.cancel();
-        const urutan = [...SPEK.map((item) => item.indeks), 'BB_TB'];
+        const urutan = [
+            ...SPEK.slice(0, 2).map((item) => item.indeks),
+            'BB_TB',
+            ...SPEK.slice(2).map((item) => item.indeks),
+        ];
         setArahIndeks(
             urutan.indexOf(pilihan) > urutan.indexOf(jenis) ? 'maju' : 'mundur',
         );
@@ -425,6 +430,45 @@ export default function GrafikPertumbuhan({
         () => susunTitik(pengukuran, spek, tglLahir),
         [pengukuran, spek, tglLahir],
     );
+
+    // LILA dan LIKA diukur tiap 3 bulan. Bulan tanpa ukuran baru tidak diberi
+    // titik (titik salinan akan tampak seperti penurunan z), tetapi laporan
+    // tetap memakai nilai terakhir selama kurang dari 3 bulan.
+    const lingkarTerakhir = useMemo(() => {
+        if (
+            (spek.indeks !== 'LILA_U' && spek.indeks !== 'LIKA_U') ||
+            pengukuranTerbaru === null ||
+            spek.nilai(pengukuranTerbaru) !== null
+        ) {
+            return null;
+        }
+
+        const lama = pengukuran.find(
+            (p) =>
+                p.statusKehadiran === 'hadir' &&
+                spek.nilai(p) !== null &&
+                p.periodeId < pengukuranTerbaru.periodeId,
+        );
+
+        if (lama === undefined) {
+return null;
+}
+
+        const [tahun, bulan] = lama.periodeId.split('-').map(Number);
+        const sampai = new Date(Date.UTC(tahun, bulan - 1 + 2, 1));
+        const sampaiId = `${sampai.getUTCFullYear()}-${String(sampai.getUTCMonth() + 1).padStart(2, '0')}`;
+
+        return {
+            pengukuran: lama,
+            nilai: spek.nilai(lama)!,
+            masihBerlaku: pengukuranTerbaru.periodeId <= sampaiId,
+            sampai: sampai.toLocaleDateString('id-ID', {
+                month: 'long',
+                year: 'numeric',
+                timeZone: 'UTC',
+            }),
+        };
+    }, [spek, pengukuran, pengukuranTerbaru]);
     const lms = useMemo(
         () =>
             new Map<number, BarisLms>(
@@ -660,7 +704,77 @@ export default function GrafikPertumbuhan({
                     aria-label="Pilih jenis grafik pertumbuhan"
                     className="grid grid-cols-2 gap-2.5 px-5 pt-3 sm:px-6 md:grid-cols-3 xl:grid-cols-6"
                 >
-                    {SPEK.map((s) => {
+                    {/* Urutan seperti Kartu Bantu: BB/U, PB/U, BB/PB, lalu indeks lain. */}
+                    {[...SPEK.slice(0, 2), null, ...SPEK.slice(2)].map((s) => {
+                        if (s === null) {
+                            const aktif = jenis === 'BB_TB';
+                            const hasilBbTb = pengukuranTerbaru?.penilaian.BB_TB;
+                            const labelBbTb = hasilBbTb?.kategori
+                                ? labelKategoriGizi(hasilBbTb.kategori)
+                                : null;
+
+                            return (
+                                <button
+                                    key="BB_TB"
+                                    type="button"
+                                    aria-pressed={aktif}
+                                    onClick={() => pilihJenis('BB_TB')}
+                                    className={`detail-pilihan ${aktif && arahIndeks ? `detail-pilihan-${arahIndeks}` : ''} flex min-h-16 flex-col justify-between rounded-xl border p-3 text-left ${
+                                        aktif
+                                            ? 'border-primary bg-primary text-primary-foreground shadow-sm ring-2 ring-primary/25'
+                                            : 'border-border bg-card text-foreground hover:border-primary/50 hover:bg-surface-subtle'
+                                    }`}
+                                >
+                                    <div>
+                                        <div className="flex items-center justify-between gap-1">
+                                            <span className="text-xs font-extrabold">
+                                                BB/PB · BB/TB
+                                            </span>
+                                            <span
+                                                className={`py-0.2 rounded px-1.5 text-[10px] font-bold ${
+                                                    aktif
+                                                        ? 'bg-primary-foreground/20 text-primary-foreground'
+                                                        : 'bg-surface-subtle text-muted-foreground'
+                                                }`}
+                                            >
+                                                Deteksi Wasting
+                                            </span>
+                                        </div>
+                                        <span className="mt-1 block text-sm leading-tight font-bold">
+                                            Berat &amp; Tinggi
+                                        </span>
+                                    </div>
+                                    <div className="mt-2 border-t border-current/15 pt-1">
+                                        {labelBbTb ? (
+                                            <span
+                                                className={`inline-flex items-center gap-1.5 text-[11px] font-bold ${
+                                                    aktif
+                                                        ? 'text-primary-foreground'
+                                                        : 'text-tone-green'
+                                                }`}
+                                            >
+                                                <CircleCheck
+                                                    className="size-3.5 shrink-0"
+                                                    aria-hidden="true"
+                                                />
+                                                <span>{labelBbTb}</span>
+                                            </span>
+                                        ) : (
+                                            <span
+                                                className={`text-[11px] font-semibold ${
+                                                    aktif
+                                                        ? 'text-primary-foreground/70'
+                                                        : 'text-muted-foreground'
+                                                }`}
+                                            >
+                                                Proporsi Tubuh
+                                            </span>
+                                        )}
+                                    </div>
+                                </button>
+                            );
+                        }
+
                         const aktif = s.indeks === jenis;
                         const hasilTerbaru =
                             pengukuranTerbaru?.penilaian[s.indeks];
@@ -733,73 +847,6 @@ export default function GrafikPertumbuhan({
                             </button>
                         );
                     })}
-                    {(() => {
-                        const aktif = jenis === 'BB_TB';
-                        const hasilBbTb = pengukuranTerbaru?.penilaian.BB_TB;
-                        const labelBbTb = hasilBbTb?.kategori
-                            ? labelKategoriGizi(hasilBbTb.kategori)
-                            : null;
-
-                        return (
-                            <button
-                                type="button"
-                                aria-pressed={aktif}
-                                onClick={() => pilihJenis('BB_TB')}
-                                className={`detail-pilihan ${aktif && arahIndeks ? `detail-pilihan-${arahIndeks}` : ''} flex min-h-16 flex-col justify-between rounded-xl border p-3 text-left ${
-                                    aktif
-                                        ? 'border-primary bg-primary text-primary-foreground shadow-sm ring-2 ring-primary/25'
-                                        : 'border-border bg-card text-foreground hover:border-primary/50 hover:bg-surface-subtle'
-                                }`}
-                            >
-                                <div>
-                                    <div className="flex items-center justify-between gap-1">
-                                        <span className="text-xs font-extrabold">
-                                            BB/PB · BB/TB
-                                        </span>
-                                        <span
-                                            className={`py-0.2 rounded px-1.5 text-[10px] font-bold ${
-                                                aktif
-                                                    ? 'bg-primary-foreground/20 text-primary-foreground'
-                                                    : 'bg-surface-subtle text-muted-foreground'
-                                            }`}
-                                        >
-                                            Deteksi Wasting
-                                        </span>
-                                    </div>
-                                    <span className="mt-1 block text-sm leading-tight font-bold">
-                                        Berat &amp; Tinggi
-                                    </span>
-                                </div>
-                                <div className="mt-2 border-t border-current/15 pt-1">
-                                    {labelBbTb ? (
-                                        <span
-                                            className={`inline-flex items-center gap-1.5 text-[11px] font-bold ${
-                                                aktif
-                                                    ? 'text-primary-foreground'
-                                                    : 'text-tone-green'
-                                            }`}
-                                        >
-                                            <CircleCheck
-                                                className="size-3.5 shrink-0"
-                                                aria-hidden="true"
-                                            />
-                                            <span>{labelBbTb}</span>
-                                        </span>
-                                    ) : (
-                                        <span
-                                            className={`text-[11px] font-semibold ${
-                                                aktif
-                                                    ? 'text-primary-foreground/70'
-                                                    : 'text-muted-foreground'
-                                            }`}
-                                        >
-                                            Proporsi Tubuh
-                                        </span>
-                                    )}
-                                </div>
-                            </button>
-                        );
-                    })()}
                 </div>
             )}
             {jenis === 'BB_TB' ? (
@@ -881,6 +928,23 @@ export default function GrafikPertumbuhan({
                             yang tampil hanya kurva acuan WHO.
                             {spek.indeks === 'LILA_U' &&
                                 ' Lingkar lengan atas dinilai sejak umur 6 bulan.'}
+                        </p>
+                    )}
+                    {lingkarTerakhir !== null && (
+                        <p
+                            className="mx-5 mt-3 rounded-lg bg-surface-subtle px-4 py-3 text-sm font-semibold sm:mx-6"
+                            role="status"
+                        >
+                            {namaTampil(spek)} terakhir diukur{' '}
+                            {tanggalPanjang(
+                                lingkarTerakhir.pengukuran.tanggalUkur,
+                            )}{' '}
+                            ({angka(lingkarTerakhir.nilai, 1)} cm). Ukuran ini
+                            diambil tiap 3 bulan, jadi bulan tanpa ukuran baru
+                            tidak diberi titik.{' '}
+                            {lingkarTerakhir.masihBerlaku
+                                ? `Laporan tetap memakai nilai tersebut sampai ${lingkarTerakhir.sampai}; angkanya tidak perlu diketik ulang.`
+                                : 'Nilai tersebut sudah lebih dari 3 bulan; ukur ulang pada penimbangan berikutnya.'}
                         </p>
                     )}
                     <>

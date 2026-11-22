@@ -42,7 +42,8 @@ Contoh pemisahan laporan: `http/laporan-controller.ts` → `services/laporan-ser
 2. Clone branch yang disepakati tim (saat ini `development`) dan pasang dependensi dengan `npm --prefix server ci` serta `npm --prefix client ci`.
 3. Buat `server/.env` dari `server/.env.example` atau gunakan `scripts/buat-env-supabase.cjs`. Isikan `DATABASE_URL` dan nilai lokal lain yang diwajibkan. Jangan menyalin kredensial ke frontend, APK, dokumen, tiket, atau log.
 4. Verifikasi koneksi dengan `npm --prefix server run db:verify`.
-5. Pastikan target database dan backup benar sebelum migrasi. Tinjau SQL di `server/db/migrations/`, lalu jalankan `npm --prefix server run migrate` hanya dengan persetujuan pemilik database.
+   - Disarankan: verifikasi sertifikat TLS Supabase. Unduh CA dari Dashboard → Database → SSL Configuration, simpan di luar repo, lalu tambahkan `?sslmode=verify-full&sslrootcert=<path-ke-CA>` pada `DATABASE_URL` (template di `scripts/buat-env-supabase.cjs`). Setelah koneksi berhasil, aktifkan **Enforce SSL** di dashboard yang sama.
+5. Pastikan target database dan backup benar sebelum migrasi. Tinjau SQL di `server/db/migrations/`, lalu jalankan `npm --prefix server run migrate` hanya dengan persetujuan pemilik database. Migrasi `039` (tabel `percobaan_masuk`) diperlukan agar hitungan pembatas percobaan masuk bertahan saat server restart.
 6. Untuk jaringan lokal, ikuti [`menjalankan-server-lan.md`](menjalankan-server-lan.md). Untuk akses publik, gunakan HTTPS/reverse proxy atau tunnel yang disetujui; jangan buka port database ke internet.
 
 ## Menjalankan dan memeriksa
@@ -74,7 +75,8 @@ Port bawaan API `4321` di loopback (`127.0.0.1`); untuk LAN, skrip QA mengikat h
 - Rahasia disimpan pada secret manager atau `server/.env` lokal yang diabaikan Git. Bila secret pernah dibagikan di chat atau repo, rotasi dari dashboard penyedia.
 - Android dan browser hanya menerima URL API publik serta token/sesi sesuai mekanisme autentikasi; tidak menerima `DATABASE_URL`, password PostgreSQL, service-role/secret key.
 - Gunakan akun DB berhak minimum yang dibutuhkan aplikasi. Pisahkan kredensial migrasi bila penyedia dan rancangan deployment mendukungnya.
-- Jangan mencatat kata sandi, token, cookie, isi pengukuran, atau query berisi data pribadi. Endpoint login saat ini hanya mencatat metadata aman yang dipilih.
+- Jangan mencatat kata sandi, token, cookie, isi pengukuran, atau query berisi data pribadi. Endpoint login saat ini hanya mencatat metadata aman yang dipilih. Log `[Galat Tulis]` hanya memuat metode, path, status, ID pengguna, IP, dan nama field isian, tanpa nilainya.
+- Pembatas percobaan masuk membaca IP dari `req.ip`. Bila API berada di balik reverse proxy, atur `TRUST_PROXY` sesuai proxy tersebut; tanpa itu semua pengguna terlihat berasal dari satu IP.
 - Periksa izin di server (`wajibMasuk`, `wajibBoleh`); menyembunyikan tombol di UI bukan kontrol akses.
 - Untuk perubahan data, gunakan `dalamTransaksi()` dan pelaku audit yang berasal dari sesi terverifikasi. Jangan menggunakan `pool.query()` di tengah transaksi yang bergantung pada konteks audit.
 - Backup, retensi, pemulihan, TLS, pemantauan, rotasi kredensial dan jadwal deployment harus ditetapkan oleh operator server sebelum penggunaan operasional.

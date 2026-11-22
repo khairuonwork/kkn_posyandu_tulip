@@ -58,7 +58,7 @@ Jika terjadi kegagalan validasi atau kesalahan server, API selalu mengembalikan 
 | `403 Forbidden` | Izin peran tidak cukup | Kader mencoba mengimpor sasaran atau membuka menu pengaturan. |
 | `404 Not Found` | Data tidak ditemukan | ID balita, ID antrean, atau token lembar tidak ada di database. |
 | `409 Conflict` | Konflik integritas data | Akun belum terikat posyandu, antrean belum menunggu KMS. |
-| `429 Too Many Requests` | Batas laju tercapai | Rate limit brute-force kata sandi terpicu (header `Retry-After`). |
+| `429 Too Many Requests` | Batas laju tercapai | Jeda pembatas percobaan masuk berlaku (header `Retry-After` dalam detik; lihat 3.1). |
 | `500 Server Error` | Galat internal server | Kegagalan basis data PostgreSQL yang tidak terduga. |
 | `503 Service Unavailable` | Layanan belum aktif | Sesi pelatihan belum diaktifkan oleh pengelola sistem. |
 
@@ -130,7 +130,7 @@ Sistem menggunakan arsitektur autentikasi ganda (*Dual-Authentication Scheme*) u
   }
   ```
 * **Respons `200 OK`:**
-  Memasang cookie `sesi`.
+  Memasang cookie `sesi` dan cookie `perangkat` (ID acak perangkat yang pernah berhasil masuk, 180 hari; dipakai pembatas percobaan).
   ```json
   {
     "pengguna": {
@@ -146,6 +146,14 @@ Sistem menggunakan arsitektur autentikasi ganda (*Dual-Authentication Scheme*) u
   }
   ```
 * **Respons Galat:** `400` (Data tidak lengkap), `401` (Kata sandi salah), `429` (Terkena pembatas laju percobaan).
+* **Pembatas percobaan** (sama untuk `/api/masuk` dan `/api/v1/masuk`; `server/src/http/batas-masuk.ts`):
+  - Hitungan per nama pengguna, terdaftar atau tidak; mengganti IP atau ID perangkat tidak membuka hitungan baru.
+  - 15 kali salah tanpa jeda, lalu jeda 30 detik, 1, 2, 4, 8, dan paling lama 15 menit. Tidak ada kunci permanen; percobaan selama jeda tidak dihitung. Hitungan kedaluwarsa 24 jam setelah salah terakhir.
+  - Perangkat yang pernah berhasil masuk dengan akun itu punya hitungan sendiri.
+  - Satu IP yang salah 30 kali dalam 15 menit dari perangkat belum dikenal ditahan 15 menit, apa pun nama penggunanya.
+  - Hitungan disimpan di tabel `percobaan_masuk` (migrasi 039) sehingga bertahan saat server dinyalakan ulang.
+  - `401` salah sandi berisi `galat`, `sisaPercobaan`, dan `tungguDetik`; kalimat "Sisa N kali percobaan lagi" baru muncul bila sisa ≤ 3.
+  - `429` berisi `galat` dan `tungguDetik` (ditambah `"jaringan": true` bila yang ditahan alamat IP), dengan header `Retry-After` dalam detik.
 
 #### `POST /api/v1/masuk`
 * **Fungsi:** Masuk sesi untuk Aplikasi Tablet Android.

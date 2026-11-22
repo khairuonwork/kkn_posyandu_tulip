@@ -1,13 +1,14 @@
 import { Router } from "express";
 import type { Pool } from "pg";
 import { rtYangBolehDilihat } from "../auth/peran.ts";
-import { wajibBoleh } from "./middleware.ts";
+import { tolakKaderWeb, wajibBoleh, wajibLihatDataWeb } from "./middleware.ts";
 
 export function ruteKonfirmasiWa(pool: Pool): Router {
     const rute = Router();
     rute.get(
         "/konfirmasi-whatsapp",
         wajibBoleh("lihat-anak"),
+        wajibLihatDataWeb,
         async (req, res, next) => {
             const periode = req.query.periode;
             if (
@@ -47,6 +48,7 @@ export function ruteKonfirmasiWa(pool: Pool): Router {
     rute.post(
         "/anak/:id/konfirmasi-whatsapp",
         wajibBoleh("ubah-anak"),
+        tolakKaderWeb,
         async (req, res, next) => {
             const id = Number(req.params.id);
             const { periode, terkirim } = req.body ?? {};

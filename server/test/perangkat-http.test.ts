@@ -123,4 +123,10 @@ describe('status perangkat HTTP dan isolasi Posyandu', {skip:!process.env.DATABA
         assert.ok(global);assert.equal(global.posyanduId,null);
         assert.equal((await baca(kaderA)).daftarTablet.length,1);
     });
+    test('perangkat tidak aktif lebih dari 7 hari disembunyikan kecuali masih menahan data',async()=>{
+        await pool.query(`UPDATE perangkat_posyandu SET terakhir_aktif=now()-interval '8 days', antrean_tertunda=0 WHERE pengguna_id=$1`,[kaderB.id]);
+        assert.equal((await baca(kaderB)).daftarTablet.length,0);
+        await pool.query(`UPDATE perangkat_posyandu SET antrean_tertunda=2 WHERE pengguna_id=$1`,[kaderB.id]);
+        assert.equal((await baca(kaderB)).daftarTablet.length,1);
+    });
 });

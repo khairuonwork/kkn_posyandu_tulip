@@ -10,8 +10,10 @@
 import type { CookieOptions, Response } from 'express';
 
 import { UMUR_SESI_MS } from '../auth/sesi.ts';
+import { UMUR_PERANGKAT_MS } from './batas-masuk.ts';
 
 export const NAMA_COOKIE_SESI = 'sesi';
+export const NAMA_COOKIE_PERANGKAT = 'perangkat';
 
 function opsi(): CookieOptions {
     return {
@@ -31,6 +33,19 @@ export function pasangCookieSesi(res: Response, token: string): void {
 
 export function hapusCookieSesi(res: Response): void {
     res.clearCookie(NAMA_COOKIE_SESI, opsi());
+}
+
+/**
+ * ID acak penanda perangkat yang pernah berhasil masuk (lihat batas-masuk.ts).
+ * Bukan sesi: tidak memberi akses apa pun, jadi tidak dihapus saat keluar.
+ */
+export function pasangCookiePerangkat(res: Response, id: string): void {
+    res.cookie(NAMA_COOKIE_PERANGKAT, id, {
+        ...opsi(),
+        sameSite: 'strict',
+        path: '/api/masuk',
+        maxAge: UMUR_PERANGKAT_MS,
+    });
 }
 
 /**

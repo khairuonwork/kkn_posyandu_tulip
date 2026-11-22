@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { Pool } from "pg";
-import { wajibBoleh } from "./middleware.ts";
+import { tolakKaderWeb, wajibBoleh } from "./middleware.ts";
 import { workbookLaporan } from "../services/laporan-export.ts";
 import { laporan } from "../services/laporan-service.ts";
 import { dataF1 } from '../services/f1-service.ts';
@@ -9,7 +9,7 @@ import { laporanTumbuhKembang } from '../services/laporan-tumbuh-kembang.ts';
 
 export function ruteLaporan(pool: Pool): Router {
     const rute = Router();
-    rute.get('/laporan/tumbuh-kembang', wajibBoleh('lihat-rekap'), async (req, res, next) => {
+    rute.get('/laporan/tumbuh-kembang', wajibBoleh('lihat-rekap'), tolakKaderWeb, async (req, res, next) => {
         try {
             const periode = typeof req.query.periode === 'string' ? req.query.periode : '';
             res.set('Cache-Control', 'no-store');
@@ -31,7 +31,7 @@ export function ruteLaporan(pool: Pool): Router {
             next(error);
         }
     });
-    rute.get("/laporan", wajibBoleh("lihat-rekap"), async (req, res, next) => {
+    rute.get("/laporan", wajibBoleh("lihat-rekap"), tolakKaderWeb, async (req, res, next) => {
         try {
             const periode = typeof req.query.periode === "string" ? req.query.periode : "";
             res.set("Cache-Control", "no-store");

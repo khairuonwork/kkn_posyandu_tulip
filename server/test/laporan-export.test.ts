@@ -82,3 +82,17 @@ test('arsip 6T diekspor dengan sumber, umur bulan, dan tanggal kosong', async ()
     assert.equal(sheet.getCell(7,42).value,null);
     assert.equal(sheet.getCell(7,46).value,'contoh-2t.xlsx');
 });
+
+test("nilai tidak wajar tetap tampil dengan statusnya dan diberi catatan perlu dicek", async () => {
+    const row = anak(12);
+    (row.penilaian["WHO-2006"].TB_U as Record<string, unknown>).tidakWajar = true;
+    const workbook = await workbookLaporan({ periode: "2026-10", standar: ["WHO-2006", "PERMENKES-2-2020"], bulanan: [row], riwayat2T: [] });
+    const reopened = new ExcelJS.Workbook();
+    await reopened.xlsx.load(await workbook.xlsx.writeBuffer());
+    const sheet = reopened.getWorksheet("Rekap Z Score")!;
+    for (const col of [16, 18]) {
+        assert.equal(sheet.getCell(7, col).value, "Normal");
+        assert.match(JSON.stringify(sheet.getCell(7, col).note), /Perlu dicek/);
+    }
+    assert.equal(sheet.getCell(7, 12).note, undefined);
+});

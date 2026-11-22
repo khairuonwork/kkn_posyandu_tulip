@@ -28,6 +28,9 @@ export type BarisAnak = {
     /** Null berarti tidak ada pengukuran pada periode ini, bukan nol. */
     bbKg: number | null;
     tinggiCm: number | null;
+    /** Catatan meja pendaftaran dan petugas KMS pada bulan yang dipilih saja. */
+    catatanPendaftaran?: string | null;
+    catatanKms?: string | null;
 };
 
 export type PatchAnak = {

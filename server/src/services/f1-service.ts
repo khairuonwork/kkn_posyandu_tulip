@@ -28,7 +28,7 @@ export function susunF1(periode: string, dasar: any[], hasil: Awaited<ReturnType
         kelompok.get(id)!.anak.push({anakId:Number(r.anakId),nama:r.nama,jk:r.jk,rt:r.rt,umur,ntob,
             gng:kategoriEkonomi(r.desil,r.gng),desil:r.desil??null,desilKelompok:r.desilKelompok??null,asi:r.asi??null,diukur:!!r.diukur,
             duaT:r.diukur?(duaT.has(Number(r.anakId))?true:u?.nt?u.duaT:null):null,
-            kategori:(u?.penilaian['PERMENKES-2-2020']?.BB_U?.kategori as string)??null,bb:r.bb??null,tanggal,
+            kategori:(u?.penilaian['WHO-2006']?.BB_U?.kategori as string)??null,bb:r.bb??null,tanggal,
             sumberEkonomi:r.sumberEkonomi??null,periodeEkonomi:r.periodeEkonomi??null,tidakHadir:r.statusSasaran==='tidak_hadir'});
     }
     return {periode,kelompok:[...kelompok.values()]};

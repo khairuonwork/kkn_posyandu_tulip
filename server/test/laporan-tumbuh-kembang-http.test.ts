@@ -36,7 +36,10 @@ test("endpoint survei menjaga izin laporan, validasi bulan, dan no-store", async
         };
         assert.equal((await fetch(`${url}?periode=2026-10`)).status, 403);
         assert.equal(queries, 0);
-        for (const peran of ["kader", "bidan", "admin"] as const) {
+        // Di web, Laporan bukan untuk kader (hanya lihat Beranda/Data Balita).
+        pengguna = { ...pengguna, peran: "kader" };
+        assert.equal((await fetch(`${url}?periode=2026-10`)).status, 403);
+        for (const peran of ["bidan", "admin"] as const) {
             pengguna = { ...pengguna, peran };
             assert.equal((await fetch(`${url}?periode=2026-13`)).status, 400);
             const res = await fetch(`${url}?periode=2026-10`);
@@ -47,7 +50,7 @@ test("endpoint survei menjaga izin laporan, validasi bulan, dan no-store", async
                 balita: [],
             });
         }
-        assert.equal(queries, 3);
+        assert.equal(queries, 2);
     } finally {
         server.closeAllConnections();
         await new Promise<void>((resolve) => server.close(() => resolve()));

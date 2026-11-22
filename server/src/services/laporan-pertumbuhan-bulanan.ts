@@ -39,3 +39,26 @@ export function hitungPertumbuhan(kini: TitikPertumbuhan, lalu?: TitikPertumbuha
     const turunGaris = kini.zBbU !== null && lalu.zBbU !== null && Math.floor(kini.zBbU) < Math.floor(lalu.zBbU);
     return { kenaikanGram, kbmGram: kbm, nt: kenaikanGram < kbm || turunGaris ? 'T' : 'N' };
 }
+
+type UkurRiwayat = {
+    periodeId: string; tanggalUkur: string; bbKg: number | null; statusKehadiran: string;
+    ntob: string | null; penilaian: Record<string, { z: number }>;
+};
+
+/**
+ * N/T riwayat satu anak memakai aturan rekap (kenaikan vs KBM, turun garis).
+ * Huruf sumber dipakai hanya bila bulan sebelumnya tidak dapat dibandingkan.
+ */
+export function ntRiwayat<T extends UkurRiwayat>(anakId: number, umurBulan: (tanggal: string) => number, daftar: T[]): T[] {
+    const titik = new Map<T, TitikPertumbuhan>(daftar.map((p) => [p, {
+        anakId, periodeId: p.periodeId, umurBulan: umurBulan(p.tanggalUkur), bbKg: p.bbKg,
+        zBbU: p.penilaian.BB_U?.z ?? null, hadir: p.statusKehadiran === 'hadir',
+    }]));
+    const menaik = [...daftar].sort((a, b) => a.tanggalUkur.localeCompare(b.tanggalUkur));
+    return daftar.map((p) => {
+        const i = menaik.indexOf(p);
+        const lalu = menaik.slice(0, i).findLast((q) => q.periodeId !== p.periodeId);
+        const nt = hitungPertumbuhan(titik.get(p)!, lalu && titik.get(lalu)).nt;
+        return { ...p, ntob: nt ?? p.ntob };
+    });
+}

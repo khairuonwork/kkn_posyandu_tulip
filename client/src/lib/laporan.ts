@@ -20,7 +20,14 @@ export type BarisLaporanLive = {
     statusKehadiran: string;
     penilaian: Record<
         string,
-        Record<string, { z?: number | null; kategori?: string | null }>
+        Record<
+            string,
+            {
+                z?: number | null;
+                kategori?: string | null;
+                tidakWajar?: boolean;
+            }
+        >
     >;
     nt: 'N' | 'T' | null;
     kenaikanGram: number | null;
@@ -46,6 +53,8 @@ export type LaporanLive = {
     riwayat2T: BarisLaporanLive[];
 };
 
+export const INTERVAL_SEGAR_MS = 30_000;
+
 export function useLaporanServer(
     periode: string,
     aktif: boolean,
@@ -56,7 +65,26 @@ export function useLaporanServer(
     const [periodeData, setPeriodeData] = useState('');
     const [pesanGalat, setPesanGalat] = useState<string | null>(null);
     const [versi, setVersi] = useState(0);
+    const [diperbarui, setDiperbarui] = useState<Date | null>(null);
     const muatUlang = useCallback(() => setVersi((v) => v + 1), []);
+    // Sama seperti Beranda: segar tiap 30 detik dan saat kembali ke tab.
+    useEffect(() => {
+        if (!aktif || !periode) {
+            return;
+        }
+
+        const timer = window.setInterval(() => {
+            if (!document.hidden) {
+                muatUlang();
+            }
+        }, INTERVAL_SEGAR_MS);
+        window.addEventListener('focus', muatUlang);
+
+        return () => {
+            window.clearInterval(timer);
+            window.removeEventListener('focus', muatUlang);
+        };
+    }, [aktif, periode, muatUlang]);
     useEffect(() => {
         if (!aktif || !periode) {
             return;
@@ -91,6 +119,7 @@ export function useLaporanServer(
             })
             .then((hasil) => {
                 setData(hasil);
+                setDiperbarui(new Date());
                 setPeriodeData(periode);
                 setStatus('siap');
                 setPesanGalat(null);
@@ -160,14 +189,17 @@ export function useLaporanServer(
             link.download = `laporan-${format === 'f1' ? 'f1' : 'posyandu'}-${periode}.xlsx`;
             link.click();
             window.setTimeout(() => URL.revokeObjectURL(url), 0);
+            // Berkas berisi data saat unduh; layar disamakan dengannya.
+            muatUlang();
         },
-        [periode, onSesiBerakhir],
+        [periode, onSesiBerakhir, muatUlang],
     );
 
     return {
         data: data?.periode === periode ? data : null,
         status: periodeData === periode ? status : ('memuat' as const),
         pesanGalat,
+        diperbarui,
         muatUlang,
         unduh,
         onSesiBerakhir,

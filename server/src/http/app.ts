@@ -13,7 +13,7 @@ import type { Pool } from "pg";
 
 import { ruteAuth } from "./auth-controller.ts";
 import { ruteAntrean } from "./antrean-controller.ts";
-import { ruteBeranda } from "./beranda-controller.ts";
+import { lupakanCacheBeranda, ruteBeranda } from "./beranda-controller.ts";
 import { ruteAnak } from "./anak-controller.ts";
 import { ruteKonfirmasiWa } from './konfirmasi-wa-controller.ts';
 import { ruteLembar } from "./lembar-controller.ts";
@@ -30,6 +30,16 @@ import type { KonfigurasiServer } from "../config.ts";
 import { rutePelatihan } from './pelatihan-controller.ts';
 import { ruteAplikasi } from "./aplikasi-controller.ts";
 import { lingkupPelatihan, poolOperasional } from './pelatihan-context.ts';
+
+/**
+ * Nama field tingkat atas saja, tanpa nilai: cukup untuk melacak format kiriman
+ * APK yang gagal tanpa menyalin sandi atau data anak ke log. Tidak rekursif,
+ * jadi badan bersarang sedalam apa pun tidak bisa menjatuhkan proses.
+ */
+function namaField(badan: unknown): string {
+    if (badan === null || typeof badan !== "object" || Array.isArray(badan)) return "-";
+    return JSON.stringify(Object.keys(badan).slice(0, 20).map((nama) => nama.slice(0, 40)));
+}
 
 export function buatApp(
     pool: Pool,
@@ -77,8 +87,11 @@ export function buatApp(
     });
 
     // Impor Excel dikirim sebagai base64 JSON agar tetap dilindungi aturan
-    // Content-Type/CSRF yang sama. Parser menegakkan batas file 3 MB.
-    app.use(express.json({ limit: "4mb" }));
+    // Content-Type/CSRF yang sama; parser Excel menegakkan batas file 3 MB, jadi
+    // hanya dua rute itu yang butuh 4 MB. Rute lain cukup 512 KB: parser ini
+    // jalan sebelum autentikasi, dan kiriman terbesar APK (heartbeat) ±15 KB.
+    app.use(["/api/v1/sasaran/pratinjau", "/api/v1/sasaran/impor"], express.json({ limit: "4mb" }));
+    app.use(express.json({ limit: "512kb" }));
     app.use(wajibJson);
     app.use(sesiMiddleware(authPool));
 
@@ -109,13 +122,16 @@ export function buatApp(
     // Jejak tulis ringkas (tanpa isi body) agar kiriman APK yang gagal terlihat di log.
     app.use("/api", (req, res, next) => {
         res.once("finish", () => {
+            if (req.method !== "GET" && res.statusCode < 400 && !/heartbeat|masuk|keluar/.test(req.path)) {
+                lupakanCacheBeranda();
+            }
             if (/\/masuk/.test(req.path)) return;
             if (req.method === "GET" && res.statusCode < 400 && !/antrean|sinkronisasi|sasaran/.test(req.path)) return;
             console.log(
                 `[Tulis] ${req.method} ${req.originalUrl.split("?")[0]} -> ${res.statusCode} mode=${res.getHeader("X-Simpatik-Mode") ?? "-"} ua=${String(req.headers["user-agent"] ?? "-").slice(0, 60)}`,
             );
             if (res.statusCode >= 400) {
-                console.log(`[Galat Tulis ${res.statusCode}] ${req.method} ${req.originalUrl} user=${(req as any).pengguna?.id}:${(req as any).pengguna?.username} body=${JSON.stringify(req.body)}`);
+                console.log(`[Galat Tulis ${res.statusCode}] ${req.method} ${req.originalUrl.split("?")[0]} user=${req.pengguna?.id ?? "-"} ip=${req.ip} field=${namaField(req.body)}`);
             }
         });
         next();
@@ -178,7 +194,21 @@ export function buatApp(
     // Galat tak terduga tidak boleh bocor ke pemanggil: pesan pustaka basis
     // data kerap memuat potongan query beserta nilainya.
     app.use(
-        (galat: Error, _req: Request, res: Response, _next: NextFunction) => {
+        (galat: Error & { status?: number; expose?: boolean }, req: Request, res: Response, _next: NextFunction) => {
+            // Galat klien dari parser badan (JSON rusak 400, terlalu besar 413,
+            // encoding asing 415) bukan galat server: jawab dengan statusnya,
+            // tanpa mencetak stack ke log.
+            const status = galat.status ?? 500;
+            if (galat.expose && status >= 400 && status < 500) {
+                console.log(`[Galat Klien ${status}] ${req.method} ${req.originalUrl.split("?")[0]} ip=${req.ip}`);
+                if (!res.headersSent) {
+                    res.status(status).json({
+                        galat: status === 413 ? "Ukuran kiriman terlalu besar." : "Kiriman tidak dapat dibaca.",
+                    });
+                }
+                return;
+            }
+
             console.error(galat);
 
             if (!res.headersSent) {

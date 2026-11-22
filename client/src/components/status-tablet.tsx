@@ -155,13 +155,22 @@ export default function StatusTablet() {
     }, []);
     useEffect(() => {
         hidup.current = true;
+        // Setiap panggilan dibaca dari Supabase dan masuk hitungan egress, jadi
+        // tab yang tidak dilihat tidak ikut memeriksa.
+        const segarkan = () => {
+            if (!document.hidden) {
+                void ambil();
+            }
+        };
         const awal = setTimeout(() => void ambil(), 0);
-        const timer = setInterval(() => void ambil(), 6000);
+        const timer = setInterval(segarkan, 30_000);
+        document.addEventListener('visibilitychange', segarkan);
 
         return () => {
             hidup.current = false;
             clearTimeout(awal);
             clearInterval(timer);
+            document.removeEventListener('visibilitychange', segarkan);
             permintaan.current?.abort();
             permintaan.current = null;
         };

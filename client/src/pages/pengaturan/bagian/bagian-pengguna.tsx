@@ -1,7 +1,8 @@
 import {
-    CircleCheck,
     CircleMinus,
+    Eye,
     Lock,
+    Minus,
     Pencil,
     Plus,
     TriangleAlert,
@@ -15,7 +16,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import type { Peran } from '@/types/posyandu';
+import type { Pengguna, Peran } from '@/types/posyandu';
 import { adminAktifTerakhir, NAMA_PERAN } from '../tipe';
 import type { DaftarPengguna, IsianPengguna } from '../tipe';
 import { DialogPengguna } from './dialog-pengguna';
@@ -131,7 +132,7 @@ export function BagianPengguna({
 
             <Table
                 aria-label="Daftar pengguna"
-                className="min-w-[800px]"
+                className="min-w-[700px]"
                 containerClassName="max-h-[60dvh] min-h-0 overflow-auto lg:max-h-none lg:flex-1 lg:basis-0"
             >
                 <TableHeader className="sticky top-0 z-10">
@@ -146,11 +147,11 @@ export function BagianPengguna({
                             Posyandu / RW
                         </TableHead>
                         <TableHead scope="col" className="bg-card">
-                            Status
+                            Data balita
                         </TableHead>
                         <TableHead
                             scope="col"
-                            className="bg-card text-right last:pr-7"
+                            className="sticky right-0 border-l border-border bg-card text-right last:pr-7"
                         >
                             Aksi
                         </TableHead>
@@ -168,8 +169,19 @@ export function BagianPengguna({
                                 <span className="block text-sm text-muted-foreground">
                                     {p.username}
                                 </span>
+                                {/* Hampir semua akun aktif; hanya pengecualiannya yang ditandai. */}
+                                {!p.aktif && (
+                                    <span className="mt-1 inline-flex items-center gap-1.5 text-sm font-bold text-tone-red">
+                                        <CircleMinus
+                                            className="size-4"
+                                            strokeWidth={2.5}
+                                            aria-hidden="true"
+                                        />
+                                        Nonaktif
+                                    </span>
+                                )}
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="whitespace-nowrap">
                                 {NAMA_PERAN[p.peran]}
                                 {p.peran === 'kms' && (
                                     <span className="block text-sm text-muted-foreground">
@@ -186,7 +198,10 @@ export function BagianPengguna({
                                     </span>
                                 ) : p.posyanduNama ? (
                                     <span>
-                                        {p.posyanduNama} · RW {p.rw ?? '—'}
+                                        {p.posyanduNama}
+                                        <span className="block text-sm text-muted-foreground">
+                                            RW {p.rw ?? '—'}
+                                        </span>
                                     </span>
                                 ) : (
                                     <span className="text-tone-red">
@@ -194,31 +209,10 @@ export function BagianPengguna({
                                     </span>
                                 )}
                             </TableCell>
-                            <TableCell>
-                                <span
-                                    className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-sm font-bold whitespace-nowrap ${
-                                        p.aktif
-                                            ? 'bg-tone-green-bg text-tone-green'
-                                            : 'bg-surface-alt text-muted-foreground'
-                                    }`}
-                                >
-                                    {p.aktif ? (
-                                        <CircleCheck
-                                            className="size-4"
-                                            strokeWidth={2.5}
-                                            aria-hidden="true"
-                                        />
-                                    ) : (
-                                        <CircleMinus
-                                            className="size-4"
-                                            strokeWidth={2.5}
-                                            aria-hidden="true"
-                                        />
-                                    )}
-                                    {p.aktif ? 'Aktif' : 'Nonaktif'}
-                                </span>
+                            <TableCell className="whitespace-nowrap">
+                                <AksesData pengguna={p} />
                             </TableCell>
-                            <TableCell className="py-1 text-right last:pr-7">
+                            <TableCell className="sticky right-0 border-l border-border bg-card py-1 text-right last:pr-7">
                                 <button
                                     type="button"
                                     aria-label={`Ubah pengguna ${p.nama}`}
@@ -258,5 +252,30 @@ export function BagianPengguna({
                 />
             )}
         </>
+    );
+}
+
+/** Tiga tingkat akses yang sama untuk semua peran; tugas KMS sudah di kolom Peran. */
+function AksesData({ pengguna: p }: { pengguna: Pengguna }) {
+    const tingkat =
+        p.peran === 'bidan' || p.peran === 'admin'
+            ? 'ubah'
+            : p.bolehLihatData
+              ? 'lihat'
+              : 'tidak';
+    const Ikon =
+        tingkat === 'ubah' ? Pencil : tingkat === 'lihat' ? Eye : Minus;
+
+    return (
+        <span
+            className={`inline-flex items-center gap-2 ${tingkat === 'tidak' ? 'text-muted-foreground' : ''}`}
+        >
+            <Ikon className="size-4" strokeWidth={2.5} aria-hidden="true" />
+            {tingkat === 'ubah'
+                ? 'Lihat dan ubah'
+                : tingkat === 'lihat'
+                  ? 'Hanya lihat'
+                  : 'Tidak ada'}
+        </span>
     );
 }

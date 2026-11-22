@@ -8,20 +8,6 @@ type PeriodeDb = {
     adaPengukuran: boolean;
 };
 
-export type BarisUkurBeranda = {
-    anakId: number;
-    periodeId: string;
-    nama: string;
-    tglLahir: string;
-    rt: string | null;
-    tanggalUkur: string;
-    statusKehadiran: string;
-    ntob: string | null;
-    bbTb: { z: number; kategori: string | null } | null;
-    tbU: { z: number; kategori: string | null } | null;
-    bbU: { z: number; kategori: string | null } | null;
-};
-
 /** Periode dan data selalu dibatasi RT di query, bukan disaring di browser. */
 export async function daftarPeriode(pool: Pool, pengguna: PenggunaAktif): Promise<PeriodeDb[]> {
     const { rows } = await pool.query<PeriodeDb>(
@@ -48,40 +34,6 @@ export async function daftarPeriode(pool: Pool, pengguna: PenggunaAktif): Promis
     return rows;
 }
 
-export async function riwayatBeranda(
-    pool: Pool,
-    pengguna: PenggunaAktif,
-    awal: string,
-    akhir: string,
-): Promise<BarisUkurBeranda[]> {
-    const { rows } = await pool.query<BarisUkurBeranda>(
-        `SELECT p.anak_id AS "anakId",
-                to_char(make_date(pe.tahun, pe.bulan, 1), 'YYYY-MM') AS "periodeId",
-                a.nama, to_char(a.tgl_lahir, 'YYYY-MM-DD') AS "tglLahir",
-                w.rt, to_char(p.tanggal_ukur, 'YYYY-MM-DD') AS "tanggalUkur",
-                p.status_kehadiran AS "statusKehadiran", p.ntob_raw AS ntob,
-                (jsonb_agg(jsonb_build_object('z', pg.z_score, 'kategori', pg.kategori))
-                    FILTER (WHERE pg.indeks = 'BB_TB' AND NOT pg.tidak_wajar))->0 AS "bbTb",
-                (jsonb_agg(jsonb_build_object('z', pg.z_score, 'kategori', pg.kategori))
-                    FILTER (WHERE pg.indeks = 'TB_U' AND NOT pg.tidak_wajar))->0 AS "tbU",
-                (jsonb_agg(jsonb_build_object('z', pg.z_score, 'kategori', pg.kategori))
-                    FILTER (WHERE pg.indeks = 'BB_U' AND NOT pg.tidak_wajar))->0 AS "bbU"
-           FROM pengukuran p
-           JOIN periode pe ON pe.id = p.periode_id
-           JOIN anak a ON a.id = p.anak_id AND a.deleted_at IS NULL
-           LEFT JOIN wilayah_rt w ON w.id = a.wilayah_rt_id
-           LEFT JOIN penilaian_gizi pg ON pg.pengukuran_id = p.id
-                AND pg.standar_versi = 'WHO-2006'
-                AND pg.indeks IN ('BB_TB', 'TB_U', 'BB_U')
-          WHERE make_date(pe.tahun, pe.bulan, 1) BETWEEN $1::date AND $2::date
-            AND ($3::boolean OR w.posyandu_id=ANY($4::bigint[]))
-          GROUP BY p.id, pe.id, a.id, w.rt
-          ORDER BY p.tanggal_ukur DESC, p.id DESC`,
-        [`${awal}-01`, `${akhir}-01`, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
-    );
-    return rows;
-}
-
 export async function jumlahSasaran(
     pool: Pool,
     pengguna: PenggunaAktif,
@@ -98,6 +50,8 @@ export async function jumlahSasaran(
            LEFT JOIN wilayah_rt w ON w.id = a.wilayah_rt_id
           WHERE make_date(pe.tahun, pe.bulan, 1) BETWEEN $1::date AND $2::date
             AND ($3::boolean OR w.posyandu_id=ANY($4::bigint[]))
+            -- Sama dengan F1: sasaran batal/pindah tidak dihitung.
+            AND s.status NOT IN ('batal', 'pindah')
           GROUP BY pe.id`,
         [`${awal}-01`, `${akhir}-01`, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? [], rt],
     );

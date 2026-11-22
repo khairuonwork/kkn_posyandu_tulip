@@ -40,6 +40,7 @@ describe('aturan isian akun', () => {
                 rt: '03',
                 posyanduId: null,
                 aktif: true,
+                bolehLihatData: false,
             },
             kataSandi: 'rahasia-panjang',
         });
@@ -85,12 +86,12 @@ describe('aturan isian akun', () => {
         };
 
         assert.deepEqual(bacaIsianAkun({ aktif: false, kataSandi: '' }, lama), {
-            isian: { ...lama, aktif: false },
+            isian: { ...lama, aktif: false, bolehLihatData: false },
             kataSandi: null,
         });
         // Kader yang dinaikkan menjadi bidan melepas RT binaannya.
         assert.deepEqual(bacaIsianAkun({ peran: 'bidan' }, lama), {
-            isian: { ...lama, peran: 'bidan', rt: null },
+            isian: { ...lama, peran: 'bidan', rt: null, bolehLihatData: false },
             kataSandi: null,
         });
     });
@@ -330,7 +331,8 @@ describe(
 
         test('mengganti kata sandi mencabut sesi lama', async () => {
             const cookieBidan = await masuk(USERNAME_BIDAN, SANDI);
-            const baru = 'sandi-baru-bidan-2026';
+            // Sandi tidak boleh memuat nama pengguna (lihat auth/sandi-umum.ts).
+            const baru = 'sandi-baru-kedua-2026';
 
             const res = await kirim('PATCH', `/api/pengguna/${idBidan}`, cookieAdmin, {
                 kataSandi: baru,
@@ -415,7 +417,7 @@ describe(
 
         test('admin yang mengganti kata sandinya sendiri tetap masuk; sesi lainnya dicabut', async () => {
             const sesiLain = await masuk(USERNAME_ADMIN, SANDI);
-            const baru = 'sandi-baru-admin-2026';
+            const baru = 'sandi-baru-ketiga-2026';
 
             const res = await kirim('PATCH', `/api/pengguna/${idAdmin}`, cookieAdmin, {
                 kataSandi: baru,

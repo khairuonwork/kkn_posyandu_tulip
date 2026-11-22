@@ -11,7 +11,7 @@ import type { Response } from "express";
 import type { Pool } from "pg";
 import { daftarRt } from "../repositories/beranda-repository.ts";
 
-import { wajibBoleh } from "./middleware.ts";
+import { tolakKaderWeb, wajibBoleh, wajibLihatDataWeb } from "./middleware.ts";
 import {
     daftar,
     GalatAnak,
@@ -47,7 +47,7 @@ function jawabGalat(galat: unknown, res: Response): void {
 export function ruteAnak(pool: Pool): Router {
     const rute = Router();
 
-    rute.get("/anak", wajibBoleh("lihat-anak"), async (req, res, next) => {
+    rute.get("/anak", wajibBoleh("lihat-anak"), wajibLihatDataWeb, async (req, res, next) => {
         try {
             const query = {
                 periode: typeof req.query.periode === "string" ? req.query.periode : undefined,
@@ -126,7 +126,7 @@ export function ruteAnak(pool: Pool): Router {
         },
     );
 
-    rute.get("/anak/:id", wajibBoleh("lihat-anak"), async (req, res, next) => {
+    rute.get("/anak/:id", wajibBoleh("lihat-anak"), wajibLihatDataWeb, async (req, res, next) => {
         const id = idDari(req.params.id);
         if (id === null) {
             res.status(404).json({ galat: "Anak tidak ditemukan." });
@@ -145,7 +145,7 @@ export function ruteAnak(pool: Pool): Router {
         }
     });
 
-    rute.patch("/anak/:id", wajibBoleh("ubah-anak"), async (req, res, next) => {
+    rute.patch("/anak/:id", wajibBoleh("ubah-anak"), tolakKaderWeb, async (req, res, next) => {
         const id = idDari(req.params.id);
         if (id === null) {
             res.status(404).json({ galat: "Anak tidak ditemukan." });
@@ -167,6 +167,7 @@ export function ruteAnak(pool: Pool): Router {
     rute.get(
         "/anak/:id/pengukuran",
         wajibBoleh("lihat-kms"),
+        wajibLihatDataWeb,
         async (req, res, next) => {
             const id = idDari(req.params.id);
             if (id === null) {
