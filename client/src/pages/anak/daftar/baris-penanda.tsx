@@ -13,7 +13,10 @@ export function InfoBaris({ baris }: { baris: BarisAnak }) {
         baris.waTerkirim == null
             ? { teks: 'Status belum tersedia', warna: 'text-muted-foreground' }
             : baris.waTerkirim
-              ? { teks: 'Sudah dikirim, dikonfirmasi kader', warna: 'text-tone-green' }
+              ? {
+                    teks: 'Sudah dikirim, dikonfirmasi kader',
+                    warna: 'text-tone-green',
+                }
               : { teks: 'Belum dikonfirmasi', warna: 'text-tone-amber' };
 
     return (
@@ -22,7 +25,11 @@ export function InfoBaris({ baris }: { baris: BarisAnak }) {
         <span className="flex flex-col gap-0.5 pb-1 text-sm text-muted-foreground">
             <JenisKelaminTeks jk={baris.jk} />
             <span className={`inline-flex items-center gap-1.5 ${wa.warna}`}>
-                <MessageCircle className="size-3.5 shrink-0" strokeWidth={2.5} aria-hidden="true" />
+                <MessageCircle
+                    className="size-3.5 shrink-0"
+                    strokeWidth={2.5}
+                    aria-hidden="true"
+                />
                 <span>
                     <span className="sr-only">WhatsApp: </span>
                     {wa.teks}
@@ -36,7 +43,13 @@ export function InfoBaris({ baris }: { baris: BarisAnak }) {
  * Alasan baris ini ditandai, saat alasannya bukan BB/TB. `menjorok` meluruskan
  * teks dengan status di atasnya yang berikon.
  */
-export function Pemicu({ baris, menjorok = false }: { baris: BarisAnak; menjorok?: boolean }) {
+export function Pemicu({
+    baris,
+    menjorok = false,
+}: {
+    baris: BarisAnak;
+    menjorok?: boolean;
+}) {
     if (
         !baris.perluPerhatian ||
         baris.indeksPemicu === null ||
@@ -47,7 +60,9 @@ export function Pemicu({ baris, menjorok = false }: { baris: BarisAnak; menjorok
     }
 
     return (
-        <span className={`mt-1 block text-sm text-tone-amber ${menjorok ? 'pl-5.5' : ''}`}>
+        <span
+            className={`mt-1 block text-sm text-tone-amber ${menjorok ? 'pl-5.5' : ''}`}
+        >
             Ditandai: {baris.kategoriPemicu} (
             {labelIndeks(baris.indeksPemicu, baris.umurBulan)})
         </span>
@@ -57,13 +72,21 @@ export function Pemicu({ baris, menjorok = false }: { baris: BarisAnak; menjorok
 /**
  * Risiko sejak lahir pada satu baris.
  */
-export function Risiko({ baris, menjorok = false }: { baris: BarisAnak; menjorok?: boolean }) {
+export function Risiko({
+    baris,
+    menjorok = false,
+}: {
+    baris: BarisAnak;
+    menjorok?: boolean;
+}) {
     if (baris.risikoLahir === null) {
         return null;
     }
 
     return (
-        <span className={`mt-1 block text-sm text-tone-blue ${menjorok ? 'pl-5.5' : ''}`}>
+        <span
+            className={`mt-1 block text-sm text-tone-blue ${menjorok ? 'pl-5.5' : ''}`}
+        >
             {baris.risikoLahir}
         </span>
     );

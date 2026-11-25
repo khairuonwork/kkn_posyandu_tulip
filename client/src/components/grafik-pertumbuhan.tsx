@@ -451,8 +451,8 @@ export default function GrafikPertumbuhan({
         );
 
         if (lama === undefined) {
-return null;
-}
+            return null;
+        }
 
         const [tahun, bulan] = lama.periodeId.split('-').map(Number);
         const sampai = new Date(Date.UTC(tahun, bulan - 1 + 2, 1));
@@ -708,7 +708,8 @@ return null;
                     {[...SPEK.slice(0, 2), null, ...SPEK.slice(2)].map((s) => {
                         if (s === null) {
                             const aktif = jenis === 'BB_TB';
-                            const hasilBbTb = pengukuranTerbaru?.penilaian.BB_TB;
+                            const hasilBbTb =
+                                pengukuranTerbaru?.penilaian.BB_TB;
                             const labelBbTb = hasilBbTb?.kategori
                                 ? labelKategoriGizi(hasilBbTb.kategori)
                                 : null;

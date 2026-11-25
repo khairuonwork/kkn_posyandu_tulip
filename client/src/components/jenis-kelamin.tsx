@@ -24,7 +24,11 @@ export default function JenisKelaminTeks({
                 jk === 'L' ? 'text-blue-700' : 'text-pink-700'
             }`}
         >
-            <Ikon className="size-3.5 shrink-0" strokeWidth={2.5} aria-hidden="true" />
+            <Ikon
+                className="size-3.5 shrink-0"
+                strokeWidth={2.5}
+                aria-hidden="true"
+            />
             {jk === 'L' ? 'Laki-laki' : 'Perempuan'}
         </span>
     );

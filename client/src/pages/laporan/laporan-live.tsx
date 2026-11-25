@@ -187,8 +187,7 @@ export default function LaporanDataLive({
     const aksi = (
         <div className="flex flex-wrap items-center gap-2">
             <span className="w-full text-xs font-medium text-muted-foreground">
-                Data diperbarui otomatis setiap{' '}
-                {INTERVAL_SEGAR_MS / 1000} detik
+                Data diperbarui otomatis setiap {INTERVAL_SEGAR_MS / 1000} detik
                 {laporan.diperbarui &&
                     ` · terakhir ${laporan.diperbarui.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`}
                 . Berkas unduhan berisi data saat tombol unduh ditekan.
@@ -210,8 +209,8 @@ export default function LaporanDataLive({
                 className="tombol-kedua text-xs font-bold"
                 onClick={laporan.muatUlang}
             >
-                <RefreshCw className="size-3.5" aria-hidden="true" />{' '}
-                Perbarui Data
+                <RefreshCw className="size-3.5" aria-hidden="true" /> Perbarui
+                Data
             </button>
             {bolehUnduh && (
                 <button
