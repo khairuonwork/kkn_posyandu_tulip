@@ -10,6 +10,8 @@ const col=(n:number)=>{let s='';for(;n;n=Math.floor((n-1)/26))s=String.fromCharC
 const text=(s:ExcelJS.Worksheet,cell:string,value:ExcelJS.CellValue)=>{s.getCell(cell).value=value;};
 const q=(s:string)=>`'${s.replaceAll("'","''")}'`;
 const fmt='#,##0;[Red](#,##0);"-"';
+// Templat menulis ASI dengan teks merah tanpa garis; permintaan kader: hitam dan berbingkai.
+const hitamBerbingkai=(c:ExcelJS.Cell)=>{c.font={...c.font,color:{argb:'FF000000'}};c.border={top:border,bottom:border,left:border,right:border};};
 const editable=(c:ExcelJS.Cell)=>{c.fill=fill('FFFFF2CC');c.font={name:'Arial',size:10,color:{argb:'FF000000'}};};
 
 function raw(w:ExcelJS.Workbook,name:string,g:KelompokF1,periode:string,rows:AnakF1[],origin?:{name:string;indices:number[]},combined=false) {
@@ -31,6 +33,7 @@ function raw(w:ExcelJS.Workbook,name:string,g:KelompokF1,periode:string,rows:Ana
         text(s,col(right)+(title+1),origin?'RT'+Number(block[0]?.rt??0):'ALL');
         const headers=['NO','NAMA BALITA','UMUR  (bln)','"L/P"','NTOB','MAMPU','TDK MAMPU','RT','DITIMBANG','KMS','2T+','STATUS BB/U','BB (kg)','ASI EXCL?.'];
         headers.forEach((v,i)=>{text(s,col(i+1)+header,v);s.getCell(header,i+1).style=gayaF1(reference,col(i+1)+'5');});
+        hitamBerbingkai(s.getCell('N'+header));
         block.forEach((a,i)=>{
             const r=base+i;s.getRow(r).height=layoutF1(reference).rows[5]?.height ?? 15;
             const values:ExcelJS.CellValue[]=[i+1,a.nama,a.umur,a.jk,a.ntob,a.gng==='NG'?'NG':null,a.gng==='G'?'G':null,a.rt,a.diukur?1:0,1,a.duaT===null?null:a.duaT?1:0,a.kategori,a.bb,a.asi===null?null:a.asi?'Y':'T'];
@@ -42,6 +45,7 @@ function raw(w:ExcelJS.Workbook,name:string,g:KelompokF1,periode:string,rows:Ana
             // NG uses the green source style; the other economic column stays white.
             s.getCell('F'+r).style=gayaF1(reference,a.gng==='NG'?'F7':'F6');
             s.getCell('G'+r).style=gayaF1(reference,'G6');
+            hitamBerbingkai(s.getCell('N'+r));
             if(!origin)for(const [c,list] of [['E','N,T,O,B'],['F','NG'],['G','G'],['N','Y,T']])s.getCell(c+r).dataValidation={type:'list',allowBlank:true,formulae:['"'+list+'"']};
             [a.anakId,a.desilKelompok??a.desil,a.sumberEkonomi,a.periodeEkonomi,a.tanggal,a.tidakHadir?'Ya':null].forEach((v,j)=>text(s,col(29+j)+r,v));
         });

@@ -2,11 +2,12 @@ import ExcelJS from "exceljs";
 import { kategoriDari } from "../antropometri/kategori.ts";
 import type { BarisBertanda } from "./laporan-perhitungan.ts";
 import type { BarisRiwayat2T } from './laporan-riwayat-2t.ts';
+import type { BarisMenyusui } from '../repositories/antrean-repository.ts';
 import { umurBulan } from './laporan-perhitungan.ts';
 import { AMBANG_PERINGATAN_INTERNAL, deskripsiSdLila, kodeNtb } from './laporan-tampilan.ts';
-import { BARIS_DATA, INDEKS_LAPORAN, STANDAR_LAPORAN, formatBaris, namaPeriode, selesaikanSheet, siapkanSheet, type TataLetak } from "./laporan-excel-layout.ts";
+import { BARIS_DATA, BARIS_HEADER, INDEKS_LAPORAN, STANDAR_LAPORAN, formatBaris, gabungHeader, namaPeriode, selHeader, selesaikanSheet, siapkanSheet, warnaIsi, type TataLetak } from "./laporan-excel-layout.ts";
 
-type DataLaporan = { periode: string; standar: string[]; bulanan: BarisBertanda[]; riwayat2T: BarisRiwayat2T[] };
+type DataLaporan = { periode: string; standar: string[]; bulanan: BarisBertanda[]; riwayat2T: BarisRiwayat2T[]; menyusui?: BarisMenyusui[] };
 const BULAN_SINGKAT = ["JAN", "FEB", "MAR", "APRIL", "MEI", "JUNI", "JULI", "AGUST", "SEPT", "OKT", "NOV", "DES"];
 
 function labelBulan(periode: string): string {
@@ -142,6 +143,92 @@ function tambahHistoris(workbook: ExcelJS.Workbook, data: DataLaporan) {
     selesaikanSheet(sheet, layout, r - 1);
 }
 
+const yaTidak = (v: boolean | null) => v === null ? null : v ? "Ya" : "Tidak";
+
+/** Jawaban pendaftaran; kosong berarti tidak ditanyakan atau dilewati. Gaya mengikuti Rekap Z Score. */
+function tambahMenyusui(workbook: ExcelJS.Workbook, periode: string, rows: BarisMenyusui[]) {
+    const sheet = workbook.addWorksheet("Menyusui & ASI", {
+        views: [{ state: "frozen", xSplit: 2, ySplit: BARIS_HEADER, showGridLines: true }],
+        pageSetup: { orientation: "landscape", paperSize: 9, fitToPage: true, fitToWidth: 1, fitToHeight: 0, printTitlesRow: "1:6" },
+    });
+    const data = rows.map((row) => ({ ...row, umur: umurBulan(row.tglLahir, row.tanggal) }))
+        .sort((a, b) => a.jk.localeCompare(b.jk) || a.umur - b.umur || a.nama.localeCompare(b.nama, "id"));
+    const hitam = { argb: "FF000000" };
+    const garis: ExcelJS.Border = { style: "thin", color: hitam };
+    const bingkai = { top: garis, bottom: garis, left: garis, right: garis };
+    for (const [row, value] of [[1, "REKAP MENYUSUI DAN ASI EKSKLUSIF"], [2, "BULAN " + namaPeriode(periode)]] as const) {
+        const cell = sheet.getCell(row, 1);
+        cell.value = value;
+        cell.font = { name: "Calibri", size: row === 1 ? 14 : 11, bold: true, color: { argb: "FF0070C0" } };
+    }
+    sheet.getCell("A3").value = "Sumber: jawaban petugas pendaftaran. Sel kosong = tidak ditanyakan atau dilewati; tanda — = di luar usia 0–6 bulan.";
+    sheet.getCell("A3").font = { name: "Calibri", size: 10, color: { argb: "FF9C6500" } };
+    [18.5, 15, 18, 28, 18, 29].forEach((height, i) => { sheet.getRow(i + 1).height = height; });
+
+    const HIJAU = "FFCCFF99", JINGGA = "FFFFC000", PINK = "FFFFCCFF";
+    ["NO", "NAMA LENGKAP", "NIK", "RT", "JK", "UMUR (bln)", "TANGGAL DAFTAR"].forEach((label, i) => selHeader(sheet, 6, i + 1, label));
+    gabungHeader(sheet, 4, 8, 8, "IBU MASIH MENYUSUI", HIJAU, 11);
+    gabungHeader(sheet, 4, 9, 9, "ASI EKSKLUSIF", JINGGA, 11);
+    selHeader(sheet, 5, 8, "usia 0–23 bulan", HIJAU, 10);
+    selHeader(sheet, 5, 9, "usia 0–6 bulan", JINGGA, 10);
+    selHeader(sheet, 6, 8, "YA / TIDAK", HIJAU);
+    selHeader(sheet, 6, 9, "YA / TIDAK", JINGGA);
+    [4.5, 33.73, 19, 5, 5, 11, 15, 20, 20].forEach((w, i) => { sheet.getColumn(i + 1).width = w; });
+
+    data.forEach((row, i) => {
+        const r = BARIS_DATA + i;
+        sheet.getRow(r).values = [i + 1, row.nama, row.nik, row.rt, row.jk, row.umur, new Date(row.tanggal + "T00:00:00Z"),
+            yaTidak(row.masihMenyusui), row.umur <= 6 ? yaTidak(row.asiEksklusif) : "—"];
+        sheet.getRow(r).height = 15;
+        for (let c = 1; c <= 9; c++) {
+            const cell = sheet.getCell(r, c);
+            cell.font = { name: "Calibri", size: 11, color: hitam };
+            cell.alignment = { horizontal: c === 2 ? "left" : "center", vertical: "middle" };
+            cell.border = bingkai;
+        }
+        // NIK 16 digit harus teks; sebagai angka Excel membulatkan digit terakhir.
+        sheet.getCell(r, 3).numFmt = "@";
+        sheet.getCell(r, 4).numFmt = "@";
+        sheet.getCell(r, 7).numFmt = "dd/mm/yyyy";
+    });
+    const akhir = Math.max(BARIS_DATA, BARIS_DATA + data.length - 1);
+    sheet.autoFilter = { from: { row: BARIS_HEADER, column: 1 }, to: { row: akhir, column: 9 } };
+    sheet.addConditionalFormatting({ ref: `H${BARIS_DATA}:I${akhir}`, rules: [{ type: "cellIs", operator: "equal", priority: 1,
+        formulae: ['"Tidak"'], style: { fill: warnaIsi("FFFFC7CE"), font: { color: { argb: "FF9C0006" } } } }] });
+
+    // Ringkasan di kanan tabel; rumus ikut berubah bila jawaban diperbaiki di Excel.
+    const asi = data.filter((row) => row.umur <= 6);
+    const G = `H${BARIS_DATA}:H${akhir}`, H = `I${BARIS_DATA}:I${akhir}`, B = `B${BARIS_DATA}:B${akhir}`;
+    const jumlah = (list: typeof data, key: "masihMenyusui" | "asiEksklusif", v: boolean | null) => list.filter((r) => r[key] === v).length;
+    gabungHeader(sheet, 4, 11, 15, "RINGKASAN", PINK, 11);
+    ["", "YA", "TIDAK", "TIDAK DITANYAKAN", "JUMLAH BALITA"].forEach((label, i) => selHeader(sheet, 5, 11 + i, label, PINK));
+    const ringkasan: [string, ExcelJS.CellValue[]][] = [
+        ["Ibu masih menyusui (0–23 bln)", [
+            { formula: `COUNTIF(${G},"Ya")`, result: jumlah(data, "masihMenyusui", true) },
+            { formula: `COUNTIF(${G},"Tidak")`, result: jumlah(data, "masihMenyusui", false) },
+            { formula: `COUNTA(${B})-COUNTIF(${G},"Ya")-COUNTIF(${G},"Tidak")`, result: jumlah(data, "masihMenyusui", null) },
+            { formula: `COUNTA(${B})`, result: data.length }]],
+        ["ASI eksklusif (0–6 bln)", [
+            { formula: `COUNTIF(${H},"Ya")`, result: jumlah(asi, "asiEksklusif", true) },
+            { formula: `COUNTIF(${H},"Tidak")`, result: jumlah(asi, "asiEksklusif", false) },
+            { formula: `COUNTA(${B})-COUNTIF(${H},"—")-COUNTIF(${H},"Ya")-COUNTIF(${H},"Tidak")`, result: jumlah(asi, "asiEksklusif", null) },
+            { formula: `COUNTA(${B})-COUNTIF(${H},"—")`, result: asi.length }]],
+    ];
+    ringkasan.forEach(([label, nilai], i) => {
+        const r = 6 + i;
+        [label, ...nilai].forEach((v, j) => {
+            const cell = sheet.getCell(r, 11 + j);
+            cell.value = v;
+            cell.font = { name: "Calibri", size: 11, bold: j === 0, color: hitam };
+            cell.alignment = { horizontal: j === 0 ? "left" : "center", vertical: "middle" };
+            cell.border = bingkai;
+        });
+    });
+    [30, 9, 9, 18, 16].forEach((w, i) => { sheet.getColumn(11 + i).width = w; });
+    sheet.getColumn(10).width = 3;
+    sheet.pageSetup.printArea = `A1:O${akhir}`;
+}
+
 function tambahPetunjuk(workbook: ExcelJS.Workbook, periode: string) {
     const sheet = workbook.addWorksheet("Petunjuk");
     sheet.addRows([
@@ -182,6 +269,7 @@ export async function workbookLaporan(data: DataLaporan) {
     workbook.description = "Rekap Z-score dan historis 2T+ mengikuti format laporan Posyandu.";
     tambahRekap(workbook, data);
     tambahHistoris(workbook, data);
+    if (data.menyusui) tambahMenyusui(workbook, data.periode, data.menyusui);
     tambahPetunjuk(workbook, data.periode);
     return workbook;
 }

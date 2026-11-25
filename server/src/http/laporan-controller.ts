@@ -6,6 +6,7 @@ import { laporan } from "../services/laporan-service.ts";
 import { dataF1 } from '../services/f1-service.ts';
 import { workbookF1 } from '../services/f1-export.ts';
 import { laporanTumbuhKembang } from '../services/laporan-tumbuh-kembang.ts';
+import { rekapMenyusui } from '../repositories/antrean-repository.ts';
 
 export function ruteLaporan(pool: Pool): Router {
     const rute = Router();
@@ -48,7 +49,8 @@ export function ruteLaporan(pool: Pool): Router {
         try {
             const periode = typeof req.query.periode === "string" ? req.query.periode : "";
             const data = await laporan(pool, req.pengguna!, periode);
-            const workbook = await workbookLaporan(data);
+            const menyusui = await rekapMenyusui(pool, req.pengguna!, periode);
+            const workbook = await workbookLaporan({ ...data, menyusui });
             const buffer = await workbook.xlsx.writeBuffer();
             res.set({
                 "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

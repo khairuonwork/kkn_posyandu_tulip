@@ -573,3 +573,36 @@ export async function riwayatCatatan(pool: Pool, pengguna: PenggunaAktif, anakId
             || b.pendaftaran.asiEksklusif !== null || b.pendaftaran.ikutKb !== null
             || b.pengukuran.catatanKhusus || b.pengukuran.catatan || b.kms.catatan);
 }
+
+/** Jawaban menyusui/ASI saat pendaftaran untuk balita 0–23 bulan pada satu periode. */
+export type BarisMenyusui = {
+    anakId: number;
+    nama: string;
+    nik: string | null;
+    rt: string;
+    jk: string;
+    tglLahir: string;
+    tanggal: string;
+    masihMenyusui: boolean | null;
+    asiEksklusif: boolean | null;
+};
+
+export async function rekapMenyusui(pool: Pool, pengguna: PenggunaAktif, periode: string): Promise<BarisMenyusui[]> {
+    const { rows } = await pool.query<BarisMenyusui>(
+        `SELECT DISTINCT ON (a.id) a.id::int AS "anakId", a.nama, a.nik, wr.rt, a.jk,
+                to_char(a.tgl_lahir, 'YYYY-MM-DD') AS "tglLahir", to_char(q.tanggal, 'YYYY-MM-DD') AS tanggal,
+                q.masih_menyusui AS "masihMenyusui", q.asi_eksklusif AS "asiEksklusif"
+           FROM antrean_layanan q
+           JOIN periode pe ON pe.id = q.periode_id
+           JOIN sasaran s ON s.id = q.sasaran_id
+           JOIN anak a ON a.id = s.anak_id
+           JOIN wilayah_rt wr ON wr.id = a.wilayah_rt_id
+          WHERE make_date(pe.tahun, pe.bulan, 1) = ($1 || '-01')::date
+            AND q.status <> 'cancelled' AND a.deleted_at IS NULL
+            AND q.tanggal < a.tgl_lahir + interval '24 months'
+            AND ($2::boolean OR pe.posyandu_id = ANY($3::bigint[]))
+          ORDER BY a.id, q.tanggal DESC, q.updated_at DESC`,
+        [periode, pengguna.superAdmin ?? false, pengguna.posyanduIds ?? []],
+    );
+    return rows;
+}

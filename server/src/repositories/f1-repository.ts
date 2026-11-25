@@ -14,7 +14,7 @@ export async function dasarF1(pool: Pool, user: PenggunaAktif, periode: string) 
             WHERE prev.anak_id=a.id AND prev.bb_kg IS NOT NULL AND prev.status_kehadiran='hadir'
             AND make_date(pp.tahun,pp.bulan,1)<($1||'-01')::date) AS "pernahDiukur",
         ekonomi.gng,ekonomi.desil,ekonomi.desil_kelompok AS "desilKelompok",ekonomi.sumber AS "sumberEkonomi",ekonomi.periode AS "periodeEkonomi",
-        asi.asi_eksklusif AS asi
+        coalesce(daftar.asi_eksklusif,asi.asi_eksklusif) AS asi
         FROM sasaran s JOIN periode pe ON pe.id=s.periode_id
         JOIN posyandu ps ON ps.id=pe.posyandu_id JOIN anak a ON a.id=s.anak_id
         JOIN wilayah_rt wr ON wr.id=a.wilayah_rt_id AND wr.posyandu_id=ps.id
@@ -22,6 +22,8 @@ export async function dasarF1(pool: Pool, user: PenggunaAktif, periode: string) 
         LEFT JOIN LATERAL (SELECT * FROM sumber_f1 sf WHERE sf.anak_id=a.id AND sf.periode<=$1
             AND (sf.gng IS NOT NULL OR sf.desil IS NOT NULL OR sf.sumber LIKE 'Profil Anak%') ORDER BY sf.periode DESC LIMIT 1) ekonomi ON true
         LEFT JOIN sumber_f1 asi ON asi.anak_id=a.id AND asi.periode=$1
+        LEFT JOIN LATERAL (SELECT q.asi_eksklusif FROM antrean_layanan q WHERE q.sasaran_id=s.id AND q.periode_id=pe.id
+            AND q.status<>'cancelled' AND q.asi_eksklusif IS NOT NULL ORDER BY q.tanggal DESC,q.updated_at DESC LIMIT 1) daftar ON true
         WHERE a.deleted_at IS NULL AND s.status NOT IN ('batal','pindah')
         AND make_date(pe.tahun,pe.bulan,1)=($1||'-01')::date
         AND ($2::boolean OR ps.id=ANY($3::bigint[]))

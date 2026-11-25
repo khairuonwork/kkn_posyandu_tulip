@@ -96,3 +96,23 @@ test("nilai tidak wajar tetap tampil dengan statusnya dan diberi catatan perlu d
     }
     assert.equal(sheet.getCell(7, 12).note, undefined);
 });
+
+test("lembar Menyusui & ASI menghitung jawaban pendaftaran dan membatasi ASI ke 0–6 bulan", async () => {
+    const dasar = { nik: "3277010101260001", rt: "01", jk: "P", tanggal: "2026-10-14" };
+    const workbook = await workbookLaporan({ periode: "2026-10", standar: [], bulanan: [], riwayat2T: [], menyusui: [
+        { ...dasar, anakId: 1, nama: "BAYI A", tglLahir: "2026-07-01", masihMenyusui: true, asiEksklusif: true },
+        { ...dasar, anakId: 2, nama: "BAYI B", tglLahir: "2026-06-01", masihMenyusui: true, asiEksklusif: false },
+        { ...dasar, anakId: 3, nama: "BALITA C", tglLahir: "2025-06-01", masihMenyusui: false, asiEksklusif: null },
+        { ...dasar, anakId: 4, nama: "BAYI D", tglLahir: "2026-09-01", masihMenyusui: null, asiEksklusif: null },
+    ] });
+    const reopened = new ExcelJS.Workbook();
+    await reopened.xlsx.load(await workbook.xlsx.writeBuffer());
+    const sheet = reopened.getWorksheet("Menyusui & ASI")!;
+    const hasil = (r: number, c: number) => (sheet.getCell(r, c).value as { result: number }).result;
+    assert.deepEqual([6, 7].map((r) => [12, 13, 14, 15].map((c) => hasil(r, c))), [[2, 1, 1, 4], [1, 1, 1, 3]]);
+    assert.equal(sheet.getCell("B7").value, "BAYI D");
+    assert.equal(sheet.getCell("C7").value, "3277010101260001");
+    assert.equal(sheet.getCell("I10").value, "—");
+    assert.equal(sheet.getCell("H6").value, "YA / TIDAK");
+    assert.equal(sheet.getCell("B7").border.left?.style, "thin");
+});

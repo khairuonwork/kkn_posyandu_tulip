@@ -36,7 +36,7 @@ export function tataLetak(historis: boolean) {
 }
 export type TataLetak = ReturnType<typeof tataLetak>;
 
-function selHeader(sheet: ExcelJS.Worksheet, row: number, col: number, text: string, warna = "FFFFFFFF", ukuran = 11) {
+export function selHeader(sheet: ExcelJS.Worksheet, row: number, col: number, text: string, warna = "FFFFFFFF", ukuran = 11) {
     const cell = sheet.getCell(row, col);
     cell.value = text;
     cell.font = { name: "Calibri", size: ukuran, bold: true, color: { argb: HITAM } };
@@ -46,7 +46,7 @@ function selHeader(sheet: ExcelJS.Worksheet, row: number, col: number, text: str
     return cell;
 }
 
-function gabungHeader(sheet: ExcelJS.Worksheet, row: number, awal: number, akhir: number, text: string, warna: string, ukuran: number) {
+export function gabungHeader(sheet: ExcelJS.Worksheet, row: number, awal: number, akhir: number, text: string, warna: string, ukuran: number) {
     for (let col = awal; col <= akhir; col++) selHeader(sheet, row, col, "", warna, ukuran);
     sheet.mergeCells(row, awal, row, akhir);
     const cell = selHeader(sheet, row, awal, text, warna, ukuran);
